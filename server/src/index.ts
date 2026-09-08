@@ -1,7 +1,11 @@
 import { Hono } from 'hono'
+import { Auth } from '@auth/core'
 import type { Bindings, Variables } from './types'
+import { authConfig } from './auth'
+import { getSessionUser } from './middleware/auth'
 import { itemsRoute } from './routes/items'
 import { categoriesRoute } from './routes/categories'
+import { meRoute } from './routes/me'
 import { adminItemsRoute } from './routes/admin/items'
 import { adminCategoriesRoute } from './routes/admin/categories'
 
@@ -10,10 +14,14 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 // --- 헬스체크 ---
 app.get('/api/health', (c) => c.json({ ok: true }))
 
-// --- 세션 (SPEC §7.2) ---
-// TODO(1주차): Auth.js(@auth/core) 연동 후 JWT 쿠키 검증으로 교체
-app.get('/api/me', (c) => {
-  const user = c.get('user') ?? null
+// --- 인증 (Auth.js — §7.2) ---
+// signin/callback/signout 전부 Auth.js가 처리 (full-page redirect 방식)
+app.all('/api/auth/*', (c) => Auth(c.req.raw, authConfig(c.env)))
+
+// --- 세션 ---
+// 401 대신 {user:null} 반환 — SPA가 로그인 상태를 판단
+app.get('/api/me', async (c) => {
+  const user = await getSessionUser(c)
   return c.json({ user })
 })
 
@@ -34,6 +42,7 @@ app.get('/api/photos/*', async (c) => {
 // --- 도메인 라우트 ---
 app.route('/api/items', itemsRoute)
 app.route('/api/categories', categoriesRoute)
+app.route('/api/me/profile', meRoute)
 app.route('/api/admin/items', adminItemsRoute)
 app.route('/api/admin/categories', adminCategoriesRoute)
 

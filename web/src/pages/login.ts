@@ -1,31 +1,74 @@
 import { LitElement, html, css } from 'lit'
-import { customElement } from 'lit/decorators.js'
+import { customElement, state } from 'lit/decorators.js'
 
-// SPEC §4.1 — 소셜 로그인 (1주차 Auth.js 연동)
+// SPEC §7.2 — 소셜 로그인 (구글 전용)
+// @auth/core 0.41은 GET signin/:provider를 지원하지 않으므로(UnknownAction),
+// POST signin + CSRF 토큰으로 OAuth 리다이렉트 URL을 받은 뒤 full-page 이동한다.
 @customElement('page-login')
 export class PageLogin extends LitElement {
+  @state() private busy = false
+  @state() private message = ''
+
   static styles = css`
     div { text-align: center; padding: var(--space-6) 0; }
-    a {
+    p { color: var(--color-muted); font-size: 0.85rem; }
+    button {
       display: block;
-      margin: var(--space-2) auto;
-      max-width: 240px;
+      margin: var(--space-3) auto 0;
+      max-width: 260px;
+      width: 100%;
       padding: var(--space-3);
       border-radius: var(--radius);
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       color: var(--color-text);
       text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
     }
+    button:hover:not(:disabled) { border-color: var(--color-primary); }
+    button:disabled { opacity: 0.6; cursor: default; }
+    .msg { color: var(--color-danger); font-size: 0.8rem; }
   `
+
+  // Auth.js 표준 클라이언트 플로우: csrf → POST signin → {url} → 브라우저 이동
+  private async signIn() {
+    this.busy = true
+    this.message = ''
+    try {
+      const csrfRes = await fetch('/api/auth/csrf')
+      const { csrfToken } = (await csrfRes.json()) as { csrfToken: string }
+
+      const res = await fetch('/api/auth/signin/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Auth-Return-Redirect': '1',
+        },
+        body: new URLSearchParams({
+          csrfToken,
+          callbackUrl: window.location.origin + '/',
+        }),
+      })
+      const { url } = (await res.json()) as { url?: string }
+      if (!url) throw new Error('로그인 URL을 받지 못했어요')
+      window.location.assign(url) // 구글 동의 화면으로 full-page 이동
+    } catch (err) {
+      this.message = err instanceof Error ? err.message : '로그인에 실패했어요'
+      this.busy = false
+    }
+  }
 
   render() {
     return html`
       <div>
         <h1>로그인</h1>
-        <!-- TODO(1주차): /api/auth/signin/:provider 로 full-page redirect (§7.2) -->
-        <a href="/api/auth/signin/google">구글로 로그인</a>
-        <a href="/api/auth/signin/kakao">카카오로 로그인</a>
+        <p>구글 계정으로 로그인하고, 관리자 승인 후 물품을 대여할 수 있어요</p>
+        <button @click=${this.signIn} ?disabled=${this.busy}>
+          ${this.busy ? '이동 중…' : '구글로 로그인'}
+        </button>
+        <p class="msg">${this.message}</p>
       </div>
     `
   }

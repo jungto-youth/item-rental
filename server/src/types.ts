@@ -2,6 +2,10 @@
 export type Bindings = {
   // Neon 연결 문자열 — 배포: `wrangler secret put DATABASE_URL` / 로컬: .dev.vars
   DATABASE_URL: string
+  // Auth.js — 배포: `wrangler secret put` / 로컬: .dev.vars
+  AUTH_SECRET: string
+  AUTH_GOOGLE_ID: string
+  AUTH_GOOGLE_SECRET: string
   PHOTOS: R2Bucket
   ASSETS: Fetcher
 }

@@ -1,11 +1,12 @@
 # 청년지부 물품 대여 사이트 — 사양서 (SPEC)
 
-버전: v2.1 (2026-09-08) · 규모: 소규모 (물품 ~50개) · 대상: 지부 회원 (계정제) · 플랫폼: Cloudflare (호스팅·저장소) + Neon (PostgreSQL DB)
+버전: v2.2 (2026-09-08) · 규모: 소규모 (물품 ~50개) · 대상: 지부 회원 (계정제) · 플랫폼: Cloudflare (호스팅·저장소) + Neon (PostgreSQL DB)
 
 > **변경 이력**
 > - v1.1 (2026-09-03): Supabase/Vercel → Cloudflare(Workers + D1 + R2) 전면 교체. 인증은 Auth.js로 자체 구현. 이메일은 Resend 유지.
 > - v2.0 (2026-09-08): **클라이언트를 Hono JSX 서버 렌더링 → 순수 Lit SPA로 전면 교체.** 서버는 Hono JSON API 전용(JSX 렌더링 제거). 스타일은 Tailwind → Lit `css` 템플릿 + CSS 커스텀 프로퍼티 디자인 토큰(Shadow DOM 캡슐화 유지).
 > - v2.1 (2026-09-08): **DB를 D1(SQLite) → Neon(PostgreSQL)으로 교체.** 연결은 `@neondatabase/serverless` HTTP 드라이버(fetch 기반, Workers 친화). 백업은 주간 `pg_dump` 주도로 변경. 런타임은 여전히 workerd — Deno는 패키지 매니저/개발 도구 역할.
+> - v2.2 (2026-09-08): **로그인 구현 — 구글 OAuth 단일 프로바이더** (카카오는 v2 후보로 이동). Auth.js JWT 세션 검증 후 members를 1회 조회해 최신 role/status를 반영 (무상태 JWT + 권한 변경 즉시 반영). 프로필 입력 API(`PUT /api/me/profile`) 추가.
 
 ---
 
@@ -30,8 +31,8 @@
 | 회원 (approved) | 물품 검색, 대여 신청, 내 예약 현황·이력 조회, 신청 취소 |
 | 관리자 (admin) | 물품 등록/수정/삭제, 대여 신청 승인/거절, 수령·반납 처리, 회원 승인, 전체 대여 이력 조회 |
 
-- 회원가입: 카카오 또는 구글 소셜 로그인(OAuth) → 가입 시 이름·연락처 입력 → 관리자 승인 후 이용 가능
-- 로그인 세션: JWT 기반 무상태 세션 (DB 조회 없이 검증 — Workers 친화적)
+- 회원가입: 구글 소셜 로그인(OAuth) → 최초 로그인 시 members 자동 생성(승인 대기) → 프로필(이름·연락처) 입력 → 관리자 승인 후 이용 가능
+- 로그인 세션: JWT 무상태 세션 (서명 검증 후 members 1회 조회로 최신 role/status 보정)
 - 관리자: DB의 role 필드로 지정 (최초 1~2명 수동 지정)
 
 ## 3. 대여 상태 흐름 (핵심 플로우)
@@ -112,7 +113,7 @@
 | 스타일 | **Lit `css` 템플릿 + CSS 커스텀 프로퍼티 디자인 토큰** | Shadow DOM 캡슐화 유지 — Tailwind는 Shadow DOM과 충돌하여 제외 |
 | 서버 | **Hono (JSON API 전용)** + TypeScript | Workers 네이티브, 라우팅·미들웨어만 사용 — JSX 렌더링 제거 |
 | DB | **Neon** (PostgreSQL, 무료 플랜) + `@neondatabase/serverless` HTTP 드라이버 | 진짜 Postgres — 익숙한 문법·풍부한 타입, fetch 기반이라 Workers 무료 플랜에서 TCP/Hyperdrive 불필요 |
-| 인증 | **Auth.js (@auth/core)** — 카카오/구글 OAuth + JWT 세션 (Hono 연동: hono-auth-js) | Workers 호환, 카카오 프로바이더 내장, HttpOnly 쿠키 |
+| 인증 | **Auth.js (@auth/core)** — 구글 OAuth + JWT 세션 (Hono에 수동 연동: `Auth(c.req.raw, config)`) | Workers 호환, HttpOnly 쿠키. 카카오는 v2 후보 |
 | 이미지 저장 | **Cloudflare R2** (무료 10GB) | 이그레스 비용 0, S3 호환 |
 | 배포 | **Wrangler CLI** (`wrangler deploy`) | Git 푸시 → GitHub Actions 자동 배포 |
 | 정적 자산 | **Workers Static Assets** (`not_found_handling: single-page-application`) | SPA 폴백 내장 — Pages 불필요, 2026년 Cloudflare 공식 권장 |
@@ -145,7 +146,7 @@ server/src/
 
 ### 7.2 인증 플로우
 1. SPA 로드 시 `GET /api/me`로 세션 확인 → `session-context`에 저장
-2. 소셜 로그인은 SPA fetch가 아닌 **full-page redirect** (`/api/auth/signin/:provider` → OAuth → 콜백 후 SPA 복귀)
+2. 소셜 로그인: `POST /api/auth/signin/:provider` (CSRF 토큰 + `X-Auth-Return-Redirect` 헤더)로 OAuth URL을 받아 `window.location` **full-page redirect** → 콜백 후 SPA 복귀. @auth/core 0.41은 `GET /signin/:provider`를 지원하지 않으므로 반드시 POST 플로우 사용
 3. JWT는 **HttpOnly + Secure + SameSite=Lax 쿠키** — 클라이언트 JS가 토큰에 접근 불가 (XSS 완화)
 4. API가 401 반환 → fetch 래퍼가 세션을 `null`로 갱신 → 라우트 가드가 `/login`으로 이동
 5. 승인 대기(status=pending) 회원은 `/mypage`만 허용
@@ -200,7 +201,7 @@ CREATE TABLE IF NOT EXISTS members (
   id         TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
   email      TEXT NOT NULL UNIQUE,
   name       TEXT NOT NULL,
-  phone      TEXT NOT NULL,
+  phone      TEXT,                              -- nullable — 최초 로그인 시 미수집, 프로필 입력에서 채움
   role       TEXT NOT NULL DEFAULT 'member',    -- member | admin
   status     TEXT NOT NULL DEFAULT 'pending',   -- pending | approved | inactive
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
