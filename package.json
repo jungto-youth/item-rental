@@ -1,0 +1,25 @@
+{
+  "name": "item-rental",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:web": "vite",
+    "dev:api": "wrangler dev",
+    "build": "vite build",
+    "check": "tsc --noEmit -p web && tsc --noEmit -p server",
+    "db:migrate": "deno run -A server/scripts/migrate.ts",
+    "deploy": "vite build && wrangler deploy"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1",
+    "@vaadin/router": "^2.0.0",
+    "hono": "^4",
+    "lit": "^3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4",
+    "typescript": "^5",
+    "vite": "^7",
+    "wrangler": "^4"
+  }
+}

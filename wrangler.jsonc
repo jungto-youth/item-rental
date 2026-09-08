@@ -1,0 +1,22 @@
+{
+  // SPEC §7.5 — SPA 폴백 + API 분기
+  "name": "item-rental",
+  "main": "server/src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  // DATABASE_URL (Neon 연결 문자열)은 바인딩이 아닌 시크릿으로 관리:
+  //   로컬: .dev.vars 파일 → `DATABASE_URL=postgresql://...`
+  //   배포: `wrangler secret put DATABASE_URL`
+  "r2_buckets": [
+    { "binding": "PHOTOS", "bucket_name": "item-rental-photos" }
+  ],
+  "triggers": {
+    // 매일 오전 10시(KST) — 반납 전날·연체 알림 배치 (§4.5)
+    "crons": ["0 1 * * *"]
+  }
+}

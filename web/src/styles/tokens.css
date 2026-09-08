@@ -1,0 +1,39 @@
+/* SPEC §6 — 디자인 토큰 (CSS 커스텀 프로퍼티는 Shadow DOM 안으로 상속됨) */
+:root {
+  --color-bg: #fafaf9;
+  --color-surface: #ffffff;
+  --color-border: #e7e5e4;
+  --color-text: #1c1917;
+  --color-muted: #78716c;
+  --color-primary: #2563eb;
+  --color-primary-text: #ffffff;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+
+  --radius: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+
+  --font-body: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0c0a09;
+    --color-surface: #1c1917;
+    --color-border: #292524;
+    --color-text: #fafaf9;
+    --color-muted: #a8a29e;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
