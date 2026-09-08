@@ -45,6 +45,7 @@ export class AppShell extends LitElement {
       <header>
         <a href="/" class="brand">물품 대여</a>
         <nav>
+          <a href="/admin/items">관리자</a>
           <a href="/mypage">마이페이지</a>
           <a href="/login">로그인</a>
         </nav>
