@@ -19,7 +19,7 @@
     "lit": "^3"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4",
+    "@cloudflare/workers-types": "^5",
     "typescript": "^5",
     "vite": "^7",
     "wrangler": "^4"

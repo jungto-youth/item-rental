@@ -97,6 +97,7 @@ export class AppShell extends LitElement {
       <header>
         <a href="/" class="brand">물품 대여</a>
         <nav>
+          <a href="/">물품 대여</a>
           ${this.user && (this.user.role === 'manager' || this.user.role === 'admin')
             ? html`<a href="/admin/items">물품 관리</a><a href="/admin/members">회원 관리</a>`
             : ''}

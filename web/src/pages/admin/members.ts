@@ -106,7 +106,8 @@ export class PageAdminMembers extends LitElement {
       // 서버 보호장치(409)에 대한 안내 문구
       const detail = e instanceof Error ? e.message : ''
       if (detail.includes('last_admin')) this.message = '마지막 총관리자는 해임할 수 없어요'
-      else if (detail.includes('member_not_approved')) this.message = '승인된 회원만 역할을 부여할 수 있어요'
+      else if (detail.includes('member_not_approved'))
+        this.message = '승인 대기 회원이에요 — 먼저 승인한 후 역할을 바꿀 수 있어요'
       else if (e instanceof ApiError) this.message = e.message
       else this.message = '역할 변경 실패'
       await this.reload() // select 원복
@@ -146,7 +147,7 @@ export class PageAdminMembers extends LitElement {
         <td>${m.phone ?? '—'}</td>
         <td><x-badge kind=${m.status}></x-badge></td>
         <td>
-          ${this.myRole === 'admin'
+          ${this.myRole === 'admin' && m.status === 'approved'
             ? html`<select
                 ?disabled=${this.busy}
                 .value=${m.role}
