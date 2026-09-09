@@ -13,6 +13,9 @@ export class PageAdminItems extends LitElement {
   @state() private creating = false
   @state() private form = { name: '', total_qty: 1, max_days: 7, status: 'active', description: '' }
   @state() private photos: Photo[] = [] // 편집 중 물품의 사진
+  @state() private staged: File[] = [] // 등록 모드에서 고른 사진 — 저장(id 발급) 후 업로드
+  @state() private stagedUrls: string[] = [] // 미리보기용 object URL
+  @state() private saving = false // 저장 진행 중 — 버튼 비활성화로 중복 저장 방지
   @state() private message = ''
 
   static styles = css`
@@ -26,6 +29,7 @@ export class PageAdminItems extends LitElement {
       padding: var(--space-2) var(--space-4);
       cursor: pointer;
     }
+    button.primary:disabled { opacity: .55; cursor: default; }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -87,12 +91,14 @@ export class PageAdminItems extends LitElement {
     this.creating = true
     this.editing = null
     this.photos = []
+    this.clearStaged()
     this.form = { name: '', total_qty: 1, max_days: 7, status: 'active', description: '' }
   }
 
   private async openEdit(it: AdminItem) {
     this.creating = false
     this.editing = it
+    this.clearStaged()
     this.form = {
       name: it.name,
       total_qty: it.total_qty,
@@ -109,25 +115,73 @@ export class PageAdminItems extends LitElement {
   private close() {
     this.creating = false
     this.editing = null
+    this.clearStaged()
+  }
+
+  // --- 등록 모드 사진 임시 보관 (업로드는 저장 후) ---
+  private clearStaged() {
+    this.stagedUrls.forEach((u) => URL.revokeObjectURL(u))
+    this.staged = []
+    this.stagedUrls = []
+  }
+
+  private static readonly PHOTO_OK = ['image/jpeg', 'image/png', 'image/webp']
+  private static readonly MAX_PHOTO_BYTES = 5 * 1024 * 1024
+
+  private pickStaged(e: Event) {
+    const input = e.target as HTMLInputElement
+    for (const f of Array.from(input.files ?? [])) {
+      if (this.staged.length >= 3) {
+        this.message = '사진은 최대 3장이에요'
+        break
+      }
+      if (!PageAdminItems.PHOTO_OK.includes(f.type) || f.size > PageAdminItems.MAX_PHOTO_BYTES) {
+        this.message = 'JPEG/PNG/WebP, 5MB 이하만 가능해요'
+        continue
+      }
+      this.staged = [...this.staged, f]
+      this.stagedUrls = [...this.stagedUrls, URL.createObjectURL(f)]
+    }
+    input.value = ''
+  }
+
+  private removeStaged(i: number) {
+    URL.revokeObjectURL(this.stagedUrls[i])
+    this.staged = this.staged.filter((_, j) => j !== i)
+    this.stagedUrls = this.stagedUrls.filter((_, j) => j !== i)
   }
 
   private async save() {
+    if (this.saving) return // 진행 중 재클릭 → 물품 중복 등록 방지
+    this.saving = true
     try {
       if (this.creating) {
         const res = await api<{ id: number }>('/api/admin/items', {
           method: 'POST',
           body: JSON.stringify(this.form),
         })
-        await this.reload()
-        // 사진 API는 물품 id 기반이라 저장 전엔 업로드 불가 → 저장 직후 편집 모드로 전환해 사진을 바로 올리게 함
-        const created = this.items.find((it) => it.id === res.id)
-        if (created) {
-          await this.openEdit(created)
-          this.message = '저장했어요 — 사진을 추가할 수 있어요'
-          return
+        // 등록 모드에서 고른 사진 — id 발급 직후 업로드 (사진 API는 물품 id 기반)
+        const failed: string[] = []
+        for (const f of this.staged) {
+          const fd = new FormData()
+          fd.append('file', f)
+          try {
+            await api(`/api/admin/items/${res.id}/photos`, { method: 'POST', body: fd })
+          } catch {
+            failed.push(f.name)
+          }
         }
-        this.message = '저장했어요'
-        this.close()
+        await this.reload()
+        if (failed.length) {
+          // 실패한 사진은 편집 모드에서 다시 올릴 수 있게 편집 모드 유지
+          const created = this.items.find((it) => it.id === res.id)
+          if (created) await this.openEdit(created)
+          this.message = `저장했어요 — 사진 업로드 실패: ${failed.join(', ')}`
+        } else {
+          // 성공이면 목록으로 바로 복귀 — 저장 1회 클릭으로 등록 완료
+          this.message = '저장했어요'
+          this.close()
+        }
       } else if (this.editing) {
         await api(`/api/admin/items/${this.editing.id}`, { method: 'PUT', body: JSON.stringify(this.form) })
         this.message = '저장했어요'
@@ -136,6 +190,8 @@ export class PageAdminItems extends LitElement {
       }
     } catch (e) {
       this.message = e instanceof Error ? e.message : '저장 실패'
+    } finally {
+      this.saving = false
     }
   }
 
@@ -220,24 +276,31 @@ export class PageAdminItems extends LitElement {
         <label>설명
           <textarea rows="3" .value=${this.form.description} @input=${(e: Event) => this.set('description', (e.target as HTMLTextAreaElement).value)}></textarea>
         </label>
-        ${this.editing
-          ? html`
-              <label>사진 (최대 3장 · JPEG/PNG/WebP · 5MB)
-                <input type="file" accept="image/jpeg,image/png,image/webp" @change=${this.uploadPhoto} />
-              </label>
-              <div class="pics">
-                ${this.photos.map(
-                  (p) => html`
-                    <div class="pic">
-                      <img src=${p.url} alt="" />
-                      <button type="button" title="삭제" @click=${() => this.deletePhoto(p)}>×</button>
-                    </div>
-                  `,
-                )}
-              </div>
-            `
-          : ''}
-        <button class="primary" type="submit">저장</button>
+        <label>사진 (최대 3장 · JPEG/PNG/WebP · 5MB)
+          ${this.creating
+            ? html`<input type="file" multiple accept="image/jpeg,image/png,image/webp" @change=${this.pickStaged} />`
+            : html`<input type="file" accept="image/jpeg,image/png,image/webp" @change=${this.uploadPhoto} />`}
+        </label>
+        <div class="pics">
+          ${this.creating
+            ? this.stagedUrls.map(
+                (u, i) => html`
+                  <div class="pic">
+                    <img src=${u} alt="" />
+                    <button type="button" title="삭제" @click=${() => this.removeStaged(i)}>×</button>
+                  </div>
+                `,
+              )
+            : this.photos.map(
+                (p) => html`
+                  <div class="pic">
+                    <img src=${p.url} alt="" />
+                    <button type="button" title="삭제" @click=${() => this.deletePhoto(p)}>×</button>
+                  </div>
+                `,
+              )}
+        </div>
+        <button class="primary" type="submit" ?disabled=${this.saving}>${this.saving ? '저장 중…' : '저장'}</button>
       </form>
     `
   }
