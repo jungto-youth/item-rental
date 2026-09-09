@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import type { Bindings, Variables } from '../../types'
 import { getDb, type Sql } from '../../db'
 import { requireAdmin } from '../../middleware/auth'
-import { backfillEmbeddings, embedItem } from '../../embedding'
+import { embedItem } from '../../embedding'
 
 // SPEC §7.4 — /api/admin/items (물품 CRUD + 사진 관리, admin 전용)
 export const adminItemsRoute = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -94,13 +94,6 @@ adminItemsRoute.put('/:id', async (c) => {
   // 이름·설명이 바뀌면 임베딩도 갱신 (무조건 재생성 — 소규모라 비용 무시)
   await embedItem(c.env, db, id)
   return c.json({ ok: true })
-})
-
-// 임베딩 일괄 채우기 — 기존 물품·임베딩 생성 실패분을 후처리 (보통 1회 호출)
-adminItemsRoute.post('/embeddings/backfill', async (c) => {
-  const db: Sql = getDb(c.env)
-  const backfilled = await backfillEmbeddings(c.env, db)
-  return c.json({ backfilled })
 })
 
 // 삭제 — 대여 이력이 있으면 거부 (폐기 상태로 전환 권장)

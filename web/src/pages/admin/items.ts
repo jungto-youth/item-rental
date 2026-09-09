@@ -14,7 +14,6 @@ export class PageAdminItems extends LitElement {
   @state() private form = { name: '', total_qty: 1, max_days: 7, status: 'active', description: '' }
   @state() private photos: Photo[] = [] // 편집 중 물품의 사진
   @state() private message = ''
-  @state() private embeddingBusy = false
 
   static styles = css`
     h1 { font-size: 1.15rem; }
@@ -115,28 +114,28 @@ export class PageAdminItems extends LitElement {
   private async save() {
     try {
       if (this.creating) {
-        await api('/api/admin/items', { method: 'POST', body: JSON.stringify(this.form) })
+        const res = await api<{ id: number }>('/api/admin/items', {
+          method: 'POST',
+          body: JSON.stringify(this.form),
+        })
+        await this.reload()
+        // 사진 API는 물품 id 기반이라 저장 전엔 업로드 불가 → 저장 직후 편집 모드로 전환해 사진을 바로 올리게 함
+        const created = this.items.find((it) => it.id === res.id)
+        if (created) {
+          await this.openEdit(created)
+          this.message = '저장했어요 — 사진을 추가할 수 있어요'
+          return
+        }
+        this.message = '저장했어요'
+        this.close()
       } else if (this.editing) {
         await api(`/api/admin/items/${this.editing.id}`, { method: 'PUT', body: JSON.stringify(this.form) })
+        this.message = '저장했어요'
+        this.close()
+        await this.reload()
       }
-      this.message = '저장했어요'
-      this.close()
-      await this.reload()
     } catch (e) {
       this.message = e instanceof Error ? e.message : '저장 실패'
-    }
-  }
-
-  // 임베딩 없는 기존 물품을 일괄 채움 — 보통 1회 (새 물품은 저장 시 자동 생성됨)
-  private async backfillEmbeddings() {
-    this.embeddingBusy = true
-    try {
-      const res = await api<{ backfilled: number }>('/api/admin/items/embeddings/backfill', { method: 'POST' })
-      this.message = `임베딩 ${res.backfilled}개 물품 생성 완료`
-    } catch (e) {
-      this.message = e instanceof Error ? e.message : '임베딩 생성 실패'
-    } finally {
-      this.embeddingBusy = false
     }
   }
 
@@ -187,12 +186,7 @@ export class PageAdminItems extends LitElement {
         <h1>물품 관리</h1>
         ${this.creating || this.editing
           ? html`<button class="link" @click=${this.close}>← 목록으로</button>`
-          : html`<span>
-              <button class="link" @click=${this.backfillEmbeddings} ?disabled=${this.embeddingBusy}>
-                ${this.embeddingBusy ? '임베딩 생성 중…' : '임베딩 일괄 생성'}
-              </button>
-              <button class="primary" @click=${this.openCreate}>+ 물품 등록</button>
-            </span>`}
+          : html`<button class="primary" @click=${this.openCreate}>+ 물품 등록</button>`}
       </div>
       <p class="msg">${this.message}</p>
 

@@ -1,14 +1,15 @@
 # 청년지부 물품 대여 사이트 — 사양서 (SPEC)
 
-버전: v2.2 (2026-09-08) · 규모: 소규모 (물품 ~50개) · 대상: 지부 회원 (계정제) · 플랫폼: Cloudflare (호스팅·저장소) + Neon (PostgreSQL DB)
+버전: v2.5 (2026-09-09) · 규모: 소규모 (물품 ~50개) · 대상: 지부 회원 (계정제) · 플랫폼: Cloudflare (호스팅·저장소) + Neon (PostgreSQL DB)
 
 > **변경 이력**
 > - v1.1 (2026-09-03): Supabase/Vercel → Cloudflare(Workers + D1 + R2) 전면 교체. 인증은 Auth.js로 자체 구현. 이메일은 Resend 유지.
 > - v2.0 (2026-09-08): **클라이언트를 Hono JSX 서버 렌더링 → 순수 Lit SPA로 전면 교체.** 서버는 Hono JSON API 전용(JSX 렌더링 제거). 스타일은 Tailwind → Lit `css` 템플릿 + CSS 커스텀 프로퍼티 디자인 토큰(Shadow DOM 캡슐화 유지).
 > - v2.1 (2026-09-08): **DB를 D1(SQLite) → Neon(PostgreSQL)으로 교체.** 연결은 `@neondatabase/serverless` HTTP 드라이버(fetch 기반, Workers 친화). 백업은 주간 `pg_dump` 주도로 변경. 런타임은 여전히 workerd — Deno는 패키지 매니저/개발 도구 역할.
 > - v2.2 (2026-09-08): **로그인 구현 — 구글 OAuth 단일 프로바이더** (카카오는 v2 후보로 이동). Auth.js JWT 세션 검증 후 members를 1회 조회해 최신 role/status를 반영 (무상태 JWT + 권한 변경 즉시 반영). 프로필 입력 API(`PUT /api/me/profile`) 추가.
-> - v2.5 (2026-09-09): **카테고리 완전 제거.** 자동 분류(v2.4)조차 새 카테고리 생성·이름 관리라는 새 관리 포인트를 만들므로, 카테고리 테이블·컬럼·칩·분류기를 전부 제거하고 탐색을 검색(키워드+의미)으로 완전 대체. 홈은 검색바 + 전체 그리드. 등록 폼은 이름·설명·수량·상태만.
-> - v2.3 (2026-09-09): **의미 검색 도입.** 물품 등록/수정 시 Cloudflare Workers AI `@cf/baai/bge-m3`(다국어, 무료)로 임베딩 자동 생성 → Neon **pgvector** `vector(1024)` 컬럼 저장. 검색은 키워드 매치(ILIKE 이름·설명·카테고리) 우선 + 의미 유사 물품(거리 상위 8개)을 뒤에 추가 — 절대 거리 임계는 관련/무관 구분력이 부족해 상대 랭킹으로 대체 (실측). 키워드 검색 이름만 → 설명·카테고리 확장. members.phone nullable (최초 로그인 시 미수집).
+> - v2.3 (2026-09-09): **의미 검색 도입.** 물품 등록/수정 시 Cloudflare Workers AI `@cf/baai/bge-m3`(다국어, 무료)로 임베딩 자동 생성 → Neon **pgvector** `vector(1024)` 컬럼 저장. 검색은 키워드 매치(ILIKE 이름·설명) 우선 + 의미 유사 물품(거리 상위 8개)을 뒤에 추가 — 절대 거리 임계는 관련/무관 구분력이 부족해 상대 랭킹으로 대체 (실측). 키워드 검색 이름만 → 설명 확장. members.phone nullable (최초 로그인 시 미수집).
+> - v2.4 (2026-09-09): **카테고리 완전 제거.** LLM 자동 분류(이날 시도했다가 제거)조차 새 카테고리 생성·이름 관리라는 새 관리 포인트를 만들므로, 카테고리 테이블·컬럼·칩·분류기를 전부 제거하고 탐색을 검색(키워드+의미)으로 완전 대체. 홈은 검색바 + 전체 그리드. 등록 폼은 이름·설명·수량·상태만.
+> - v2.5 (2026-09-09): **임베딩 백필 제거 + 등록 흐름 정리.** 등록/수정 시 자동 생성만으로 충분해 관리자 "임베딩 일괄 생성" 버튼과 `/api/admin/items/embeddings/backfill` 엔드포인트 삭제. AI 호출 실패로 임베딩이 빠진 물품은 재수정 시 자동 재생성으로 복구. 물품 등록 저장 후 자동으로 편집 모드로 전환해 사진을 바로 올릴 수 있게 함 (사진 API는 물품 id 기반이라 저장 전에는 불가).
 
 ---
 
@@ -172,7 +173,6 @@ server/src/
 | GET | `/api/reservations/mine` | 내 예약 현황·이력 | approved |
 | POST | `/api/reservations/:id/cancel` | 신청 취소 | 본인 |
 | GET/POST/PUT/DELETE | `/api/admin/items` | 물품 CRUD (등록/수정 시 임베딩 자동 생성) | admin |
-| POST | `/api/admin/items/embeddings/backfill` | 임베딩 일괄 채우기 (임베딩 NULL 물품) | admin |
 | POST | `/api/admin/items/:id/photos` | 사진 업로드 → R2 바인딩 | admin |
 | GET | `/api/admin/reservations?status=` | 전체 예약 목록 | admin |
 | POST | `/api/admin/reservations/:id/{approve,reject,pickup,return}` | 상태 처리 | admin |

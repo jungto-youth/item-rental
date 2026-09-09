@@ -36,14 +36,3 @@ export async function embedItem(env: Bindings, db: Sql, itemId: number): Promise
     console.error(`임베딩 생성 실패 (item ${itemId})`, err)
   }
 }
-
-// 임베딩 없는 물품 전체 채우기 — 관리자 엔드포인트에서 1회 호출
-export async function backfillEmbeddings(env: Bindings, db: Sql): Promise<number> {
-  const rows = (await db.query(
-    `SELECT id FROM items WHERE embedding IS NULL ORDER BY id`,
-  )) as { id: number }[]
-  for (const r of rows) {
-    await embedItem(env, db, r.id)
-  }
-  return rows.length
-}
