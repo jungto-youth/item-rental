@@ -1,5 +1,6 @@
 import { LitElement, html, css } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import { customElement, state } from 'lit/decorators.js'
+import type { RouterLocation } from '@vaadin/router'
 import { api } from '../api/client'
 import '../components/ui/badge'
 import '../components/ui/availability-strip'
@@ -8,8 +9,7 @@ import type { AvailabilityDay, Item } from '../types'
 // SPEC §5 — 물품 상세 (신청 폼은 3주차)
 @customElement('page-item-detail')
 export class PageItemDetail extends LitElement {
-  @property({ type: String }) itemId = ''
-
+  @state() private itemId = ''
   @state() private item: Item | null = null
   @state() private availability: AvailabilityDay[] = []
   @state() private photoIdx = 0
@@ -68,8 +68,14 @@ export class PageItemDetail extends LitElement {
     .error { color: var(--color-danger); padding: var(--space-6) 0; }
   `
 
-  async connectedCallback() {
-    super.connectedCallback()
+  // @vaadin/router 라이프사이클 — /items/:id 파라미터는 여기서 주입받음
+  onAfterEnter(location: RouterLocation) {
+    this.itemId = String(location.params.id ?? '')
+    if (this.itemId) void this.load()
+    else this.error = '물품을 찾을 수 없어요'
+  }
+
+  private async load() {
     try {
       const res = await api<{ item: Item; availability: AvailabilityDay[] }>(
         `/api/items/${this.itemId}`,
