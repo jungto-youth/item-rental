@@ -8,16 +8,27 @@ import { getDb, type Sql } from './db'
 export function authConfig(env: Bindings): AuthConfig {
   const db = () => getDb(env)
 
+  // 로그인 허용 범위 — 정토회 계정(@jungto.org) + 예외 이메일(AUTH_ALLOWED_EMAILS, 콤마 구분).
+  // 예외는 운영진이 개인 계정으로 접속할 때 쓴다 (wrangler secret / .dev.vars로 관리).
+  const allowedEmails = (env.AUTH_ALLOWED_EMAILS ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+  const isAllowed = (email: string) =>
+    email.toLowerCase().endsWith('@jungto.org') || allowedEmails.includes(email.toLowerCase())
+
   return {
     secret: env.AUTH_SECRET,
     trustHost: true,
     basePath: '/api/auth',
     session: { strategy: 'jwt' },
+    pages: { error: '/login' }, // 로그인 거부 시 SPA 로그인 화면으로 ?error=와 함께 복귀
     providers: [Google({ clientId: env.AUTH_GOOGLE_ID, clientSecret: env.AUTH_GOOGLE_SECRET })],
     callbacks: {
       // 최초 로그인 시 members 생성 (§4.1 — 승인 대기 상태로 시작)
+      // 정토회 계정이 아니면 여기서 차단 — members 생성 자체를 하지 않음
       async signIn({ user }) {
-        if (!user.email) return false
+        if (!user.email || !isAllowed(user.email)) return false
         const sql: Sql = db()
         await sql.query(
           `INSERT INTO members (email, name) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING`,

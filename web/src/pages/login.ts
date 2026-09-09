@@ -9,6 +9,16 @@ export class PageLogin extends LitElement {
   @state() private busy = false
   @state() private message = ''
 
+  // OAuth 콜백에서 로그인이 거부되면 ?error=와 함께 이 화면으로 돌아옴 (§7.2)
+  connectedCallback() {
+    super.connectedCallback()
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('error') === 'AccessDenied') {
+      this.message = '정토회 계정(@jungto.org)으로 로그인해주세요'
+      history.replaceState(null, '', window.location.pathname) // 새로고침 시 재표시 방지
+    }
+  }
+
   static styles = css`
     div { text-align: center; padding: var(--space-6) 0; }
     p { color: var(--color-muted); font-size: 0.85rem; }
@@ -64,7 +74,7 @@ export class PageLogin extends LitElement {
     return html`
       <div>
         <h1>로그인</h1>
-        <p>구글 계정으로 로그인하고, 관리자 승인 후 물품을 대여할 수 있어요</p>
+        <p>정토회 구글 계정으로 로그인하고, 관리자 승인 후 물품을 대여할 수 있어요</p>
         <button @click=${this.signIn} ?disabled=${this.busy}>
           ${this.busy ? '이동 중…' : '구글로 로그인'}
         </button>

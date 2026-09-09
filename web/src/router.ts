@@ -8,6 +8,7 @@ import './pages/signup-profile'
 import './pages/not-found'
 import './pages/admin/items'
 import './pages/admin/members'
+import './pages/admin/reservations'
 
 // vaadin의 action 시그니처 — Route 타입에서 추출해 가드에 재사용
 type RouteAction = NonNullable<Route['action']>
@@ -44,6 +45,7 @@ export function initRouter(outlet: HTMLElement): Router {
     { path: '/mypage', component: 'page-mypage', action: requireSession },
     { path: '/signup/profile', component: 'page-signup-profile', action: requireSession },
     { path: '/admin/items', component: 'page-admin-items', action: requireManager },
+    { path: '/admin/reservations', component: 'page-admin-reservations', action: requireManager },
     { path: '/admin/members', component: 'page-admin-members', action: requireManager },
     { path: '(.*)', component: 'page-not-found' },
   ])

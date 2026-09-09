@@ -5,8 +5,10 @@ import { authConfig } from './auth'
 import { getSessionUser } from './middleware/auth'
 import { itemsRoute } from './routes/items'
 import { meRoute } from './routes/me'
+import { reservationsRoute } from './routes/reservations'
 import { adminItemsRoute } from './routes/admin/items'
 import { adminMembersRoute } from './routes/admin/members'
+import { adminReservationsRoute } from './routes/admin/reservations'
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -41,8 +43,10 @@ app.get('/api/photos/*', async (c) => {
 // --- 도메인 라우트 ---
 app.route('/api/items', itemsRoute)
 app.route('/api/me/profile', meRoute)
+app.route('/api/reservations', reservationsRoute)
 app.route('/api/admin/items', adminItemsRoute)
 app.route('/api/admin/members', adminMembersRoute)
+app.route('/api/admin/reservations', adminReservationsRoute)
 
 // --- 에러 처리 ---
 app.notFound((c) => c.json({ error: 'not_found' }, 404))

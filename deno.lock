@@ -899,14 +899,14 @@
     "packageJson": {
       "dependencies": [
         "npm:@auth/core@~0.41.3",
-        "npm:@cloudflare/workers-types@^5.20260908.1",
+        "npm:@cloudflare/workers-types@5",
         "npm:@neondatabase/serverless@1",
         "npm:@vaadin/router@2",
         "npm:hono@4",
         "npm:lit@3",
         "npm:typescript@5",
         "npm:vite@7",
-        "npm:wrangler@4.130.0"
+        "npm:wrangler@4"
       ]
     }
   }

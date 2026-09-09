@@ -14,6 +14,12 @@ const LABELS: Record<string, string> = {
   user: '회원',
   manager: '관리자',
   admin: '총관리자',
+  // 예약 상태 (v2.10)
+  picked_up: '대여 중',
+  returned: '반납 완료',
+  rejected: '거절',
+  cancelled: '취소',
+  overdue: '연체',
 }
 
 @customElement('x-badge')
@@ -39,6 +45,11 @@ export class XBadge extends LitElement {
     .user      { background: #dcfce7; color: #166534; }
     .manager   { background: #e0e7ff; color: #3730a3; }
     .admin     { background: #ede9fe; color: #5b21b6; }
+    .picked_up { background: #e0e7ff; color: #3730a3; }
+    .returned  { background: #dcfce7; color: #166534; }
+    .rejected  { background: #fee2e2; color: #991b1b; }
+    .cancelled { background: var(--color-border); color: var(--color-muted); }
+    .overdue   { background: #fecaca; color: #7f1d1d; }
   `
 
   render() {
