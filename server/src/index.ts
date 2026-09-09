@@ -6,6 +6,7 @@ import { getSessionUser } from './middleware/auth'
 import { itemsRoute } from './routes/items'
 import { meRoute } from './routes/me'
 import { adminItemsRoute } from './routes/admin/items'
+import { adminMembersRoute } from './routes/admin/members'
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -41,6 +42,7 @@ app.get('/api/photos/*', async (c) => {
 app.route('/api/items', itemsRoute)
 app.route('/api/me/profile', meRoute)
 app.route('/api/admin/items', adminItemsRoute)
+app.route('/api/admin/members', adminMembersRoute)
 
 // --- 에러 처리 ---
 app.notFound((c) => c.json({ error: 'not_found' }, 404))

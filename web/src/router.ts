@@ -7,6 +7,7 @@ import './pages/mypage'
 import './pages/signup-profile'
 import './pages/not-found'
 import './pages/admin/items'
+import './pages/admin/members'
 
 // vaadin의 action 시그니처 — Route 타입에서 추출해 가드에 재사용
 type RouteAction = NonNullable<Route['action']>
@@ -18,10 +19,11 @@ const requireSession: RouteAction = async (_context, commands) => {
   return undefined
 }
 
-const requireAdmin: RouteAction = async (_context, commands) => {
+// manager 이상 (관리자·총관리자) — /admin/* 진입 가드 (실제 권한은 서버가 이중 강제)
+const requireManager: RouteAction = async (_context, commands) => {
   const user = await session.ensure()
   if (!user) return commands.redirect('/login')
-  if (user.role !== 'admin') return commands.redirect('/')
+  if (user.role !== 'manager' && user.role !== 'admin') return commands.redirect('/')
   return undefined
 }
 
@@ -41,7 +43,8 @@ export function initRouter(outlet: HTMLElement): Router {
     { path: '/login', component: 'page-login' },
     { path: '/mypage', component: 'page-mypage', action: requireSession },
     { path: '/signup/profile', component: 'page-signup-profile', action: requireSession },
-    { path: '/admin/items', component: 'page-admin-items', action: requireAdmin },
+    { path: '/admin/items', component: 'page-admin-items', action: requireManager },
+    { path: '/admin/members', component: 'page-admin-members', action: requireManager },
     { path: '(.*)', component: 'page-not-found' },
   ])
   routerInstance = router

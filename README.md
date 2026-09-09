@@ -30,7 +30,10 @@ server/src/
   types.ts              — Bindings, SessionUser 공용 타입
   db.ts                 — Neon HTTP 드라이버 초기화
   auth.ts               — Auth.js 설정
-  routes/               — items, reservations, admin, auth, me
+  routes/
+    items.ts            — 물품 목록/상세 + 키워드·의미 검색
+    me.ts               — 내 정보, 프로필(이름·연락처) 입력
+    admin/items.ts      — 물품 CRUD + 사진 업로드/삭제
   middleware/           — requireAuth, requireApproved, requireAdmin
   embedding.ts          — Workers AI @cf/baai/bge-m3 임베딩 생성
 web/src/
@@ -39,8 +42,8 @@ web/src/
   styles/tokens.css     — CSS 커스텀 프로퍼티 디자인 토큰
   context/              — session-context, toast-context
   api/                  — fetch 래퍼 (401 처리, 에러 토스트)
-  components/ui/        — badge, date-range-picker, availability-strip, photo-uploader 등
-  pages/                — home, item-detail, mypage, login, profile, policy, admin/*
+  components/ui/        — badge, availability-strip
+  pages/                — home, item-detail, mypage, login, signup-profile, not-found, admin/items
 migrations/             — Neon 마이그레이션 SQL (0001_init ~ 0005)
 ```
 
@@ -49,15 +52,14 @@ migrations/             — Neon 마이그레이션 SQL (0001_init ~ 0005)
 | 메서드 | 경로 | 설명 | 권한 |
 |---|---|---|---|
 | GET | `/api/me` | 세션 사용자 | 전체 |
-| POST | `/api/auth/*` | Auth.js (signin/callback/signout) | 전체 |
+| `*` | `/api/auth/*` | Auth.js (signin/callback/signout) | 전체 |
 | GET | `/api/items?q=` | 물품 목록 (키워드+의미 검색) | 전체 |
 | GET | `/api/items/:id` | 물품 상세 + 가용 일정 (향후 90일) | 전체 |
-| POST | `/api/reservations` | 대여 신청 (원자적 INSERT) | approved |
-| POST | `/api/reservations/:id/cancel` | 신청 취소 | 본인 |
+| PUT | `/api/me/profile` | 이름·연락처 프로필 입력 | 로그인 |
 | GET/POST/PUT/DELETE | `/api/admin/items` | 물품 CRUD (임베딩 자동 생성) | admin |
 | POST | `/api/admin/items/:id/photos` | 사진 업로드 → R2 | admin |
-| GET/POST/PUT/DELETE | `/api/admin/members` | 회원 승인/거절 | admin |
-| GET | `/api/admin/dashboard` | 오늘 수령/반납, 승인 대기, 연체 | admin |
+| DELETE | `/api/admin/items/:id/photos/:photoId` | 사진 삭제 (R2 + DB) | admin |
+| GET | `/api/photos/*` | R2 사진 서빙 (1년 캐시) | 전체 |
 
 ### 대여 상태 흐름
 
@@ -92,14 +94,11 @@ settings  — key, value
 |---|---|---|
 | `/` | 물품 목록 (검색·가용 배지) | 전체 |
 | `/items/:id` | 물품 상세 + 대여 신청 | 전체 (신청은 회원) |
-| `/mypage` | 내 예약 현황·이력 | 회원 |
 | `/login` | 소셜 로그인 | 전체 |
+| `/mypage` | 내 예약 현황·이력 | 회원 |
 | `/signup/profile` | 이름·연락처 입력 | 로그인 회원 |
-| `/policy/privacy` | 개인정보 처리방침 | 전체 |
-| `/admin` | 대시보드 | 관리자 |
 | `/admin/items` | 물품 관리 | 관리자 |
-| `/admin/reservations` | 대여 신청 승인·수령·반납 | 관리자 |
-| `/admin/members` | 회원 승인 관리 | 관리자 |
+| `(.*)` | 404 화면 | 전체 |
 
 ### 무료 티어 한계 (2026-09 기준)
 
@@ -115,13 +114,13 @@ settings  — key, value
 
 ### 버전
 
-- **v2.6** (2026-09-09): 등록 저장 1회 클릭 완료 — 저장 후 바로 목록 복귀, 사진 실패 시만 편집 유지
-- **v2.5**: 임베딩 백필 제거, 등록 직후 사진 즉시 업로드 가능
-- **v2.4**: 카테고리 완전 제거 — 검색(키워드+의미)으로 탐색 대체
-- **v2.3**: 의미 검색 도입 (Workers AI + pgvector)
-- **v2.2**: 구글 OAuth 단일 프로바이더, 프로필 입력 API 추가
-- **v2.0**: Lit SPA + Hono JSON API 전면 교체
-- **v1.1**: Supabase/Vercel → Cloudflare(Workers + R2) 전면 교체
+- **v2.6** (2026-09-09): 등록 저장 1회 클릭 완료 — 사진 사전 선택, id 발급 후 업로드, 실패 시 편집 유지
+- **v2.5** (2026-09-09): 카테고리 완전 제거 — 검색(키워드+의미)으로 탐색 대체
+- **v2.4** (2026-09-09): 카테고리 완전 제거 + 의미 검색 도입 (Workers AI + pgvector)
+- **v2.3** (2026-09-09): 사용자 프로필에 연락처(phone) 필드 추가
+- **v2.2** (2026-09-08): 구글 OAuth 로그인 + 세션 미들웨어 + 프로필 입력
+- **v2.1** (2026-09-08): 물품 CRUD + 사진(R2) + 배포 설정
+- **v1.0** (2026-09-08): init — Lit SPA + Hono + Neon 스캐폴딩
 
 ## 개발
 
@@ -142,4 +141,4 @@ deno task check        # TypeScript 타입 검사 (web + server)
 
 ## 라이선스
 
-MIT
+Copyright © 2026 정토회. All rights reserved.

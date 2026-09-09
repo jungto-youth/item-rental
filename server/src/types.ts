@@ -12,13 +12,16 @@ export type Bindings = {
   AI: Ai
 }
 
+// 역할 3단계 (v2.7) — admin(총관리자) > manager(관리자) > user(회원)
+export type Role = 'user' | 'manager' | 'admin'
+
 // 미들웨어가 세팅하는 세션 사용자 (SPEC §8 권한 처리)
 export type SessionUser = {
   id: string
   email: string
   name: string
   phone: string | null // nullable — 최초 로그인 후 프로필 입력에서 채움
-  role: 'member' | 'admin'
+  role: Role
   status: 'pending' | 'approved' | 'inactive'
 }
 

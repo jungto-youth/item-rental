@@ -1,6 +1,6 @@
 # 청년지부 물품 대여 사이트 — 사양서 (SPEC)
 
-버전: v2.6 (2026-09-09) · 규모: 소규모 (물품 ~50개) · 대상: 지부 회원 (계정제) · 플랫폼: Cloudflare (호스팅·저장소) + Neon (PostgreSQL DB)
+버전: v2.7 (2026-09-09) · 규모: 소규모 (물품 ~50개) · 대상: 지부 회원 (계정제) · 플랫폼: Cloudflare (호스팅·저장소) + Neon (PostgreSQL DB)
 
 > **변경 이력**
 > - v1.1 (2026-09-03): Supabase/Vercel → Cloudflare(Workers + D1 + R2) 전면 교체. 인증은 Auth.js로 자체 구현. 이메일은 Resend 유지.
@@ -11,6 +11,7 @@
 > - v2.4 (2026-09-09): **카테고리 완전 제거.** LLM 자동 분류(이날 시도했다가 제거)조차 새 카테고리 생성·이름 관리라는 새 관리 포인트를 만들므로, 카테고리 테이블·컬럼·칩·분류기를 전부 제거하고 탐색을 검색(키워드+의미)으로 완전 대체. 홈은 검색바 + 전체 그리드. 등록 폼은 이름·설명·수량·상태만.
 > - v2.5 (2026-09-09): **임베딩 백필 제거 + 등록 흐름 정리.** 등록/수정 시 자동 생성만으로 충분해 관리자 "임베딩 일괄 생성" 버튼과 `/api/admin/items/embeddings/backfill` 엔드포인트 삭제. AI 호출 실패로 임베딩이 빠진 물품은 재수정 시 자동 재생성으로 복구. 물품 등록 저장 후 자동으로 편집 모드로 전환해 사진을 바로 올릴 수 있게 함 (사진 API는 물품 id 기반이라 저장 전에는 불가).
 > - v2.6 (2026-09-09): **등록 저장 1회 클릭 완료.** 등록 폼에서 사진을 직접 고르게 된(v2.5 후반) 시점부터 저장 후 편집 모드 전환은 불필요 — 성공 시 목록으로 바로 복귀하고, 사진 업로드 실패 시에만 편집 모드를 유지해 재업로드. 저장 진행 중 저장 버튼 비활성화("저장 중…" 표시)로 느린 요청(Neon 콜드스타트 등) 시 재클릭으로 인한 물품 중복 등록 방지.
+> - v2.7 (2026-09-09): **역할 3단계 + 회원 관리 화면.** role을 `admin`(총관리자) > `manager`(관리자) > `user`(회원) 3단계로 확장. 총관리자는 역할 지정/해제(여러 명 가능 — 마지막 총관리자는 본인 포함 해임 불가, 미승인 회원은 임명 불가), 관리자는 물품·대여·회원 승인 운영. 기존 `member` 값은 `user`로 이관(마이그레이션 0006). `/admin/members` 회원 관리 화면과 API(목록·승인/거절은 manager 이상, `PUT /:id/role`은 admin 전용) 신설. 첫 총관리자는 기존처럼 DB 수동 지정.
 
 ---
 
@@ -32,12 +33,13 @@
 |---|---|
 | 미인증 방문자 | 물품 목록·상세 열람, 로그인 |
 | 승인 대기 회원 | 마이페이지(승인 대기 상태 확인)만 접근 |
-| 회원 (approved) | 물품 검색, 대여 신청, 내 예약 현황·이력 조회, 신청 취소 |
-| 관리자 (admin) | 물품 등록/수정/삭제, 대여 신청 승인/거절, 수령·반납 처리, 회원 승인, 전체 대여 이력 조회 |
+| 회원 (user, approved) | 물품 검색, 대여 신청, 내 예약 현황·이력 조회, 신청 취소 |
+| 관리자 (manager) | 물품 등록/수정/삭제, 대여 신청 승인/거절, 수령·반납 처리, 회원 승인, 전체 대여 이력 조회 |
+| 총관리자 (admin) | 관리자의 모든 권한 + 회원 역할 지정/해제 (여러 명 가능) |
 
 - 회원가입: 구글 소셜 로그인(OAuth) → 최초 로그인 시 members 자동 생성(승인 대기) → 프로필(이름·연락처) 입력 → 관리자 승인 후 이용 가능
 - 로그인 세션: JWT 무상태 세션 (서명 검증 후 members 1회 조회로 최신 role/status 보정)
-- 관리자: DB의 role 필드로 지정 (최초 1~2명 수동 지정)
+- 역할 지정/해제: 총관리자만 가능 (마지막 총관리자는 본인 포함 해임 불가, 미승인 회원은 임명 불가). 첫 총관리자는 DB 수동 지정 1회
 
 ## 3. 대여 상태 흐름 (핵심 플로우)
 
@@ -77,7 +79,7 @@
 
 ### 4.4 관리자
 - 대시보드: 오늘 수령/반납 예정, 승인 대기 건수, 연체 건수
-- 회원 관리: 승인 대기 목록 → 승인/거절
+- 회원 관리: 승인 대기 목록 → 승인/거절, 역할 지정/해제 (역할 변경은 총관리자만 — §2)
 - 이력: 물품별/회원별 대여 이력 조회 (엑셀 다운로드는 2차 범위)
 
 ### 4.5 알림 (이메일 — Resend 무료 티어)
@@ -106,7 +108,7 @@
 | `/admin` | 대시보드 | 관리자 |
 | `/admin/items` | 물품 관리 | 관리자 |
 | `/admin/reservations` | 대여 신청 승인·수령·반납 | 관리자 |
-| `/admin/members` | 회원 승인 관리 | 관리자 |
+| `/admin/members` | 회원 관리 (승인·거절·역할) | 관리자 이상 (역할 변경은 총관리자) |
 
 ## 6. 기술 스택
 
@@ -160,7 +162,7 @@ server/src/
 ### 7.3 라우트 가드
 - `router.ts`에서 @vaadin/router guard로 경로별 검사:
   - `/mypage`, `/signup/profile` → 로그인 필요
-  - `/admin/*` → 로그인 + `role='admin'` (아니면 안내 화면)
+  - `/admin/*` → 로그인 + `role`이 manager 이상 (아니면 안내 화면)
 - 가드 판단 기준은 모두 `/api/me` 응답값 (서버 권한 검사는 §8 미들웨어가 이중으로 강제)
 
 ### 7.4 API 엔드포인트
@@ -175,10 +177,11 @@ server/src/
 | POST | `/api/reservations/:id/cancel` | 신청 취소 | 본인 |
 | GET/POST/PUT/DELETE | `/api/admin/items` | 물품 CRUD (등록/수정 시 임베딩 자동 생성) | admin |
 | POST | `/api/admin/items/:id/photos` | 사진 업로드 → R2 바인딩 | admin |
-| GET | `/api/admin/reservations?status=` | 전체 예약 목록 | admin |
-| POST | `/api/admin/reservations/:id/{approve,reject,pickup,return}` | 상태 처리 | admin |
-| GET/POST | `/api/admin/members`, `/api/admin/members/:id/{approve,reject}` | 회원 승인 | admin |
-| GET | `/api/admin/dashboard` | 오늘 수령/반납, 승인 대기, 연체 건수 | admin |
+| GET | `/api/admin/reservations?status=` | 전체 예약 목록 | manager 이상 |
+| POST | `/api/admin/reservations/:id/{approve,reject,pickup,return}` | 상태 처리 | manager 이상 |
+| GET/POST | `/api/admin/members`, `/api/admin/members/:id/{approve,reject}` | 회원 목록·승인/거절 | manager 이상 |
+| PUT | `/api/admin/members/:id/role` | 역할 지정/해제 (마지막 총관리자 보호) | admin |
+| GET | `/api/admin/dashboard` | 오늘 수령/반납, 승인 대기, 연체 건수 | manager 이상 |
 
 ### 7.5 Wrangler 설정 (SPA 폴백 + API 분기)
 ```jsonc
@@ -207,7 +210,7 @@ CREATE TABLE IF NOT EXISTS members (
   email      TEXT NOT NULL UNIQUE,
   name       TEXT NOT NULL,
   phone      TEXT,                              -- nullable — 최초 로그인 시 미수집, 프로필 입력에서 채움
-  role       TEXT NOT NULL DEFAULT 'member',    -- member | admin
+  role       TEXT NOT NULL DEFAULT 'user',      -- user | manager | admin (v2.7 3단계)
   status     TEXT NOT NULL DEFAULT 'pending',   -- pending | approved | inactive
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -281,7 +284,8 @@ WHERE (
 **권한 처리 (애플리케이션 레벨)**: Hono 미들웨어에서 통일 강제 —
 - `requireAuth`: 세션 JWT 검증
 - `requireApproved`: `status='approved'` 회원만 예약 API 접근
-- `requireAdmin`: `role='admin'`만 `/api/admin/*` 라우트 접근
+- `requireManager`: role이 manager/admin만 `/api/admin/*` 운영 라우트 접근 (물품·대여·회원 승인)
+- `requireAdmin`: role이 admin만 역할 지정/해제 등 관리자 관리 기능 접근
 - 모든 예약 쿼리에 `WHERE member_id = :session_user` 조건 필수 (관리자 제외)
 - 클라이언트 라우트 가드(§7.3)는 UX일 뿐 — 실제 권한은 전부 서버에서 검사
 

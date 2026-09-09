@@ -1,12 +1,12 @@
 import { Hono } from 'hono'
 import type { Bindings, Variables } from '../../types'
 import { getDb, type Sql } from '../../db'
-import { requireAdmin } from '../../middleware/auth'
+import { requireManager } from '../../middleware/auth'
 import { embedItem } from '../../embedding'
 
 // SPEC §7.4 — /api/admin/items (물품 CRUD + 사진 관리, admin 전용)
 export const adminItemsRoute = new Hono<{ Bindings: Bindings; Variables: Variables }>()
-adminItemsRoute.use('*', requireAdmin)
+adminItemsRoute.use('*', requireManager)
 
 const ITEM_STATUS = ['active', 'repair', 'retired'] as const
 const PHOTO_TYPES: Record<string, string> = {

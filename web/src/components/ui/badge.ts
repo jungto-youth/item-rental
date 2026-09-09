@@ -7,6 +7,13 @@ const LABELS: Record<string, string> = {
   rented: '대여 중',
   repair: '수리중',
   retired: '폐기',
+  // 회원 상태·역할 (v2.7)
+  pending: '승인 대기',
+  approved: '승인',
+  inactive: '비활성',
+  user: '회원',
+  manager: '관리자',
+  admin: '총관리자',
 }
 
 @customElement('x-badge')
@@ -27,6 +34,11 @@ export class XBadge extends LitElement {
     .rented    { background: #fee2e2; color: #991b1b; }
     .repair    { background: #e0e7ff; color: #3730a3; }
     .retired, .neutral { background: var(--color-border); color: var(--color-muted); }
+    .pending   { background: #fef9c3; color: #854d0e; }
+    .approved  { background: #dcfce7; color: #166534; }
+    .user      { background: #dcfce7; color: #166534; }
+    .manager   { background: #e0e7ff; color: #3730a3; }
+    .admin     { background: #ede9fe; color: #5b21b6; }
   `
 
   render() {

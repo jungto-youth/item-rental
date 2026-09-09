@@ -1,11 +1,12 @@
 import { api } from '../api/client'
+import type { Role } from '../types'
 
 export type SessionUser = {
   id: string
   email: string
   name: string
   phone: string | null
-  role: 'member' | 'admin'
+  role: Role
   status: 'pending' | 'approved' | 'inactive'
 }
 
