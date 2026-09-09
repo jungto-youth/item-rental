@@ -37,7 +37,7 @@ export async function getSessionUser(
 
   const db: Sql = getDb(c.env)
   const rows = (await db.query(
-    `SELECT id, email, name, role, status FROM members WHERE id = $1 AND status <> 'inactive'`,
+    `SELECT id, email, name, phone, role, status FROM members WHERE id = $1 AND status <> 'inactive'`,
     [payload.sub],
   )) as SessionUser[]
   return rows[0] ?? null

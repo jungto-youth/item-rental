@@ -43,16 +43,24 @@ export class PageMypage extends LitElement {
       <div class="card">
         <span><b>${this.user.name || this.user.email}</b></span>
         <span>${this.user.email}</span>
+        ${this.user.phone ? html`<span>연락처: ${this.user.phone}</span>` : ''}
         <span>상태: <x-badge kind=${this.user.status === 'approved' ? 'available' : 'neutral'}></x-badge></span>
       </div>
       ${this.user.status === 'pending'
         ? html`
             <div class="card pending" style="margin-top: var(--space-3)">
               승인 대기 중이에요 — 관리자 승인 후 물품을 대여할 수 있어요.
-              ${this.user.name === '' ? html`<a href="/signup/profile">프로필 입력하기</a>` : ''}
             </div>
           `
         : html`<p>대여 내역은 3주차에 열릴 예정이에요</p>`}
+      ${!this.user.phone
+        ? html`
+            <div class="card" style="margin-top: var(--space-3)">
+              물품을 대여하려면 연락처를 등록해야 해요 —
+              <a href="/signup/profile">프로필 입력하기</a>
+            </div>
+          `
+        : ''}
     `
   }
 }

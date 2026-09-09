@@ -15,6 +15,7 @@ export type SessionUser = {
   id: string
   email: string
   name: string
+  phone: string | null // nullable — 최초 로그인 후 프로필 입력에서 채움
   role: 'member' | 'admin'
   status: 'pending' | 'approved' | 'inactive'
 }

@@ -50,6 +50,7 @@ export class PageSignupProfile extends LitElement {
     super.connectedCallback()
     const user = await session.ensure()
     this.name = user?.name ?? ''
+    this.phone = user?.phone ?? ''
   }
 
   private async submit(e: Event) {

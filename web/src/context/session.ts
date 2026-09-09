@@ -4,6 +4,7 @@ export type SessionUser = {
   id: string
   email: string
   name: string
+  phone: string | null
   role: 'member' | 'admin'
   status: 'pending' | 'approved' | 'inactive'
 }
