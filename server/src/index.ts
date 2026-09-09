@@ -4,10 +4,8 @@ import type { Bindings, Variables } from './types'
 import { authConfig } from './auth'
 import { getSessionUser } from './middleware/auth'
 import { itemsRoute } from './routes/items'
-import { categoriesRoute } from './routes/categories'
 import { meRoute } from './routes/me'
 import { adminItemsRoute } from './routes/admin/items'
-import { adminCategoriesRoute } from './routes/admin/categories'
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -41,10 +39,8 @@ app.get('/api/photos/*', async (c) => {
 
 // --- 도메인 라우트 ---
 app.route('/api/items', itemsRoute)
-app.route('/api/categories', categoriesRoute)
 app.route('/api/me/profile', meRoute)
 app.route('/api/admin/items', adminItemsRoute)
-app.route('/api/admin/categories', adminCategoriesRoute)
 
 // --- 에러 처리 ---
 app.notFound((c) => c.json({ error: 'not_found' }, 404))

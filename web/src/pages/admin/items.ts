@@ -2,18 +2,19 @@ import { LitElement, html, css } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import { api } from '../../api/client'
 import '../../components/ui/badge'
-import type { AdminItem, Category, Item, Photo } from '../../types'
+import type { AdminItem, Item, Photo } from '../../types'
 
 // SPEC §4.2 — 관리자 물품 관리 (등록/수정/상태/사진)
+// 카테고리는 서버가 이름·설명으로 자동 분류 (§4.2) — 폼에 카테고리 선택 없음
 @customElement('page-admin-items')
 export class PageAdminItems extends LitElement {
   @state() private items: AdminItem[] = []
-  @state() private categories: Category[] = []
   @state() private editing: AdminItem | null = null // null = 목록 모드
   @state() private creating = false
-  @state() private form = { name: '', category_id: 0, total_qty: 1, max_days: 7, status: 'active', description: '' }
+  @state() private form = { name: '', total_qty: 1, max_days: 7, status: 'active', description: '' }
   @state() private photos: Photo[] = [] // 편집 중 물품의 사진
   @state() private message = ''
+  @state() private embeddingBusy = false
 
   static styles = css`
     h1 { font-size: 1.15rem; }
@@ -76,12 +77,8 @@ export class PageAdminItems extends LitElement {
 
   private async reload() {
     try {
-      const [a, b] = await Promise.all([
-        api<{ items: AdminItem[] }>('/api/admin/items'),
-        api<{ categories: Category[] }>('/api/categories'),
-      ])
-      this.items = a.items
-      this.categories = b.categories
+      const res = await api<{ items: AdminItem[] }>('/api/admin/items')
+      this.items = res.items
     } catch (e) {
       this.message = e instanceof Error ? e.message : '오류'
     }
@@ -91,7 +88,7 @@ export class PageAdminItems extends LitElement {
     this.creating = true
     this.editing = null
     this.photos = []
-    this.form = { name: '', category_id: this.categories[0]?.id ?? 0, total_qty: 1, max_days: 7, status: 'active', description: '' }
+    this.form = { name: '', total_qty: 1, max_days: 7, status: 'active', description: '' }
   }
 
   private async openEdit(it: AdminItem) {
@@ -99,7 +96,6 @@ export class PageAdminItems extends LitElement {
     this.editing = it
     this.form = {
       name: it.name,
-      category_id: it.category_id,
       total_qty: it.total_qty,
       max_days: it.max_days,
       status: it.status,
@@ -131,8 +127,20 @@ export class PageAdminItems extends LitElement {
     }
   }
 
-  private async removeItem(it: AdminItem) {
-    if (!confirm(`'${it.name}'을(를) 삭제할까요?`)) return
+  // 임베딩 없는 기존 물품을 일괄 채움 — 보통 1회 (새 물품은 저장 시 자동 생성됨)
+  private async backfillEmbeddings() {
+    this.embeddingBusy = true
+    try {
+      const res = await api<{ backfilled: number }>('/api/admin/items/embeddings/backfill', { method: 'POST' })
+      this.message = `임베딩 ${res.backfilled}개 물품 생성 완료`
+    } catch (e) {
+      this.message = e instanceof Error ? e.message : '임베딩 생성 실패'
+    } finally {
+      this.embeddingBusy = false
+    }
+  }
+
+  private async removeItem(it: AdminItem) {    if (!confirm(`'${it.name}'을(를) 삭제할까요?`)) return
     try {
       await api(`/api/admin/items/${it.id}`, { method: 'DELETE' })
       this.message = '삭제했어요'
@@ -179,7 +187,12 @@ export class PageAdminItems extends LitElement {
         <h1>물품 관리</h1>
         ${this.creating || this.editing
           ? html`<button class="link" @click=${this.close}>← 목록으로</button>`
-          : html`<button class="primary" @click=${this.openCreate}>+ 물품 등록</button>`}
+          : html`<span>
+              <button class="link" @click=${this.backfillEmbeddings} ?disabled=${this.embeddingBusy}>
+                ${this.embeddingBusy ? '임베딩 생성 중…' : '임베딩 일괄 생성'}
+              </button>
+              <button class="primary" @click=${this.openCreate}>+ 물품 등록</button>
+            </span>`}
       </div>
       <p class="msg">${this.message}</p>
 
@@ -195,20 +208,13 @@ export class PageAdminItems extends LitElement {
         <label>이름
           <input required .value=${this.form.name} @input=${(e: Event) => this.set('name', (e.target as HTMLInputElement).value)} />
         </label>
-        <div class="row">
-          <label>카테고리
-            <select .value=${String(this.form.category_id)} @change=${(e: Event) => this.set('category_id', Number((e.target as HTMLSelectElement).value))}>
-              ${this.categories.map((c) => html`<option value=${c.id} ?selected=${c.id === this.form.category_id}>${c.name}</option>`)}
-            </select>
-          </label>
-          <label>상태
-            <select .value=${this.form.status} @change=${(e: Event) => this.set('status', (e.target as HTMLSelectElement).value)}>
-              <option value="active" ?selected=${this.form.status === 'active'}>정상</option>
-              <option value="repair" ?selected=${this.form.status === 'repair'}>수리중</option>
-              <option value="retired" ?selected=${this.form.status === 'retired'}>폐기</option>
-            </select>
-          </label>
-        </div>
+        <label>상태
+          <select .value=${this.form.status} @change=${(e: Event) => this.set('status', (e.target as HTMLSelectElement).value)}>
+            <option value="active" ?selected=${this.form.status === 'active'}>정상</option>
+            <option value="repair" ?selected=${this.form.status === 'repair'}>수리중</option>
+            <option value="retired" ?selected=${this.form.status === 'retired'}>폐기</option>
+          </select>
+        </label>
         <div class="row">
           <label>보유 수량
             <input type="number" min="1" .value=${String(this.form.total_qty)} @input=${(e: Event) => this.set('total_qty', Number((e.target as HTMLInputElement).value))} />
@@ -246,7 +252,7 @@ export class PageAdminItems extends LitElement {
     return html`
       <table>
         <thead>
-          <tr><th>ID</th><th>이름</th><th>카테고리</th><th>수량</th><th>상태</th><th>사진</th><th></th></tr>
+          <tr><th>ID</th><th>이름</th><th>수량</th><th>상태</th><th>사진</th><th></th></tr>
         </thead>
         <tbody>
           ${this.items.map(
@@ -254,7 +260,6 @@ export class PageAdminItems extends LitElement {
               <tr>
                 <td>${it.id}</td>
                 <td>${it.name}</td>
-                <td>${it.category_name}</td>
                 <td>${it.total_qty}</td>
                 <td><x-badge kind=${it.status}></x-badge></td>
                 <td>${it.photo_count}/3</td>

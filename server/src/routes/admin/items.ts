@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import type { Bindings, Variables } from '../../types'
 import { getDb, type Sql } from '../../db'
 import { requireAdmin } from '../../middleware/auth'
+import { backfillEmbeddings, embedItem } from '../../embedding'
 
 // SPEC §7.4 — /api/admin/items (물품 CRUD + 사진 관리, admin 전용)
 export const adminItemsRoute = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -22,22 +23,20 @@ type DbError = { code?: string }
 adminItemsRoute.get('/', async (c) => {
   const db: Sql = getDb(c.env)
   const items = await db.query(
-    `SELECT items.*, categories.name AS category_name,
+    `SELECT items.*,
             (SELECT COUNT(*)::int FROM item_photos p WHERE p.item_id = items.id) AS photo_count,
             (SELECT COUNT(*)::int FROM reservations r WHERE r.item_id = items.id) AS reservation_count
-     FROM items JOIN categories ON categories.id = items.category_id
+     FROM items
      ORDER BY items.id DESC`,
   )
   return c.json({ items })
 })
 
-// 등록
+// 등록 — 카테고리는 없음 (v2.5): 탐색은 키워드+의미 검색으로 대체
 adminItemsRoute.post('/', async (c) => {
   const body = await c.req.json<Record<string, unknown>>()
   const name = typeof body.name === 'string' ? body.name.trim() : ''
   if (!name) return c.json({ error: 'name 필수' }, 400)
-  const category_id = Number(body.category_id)
-  if (!Number.isInteger(category_id)) return c.json({ error: 'category_id 필수' }, 400)
   const total_qty = Number(body.total_qty ?? 1)
   const max_days = Number(body.max_days ?? 7)
   const status = ITEM_STATUS.includes(body.status as never) ? (body.status as string) : 'active'
@@ -46,17 +45,14 @@ adminItemsRoute.post('/', async (c) => {
     return c.json({ error: 'max_days는 1~365' }, 400)
 
   const db: Sql = getDb(c.env)
-  try {
-    const [row] = (await db.query(
-      `INSERT INTO items (category_id, name, description, status, total_qty, max_days)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [category_id, name, body.description ?? null, status, total_qty, max_days],
-    )) as { id: number }[]
-    return c.json({ id: row.id }, 201)
-  } catch (err) {
-    if ((err as DbError).code === '23503') return c.json({ error: '존재하지 않는 카테고리' }, 400)
-    throw err
-  }
+  const [row] = (await db.query(
+    `INSERT INTO items (name, description, status, total_qty, max_days)
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [name, body.description ?? null, status, total_qty, max_days],
+  )) as { id: number }[]
+  // 등록 즉시 의미 검색용 임베딩 생성 (실패해도 등록은 성공 — 키워드 검색은 계속 동작)
+  await embedItem(c.env, db, row.id)
+  return c.json({ id: row.id }, 201)
 })
 
 // 수정 — 전달된 필드만 갱신
@@ -70,11 +66,6 @@ adminItemsRoute.put('/:id', async (c) => {
     fields.name = name
   }
   if ('description' in body) fields.description = body.description ?? null
-  if ('category_id' in body) {
-    const category_id = Number(body.category_id)
-    if (!Number.isInteger(category_id)) return c.json({ error: 'category_id 오류' }, 400)
-    fields.category_id = category_id
-  }
   if ('total_qty' in body) {
     const total_qty = Number(body.total_qty)
     if (!Number.isInteger(total_qty) || total_qty < 1) return c.json({ error: 'total_qty는 1 이상' }, 400)
@@ -100,7 +91,16 @@ adminItemsRoute.put('/:id', async (c) => {
     ...keys.map((k) => fields[k]),
   ])) as { id: number }[]
   if (rows.length === 0) return c.json({ error: 'not_found' }, 404)
+  // 이름·설명이 바뀌면 임베딩도 갱신 (무조건 재생성 — 소규모라 비용 무시)
+  await embedItem(c.env, db, id)
   return c.json({ ok: true })
+})
+
+// 임베딩 일괄 채우기 — 기존 물품·임베딩 생성 실패분을 후처리 (보통 1회 호출)
+adminItemsRoute.post('/embeddings/backfill', async (c) => {
+  const db: Sql = getDb(c.env)
+  const backfilled = await backfillEmbeddings(c.env, db)
+  return c.json({ backfilled })
 })
 
 // 삭제 — 대여 이력이 있으면 거부 (폐기 상태로 전환 권장)

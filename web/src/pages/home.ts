@@ -2,15 +2,13 @@ import { LitElement, html, css } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import { api } from '../api/client'
 import '../components/ui/badge'
-import type { Category, Item } from '../types'
+import type { Item } from '../types'
 
-// SPEC §5 — 물품 목록: 카테고리 필터 + 이름 검색 + 가용 배지
+// SPEC §5 — 물품 목록: 검색(키워드+의미) + 가용 배지. 카테고리는 v2.5에서 제거 — 검색으로 탐색
 @customElement('page-home')
 export class PageHome extends LitElement {
-  @state() private categories: Category[] = []
   @state() private items: Item[] = []
   @state() private q = ''
-  @state() private category = 0
   @state() private loading = true
   @state() private error = ''
 
@@ -24,27 +22,6 @@ export class PageHome extends LitElement {
       color: var(--color-text);
       box-sizing: border-box;
       font-size: 1rem;
-    }
-    .chips {
-      display: flex;
-      gap: var(--space-2);
-      overflow-x: auto;
-      padding: var(--space-3) 0;
-    }
-    .chip {
-      border: 1px solid var(--color-border);
-      background: var(--color-surface);
-      color: var(--color-muted);
-      border-radius: 999px;
-      padding: 4px 12px;
-      font-size: 0.82rem;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .chip.on {
-      background: var(--color-primary);
-      border-color: var(--color-primary);
-      color: var(--color-primary-text);
     }
     .grid {
       display: grid;
@@ -71,18 +48,13 @@ export class PageHome extends LitElement {
     }
     .thumb img { width: 100%; height: 100%; object-fit: cover; }
     .meta { padding: var(--space-2) var(--space-3) var(--space-3); }
-    .name { font-weight: 600; font-size: 0.9rem; margin-bottom: var(--space-1); }
-    .cat { font-size: 0.72rem; color: var(--color-muted); margin-bottom: var(--space-2); }
+    .name { font-weight: 600; font-size: 0.9rem; margin-bottom: var(--space-2); }
     .empty, .error { color: var(--color-muted); padding: var(--space-6) 0; text-align: center; }
     .error { color: var(--color-danger); }
   `
 
   async connectedCallback() {
     super.connectedCallback()
-    try {
-      const { categories } = await api<{ categories: Category[] }>('/api/categories')
-      this.categories = categories
-    } catch { /* 카테고리 로드 실패는 필터만 비활성 */ }
     await this.fetchItems()
   }
 
@@ -92,7 +64,6 @@ export class PageHome extends LitElement {
     try {
       const params = new URLSearchParams()
       if (this.q) params.set('q', this.q)
-      if (this.category) params.set('category', String(this.category))
       const { items } = await api<{ items: Item[] }>(`/api/items?${params}`)
       this.items = items
     } catch (e) {
@@ -109,24 +80,9 @@ export class PageHome extends LitElement {
     this.searchTimer = setTimeout(() => this.fetchItems(), 300) as unknown as number
   }
 
-  private pickCategory(id: number) {
-    this.category = id
-    this.fetchItems()
-  }
-
   render() {
     return html`
-      <input class="search" placeholder="물품 검색…" .value=${this.q} @input=${this.onSearch} />
-      <div class="chips">
-        <button class="chip ${this.category === 0 ? 'on' : ''}" @click=${() => this.pickCategory(0)}>전체</button>
-        ${this.categories.map(
-          (c) => html`
-            <button class="chip ${this.category === c.id ? 'on' : ''}" @click=${() => this.pickCategory(c.id)}>
-              ${c.name}
-            </button>
-          `,
-        )}
-      </div>
+      <input class="search" placeholder="이름·설명·용도로 검색해 보세요" .value=${this.q} @input=${this.onSearch} />
       ${this.error
         ? html`<p class="error">${this.error}</p>`
         : this.loading
@@ -145,7 +101,6 @@ export class PageHome extends LitElement {
                         </div>
                         <div class="meta">
                           <div class="name">${it.name}</div>
-                          <div class="cat">${it.category_name}</div>
                           <x-badge kind=${it.availability_badge ?? 'neutral'}></x-badge>
                         </div>
                       </a>

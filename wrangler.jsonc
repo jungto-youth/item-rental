@@ -15,6 +15,8 @@
   "r2_buckets": [
     { "binding": "PHOTOS", "bucket_name": "item-rental-photos" }
   ],
+  // 의미 검색 임베딩 — Workers AI @cf/baai/bge-m3 (무료 플랜 포함, API 키 불필요)
+  "ai": { "binding": "AI" },
   "triggers": {
     // 매일 오전 10시(KST) — 반납 전날·연체 알림 배치 (§4.5)
     "crons": ["0 1 * * *"]

@@ -8,6 +8,8 @@ export type Bindings = {
   AUTH_GOOGLE_SECRET: string
   PHOTOS: R2Bucket
   ASSETS: Fetcher
+  // Workers AI — 물품 임베딩 생성 (의미 검색)
+  AI: Ai
 }
 
 // 미들웨어가 세팅하는 세션 사용자 (SPEC §8 권한 처리)

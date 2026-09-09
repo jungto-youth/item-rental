@@ -42,7 +42,6 @@ export class PageItemDetail extends LitElement {
     .thumbs button.on { border-color: var(--color-primary); }
     .thumbs img { width: 100%; height: 100%; object-fit: cover; }
     h1 { font-size: 1.2rem; margin: var(--space-4) 0 var(--space-2); }
-    .cat { color: var(--color-muted); font-size: 0.8rem; margin-bottom: var(--space-2); }
     .desc { line-height: 1.6; white-space: pre-wrap; }
     .spec {
       display: flex;
@@ -111,7 +110,6 @@ export class PageItemDetail extends LitElement {
           `
         : ''}
       <h1>${this.item.name} <x-badge kind=${this.item.availability_badge ?? this.item.status}></x-badge></h1>
-      <div class="cat">${this.item.category_name}</div>
       ${this.item.description ? html`<p class="desc">${this.item.description}</p>` : ''}
       <div class="spec">
         <span><b>보유 수량</b>${this.item.total_qty}개</span>

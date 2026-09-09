@@ -7,6 +7,8 @@
 > - v2.0 (2026-09-08): **클라이언트를 Hono JSX 서버 렌더링 → 순수 Lit SPA로 전면 교체.** 서버는 Hono JSON API 전용(JSX 렌더링 제거). 스타일은 Tailwind → Lit `css` 템플릿 + CSS 커스텀 프로퍼티 디자인 토큰(Shadow DOM 캡슐화 유지).
 > - v2.1 (2026-09-08): **DB를 D1(SQLite) → Neon(PostgreSQL)으로 교체.** 연결은 `@neondatabase/serverless` HTTP 드라이버(fetch 기반, Workers 친화). 백업은 주간 `pg_dump` 주도로 변경. 런타임은 여전히 workerd — Deno는 패키지 매니저/개발 도구 역할.
 > - v2.2 (2026-09-08): **로그인 구현 — 구글 OAuth 단일 프로바이더** (카카오는 v2 후보로 이동). Auth.js JWT 세션 검증 후 members를 1회 조회해 최신 role/status를 반영 (무상태 JWT + 권한 변경 즉시 반영). 프로필 입력 API(`PUT /api/me/profile`) 추가.
+> - v2.5 (2026-09-09): **카테고리 완전 제거.** 자동 분류(v2.4)조차 새 카테고리 생성·이름 관리라는 새 관리 포인트를 만들므로, 카테고리 테이블·컬럼·칩·분류기를 전부 제거하고 탐색을 검색(키워드+의미)으로 완전 대체. 홈은 검색바 + 전체 그리드. 등록 폼은 이름·설명·수량·상태만.
+> - v2.3 (2026-09-09): **의미 검색 도입.** 물품 등록/수정 시 Cloudflare Workers AI `@cf/baai/bge-m3`(다국어, 무료)로 임베딩 자동 생성 → Neon **pgvector** `vector(1024)` 컬럼 저장. 검색은 키워드 매치(ILIKE 이름·설명·카테고리) 우선 + 의미 유사 물품(거리 상위 8개)을 뒤에 추가 — 절대 거리 임계는 관련/무관 구분력이 부족해 상대 랭킹으로 대체 (실측). 키워드 검색 이름만 → 설명·카테고리 확장. members.phone nullable (최초 로그인 시 미수집).
 
 ---
 
@@ -16,7 +18,7 @@
 |---|---|
 | 목적 | 청년지부 보유 물품(캠핑용품, 행사장비 등)의 대여 예약을 온라인으로 관리 |
 | 이용자 | 지부 회원 (승인제) · 관리자 (운영진) |
-| 물품 규모 | 약 50개, 카테고리 5~8개 |
+| 물품 규모 | 약 50개 (카테고리 없음 — 검색으로 탐색, v2.5) |
 | 예상 동시 이용자 | 동시 접속 수 명 수준 (지부 단위 소규모) |
 | 운영 비용 | 월 0원 (Cloudflare 무료 티어 기반) |
 | 운영 환경 | Cloudflare 대시보드 (호스팅·저장소·도메인) + Neon 콘솔 (DB) — 2곳 |
@@ -59,7 +61,9 @@
 - 회원 탈퇴: 소프트 삭제 (대여 이력 보존을 위해 비활성화 처리)
 
 ### 4.2 물품
-- 목록: 카테고리 필터 + 이름 검색, 대여 가능 여부 배지(대여 가능 / 대여 중 / 예약 있음)
+- 목록: 검색 + 대여 가능 여부 배지(대여 가능 / 대여 중 / 예약 있음). 카테고리 없음 — 검색(키워드+의미)으로 탐색 (v2.5)
+  - 검색: 공백 구분 단어 전부 일치(AND) — **키워드 매치(이름·설명 ILIKE)를 먼저, 의미 매치(pgvector)를 그 뒤에 배치**
+  - 의미 검색: Workers AI `@cf/baai/bge-m3`로 쿼리 임베딩 → 코사인 거리 상위 8개(거리 < 0.75) 물품을 키워드 매치에 없는 것만 추가. bge-m3 거리는 0.4~0.65에 뭉쳐 절대 임계(0.55)로 관련/무관 구분이 안 되므로 상대 랭킹으로만 사용 (실측). 임베딩은 물품 등록/수정 시 자동 생성(이름·설명), 실패 시 키워드 검색만 동작(폴백)
 - 상세: 사진(최대 3장), 설명, 보유 수량, 대여 규칙(기본 대여일 수 등), 실시간 가용 일정
 - 관리자: 물품 등록/수정/삭제, 상태(정상/수리중/폐기) 관리, 사진 업로드(R2 — API 엔드포인트가 Workers R2 바인딩으로 직접 저장)
 
@@ -91,7 +95,7 @@
 
 | 경로 | 화면 | 접근 |
 |---|---|---|
-| `/` | 물품 목록 (카테고리·검색·가능 여부) | 전체 |
+| `/` | 물품 목록 (검색·가능 여부) | 전체 |
 | `/items/:id` | 물품 상세 + 대여 신청 폼 | 전체 (신청은 회원) |
 | `/mypage` | 내 예약 현황·이력 | 회원 |
 | `/login` | 소셜 로그인 | 전체 |
@@ -162,13 +166,13 @@ server/src/
 |---|---|---|---|
 | GET | `/api/me` | 세션 사용자 (없으면 200 + `{user:null}`) | 전체 |
 | * | `/api/auth/*` | Auth.js 표준 (signin/callback/signout) | 전체 |
-| GET | `/api/categories` | 카테고리 목록 | 전체 |
-| GET | `/api/items?category=&q=` | 물품 목록 + 가용 배지 | 전체 |
+| GET | `/api/items?q=` | 물품 목록 + 가용 배지 (키워드+의미 검색) | 전체 |
 | GET | `/api/items/:id` | 상세 + 사진 + 점유 기간 목록(향후 90일, 회원 정보 제외) | 전체 |
 | POST | `/api/reservations` | 대여 신청 (원자적 INSERT — §8) | approved |
 | GET | `/api/reservations/mine` | 내 예약 현황·이력 | approved |
 | POST | `/api/reservations/:id/cancel` | 신청 취소 | 본인 |
-| GET/POST/PUT/DELETE | `/api/admin/items` | 물품 CRUD | admin |
+| GET/POST/PUT/DELETE | `/api/admin/items` | 물품 CRUD (등록/수정 시 임베딩 자동 생성) | admin |
+| POST | `/api/admin/items/embeddings/backfill` | 임베딩 일괄 채우기 (임베딩 NULL 물품) | admin |
 | POST | `/api/admin/items/:id/photos` | 사진 업로드 → R2 바인딩 | admin |
 | GET | `/api/admin/reservations?status=` | 전체 예약 목록 | admin |
 | POST | `/api/admin/reservations/:id/{approve,reject,pickup,return}` | 상태 처리 | admin |
@@ -207,20 +211,14 @@ CREATE TABLE IF NOT EXISTS members (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS categories (
-  id         INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name       TEXT NOT NULL,
-  sort_order INTEGER NOT NULL DEFAULT 0
-);
-
 CREATE TABLE IF NOT EXISTS items (
   id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  category_id INTEGER NOT NULL REFERENCES categories (id),
   name        TEXT NOT NULL,
   description TEXT,
   status      TEXT NOT NULL DEFAULT 'active',   -- active | repair | retired
   total_qty   INTEGER NOT NULL DEFAULT 1,
   max_days    INTEGER NOT NULL DEFAULT 7,
+  embedding   vector(1024),                   -- 의미 검색 (pgvector) — 등록/수정 시 자동 생성
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
