@@ -6,7 +6,6 @@ import './pages/login'
 import './pages/mypage'
 import './pages/signup-profile'
 import './pages/not-found'
-import './pages/admin/items'
 import './pages/admin/members'
 import './pages/admin/reservations'
 import './pages/policy'
@@ -45,7 +44,6 @@ export function initRouter(outlet: HTMLElement): Router {
     { path: '/login', component: 'page-login' },
     { path: '/mypage', component: 'page-mypage', action: requireSession },
     { path: '/signup/profile', component: 'page-signup-profile', action: requireSession },
-    { path: '/admin/items', component: 'page-admin-items', action: requireManager },
     { path: '/admin/reservations', component: 'page-admin-reservations', action: requireManager },
     { path: '/admin/members', component: 'page-admin-members', action: requireManager },
     { path: '/policy/:kind', component: 'page-policy' },

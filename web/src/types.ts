@@ -16,18 +16,6 @@ export type Item = {
   active_now?: number
 }
 
-export type AdminItem = {
-  id: number
-  name: string
-  description: string | null
-  status: ItemStatus
-  total_qty: number
-  max_days: number
-  photo_count: number
-  reservation_count: number
-  created_at: string
-}
-
 // 물품 상세의 향후 90일 일별 점유 (§7.6)
 export type AvailabilityDay = { date: string; reserved: number }
 

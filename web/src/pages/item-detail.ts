@@ -5,9 +5,10 @@ import { api } from '../api/client'
 import { session, type SessionUser } from '../context/session'
 import '../components/ui/badge'
 import '../components/ui/availability-strip'
-import type { AvailabilityDay, Item } from '../types'
+import type { AvailabilityDay, Item, ItemStatus, Photo } from '../types'
 
 // SPEC §5 — 물품 상세 + 대여 신청 폼 (§4.3, 원자적 INSERT는 서버 §8)
+// 운영진(manager 이상)은 이 화면에서 바로 편집·사진 관리 — 별도 관리 화면 없음 (DESIGN 통합안)
 @customElement('page-item-detail')
 export class PageItemDetail extends LitElement {
   @state() private itemId = ''
@@ -25,6 +26,13 @@ export class PageItemDetail extends LitElement {
   @state() private saving = false
   @state() private formMsg = ''
   @state() private formOk = false
+
+  // 편집 모드 (운영진 전용)
+  @state() private editing = false
+  @state() private editForm = { name: '', total_qty: 1, max_days: 7, status: 'active' as ItemStatus, description: '' }
+  @state() private editPhotos: Photo[] = []
+  @state() private editSaving = false
+  @state() private editMsg = ''
 
   static styles = css`
     .photo {
@@ -133,6 +141,75 @@ export class PageItemDetail extends LitElement {
     }
     .notice a { color: var(--color-primary); }
     .error { color: var(--color-danger); padding: var(--space-6) 0; }
+
+    /* --- 편집 모드 (운영진) --- */
+    .edit-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-2);
+      margin-bottom: var(--space-2);
+    }
+    .edit-form {
+      display: grid;
+      gap: var(--space-3);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: var(--space-5);
+      margin-top: var(--space-4);
+    }
+    .edit-form h2 { font-size: 1.0625rem; font-weight: 600; letter-spacing: var(--tracking-tight); margin: 0; }
+    .edit-form label { font-size: var(--text-caption); color: var(--color-muted); display: grid; gap: 4px; }
+    .edit-form input, .edit-form select, .edit-form textarea {
+      height: 44px;
+      padding: 0 var(--space-3);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-size: 1rem;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .edit-form textarea { height: auto; min-height: 72px; padding: var(--space-3); }
+    .edit-form input:focus, .edit-form select:focus, .edit-form textarea:focus { outline: none; border-color: var(--color-primary); }
+    .edit-row { display: flex; gap: var(--space-3); }
+    .edit-row > label { flex: 1; }
+    .edit-pics { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+    .edit-pics .pic { position: relative; width: 72px; height: 72px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--color-border); }
+    .edit-pics img { width: 100%; height: 100%; object-fit: cover; }
+    .edit-pics .pic button {
+      position: absolute; top: 2px; right: 2px;
+      background: rgba(210, 210, 215, 0.64); color: #1d1d1f; border: 0;
+      border-radius: 50%;
+      width: 22px; height: 22px; cursor: pointer; line-height: 1;
+      font-size: 0.7rem;
+    }
+    .edit-actions { display: flex; gap: var(--space-2); justify-content: space-between; align-items: center; }
+    .edit-msg { color: var(--color-primary); font-size: var(--text-caption); min-height: 1.2em; margin: 0; }
+    .edit-err { color: var(--color-danger); font-size: var(--text-caption); margin: 0; }
+    .btn-ghost {
+      height: 44px;
+      padding: 0 var(--space-4);
+      border-radius: var(--radius-pill);
+      background: transparent;
+      border: 1px solid var(--color-primary);
+      color: var(--color-primary);
+      font: inherit;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    .btn-ghost:active { transform: scale(0.95); }
+    .btn-danger {
+      background: none;
+      border: 0;
+      color: var(--color-danger);
+      cursor: pointer;
+      font: inherit;
+      font-size: var(--text-caption);
+      padding: var(--space-2);
+    }
   `
 
   // @vaadin/router 라이프사이클 — /items/:id 파라미터는 여기서 주입받음
@@ -155,8 +232,104 @@ export class PageItemDetail extends LitElement {
       )
       this.item = res.item
       this.availability = res.availability
+      this.editPhotos = res.item.photos
     } catch (e) {
       this.error = e instanceof Error ? e.message : '오류'
+    }
+  }
+
+  private get isManager(): boolean {
+    return this.user?.role === 'manager' || this.user?.role === 'admin'
+  }
+
+  // --- 편집 모드 (운영진) ---
+  private startEdit() {
+    if (!this.item) return
+    this.editForm = {
+      name: this.item.name,
+      total_qty: this.item.total_qty,
+      max_days: this.item.max_days,
+      status: this.item.status,
+      description: this.item.description ?? '',
+    }
+    this.editMsg = ''
+    this.editing = true
+  }
+
+  private cancelEdit() {
+    this.editing = false
+    this.editMsg = ''
+  }
+
+  private setEdit<K extends keyof typeof this.editForm>(k: K, v: (typeof this.editForm)[K]) {
+    this.editForm = { ...this.editForm, [k]: v }
+  }
+
+  private async saveEdit() {
+    if (!this.item || this.editSaving) return
+    this.editSaving = true
+    this.editMsg = ''
+    try {
+      await api(`/api/admin/items/${this.item.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(this.editForm),
+      })
+      this.editing = false
+      await this.load()
+    } catch (e) {
+      this.editMsg = e instanceof Error ? e.message : '저장 실패'
+    } finally {
+      this.editSaving = false
+    }
+  }
+
+  private async removeItem() {
+    if (!this.item) return
+    if (!confirm(`'${this.item.name}'을(를) 삭제할까요?`)) return
+    try {
+      await api(`/api/admin/items/${this.item.id}`, { method: 'DELETE' })
+      history.back()
+    } catch (e) {
+      this.editMsg = e instanceof Error ? e.message : '삭제 실패'
+    }
+  }
+
+  private static readonly PHOTO_OK = ['image/jpeg', 'image/png', 'image/webp']
+  private static readonly MAX_PHOTO_BYTES = 5 * 1024 * 1024
+
+  private async uploadPhoto(e: Event) {
+    if (!this.item) return
+    const input = e.target as HTMLInputElement
+    const file = input.files?.[0]
+    if (!file) return
+    if (!PageItemDetail.PHOTO_OK.includes(file.type) || file.size > PageItemDetail.MAX_PHOTO_BYTES) {
+      this.editMsg = 'JPEG/PNG/WebP, 5MB 이하만 가능해요'
+      input.value = ''
+      return
+    }
+    if (this.editPhotos.length >= 3) {
+      this.editMsg = '사진은 최대 3장이에요'
+      input.value = ''
+      return
+    }
+    const fd = new FormData()
+    fd.append('file', file)
+    try {
+      await api(`/api/admin/items/${this.item.id}/photos`, { method: 'POST', body: fd })
+      await this.load()
+    } finally {
+      input.value = ''
+    }
+  }
+
+  private async deletePhoto(p: Photo) {
+    if (!this.item) return
+    try {
+      await api(`/api/admin/items/${this.item.id}/photos/${p.id}`, { method: 'DELETE' })
+      this.editPhotos = this.editPhotos.filter((x) => x.id !== p.id)
+      if (this.item) this.item = { ...this.item, photos: this.editPhotos }
+    } catch (e) {
+      this.editMsg = e instanceof Error ? e.message : '삭제 실패'
     }
   }
 
@@ -268,9 +441,14 @@ export class PageItemDetail extends LitElement {
     if (this.error) return html`<p class="error">${this.error}</p>`
     if (!this.item) return html`<p class="cat">불러오는 중…</p>`
 
+    if (this.editing) return this.renderEdit()
+
     const photos = this.item.photos
     const main = photos[this.photoIdx]
     return html`
+      ${this.isManager
+        ? html`<div class="edit-bar"><button class="btn-ghost" @click=${this.startEdit}>편집</button></div>`
+        : ''}
       <div class="photo">
         ${main ? html`<img src=${main.url} alt=${this.item.name} @error=${this.onMainImgError} />` : '📦'}
       </div>
@@ -296,6 +474,66 @@ export class PageItemDetail extends LitElement {
       <div class="strip-label">향후 90일 예약 현황</div>
       <availability-strip .days=${this.availability} .totalQty=${this.item.total_qty}></availability-strip>
       ${this.renderApply()}
+    `
+  }
+
+  // 편집 화면 — 물품 정보 수정 + 사진 관리 (삭제는 여기서, 위험 동작이라 대여 신청 폼 위에 두지 않음)
+  private renderEdit() {
+    const f = this.editForm
+    return html`
+      <form
+        class="edit-form"
+        @submit=${(e: Event) => {
+          e.preventDefault()
+          this.saveEdit()
+        }}
+      >
+        <h2>물품 편집</h2>
+        <label>이름
+          <input required .value=${f.name} @input=${(e: Event) => this.setEdit('name', (e.target as HTMLInputElement).value)} />
+        </label>
+        <label>상태
+          <select .value=${f.status} @change=${(e: Event) => this.setEdit('status', (e.target as HTMLSelectElement).value as ItemStatus)}>
+            <option value="active" ?selected=${f.status === 'active'}>정상</option>
+            <option value="repair" ?selected=${f.status === 'repair'}>수리중</option>
+            <option value="retired" ?selected=${f.status === 'retired'}>폐기</option>
+          </select>
+        </label>
+        <div class="edit-row">
+          <label>보유 수량
+            <input type="number" min="1" .value=${String(f.total_qty)} @input=${(e: Event) => this.setEdit('total_qty', Number((e.target as HTMLInputElement).value))} />
+          </label>
+          <label>최대 대여일
+            <input type="number" min="1" max="365" .value=${String(f.max_days)} @input=${(e: Event) => this.setEdit('max_days', Number((e.target as HTMLInputElement).value))} />
+          </label>
+        </div>
+        <label>설명
+          <textarea rows="3" .value=${f.description} @input=${(e: Event) => this.setEdit('description', (e.target as HTMLTextAreaElement).value)}></textarea>
+        </label>
+        <label>사진 추가 (JPEG/PNG/WebP · 5MB · 최대 3장)
+          <input type="file" accept="image/jpeg,image/png,image/webp" @change=${this.uploadPhoto} />
+        </label>
+        <div class="edit-pics">
+          ${this.editPhotos.map(
+            (p) => html`
+              <div class="pic">
+                <img src=${p.url} alt="" @error=${(ev: Event) => ((ev.target as HTMLImageElement).style.visibility = 'hidden')} />
+                <button type="button" title="사진 삭제" @click=${() => this.deletePhoto(p)}>×</button>
+              </div>
+            `,
+          )}
+        </div>
+        <p class=${this.editMsg ? 'edit-err' : 'edit-msg'}>${this.editMsg}</p>
+        <div class="edit-actions">
+          <button type="button" class="btn-danger" @click=${this.removeItem}>물품 삭제</button>
+          <span>
+            <button type="button" class="btn-ghost" @click=${this.cancelEdit}>취소</button>
+            <button class="primary" type="submit" ?disabled=${this.editSaving}>
+              ${this.editSaving ? '저장 중…' : '저장'}
+            </button>
+          </span>
+        </div>
+      </form>
     `
   }
 
