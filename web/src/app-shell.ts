@@ -7,7 +7,12 @@ import { session, type SessionUser } from './context/session'
 // 저장값 'light'|'dark', 없으면 시스템 설정 따름.
 type Theme = 'system' | 'light' | 'dark'
 const THEME_KEY = 'theme'
-const THEME_LABEL: Record<Theme, string> = { system: '테마 자동', light: '라이트', dark: '다크' }
+// iOS 세그먼티드 컨트롤 문법 — 3개 상태가 아이콘으로 모두 보이고 원하는 것을 직접 누름(순환 없음)
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'system', label: '테마 자동' },
+  { value: 'light', label: '라이트 모드' },
+  { value: 'dark', label: '다크 모드' },
+]
 
 function readStoredTheme(): Theme {
   try {
@@ -80,6 +85,50 @@ export class AppShell extends LitElement {
       white-space: nowrap;
       flex-shrink: 0; /* 좁은 화면에서 세로 줄바꿈 방지 */
     }
+
+    /* --- 테마 세그먼티드 컨트롤 — 네비 밖 헤더 오른쪽 끝에 고정(스크롤 안 됨) --- */
+    .seg {
+      position: relative;
+      display: flex;
+      flex-shrink: 0;
+      margin-left: var(--space-3);
+      padding: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius-pill);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .seg-thumb {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      left: 2px;
+      width: calc((100% - 4px) / 3);
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: var(--radius-pill);
+      transition: transform 0.2s ease; /* 선택 세그먼트로 미끄러지는 썸 */
+    }
+    .seg button {
+      position: relative; /* 썸 위에 아이콘 */
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 24px;
+      padding: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #86868b;
+      transition: color 0.2s ease;
+    }
+    .seg button.on { color: #f5f5f7; }
+    .seg button:focus-visible {
+      outline: 2px solid var(--color-link-on-dark);
+      outline-offset: 1px;
+      border-radius: var(--radius-pill);
+    }
+    .seg svg { width: 14px; height: 14px; display: block; }
     main {
       max-width: 640px;
       margin: 0 auto;
@@ -107,17 +156,17 @@ export class AppShell extends LitElement {
     if (outlet) initRouter(outlet)
   }
 
-  // 자동 → 라이트 → 다크 순환. 명시 선택만 localStorage에 남기고 자동은 저장값 제거.
-  private toggleTheme() {
-    this.theme = this.theme === 'system' ? 'light' : this.theme === 'light' ? 'dark' : 'system'
+  // 세그먼트 직접 선택 — 자동이면 저장값을 지워 시스템 설정 추종
+  private setTheme(t: Theme) {
+    this.theme = t
     try {
-      if (this.theme === 'system') localStorage.removeItem(THEME_KEY)
-      else localStorage.setItem(THEME_KEY, this.theme)
+      if (t === 'system') localStorage.removeItem(THEME_KEY)
+      else localStorage.setItem(THEME_KEY, t)
     } catch {
-      // 저장 불가 환경에서도 세션 내 전환은 유지
+      // 저장 불가 환경에서도 세션 내 선택은 유지
     }
-    if (this.theme === 'system') document.documentElement.removeAttribute('data-theme')
-    else document.documentElement.dataset.theme = this.theme
+    if (t === 'system') document.documentElement.removeAttribute('data-theme')
+    else document.documentElement.dataset.theme = t
   }
 
   // Auth.js 확인 페이지를 거치지 않고 바로 POST signout (§7.2)
@@ -140,6 +189,52 @@ export class AppShell extends LitElement {
     navigate('/')
   }
 
+  // 세그먼트 아이콘 — 자동(반원), 라이트(해), 다크(초승달)
+  private themeIcon(t: Theme) {
+    if (t === 'light') {
+      return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="5" />
+        <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+        <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+      </svg>`
+    }
+    if (t === 'dark') {
+      return html`<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>`
+    }
+    return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none" />
+    </svg>`
+  }
+
+  private renderThemeSeg() {
+    const idx = THEME_OPTIONS.findIndex((o) => o.value === this.theme)
+    return html`
+      <div class="seg" role="radiogroup" aria-label="화면 테마" title="화면 테마">
+        <span class="seg-thumb" style=${`transform: translateX(${idx * 100}%)`} aria-hidden="true"></span>
+        ${THEME_OPTIONS.map(
+          (o) => html`
+            <button
+              type="button"
+              role="radio"
+              class=${this.theme === o.value ? 'on' : ''}
+              aria-checked=${this.theme === o.value}
+              aria-label=${o.label}
+              title=${o.label}
+              @click=${() => this.setTheme(o.value)}
+            >
+              ${this.themeIcon(o.value)}
+            </button>
+          `,
+        )}
+      </div>
+    `
+  }
+
   render() {
     return html`
       <header>
@@ -156,10 +251,8 @@ export class AppShell extends LitElement {
                 <button @click=${this.signOut}>로그아웃</button>
               `
             : html`<a href="/login">로그인</a>`}
-          <button class="theme" @click=${this.toggleTheme} title="테마 전환 (자동 → 라이트 → 다크)">
-            ${THEME_LABEL[this.theme]}
-          </button>
         </nav>
+        ${this.renderThemeSeg()}
       </header>
       <main></main>
     `
