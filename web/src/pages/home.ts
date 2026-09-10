@@ -29,7 +29,7 @@ export class PageHome extends LitElement {
   static styles = css`
     .top {
       display: grid;
-      gap: var(--space-2);
+      gap: var(--space-3);
       margin-bottom: var(--space-4);
     }
     .search {
@@ -281,11 +281,9 @@ export class PageHome extends LitElement {
 
   render() {
     return html`
-      ${this.isManager && !this.creating
-        ? html`<button class="btn-add" @click=${this.openCreate}>+ 물품 등록</button>`
-        : ''}
       ${this.creating ? this.renderCreate() : ''}
       <div class="top">
+        ${this.isManager ? html`<button class="btn-add" @click=${this.openCreate}>+ 물품 등록</button>` : ''}
         <input class="search" placeholder="이름·설명·용도로 검색해 보세요" .value=${this.q} @input=${this.onSearch} />
       </div>
       ${this.createMsg ? html`<p class="msg">${this.createMsg}</p>` : ''}
