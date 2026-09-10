@@ -16,24 +16,19 @@ export class PageAdminMembers extends LitElement {
 
   static styles = css`
     h1 { font-size: 1.375rem; font-weight: 600; letter-spacing: var(--tracking-tight); line-height: 1.1; }
-    /* 표 대신 카드 목록 — 대여 관리와 같은 이유: 표는 좌우 스크롤로 처리 버튼을 가림 (§4.4) */
-    .cards { display: grid; gap: var(--space-3); }
-    .card {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      padding: var(--space-4);
+    /* 표 대신 두 줄 로우 — 대여 관리와 같은 이유: 표는 좌우 스크롤로 처리 버튼을 가림 (§4.4) */
+    .rows { display: grid; }
+    .row {
+      border-bottom: 1px solid var(--color-border);
+      padding: var(--space-2) 0;
       display: grid;
       gap: var(--space-1);
       font-size: var(--text-caption);
     }
-    .head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
-    .name { font-weight: 600; font-size: var(--text-body); letter-spacing: var(--tracking-tight); }
+    .head { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
+    .name { font-weight: 600; font-size: var(--text-body); letter-spacing: var(--tracking-tight); flex: 1; min-width: 0; }
     .head x-badge { flex-shrink: 0; }
-    .email, .phone { color: var(--color-muted); word-break: break-all; }
-    .meta { color: var(--color-muted); font-size: var(--text-fine); }
-    .role { display: flex; align-items: center; gap: var(--space-2); }
-    .role-label { color: var(--color-muted); font-size: var(--text-fine); }
+    .who { color: var(--color-muted); word-break: break-all; }
     .link {
       background: none;
       border: 0;
@@ -44,16 +39,7 @@ export class PageAdminMembers extends LitElement {
       font-family: inherit;
     }
     .link.danger { color: var(--color-danger); }
-    .acts {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: var(--space-1);
-      border-top: 1px solid var(--color-border);
-      margin-top: var(--space-1);
-      padding-top: var(--space-2);
-    }
-    .acts .link { min-height: 44px; } /* DESIGN.md §1 — 터치 타깃 44px */
+    .head .link { flex-shrink: 0; } /* 액션 링크가 눌리지 않게 — 44px 터치 타깃 유지 */
     select {
       height: 36px;
       padding: 0 var(--space-2);
@@ -156,7 +142,7 @@ export class PageAdminMembers extends LitElement {
 
   private renderCards() {
     return html`
-      <div class="cards">
+      <div class="rows">
         ${this.members.map((m) => this.renderCard(m))}
       </div>
     `
@@ -171,15 +157,9 @@ export class PageAdminMembers extends LitElement {
           `
         : ''
     return html`
-      <div class="card">
+      <div class="row">
         <span class="head">
           <span class="name">${m.name || '—'}</span>
-          <x-badge kind=${m.status}></x-badge>
-        </span>
-        <span class="email">${m.email}</span>
-        <span class="phone">${m.phone ?? '연락처 미등록'}</span>
-        <span class="role">
-          <span class="role-label">역할</span>
           ${this.myRole === 'admin' && m.status === 'approved'
             ? html`<select
                 ?disabled=${this.busy}
@@ -191,9 +171,10 @@ export class PageAdminMembers extends LitElement {
                 <option value="admin" ?selected=${m.role === 'admin'}>총관리자</option>
               </select>`
             : html`<x-badge kind=${m.role}></x-badge>`}
+          <x-badge kind=${m.status}></x-badge>
+          ${acts}
         </span>
-        <span class="meta">가입 ${m.created_at.slice(0, 10)}</span>
-        ${acts ? html`<div class="acts">${acts}</div>` : ''}
+        <span class="who">${m.email} · ${m.phone ?? '연락처 미등록'}</span>
       </div>
     `
   }

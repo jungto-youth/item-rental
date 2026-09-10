@@ -29,22 +29,20 @@ export class PageAdminReservations extends LitElement {
       font-size: var(--text-caption);
       font-family: inherit;
     }
-    /* 표 대신 카드 목록 — 640px 본문에 테이블이 원래 안 맞아 좌우 스크롤로 처리 버튼이 가려짐 (§4.3) */
-    .cards { display: grid; gap: var(--space-3); }
-    .card {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      padding: var(--space-4);
+    /* 표 대신 두 줄 로우 — 640px 본문에 테이블이 원래 안 맞아 좌우 스크롤로 처리 버튼이 가려짐 (§4.3) */
+    .rows { display: grid; }
+    .row {
+      border-bottom: 1px solid var(--color-border);
+      padding: var(--space-2) 0;
       display: grid;
       gap: var(--space-1);
       font-size: var(--text-caption);
     }
-    .head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
-    .name { font-weight: 600; font-size: var(--text-body); letter-spacing: var(--tracking-tight); }
+    .head { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
+    .name { font-weight: 600; font-size: var(--text-body); letter-spacing: var(--tracking-tight); flex: 1; min-width: 0; }
     .head x-badge { flex-shrink: 0; }
     .who, .memo { color: var(--color-muted); }
-    .meta { color: var(--color-muted); font-size: var(--text-fine); }
+    .conflict { color: var(--color-warning); font-size: var(--text-fine); }
     .link {
       background: none;
       border: 0;
@@ -56,16 +54,8 @@ export class PageAdminReservations extends LitElement {
     }
     .link.danger { color: var(--color-danger); }
     .link:disabled { opacity: 0.5; cursor: not-allowed; }
-    .acts {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: var(--space-1);
-      border-top: 1px solid var(--color-border);
-      margin-top: var(--space-1);
-      padding-top: var(--space-2);
-    }
-    .acts .link { min-height: 44px; } /* DESIGN.md §1 — 터치 타깃 44px */
+    .head .link { flex-shrink: 0; } /* 액션 링크가 눌리지 않게 — 44px 터치 타깃 유지 */
+    .reject { display: flex; align-items: center; gap: var(--space-1); flex: 1; min-width: 0; }
     .reject input {
       font: inherit;
       font-size: var(--text-caption);
@@ -75,7 +65,8 @@ export class PageAdminReservations extends LitElement {
       border-radius: var(--radius-sm);
       background: var(--color-bg);
       color: var(--color-text);
-      width: 180px;
+      flex: 1;
+      min-width: 0;
     }
     .conflict { color: var(--color-warning); font-size: var(--text-fine); }
     .msg { color: var(--color-primary); font-size: var(--text-caption); min-height: 1.2em; }
@@ -208,7 +199,7 @@ export class PageAdminReservations extends LitElement {
 
   private renderCards() {
     return html`
-      <div class="cards">
+      <div class="rows">
         ${this.reservations.map((r) => this.renderCard(r))}
       </div>
     `
@@ -218,20 +209,18 @@ export class PageAdminReservations extends LitElement {
     const days = Math.round((Date.parse(r.end_date) - Date.parse(r.start_date)) / 86400000)
     const acts = this.renderActions(r)
     return html`
-      <div class="card">
+      <div class="row">
         <span class="head">
           <span class="name">${r.item_name}</span>
           <x-badge kind=${r.is_overdue ? 'overdue' : r.status}></x-badge>
+          ${acts}
         </span>
-        <span class="who">${r.member_name || '—'} · ${r.member_phone ?? r.member_email}</span>
-        <span>${r.start_date} ~ ${r.end_date} (${days}일)</span>
+        <span class="who">${r.member_name || '—'} · ${r.member_phone ?? r.member_email} · ${r.start_date}~${r.end_date} (${days}일)</span>
         ${r.member_memo ? html`<span class="memo">메모 · ${r.member_memo}</span>` : ''}
         ${r.status_note ? html`<span class="memo">사유 · ${r.status_note}</span>` : ''}
         ${r.status === 'pending' && r.conflict_count > 0
           ? html`<span class="conflict">확정 예약과 ${r.conflict_count}건 겹침</span>`
           : ''}
-        <span class="meta">신청 ${r.created_at.slice(0, 10)}</span>
-        ${acts ? html`<div class="acts">${acts}</div>` : ''}
       </div>
     `
   }
