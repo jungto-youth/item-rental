@@ -3,9 +3,25 @@ import { customElement, state } from 'lit/decorators.js'
 import { initRouter, navigate } from './router'
 import { session, type SessionUser } from './context/session'
 
+// 테마 3단계(자동/라이트/다크) — tokens.css의 data-theme 셀렉터와 짝을 이룸.
+// 저장값 'light'|'dark', 없으면 시스템 설정 따름.
+type Theme = 'system' | 'light' | 'dark'
+const THEME_KEY = 'theme'
+const THEME_LABEL: Record<Theme, string> = { system: '테마 자동', light: '라이트', dark: '다크' }
+
+function readStoredTheme(): Theme {
+  try {
+    const t = localStorage.getItem(THEME_KEY)
+    return t === 'light' || t === 'dark' ? t : 'system'
+  } catch {
+    return 'system'
+  }
+}
+
 @customElement('app-shell')
 export class AppShell extends LitElement {
   @state() private user: SessionUser | null = null
+  @state() private theme: Theme = readStoredTheme()
   private unsubscribe: (() => void) | null = null
 
   static styles = css`
@@ -28,6 +44,9 @@ export class AppShell extends LitElement {
       display: flex;
       gap: var(--space-4);
       align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      row-gap: var(--space-1);
     }
     nav a {
       color: var(--color-muted);
@@ -72,6 +91,19 @@ export class AppShell extends LitElement {
     if (outlet) initRouter(outlet)
   }
 
+  // 자동 → 라이트 → 다크 순환. 명시 선택만 localStorage에 남기고 자동은 저장값 제거.
+  private toggleTheme() {
+    this.theme = this.theme === 'system' ? 'light' : this.theme === 'light' ? 'dark' : 'system'
+    try {
+      if (this.theme === 'system') localStorage.removeItem(THEME_KEY)
+      else localStorage.setItem(THEME_KEY, this.theme)
+    } catch {
+      // 저장 불가 환경에서도 세션 내 전환은 유지
+    }
+    if (this.theme === 'system') document.documentElement.removeAttribute('data-theme')
+    else document.documentElement.dataset.theme = this.theme
+  }
+
   // Auth.js 확인 페이지를 거치지 않고 바로 POST signout (§7.2)
   private async signOut() {
     try {
@@ -108,6 +140,9 @@ export class AppShell extends LitElement {
                 <button @click=${this.signOut}>로그아웃</button>
               `
             : html`<a href="/login">로그인</a>`}
+          <button class="theme" @click=${this.toggleTheme} title="테마 전환 (자동 → 라이트 → 다크)">
+            ${THEME_LABEL[this.theme]}
+          </button>
         </nav>
       </header>
       <main></main>

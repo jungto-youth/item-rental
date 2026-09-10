@@ -1,5 +1,13 @@
-/* SPEC §6 — 디자인 토큰 (CSS 커스텀 프로퍼티는 Shadow DOM 안으로 상속됨) */
+/* SPEC §6 — 디자인 토큰 (CSS 커스텀 프로퍼티는 Shadow DOM 안으로 상속됨)
+   테마 3단계: data-theme 없음=시스템 따름, "light"/"dark"=명시 선택.
+   - 라이트 팔레트는 :root 기본값
+   - 다크는 두 경로로 적용: 시스템 다크 & data-theme="dark" 미지정 시 / 명시 지정 시
+     (동일 블록을 두 셀렉터에 반복 — CSS에선 블록 재사용이 안 되므로 수동 동기화) */
+
+/* ── 라이트 팔레트 (기본) ── */
 :root {
+  color-scheme: light;
+
   --color-bg: #fafaf9;
   --color-surface: #ffffff;
   --color-border: #e7e5e4;
@@ -11,6 +19,18 @@
   --color-warning: #d97706;
   --color-danger: #dc2626;
 
+  /* 상태 톤 — 배지·알림용 배경/글자 쌍 */
+  --tone-success-bg: #dcfce7;
+  --tone-success-text: #166534;
+  --tone-warning-bg: #fef9c3;
+  --tone-warning-text: #854d0e;
+  --tone-danger-bg: #fee2e2;
+  --tone-danger-text: #991b1b;
+  --tone-info-bg: #e0e7ff;
+  --tone-info-text: #3730a3;
+  --tone-violet-bg: #ede9fe;
+  --tone-violet-text: #5b21b6;
+
   --radius: 8px;
   --space-1: 4px;
   --space-2: 8px;
@@ -21,14 +41,59 @@
   --font-body: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
+/* ── 다크 팔레트 ── */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
     --color-bg: #0c0a09;
     --color-surface: #1c1917;
     --color-border: #292524;
     --color-text: #fafaf9;
     --color-muted: #a8a29e;
+    --color-primary: #3b82f6;
+    --color-primary-text: #ffffff;
+    --color-success: #22c55e;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+
+    --tone-success-bg: #14532d;
+    --tone-success-text: #86efac;
+    --tone-warning-bg: #78350f;
+    --tone-warning-text: #fcd34d;
+    --tone-danger-bg: #7f1d1d;
+    --tone-danger-text: #fca5a5;
+    --tone-info-bg: #312e81;
+    --tone-info-text: #a5b4fc;
+    --tone-violet-bg: #4c1d95;
+    --tone-violet-text: #c4b5fd;
   }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-bg: #0c0a09;
+  --color-surface: #1c1917;
+  --color-border: #292524;
+  --color-text: #fafaf9;
+  --color-muted: #a8a29e;
+  --color-primary: #3b82f6;
+  --color-primary-text: #ffffff;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  --tone-success-bg: #14532d;
+  --tone-success-text: #86efac;
+  --tone-warning-bg: #78350f;
+  --tone-warning-text: #fcd34d;
+  --tone-danger-bg: #7f1d1d;
+  --tone-danger-text: #fca5a5;
+  --tone-info-bg: #312e81;
+  --tone-info-text: #a5b4fc;
+  --tone-violet-bg: #4c1d95;
+  --tone-violet-text: #c4b5fd;
 }
 
 body {

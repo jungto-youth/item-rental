@@ -35,21 +35,14 @@ export class XBadge extends LitElement {
       font-weight: 600;
       white-space: nowrap;
     }
-    .available { background: #dcfce7; color: #166534; }
-    .reserved  { background: #fef9c3; color: #854d0e; }
-    .rented    { background: #fee2e2; color: #991b1b; }
-    .repair    { background: #e0e7ff; color: #3730a3; }
-    .retired, .neutral { background: var(--color-border); color: var(--color-muted); }
-    .pending   { background: #fef9c3; color: #854d0e; }
-    .approved  { background: #dcfce7; color: #166534; }
-    .user      { background: #dcfce7; color: #166534; }
-    .manager   { background: #e0e7ff; color: #3730a3; }
-    .admin     { background: #ede9fe; color: #5b21b6; }
-    .picked_up { background: #e0e7ff; color: #3730a3; }
-    .returned  { background: #dcfce7; color: #166534; }
-    .rejected  { background: #fee2e2; color: #991b1b; }
-    .cancelled { background: var(--color-border); color: var(--color-muted); }
-    .overdue   { background: #fecaca; color: #7f1d1d; }
+    /* 상태 색은 tokens.css의 톤 토큰 — 다크/라이트 자동 대응 */
+    .available, .approved, .user, .returned { background: var(--tone-success-bg); color: var(--tone-success-text); }
+    .reserved, .pending                     { background: var(--tone-warning-bg); color: var(--tone-warning-text); }
+    .rented, .rejected                      { background: var(--tone-danger-bg); color: var(--tone-danger-text); }
+    .repair, .manager, .picked_up           { background: var(--tone-info-bg); color: var(--tone-info-text); }
+    .admin                                  { background: var(--tone-violet-bg); color: var(--tone-violet-text); }
+    .retired, .neutral, .cancelled          { background: var(--color-border); color: var(--color-muted); }
+    .overdue                                { background: var(--tone-danger-bg); color: var(--tone-danger-text); }
   `
 
   render() {

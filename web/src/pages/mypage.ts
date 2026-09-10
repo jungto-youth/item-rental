@@ -28,8 +28,8 @@ export class PageMypage extends LitElement {
     }
     .pending {
       border-color: var(--color-warning);
-      background: #fffbeb;
-      color: #92400e;
+      background: var(--tone-warning-bg);
+      color: var(--tone-warning-text);
     }
     .row {
       background: var(--color-surface);
