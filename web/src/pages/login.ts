@@ -40,6 +40,8 @@ export class PageLogin extends LitElement {
     button:hover:not(:disabled) { border-color: var(--color-primary); }
     button:disabled { opacity: 0.6; cursor: default; }
     .msg { color: var(--color-danger); font-size: 0.8rem; }
+    .links { margin-top: var(--space-4); font-size: 0.75rem; }
+    .links a { color: var(--color-muted); margin: 0 var(--space-2); }
   `
 
   // Auth.js 표준 클라이언트 플로우: csrf → POST signin → {url} → 브라우저 이동
@@ -79,6 +81,9 @@ export class PageLogin extends LitElement {
           ${this.busy ? '이동 중…' : '구글로 로그인'}
         </button>
         <p class="msg">${this.message}</p>
+        <p class="links">
+          <a href="/policy/privacy">개인정보처리방침</a>·<a href="/policy/terms">이용약관</a>
+        </p>
       </div>
     `
   }
