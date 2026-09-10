@@ -48,6 +48,7 @@ export class PageHome extends LitElement {
     .search:focus { outline: none; border-color: var(--color-primary); }
     .search::placeholder { color: var(--color-muted); }
     .btn-add {
+      justify-self: start; /* 풀폭 대신 내용 크기 — 저빈도 보조 액션의 존재감 낮춤 */
       height: 44px;
       padding: 0 var(--space-4);
       border-radius: var(--radius-pill);

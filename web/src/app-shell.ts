@@ -27,21 +27,44 @@ function readStoredTheme(): Theme {
 export class AppShell extends LitElement {
   @state() private user: SessionUser | null = null
   @state() private theme: Theme = readStoredTheme()
+  @state() private scrolled = false /* 스크롤 시 1행(브랜드+계정) 접힘 */
   private unsubscribe: (() => void) | null = null
 
   static styles = css`
     header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      min-height: 44px; /* DESIGN.md §1 — Apple global-nav 44px */
-      padding: 0 var(--space-4);
+      display: block; /* 두 줄: 1행 브랜드+계정(스크롤 시 접힘) / 2행 메뉴(sticky 잔존) */
       background: var(--color-surface); /* 테마 따름 — 라이트 화이트 / 다크 #1d1d1f */
       border-bottom: 1px solid var(--color-border); /* 헤어라인으로 페이지와 구분 */
       position: sticky;
       top: 0;
       z-index: 10;
     }
+    /* --- 1행: 브랜드 + 계정 칩 + 테마 세그먼트 — 스크롤하면 접혀 세로 공간 확보 --- */
+    .row-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      min-height: 44px; /* DESIGN.md §1 — Apple global-nav 44px */
+      padding: 0 var(--space-4);
+      overflow: hidden;
+      max-height: 44px;
+      transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+    }
+    header.scrolled .row-top {
+      max-height: 0;
+      padding-block: 0;
+      opacity: 0;
+    }
+    /* --- 2행: 메뉴 네비 — 항상 노출 --- */
+    .row-nav {
+      display: flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0 var(--space-4);
+      border-top: 1px solid var(--color-border);
+    }
+    header.scrolled .row-nav { border-top: none; } /* 1행이 접으면 구분선도 정리 */
     .brand {
       font-weight: 600;
       font-size: 1rem;
@@ -50,6 +73,7 @@ export class AppShell extends LitElement {
       color: var(--color-text);
       line-height: 44px;
     }
+    .row-top .seg { margin-left: 0; } /* 1행에서 세그먼트 간격은 flex gap이 담당 */
     nav {
       display: flex;
       gap: var(--space-4);
@@ -58,15 +82,11 @@ export class AppShell extends LitElement {
       justify-content: flex-start;
       flex: 1;
       min-width: 0; /* flex 안에서 overflow-x가 동작하려면 필요 */
-      padding-left: var(--space-4); /* 브랜드와 메뉴 사이 간격 */
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none; /* 스크롤바 숨김 — 스와이프 제스처로 탐색 */
     }
     nav::-webkit-scrollbar { display: none; }
-    @media (max-width: 560px) {
-      nav { padding-right: var(--space-2); } /* 잘린 마지막 링크가 계정 칩에 붙지 않게 */
-    }
     nav a,
     nav button {
       background: none;
@@ -83,13 +103,13 @@ export class AppShell extends LitElement {
     }
     nav a:hover,
     nav button:hover { color: var(--color-text); }
-    /* --- 계정 칩 — 메뉴 링크(muted 텍스트)와 구분: 네비 밖 오른쪽에 고정, 아바타+이름 한 칩 --- */
+    /* --- 계정 칩 — 1행 오른쪽: 아바타+이름 한 칩, 메뉴 링크(muted 텍스트)와 시각적 문법을 달리함 --- */
     .chip {
       display: flex;
       align-items: center;
       gap: var(--space-2);
       flex-shrink: 0;
-      margin-left: var(--space-3);
+      margin-left: auto; /* 브랜드 오른쪽 끝으로 밀기 — row-top의 space-between은 로그인 상태에서 중앙 공백을 만드므로 */
       padding: 3px 10px 3px 3px; /* 아바타가 칩 좌측에 밀착 — pill 안쪽 여백 */
       border: 1px solid var(--color-border);
       border-radius: var(--radius-pill);
@@ -206,11 +226,19 @@ export class AppShell extends LitElement {
     this.unsubscribe = session.subscribe(() => {
       this.user = session.user
     })
+    // 헤더 1행 접기 — 스크롤 방향 무관, 문서 기준 0 지나면 접힘 (Apple 툴바 축소 문법)
+    window.addEventListener('scroll', this.onScroll, { passive: true })
   }
 
   disconnectedCallback() {
     super.disconnectedCallback()
     this.unsubscribe?.()
+    window.removeEventListener('scroll', this.onScroll)
+  }
+
+  private onScroll = () => {
+    const next = window.scrollY > 0
+    if (next !== this.scrolled) this.scrolled = next
   }
 
   firstUpdated() {
@@ -307,35 +335,39 @@ export class AppShell extends LitElement {
 
   render() {
     return html`
-      <header>
-        <a href="/" class="brand">물품 대여</a>
-        <nav>
-          ${this.user && (this.user.role === 'manager' || this.user.role === 'admin')
-            ? html`<a href="/admin">대시보드</a><a href="/admin/reservations">대여 관리</a><a href="/admin/members">회원 관리</a>`
+      <header class=${this.scrolled ? 'scrolled' : ''}>
+        <div class="row-top">
+          <a href="/" class="brand">물품 대여</a>
+          ${this.user
+            ? html`
+                <button
+                  class="chip"
+                  title="마이페이지"
+                  aria-label="마이페이지 — ${this.accountLabel}"
+                  @click=${() => navigate('/mypage')}
+                >
+                  <span class="avatar" aria-hidden="true">${this.accountInitial}</span>
+                  <span class="chip-name">${this.accountLabel}</span>
+                </button>
+                <button class="btn-logout" title="로그아웃" aria-label="로그아웃" @click=${this.signOut}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                </button>
+              `
             : ''}
-          ${this.user ? '' : html`<a href="/login">로그인</a>`}
-        </nav>
-        ${this.user
-          ? html`
-              <button
-                class="chip"
-                title="마이페이지"
-                aria-label="마이페이지 — ${this.accountLabel}"
-                @click=${() => navigate('/mypage')}
-              >
-                <span class="avatar" aria-hidden="true">${this.accountInitial}</span>
-                <span class="chip-name">${this.accountLabel}</span>
-              </button>
-              <button class="btn-logout" title="로그아웃" aria-label="로그아웃" @click=${this.signOut}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-              </button>
-            `
-          : ''}
-        ${this.renderThemeSeg()}
+          ${this.renderThemeSeg()}
+        </div>
+        <div class="row-nav">
+          <nav>
+            ${this.user && (this.user.role === 'manager' || this.user.role === 'admin')
+              ? html`<a href="/admin">대시보드</a><a href="/admin/reservations">대여 관리</a><a href="/admin/members">회원 관리</a>`
+              : ''}
+            ${this.user ? '' : html`<a href="/login">로그인</a>`}
+          </nav>
+        </div>
       </header>
       <main></main>
     `
