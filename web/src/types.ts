@@ -65,3 +65,24 @@ export type AdminReservation = MyReservation & {
   admin_name: string | null
   conflict_count: number
 }
+
+// 관리자 대시보드 (§4.4) — /api/admin/dashboard
+export type DashboardRow = {
+  id: number
+  item_id: number
+  item_name: string
+  member_name: string
+  member_phone: string | null
+  start_date: string
+  end_date: string
+}
+
+export type Dashboard = {
+  pending_count: number
+  pickups_count: number
+  returns_count: number
+  overdue_count: number
+  pickups: DashboardRow[]
+  returns: DashboardRow[]
+  overdue: (DashboardRow & { days_late: number })[]
+}

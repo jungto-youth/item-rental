@@ -8,6 +8,7 @@ import './pages/signup-profile'
 import './pages/not-found'
 import './pages/admin/members'
 import './pages/admin/reservations'
+import './pages/admin/dashboard'
 import './pages/policy'
 
 // vaadin의 action 시그니처 — Route 타입에서 추출해 가드에 재사용
@@ -31,9 +32,14 @@ const requireManager: RouteAction = async (_context, commands) => {
 let routerInstance: Router | null = null
 
 // 컴포넌트에서 SPA 내 이동할 때 사용
+// 쿼리스트링이 있으면 분리해서 전달 — render(문자열)은 '?…'까지 경로로 매칭해 not-found가 됨
 export function navigate(path: string) {
-  if (routerInstance) routerInstance.render(path, true)
-  else window.location.assign(path)
+  if (routerInstance) {
+    const u = new URL(path, location.origin)
+    routerInstance.render({ pathname: u.pathname, search: u.search }, true)
+  } else {
+    window.location.assign(path)
+  }
 }
 
 export function initRouter(outlet: HTMLElement): Router {
@@ -44,6 +50,7 @@ export function initRouter(outlet: HTMLElement): Router {
     { path: '/login', component: 'page-login' },
     { path: '/mypage', component: 'page-mypage', action: requireSession },
     { path: '/signup/profile', component: 'page-signup-profile', action: requireSession },
+    { path: '/admin', component: 'page-admin-dashboard', action: requireManager },
     { path: '/admin/reservations', component: 'page-admin-reservations', action: requireManager },
     { path: '/admin/members', component: 'page-admin-members', action: requireManager },
     { path: '/policy/:kind', component: 'page-policy' },

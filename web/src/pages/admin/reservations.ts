@@ -69,6 +69,11 @@ export class PageAdminReservations extends LitElement {
 
   async connectedCallback() {
     super.connectedCallback()
+    // 대시보드 카드 딥링크(?status=…) — 유효한 상태면 필터 미리 적용
+    const qs = new URLSearchParams(location.search).get('status')
+    if (qs && ['pending', 'approved', 'picked_up', 'returned', 'rejected', 'cancelled'].includes(qs)) {
+      this.filter = qs as ReservationStatus
+    }
     await this.reload()
   }
 

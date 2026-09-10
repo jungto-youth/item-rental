@@ -36,7 +36,8 @@ export class AppShell extends LitElement {
       justify-content: space-between;
       min-height: 44px; /* DESIGN.md §1 — Apple global-nav 44px */
       padding: 0 var(--space-4);
-      background: #000; /* 두 테마 모두 순흑 고정 — 페이지의 유일한 순흑 */
+      background: var(--color-surface); /* 테마 따름 — 라이트 화이트 / 다크 #1d1d1f */
+      border-bottom: 1px solid var(--color-border); /* 헤어라인으로 페이지와 구분 */
       position: sticky;
       top: 0;
       z-index: 10;
@@ -46,7 +47,7 @@ export class AppShell extends LitElement {
       font-size: 1rem;
       letter-spacing: var(--tracking-tight);
       text-decoration: none;
-      color: #f5f5f7;
+      color: var(--color-text);
       line-height: 44px;
     }
     nav {
@@ -70,7 +71,7 @@ export class AppShell extends LitElement {
       padding: 0;
       font-family: inherit;
       cursor: pointer;
-      color: #cccccc; /* Apple body-muted on dark */
+      color: var(--color-muted);
       text-decoration: none;
       font-size: var(--text-fine); /* 12px — Apple nav-link */
       line-height: 44px;
@@ -78,9 +79,9 @@ export class AppShell extends LitElement {
       flex-shrink: 0; /* 좁아져도 항목이 눌리지 않게 */
     }
     nav a:hover,
-    nav button:hover { color: #ffffff; }
+    nav button:hover { color: var(--color-text); }
     .who {
-      color: #86868b;
+      color: var(--color-muted);
       font-size: var(--text-fine);
       white-space: nowrap;
       flex-shrink: 0; /* 좁은 화면에서 세로 줄바꿈 방지 */
@@ -93,9 +94,9 @@ export class AppShell extends LitElement {
       flex-shrink: 0;
       margin-left: var(--space-3);
       padding: 2px;
-      border: 1px solid rgba(255, 255, 255, 0.16);
+      border: 1px solid var(--color-border);
       border-radius: var(--radius-pill);
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--color-bg); /* 트랙 = 캔버스 톤, 썸 = 서피스 */
     }
     .seg-thumb {
       position: absolute;
@@ -103,7 +104,8 @@ export class AppShell extends LitElement {
       bottom: 2px;
       left: 2px;
       width: calc((100% - 4px) / 3);
-      background: rgba(255, 255, 255, 0.22);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
       border-radius: var(--radius-pill);
       transition: transform 0.2s ease; /* 선택 세그먼트로 미끄러지는 썸 */
     }
@@ -119,12 +121,12 @@ export class AppShell extends LitElement {
       background: none;
       border: none;
       cursor: pointer;
-      color: #86868b;
+      color: var(--color-muted);
       transition: color 0.2s ease;
     }
-    .seg button.on { color: #f5f5f7; }
+    .seg button.on { color: var(--color-text); }
     .seg button:focus-visible {
-      outline: 2px solid var(--color-link-on-dark);
+      outline: 2px solid var(--color-primary);
       outline-offset: 1px;
       border-radius: var(--radius-pill);
     }
@@ -241,7 +243,7 @@ export class AppShell extends LitElement {
         <a href="/" class="brand">물품 대여</a>
         <nav>
           ${this.user && (this.user.role === 'manager' || this.user.role === 'admin')
-            ? html`<a href="/admin/reservations">대여 관리</a><a href="/admin/members">회원 관리</a>`
+            ? html`<a href="/admin">대시보드</a><a href="/admin/reservations">대여 관리</a><a href="/admin/members">회원 관리</a>`
             : ''}
           ${this.user
             ? html`
