@@ -67,12 +67,18 @@ export class AppShell extends LitElement {
       box-shadow: inset 0 -1px var(--color-border);
     }
     .brand {
-      font-weight: 600;
-      font-size: 1rem;
-      letter-spacing: var(--tracking-tight);
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
       text-decoration: none;
-      color: var(--color-text);
       line-height: 44px;
+    }
+    .brand img {
+      display: block;
+      width: 26px;
+      height: 26px; /* 계정 아바타(26px)와 같은 높이 — 1행 시각 리듬 통일 */
+      border-radius: var(--radius-pill); /* 로고를 원형 칩으로 — 아바타와 같은 문법 */
+      background: var(--color-bg); /* 점선 사이 비치는 배경 통일 */
     }
     nav {
       display: flex;
@@ -351,7 +357,9 @@ export class AppShell extends LitElement {
     return html`
       <header>
         <div class="row-top">
-          <a href="/" class="brand">물품 대여</a>
+          <a href="/" class="brand" aria-label="홈 — 청년지부 물품 대여">
+            <img src="/logo.png" alt="" />
+          </a>
           <div class="actions">
             ${this.user
               ? html`
