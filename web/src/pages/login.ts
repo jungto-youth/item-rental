@@ -21,27 +21,29 @@ export class PageLogin extends LitElement {
 
   static styles = css`
     div { text-align: center; padding: var(--space-6) 0; }
-    h1 { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
-    p { color: var(--color-muted); font-size: 0.85rem; line-height: 1.6; }
+    h1 { font-size: 1.375rem; font-weight: 600; letter-spacing: var(--tracking-tight); line-height: 1.1; }
+    p { color: var(--color-muted); font-size: var(--text-caption); line-height: 1.47; }
     button {
       display: block;
       margin: var(--space-4) auto 0;
       max-width: 260px;
       width: 100%;
-      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
-      border-radius: var(--radius);
+      height: 44px;
+      border-radius: var(--radius-pill); /* DESIGN.md §5 — 주 CTA 풀필 */
       background: var(--color-primary);
       border: none;
       color: var(--color-primary-text);
-      font-weight: 600;
-      font-size: 0.95rem;
+      font-weight: 400; /* Apple 버튼 문법 — 400 */
+      font-size: 1rem;
       font-family: inherit;
       cursor: pointer;
+      transition: transform 0.15s ease;
     }
-    button:hover:not(:disabled) { opacity: 0.9; }
+    button:active:not(:disabled) { transform: scale(0.95); }
+    button:focus-visible { outline: 2px solid var(--color-primary-focus); outline-offset: 2px; }
     button:disabled { opacity: 0.6; cursor: default; }
-    .msg { color: var(--color-danger); font-size: 0.8rem; }
-    .links { margin-top: var(--space-4); font-size: 0.75rem; }
+    .msg { color: var(--color-danger); font-size: var(--text-fine); }
+    .links { margin-top: var(--space-4); font-size: var(--text-fine); }
     .links a { color: var(--color-muted); margin: 0 var(--space-2); }
   `
 

@@ -19,30 +19,32 @@ export class PageAdminItems extends LitElement {
   @state() private message = ''
 
   static styles = css`
-    h1 { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
+    h1 { font-size: 1.375rem; font-weight: 600; letter-spacing: var(--tracking-tight); line-height: 1.1; }
     .bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); }
     button.primary {
       background: var(--color-primary);
       color: var(--color-primary-text);
       border: 0;
-      border-radius: var(--radius);
-      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
-      padding: 0 var(--space-4);
+      border-radius: var(--radius-pill); /* 주 CTA 풀필 */
+      height: 44px;
+      padding: 0 var(--space-5);
       font: inherit;
-      font-weight: 600;
+      font-size: 1rem;
+      font-weight: 400;
       cursor: pointer;
+      transition: transform 0.15s ease;
     }
-    button.primary:hover:not(:disabled) { opacity: 0.9; }
+    button.primary:active:not(:disabled) { transform: scale(0.95); }
     button.primary:disabled { opacity: .55; cursor: default; }
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.82rem;
+      font-size: var(--text-caption);
       display: block;
       overflow-x: auto;
     }
     th, td { text-align: left; padding: var(--space-3) var(--space-2); border-bottom: 1px solid var(--color-border); white-space: nowrap; }
-    th { color: var(--color-muted); font-weight: 500; font-size: 0.75rem; }
+    th { color: var(--color-muted); font-weight: 600; font-size: var(--text-fine); }
     td.actions button { margin-right: var(--space-1); }
     .link {
       background: none;
@@ -50,7 +52,7 @@ export class PageAdminItems extends LitElement {
       color: var(--color-primary);
       cursor: pointer;
       padding: var(--space-2);
-      font-size: 0.85rem;
+      font-size: var(--text-caption);
       font-family: inherit;
     }
     .link.danger { color: var(--color-danger); }
@@ -60,18 +62,18 @@ export class PageAdminItems extends LitElement {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius);
-      padding: var(--space-4);
+      padding: var(--space-5);
       margin-bottom: var(--space-4);
     }
-    label { font-size: 0.75rem; color: var(--color-muted); display: grid; gap: 4px; }
+    label { font-size: var(--text-caption); color: var(--color-muted); display: grid; gap: 4px; }
     input, select, textarea {
-      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
+      height: 44px;
       padding: 0 var(--space-3);
       border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      background: var(--color-surface);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg); /* 파치먼트 fill */
       color: var(--color-text);
-      font-size: 0.9rem;
+      font-size: 1rem;
       font-family: inherit;
       box-sizing: border-box;
     }
@@ -80,14 +82,17 @@ export class PageAdminItems extends LitElement {
     .row { display: flex; gap: var(--space-3); }
     .row > label { flex: 1; }
     .pics { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-    .pic { position: relative; width: 72px; height: 72px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--color-border); }
+    .pic { position: relative; width: 72px; height: 72px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--color-border); }
     .pic img { width: 100%; height: 100%; object-fit: cover; }
+    /* DESIGN.md §5 — 사진 위 원형 컨트롤 칩 (Apple icon-circular) */
     .pic button {
-      position: absolute; top: 0; right: 0;
-      background: rgba(0,0,0,.55); color: #fff; border: 0;
-      width: 20px; height: 20px; cursor: pointer; line-height: 1;
+      position: absolute; top: 2px; right: 2px;
+      background: rgba(210, 210, 215, 0.64); color: #1d1d1f; border: 0;
+      border-radius: 50%;
+      width: 22px; height: 22px; cursor: pointer; line-height: 1;
+      font-size: 0.7rem;
     }
-    .msg { color: var(--color-primary); font-size: 0.85rem; min-height: 1.2em; }
+    .msg { color: var(--color-primary); font-size: var(--text-caption); min-height: 1.2em; }
   `
 
   async connectedCallback() {

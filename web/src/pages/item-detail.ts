@@ -43,79 +43,83 @@ export class PageItemDetail extends LitElement {
     .thumbs button {
       width: 56px;
       height: 56px;
-      border-radius: var(--radius);
+      border-radius: var(--radius-sm);
       border: 2px solid transparent;
       padding: 0;
       overflow: hidden;
       cursor: pointer;
       background: var(--color-surface);
     }
-    .thumbs button.on { border-color: var(--color-primary); }
+    .thumbs button.on { border-color: var(--color-primary-focus); } /* DESIGN.md §5 — 선택 상태 2px 링 */
     .thumbs img { width: 100%; height: 100%; object-fit: cover; }
-    h1 { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; margin: var(--space-4) 0 var(--space-2); }
-    .desc { line-height: 1.6; white-space: pre-wrap; }
+    h1 { font-size: 1.375rem; font-weight: 600; letter-spacing: var(--tracking-tight); line-height: 1.1; margin: var(--space-4) 0 var(--space-2); }
+    .desc { line-height: 1.47; white-space: pre-wrap; }
     .spec {
       display: flex;
-      gap: var(--space-4);
+      gap: var(--space-6);
       margin: var(--space-4) 0;
-      padding: var(--space-3);
+      padding: var(--space-4);
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius);
-      font-size: 0.85rem;
+      font-size: var(--text-body);
     }
-    .spec b { display: block; color: var(--color-muted); font-weight: 500; font-size: 0.72rem; }
-    .strip-label { font-size: 0.8rem; color: var(--color-muted); margin-bottom: var(--space-2); }
+    .spec b { display: block; color: var(--color-muted); font-weight: 400; font-size: var(--text-fine); }
+    .strip-label { font-size: var(--text-caption); color: var(--color-muted); margin-bottom: var(--space-2); }
     .apply-form {
       margin-top: var(--space-4);
-      padding: var(--space-4);
+      padding: var(--space-5);
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius);
       display: grid;
       gap: var(--space-3);
     }
-    .apply-form h2 { font-size: 0.95rem; margin: 0; }
+    .apply-form h2 { font-size: 1.0625rem; font-weight: 600; letter-spacing: var(--tracking-tight); margin: 0; }
     .dates { display: flex; gap: var(--space-3); flex-wrap: wrap; }
     .dates label {
       flex: 1;
       min-width: 140px;
       display: grid;
       gap: 4px;
-      font-size: 0.8rem;
+      font-size: var(--text-caption);
       color: var(--color-muted);
     }
     input, textarea {
       font: inherit;
+      font-size: 1rem; /* iOS 줌 방지 */
       padding: 0 var(--space-3);
-      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
+      height: 44px;
       border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      background: var(--color-surface);
+      border-radius: var(--radius-sm); /* DESIGN.md §5 — 입력 필 유틸 8px */
+      background: var(--color-bg); /* 화이트 카드 위 파치먼트 fill */
       color: inherit;
       box-sizing: border-box;
       width: 100%;
     }
     textarea { height: auto; min-height: 72px; padding: var(--space-3); resize: vertical; }
     input:focus, textarea:focus { outline: none; border-color: var(--color-primary); }
-    .memo { display: grid; gap: 4px; font-size: 0.8rem; color: var(--color-muted); }
-    .hint { margin: 0; font-size: 0.8rem; color: var(--color-muted); }
-    .warn { margin: 0; color: var(--color-danger); font-size: 0.8rem; }
-    .ok { margin: 0; color: var(--color-success); font-size: 0.85rem; }
-    .err { margin: 0; color: var(--color-danger); font-size: 0.85rem; }
+    .memo { display: grid; gap: 4px; font-size: var(--text-caption); color: var(--color-muted); }
+    .hint { margin: 0; font-size: var(--text-caption); color: var(--color-muted); }
+    .warn { margin: 0; color: var(--color-danger); font-size: var(--text-caption); }
+    .ok { margin: 0; color: var(--color-success); font-size: var(--text-caption); }
+    .err { margin: 0; color: var(--color-danger); font-size: var(--text-caption); }
     .primary {
       justify-self: start;
       font: inherit;
-      font-weight: 600;
-      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
+      font-size: 1rem;
+      font-weight: 400; /* Apple 버튼 문법 */
+      height: 44px;
       padding: 0 var(--space-6);
       background: var(--color-primary);
       color: var(--color-primary-text);
       border: none;
-      border-radius: var(--radius);
+      border-radius: var(--radius-pill);
       cursor: pointer;
+      transition: transform 0.15s ease;
     }
-    .primary:hover:not(:disabled) { opacity: 0.9; }
+    .primary:active:not(:disabled) { transform: scale(0.95); }
+    .primary:focus-visible { outline: 2px solid var(--color-primary-focus); outline-offset: 2px; }
     .primary:disabled { opacity: 0.5; cursor: not-allowed; }
     .notice {
       margin-top: var(--space-4);
@@ -125,7 +129,7 @@ export class PageItemDetail extends LitElement {
       border-radius: var(--radius);
       text-align: center;
       color: var(--color-muted);
-      font-size: 0.85rem;
+      font-size: var(--text-caption);
     }
     .notice a { color: var(--color-primary); }
     .error { color: var(--color-danger); padding: var(--space-6) 0; }

@@ -21,17 +21,18 @@ export class PageSignupProfile extends LitElement {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius);
-      padding: var(--space-4);
+      padding: var(--space-5);
     }
-    label { font-size: 0.75rem; color: var(--color-muted); display: grid; gap: 4px; }
+    h2 { font-size: 1.0625rem; font-weight: 600; letter-spacing: var(--tracking-tight); margin: 0; }
+    label { font-size: var(--text-caption); color: var(--color-muted); display: grid; gap: 4px; }
     input {
-      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
+      height: 44px;
       padding: 0 var(--space-3);
       border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      background: var(--color-surface);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg); /* 화이트 카드 위 파치먼트 fill */
       color: var(--color-text);
-      font-size: 0.95rem;
+      font-size: 1rem; /* iOS 줌 방지 */
       font-family: inherit;
       box-sizing: border-box;
       width: 100%;
@@ -41,17 +42,18 @@ export class PageSignupProfile extends LitElement {
       background: var(--color-primary);
       color: var(--color-primary-text);
       border: 0;
-      border-radius: var(--radius);
-      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
+      border-radius: var(--radius-pill); /* 주 CTA 풀필 */
+      height: 44px;
       cursor: pointer;
-      font-size: 0.95rem;
-      font-weight: 600;
+      font-size: 1rem;
+      font-weight: 400;
       font-family: inherit;
+      transition: transform 0.15s ease;
     }
-    button:hover:not(:disabled) { opacity: 0.9; }
+    button:active:not(:disabled) { transform: scale(0.95); }
     button:disabled { opacity: 0.6; cursor: default; }
-    .msg { color: var(--color-danger); font-size: 0.8rem; margin: 0; min-height: 1em; }
-    p.hint { color: var(--color-muted); font-size: 0.8rem; margin: 0; }
+    .msg { color: var(--color-danger); font-size: var(--text-fine); margin: 0; min-height: 1em; }
+    p.hint { color: var(--color-muted); font-size: var(--text-caption); margin: 0; }
   `
 
   async connectedCallback() {

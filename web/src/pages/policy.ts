@@ -11,17 +11,23 @@ export class PagePolicy extends LitElement {
   static styles = css`
     article {
       max-width: 640px;
-      line-height: 1.7;
-      font-size: 0.9rem;
+      line-height: 1.47;
+      font-size: var(--text-body);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: var(--space-5);
+      box-sizing: border-box;
+      margin: 0 auto;
     }
-    h1 { font-size: 1.15rem; margin: var(--space-6) 0 var(--space-2); }
-    h2 { font-size: 0.95rem; margin: var(--space-5) 0 var(--space-2); }
+    h1 { font-size: 1.375rem; font-weight: 600; letter-spacing: var(--tracking-tight); line-height: 1.1; margin: var(--space-2) 0 var(--space-2); }
+    h2 { font-size: 1.0625rem; font-weight: 600; letter-spacing: var(--tracking-tight); margin: var(--space-5) 0 var(--space-2); }
     p, li { color: var(--color-muted); }
     ul { padding-left: var(--space-5); }
-    .updated { font-size: 0.8rem; color: var(--color-muted); }
+    .updated { font-size: var(--text-fine); color: var(--color-muted); }
     table {
       border-collapse: collapse;
-      font-size: 0.82rem;
+      font-size: var(--text-caption);
       margin: var(--space-3) 0;
       width: 100%;
       display: block;
@@ -33,7 +39,7 @@ export class PagePolicy extends LitElement {
       text-align: left;
       white-space: nowrap;
     }
-    th { background: var(--color-surface); }
+    th { background: var(--color-bg); color: var(--color-text); font-weight: 600; }
   `
 
   onAfterEnter(location: RouterLocation) {

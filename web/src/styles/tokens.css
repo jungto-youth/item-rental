@@ -1,25 +1,25 @@
-/* SPEC §6 — 디자인 토큰 (CSS 커스텀 프로퍼티는 Shadow DOM 안으로 상속됨)
+/* DESIGN.md — Apple 기반 디자인 토큰 (CSS 커스텀 프로퍼티는 Shadow DOM 안으로 상속됨)
    테마 3단계: data-theme 없음=시스템 따름, "light"/"dark"=명시 선택.
-   - 라이트 팔레트는 :root 기본값
-   - 다크는 두 경로로 적용: 시스템 다크 & data-theme="dark" 미지정 시 / 명시 지정 시
-     (동일 블록을 두 셀렉터에 반복 — CSS에선 블록 재사용이 안 되므로 수동 동기화) */
+   라이트=파치먼트 캔버스, 다크=블랙 캔버스. 다크 블록은 두 셀렉터에 반복 — 수동 동기화. */
 
-/* ── 라이트 팔레트 (기본) ── */
+/* ── 라이트 팔레트 (Apple 낮) ── */
 :root {
   color-scheme: light;
 
-  --color-bg: #fafaf9;
-  --color-surface: #ffffff;
-  --color-border: #e7e5e4;
-  --color-text: #1c1917;
-  --color-muted: #78716c;
-  --color-primary: #2563eb;
+  --color-bg: #f5f5f7;          /* 파치먼트 캔버스 */
+  --color-surface: #ffffff;     /* 유틸리티 카드 */
+  --color-border: #e0e0e0;      /* 헤어라인 */
+  --color-text: #1d1d1f;        /* 잉크 */
+  --color-muted: #6e6e73;
+  --color-primary: #0066cc;     /* Action Blue — 유일한 인터랙션 색 */
   --color-primary-text: #ffffff;
+  --color-primary-focus: #0071e3;
+  --color-link-on-dark: #2997ff;
   --color-success: #16a34a;
   --color-warning: #d97706;
   --color-danger: #dc2626;
 
-  /* 상태 톤 — 배지·알림용 배경/글자 쌍 */
+  /* 상태 톤 — 배지·알림 배경/글자 쌍 */
   --tone-success-bg: #dcfce7;
   --tone-success-text: #166534;
   --tone-warning-bg: #fef9c3;
@@ -31,29 +31,42 @@
   --tone-violet-bg: #ede9fe;
   --tone-violet-text: #5b21b6;
 
-  /* DESIGN.md §2 — 카드·입력 12px, 배지·칩은 999px(필) */
-  --radius: 12px;
+  /* 라운드 스케일 — 유틸 8 / 카드 18 / 필 9999 (DESIGN.md §3) */
+  --radius-sm: 8px;
+  --radius: 18px;
+  --radius-pill: 9999px;
+
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
+  --space-5: 20px;
   --space-6: 24px;
 
-  --font-body: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  /* 타이포 — Apple tight (DESIGN.md §4) */
+  --text-body: 1.0625rem;     /* 17px — 본문 기본 */
+  --text-caption: 0.875rem;   /* 14px */
+  --text-fine: 0.75rem;       /* 12px */
+  --tracking-tight: -0.02em;
+
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
-/* ── 다크 팔레트 ── */
+/* ── 다크 팔레트 (Apple 밤 — 블랙 캔버스) ──
+   아래 두 셀렉터는 동일 블록 반복 — 수정 시 둘 다! */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
 
-    --color-bg: #0c0a09;
-    --color-surface: #1c1917;
-    --color-border: #292524;
-    --color-text: #fafaf9;
-    --color-muted: #a8a29e;
-    --color-primary: #3b82f6;
+    --color-bg: #000000;
+    --color-surface: #1d1d1f;
+    --color-border: #2a2a2c;
+    --color-text: #f5f5f7;
+    --color-muted: #86868b;
+    --color-primary: #0071e3;
     --color-primary-text: #ffffff;
+    --color-primary-focus: #2997ff;
+    --color-link-on-dark: #2997ff;
     --color-success: #22c55e;
     --color-warning: #f59e0b;
     --color-danger: #ef4444;
@@ -74,13 +87,15 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --color-bg: #0c0a09;
-  --color-surface: #1c1917;
-  --color-border: #292524;
-  --color-text: #fafaf9;
-  --color-muted: #a8a29e;
-  --color-primary: #3b82f6;
+  --color-bg: #000000;
+  --color-surface: #1d1d1f;
+  --color-border: #2a2a2c;
+  --color-text: #f5f5f7;
+  --color-muted: #86868b;
+  --color-primary: #0071e3;
   --color-primary-text: #ffffff;
+  --color-primary-focus: #2997ff;
+  --color-link-on-dark: #2997ff;
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;

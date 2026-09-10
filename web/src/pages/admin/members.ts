@@ -15,16 +15,16 @@ export class PageAdminMembers extends LitElement {
   @state() private message = ''
 
   static styles = css`
-    h1 { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
+    h1 { font-size: 1.375rem; font-weight: 600; letter-spacing: var(--tracking-tight); line-height: 1.1; }
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.82rem;
+      font-size: var(--text-caption);
       display: block;
       overflow-x: auto;
     }
     th, td { text-align: left; padding: var(--space-3) var(--space-2); border-bottom: 1px solid var(--color-border); white-space: nowrap; }
-    th { color: var(--color-muted); font-weight: 500; font-size: 0.75rem; }
+    th { color: var(--color-muted); font-weight: 600; font-size: var(--text-fine); }
     td.actions button { margin-right: var(--space-1); }
     .link {
       background: none;
@@ -32,7 +32,7 @@ export class PageAdminMembers extends LitElement {
       color: var(--color-primary);
       cursor: pointer;
       padding: var(--space-2);
-      font-size: 0.85rem;
+      font-size: var(--text-caption);
       font-family: inherit;
     }
     .link.danger { color: var(--color-danger); }
@@ -40,14 +40,14 @@ export class PageAdminMembers extends LitElement {
       height: 36px;
       padding: 0 var(--space-2);
       border: 1px solid var(--color-border);
-      border-radius: var(--radius);
+      border-radius: var(--radius-sm);
       background: var(--color-surface);
       color: var(--color-text);
-      font-size: 0.8rem;
+      font-size: var(--text-caption);
       font-family: inherit;
     }
-    .msg { color: var(--color-primary); font-size: 0.85rem; min-height: 1.2em; }
-    .empty { color: var(--color-muted); font-size: 0.85rem; }
+    .msg { color: var(--color-primary); font-size: var(--text-caption); min-height: 1.2em; }
+    .empty { color: var(--color-muted); font-size: var(--text-caption); }
   `
 
   async connectedCallback() {

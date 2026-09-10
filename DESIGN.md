@@ -1,58 +1,86 @@
-# DESIGN.md — 디자인 원칙
+# DESIGN.md — 디자인 시스템
 
-애플의 타이포·여백 감성과 구글 머티리얼 3의 표면 위계·상태 색 체계를 **절제해서** 섞은 것이 기준이다. "꾸미지 않는 것"이 기본값 — 장식은 상태 전달에 필요한 최소한만.
+Apple 웹 디자인 언어를 이 서비스 규모에 맞게 절제해 적용한 것이 기준이다. 핵심은 **UI가 물품 뒤로 물러나는 것** — 단일 액센트, 풀필 CTA, 그림자 없는 평면, 색 변화 자체가 구분선.
 
 ## 1. 원칙
 
-1. **여백이 구조다** — 구분선·그림자보다 간격으로 위계를 만든다. 카드 안 패딩은 넉넉히(16px), 카드 사이는 12px.
-2. **그림자 없음** — 면의 위계는 배경색 톤 차(`--color-bg` < `--color-surface`)와 1px 보더로만. `box-shadow` 금지.
-3. **타이포 위계는 크기와 무게로** — 굵기 600/500/400 세 단계만. 본문은 시스템 산세리프(SF Pro → system-ui), 행간 1.6 이상.
-4. **색은 의미만** — 브랜드/포인트 컬러는 주요 CTA와 링크에만. 상태(성공·경고·위험·정보)는 톤 토큰 배지로만 표현. 장식적 색 사용 금지.
-5. **라운드는 두 가지** — 카드/입력 12px(`--radius`), 배지/칩 999px(필). 그 외 반경 금지.
-6. **터치 타깃 44px** — 모든 클릭 요소는 최소 높이 44px (모바일 우선 UI).
+1. **단일 액센트** — 인터랙티브한 모든 것(링크·CTA·포커스 링)은 Action Blue `#0066cc` 하나. 두 번째 브랜드 색은 존재하지 않는다. 상태 색(성공·경고·위험)은 배지 톤 토큰으로만.
+2. **버튼 문법은 두 가지** — 주 CTA는 블루 **풀필**(radius 9999px, Apple의 동작 신호), 보조는 고스트 필(투명 배경 + 블루 보더). 유틸리티 컨트롤은 8px 사각.
+3. **그림자 금지** — UI 어디에도 `box-shadow` 없음. 위계는 표면 색 변화(파치먼트 ↔ 화이트 ↔ 다크 타일)와 1px 헤어라인으로만.
+4. **Apple tight 타이포** — 17px 이상 제목은 `letter-spacing: -0.02em`. 굵기 사다리는 300/400/600 (500 없음). 제목 600, 본문 400.
+5. **본문 17px** — SaaS 관례인 16px가 아니라 17px. 행간 1.47.
+6. **터치 타깃 44px** — 모든 클릭 요소 최소 높이 44px.
+7. **누르면 줄어든다** — 버튼 active 상태는 `transform: scale(0.95)` (시스템 전체 마이크로 인터랙션).
+8. **글로벌 네비는 항상 블랙** — 두 테마 모두 순흑 배경에 12px 링크. 페이지에서 유일한 순흑.
 
 ## 2. 색 토큰 (tokens.css)
 
-두 테마(라이트/다크)에서 같은 토큰 이름을 쓴다. 값은 tokens.css 참조.
+| 토큰 | 라이트 | 다크 | 용도 |
+|---|---|---|---|
+| `--color-bg` | `#f5f5f7` 파치먼트 | `#000000` | 페이지 캔버스 |
+| `--color-surface` | `#ffffff` | `#1d1d1f` | 유틸리티 카드·입력 필 |
+| `--color-border` | `#e0e0e0` 헤어라인 | `#2a2a2c` | 1px 구분선 |
+| `--color-text` | `#1d1d1f` 잉크 | `#f5f5f7` | 본문 |
+| `--color-muted` | `#6e6e73` | `#86868b` | 보조 텍스트 |
+| `--color-primary` | `#0066cc` Action Blue | `#0071e3` | 링크·CTA fill |
+| `--color-primary-text` | `#ffffff` | `#ffffff` | CTA 위 글자 |
+| `--color-primary-focus` | `#0071e3` | `#2997ff` | 포커스 링·선택 보더 |
+| `--color-link-on-dark` | `#2997ff` | `#2997ff` | 다크 타일 위 인라인 링크 |
+| `--color-success/warning/danger` | 기능 상태용 | 톤 다운 | 강조선·아이콘 (배경 금지) |
+| `--tone-*-bg/text` | 상태 배지 쌍 | 어두운 쌍 | 배지·알림 카드 |
 
-| 토큰 | 용도 |
-|---|---|
-| `--color-bg` / `--color-surface` | 페이지 배경 / 카드·헤더 표면 (톤 차로 위계) |
-| `--color-border` | 1px 구분선·보더 |
-| `--color-text` / `--color-muted` | 본문 / 보조 텍스트 |
-| `--color-primary` / `--color-primary-text` | CTA·링크 / 그 위의 글자 |
-| `--color-success/warning/danger` | 상태 아이콘·강조선 (배경으로 쓰지 않음) |
-| `--tone-*-bg` / `--tone-*-text` | 상태 배지·알림 배경/글자 쌍 (success·warning·danger·info·violet) |
+그라데이션 토큰 없음. 분위기는 사진이 낸다.
 
-## 3. 타이포
+## 3. 라운드 스케일
+
+| 토큰 | 값 | 용도 |
+|---|---|---|
+| `--radius-sm` | 8px | 입력 필, 유틸 버튼, 썸네일 |
+| `--radius` | 18px | 유틸리티 카드 |
+| `--radius-pill` | 9999px | 주 CTA, 검색창, 배지·칩 |
+
+## 4. 타이포
 
 ```
-페이지 제목   1.15rem / 600
-섹션 제목    0.95rem / 600
-본문         0.9rem  / 400  (행간 1.6)
-보조·캡션    0.8rem  / 400  (--color-muted)
-배지·칩      0.72rem / 600
+페이지 제목   1.375rem (22px) / 600 / -0.02em / 1.1
+섹션 제목    1.0625rem (17px) / 600
+본문         1.0625rem (17px) / 400 / 1.47
+캡션·테이블   0.875rem (14px)
+파인 프린트   0.75rem  (12px)
+버튼         1rem (16px) / 400   ← iOS 입력줌 방지 최소치
 ```
 
-폰트: `--font-body` (system-ui, -apple-system, 'Apple SD Gothic Neo', …)
+폰트: `system-ui, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif`
+— macOS/iOS에선 SF Pro로 해석. 한글은 Apple SD Gothic Neo가 이어받는다.
 
-## 4. 컴포넌트 규칙
+## 5. 표면 & 컴포넌트 규칙
 
-- **카드**: `--color-surface` + 1px 보더 + radius 12px + padding 16px. 내부 요소 간격 8px.
-- **버튼**: 필(채움) 버튼이 기본. `--color-primary` 배경 + `--color-primary-text` 글자, radius 12px, 높이 44px, 굵기 600. 보조 버튼은 투명 배경 + 보더. 텍스트 버튼(링크형)은 `--color-primary` 글자만.
-- **입력**: `--color-surface` 배경 + 1px 보더 + radius 12px, 높이 44px, 패딩 12px. 포커스 시 보더가 `--color-primary`로.
-- **배지(`<x-badge>`)**: 필 칩형 — 톤 토큰 배경+글자, radius 999px, 0.72rem.
-- **테이블**: 헤더 없이 행 중심. 행 구분은 1px 보더, 셀 패딩 12px. 좌우 스크롤 허용.
-- **토스트/알림**: 톤 토큰 배경의 필 카드.
+- **페이지 캔버스**는 파치먼트, **카드**는 화이트 + 1px 헤어라인 + 18px + padding 16–20px. 색 차이가 섹션 구분선 역할 — 보더 장식을 늘리지 않는다.
+- **버튼(주 CTA)**: `--color-primary` 필 + 흰 글자 + 풀필 + 높이 44px + 글자 400. hover 장식 없음, `:active` scale(0.95), `:focus-visible` 2px outline `--color-primary-focus`.
+- **입력 필**: 화이트 카드 위에서는 파치먼트 fill(`--color-bg`) + 헤어라인 + 8px, 높이 44px, 글자 1rem (iOS 줌 방지). 포커스 시 보더가 `--color-primary`.
+- **검색창**: 풀필 — CTA와 같은 문법.
+- **배지(`<x-badge>`)**: 풀필 칩, 톤 토큰 배경+글자, 12px/600.
+- **테이블**: 헤더는 12px/600 muted, 행 구분 1px 헤어라인, 셀 패딩 12px, 좌우 스크롤 허용.
+- **사진 위 컨트롤**: 반투명 회색 원형 칩 `rgba(210,210,215,.64)` + 잉크 글리프 (Apple icon-circular 문법).
+- **파괴적 링크(거절·삭제)**만 `--color-danger`. 나머지 텍스트 동작은 전부 블루 링크.
 
-## 5. 테마
+## 6. 테마
 
-- 3단계: 시스템 자동(기본) / 라이트 / 다크 — `data-theme` 속성 + localStorage(`theme`).
-- 다크는 라이트의 반전이 아니라 별도 팔레트(톤 다운된 상태색 포함). tokens.css의 두 블록은 수동 동기화.
+- 3단계: 시스템 자동(기본) / 라이트 / 다크 — `data-theme` + localStorage(`theme`).
+- 라이트 = Apple 낮 팔레트(파치먼트 캔버스), 다크 = 블랙 캔버스(`#000`)+`#1d1d1f` 카드. 라이트의 단순 반전이 아님.
+- 글로벌 네비는 양쪽 테마에서 순흑 고정.
+- 다크 블록은 tokens.css에서 두 셀렉터(시스템 다크 / 명시 dark)에 반복 — **수동 동기화**.
 
-## 6. 적용 위치
+## 7. Do / Don't
 
-- `web/src/styles/tokens.css` — 토큰 단일 진실원천
-- `web/src/components/ui/*` — 배지 등 재사용 컴포넌트
-- `web/src/pages/*`, `web/src/app-shell.ts` — 각 페이지 Lit `css`
-- 새 화면 추가 시 이 문서의 규칙을 따르고, 새 토큰이 필요하면 tokens.css에 먼저 추가한다.
+- ✅ 인터랙티브는 전부 `--color-primary`. CTA는 풀필. 검색창도 풀필.
+- ✅ 강조가 필요하면 크롬을 더하지 말고 **표면을 번갈아** (라이트 타일 ↔ 다크 카드).
+- ❌ 카드·버튼·텍스트에 그림자 금지. 그라데이션 장식 금지.
+- ❌ 본문에 굵기 500 금지 — 400 또는 600.
+- ❌ 헤어라인보다 두꺼운 보더, 라운드 임의값(8/18/9999 외) 금지.
+
+## 8. 적용 위치
+
+- `web/src/styles/tokens.css` — 토큰 단일 진실원천. 새 토큰은 먼저 여기에.
+- `web/src/app-shell.ts` — 글로벌 네비(순흑 고정).
+- `web/src/components/ui/*`, `web/src/pages/*` — 이 문서의 규칙을 따른다.

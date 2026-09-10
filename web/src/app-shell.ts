@@ -29,18 +29,20 @@ export class AppShell extends LitElement {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: var(--space-3) var(--space-4);
-      background: var(--color-surface);
-      border-bottom: 1px solid var(--color-border);
+      min-height: 44px; /* DESIGN.md §1 — Apple global-nav 44px */
+      padding: 0 var(--space-4);
+      background: #000; /* 두 테마 모두 순흑 고정 — 페이지의 유일한 순흑 */
       position: sticky;
       top: 0;
+      z-index: 10;
     }
     .brand {
       font-weight: 600;
       font-size: 1rem;
-      letter-spacing: -0.01em;
+      letter-spacing: var(--tracking-tight);
       text-decoration: none;
-      color: var(--color-text);
+      color: #f5f5f7;
+      line-height: 44px;
     }
     nav {
       display: flex;
@@ -48,32 +50,28 @@ export class AppShell extends LitElement {
       align-items: center;
       flex-wrap: wrap;
       justify-content: flex-end;
-      row-gap: var(--space-1);
     }
-    nav a {
-      color: var(--color-muted);
-      text-decoration: none;
-      font-size: 0.85rem;
-      line-height: 44px; /* DESIGN.md §1 — 터치 타깃 44px */
-    }
-    nav a:hover { color: var(--color-text); }
-    .who { color: var(--color-muted); font-size: 0.8rem; }
+    nav a,
     nav button {
       background: none;
       border: none;
       padding: 0;
-      color: var(--color-muted);
-      text-decoration: none;
-      font-size: 0.85rem;
       font-family: inherit;
       cursor: pointer;
+      color: #cccccc; /* Apple body-muted on dark */
+      text-decoration: none;
+      font-size: var(--text-fine); /* 12px — Apple nav-link */
       line-height: 44px;
     }
-    nav button:hover { color: var(--color-text); }
+    nav a:hover,
+    nav button:hover { color: #ffffff; }
+    .who { color: #86868b; font-size: var(--text-fine); }
     main {
       max-width: 640px;
       margin: 0 auto;
       padding: var(--space-4);
+      font-size: var(--text-body); /* 본문 17px 기본 (DESIGN.md §4) */
+      line-height: 1.47;
     }
   `
 

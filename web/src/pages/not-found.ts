@@ -4,7 +4,9 @@ import { customElement } from 'lit/decorators.js'
 @customElement('page-not-found')
 export class PageNotFound extends LitElement {
   static styles = css`
-    div { text-align: center; padding: var(--space-6) 0; color: var(--color-muted); }
+    div { text-align: center; padding: var(--space-6) 0; color: var(--color-muted); font-size: var(--text-caption); }
+    h1 { font-size: 2.5rem; font-weight: 600; letter-spacing: var(--tracking-tight); color: var(--color-text); margin: 0 0 var(--space-2); }
+    p { margin: 0; }
   `
 
   render() {

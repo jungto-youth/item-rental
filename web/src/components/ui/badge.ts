@@ -30,9 +30,10 @@ export class XBadge extends LitElement {
     span {
       display: inline-block;
       padding: 2px 10px;
-      border-radius: 999px;
-      font-size: 0.72rem;
+      border-radius: var(--radius-pill);
+      font-size: var(--text-fine); /* 12px */
       font-weight: 600;
+      letter-spacing: -0.01em;
       white-space: nowrap;
     }
     /* 상태 색은 tokens.css의 톤 토큰 — 다크/라이트 자동 대응 */

@@ -24,11 +24,11 @@ export class AvailabilityStrip extends LitElement {
       display: flex;
       gap: var(--space-3);
       margin-top: var(--space-2);
-      font-size: 0.72rem;
+      font-size: var(--text-fine);
       color: var(--color-muted);
     }
     .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; }
-    ul { margin: var(--space-2) 0 0; padding: 0; list-style: none; font-size: 0.8rem; }
+    ul { margin: var(--space-2) 0 0; padding: 0; list-style: none; font-size: var(--text-caption); }
     li { color: var(--color-text); }
   `
 
