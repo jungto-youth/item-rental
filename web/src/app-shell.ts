@@ -64,6 +64,9 @@ export class AppShell extends LitElement {
       scrollbar-width: none; /* 스크롤바 숨김 — 스와이프 제스처로 탐색 */
     }
     nav::-webkit-scrollbar { display: none; }
+    @media (max-width: 560px) {
+      nav { padding-right: var(--space-2); } /* 잘린 마지막 링크가 계정 칩에 붙지 않게 */
+    }
     nav a,
     nav button {
       background: none;
@@ -80,11 +83,67 @@ export class AppShell extends LitElement {
     }
     nav a:hover,
     nav button:hover { color: var(--color-text); }
-    .who {
-      color: var(--color-muted);
-      font-size: var(--text-fine);
+    /* --- 계정 칩 — 메뉴 링크(muted 텍스트)와 구분: 네비 밖 오른쪽에 고정, 아바타+이름 한 칩 --- */
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      flex-shrink: 0;
+      margin-left: var(--space-3);
+      padding: 3px 10px 3px 3px; /* 아바타가 칩 좌측에 밀착 — pill 안쪽 여백 */
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-pill);
+      background: var(--color-surface);
+      cursor: pointer;
+      font-family: inherit;
+      transition: transform 0.15s ease;
+    }
+    .chip:hover { background: var(--color-bg); }
+    .chip:active { transform: scale(0.96); }
+    .avatar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: var(--radius-pill);
+      background: var(--color-primary); /* Action Blue — 계정 = 클릭 가능(마이페이지) */
+      color: var(--color-primary-text);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .chip-name {
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
-      flex-shrink: 0; /* 좁은 화면에서 세로 줄바꿈 방지 */
+      color: var(--color-text);
+      font-size: var(--text-caption);
+      font-weight: 600;
+      letter-spacing: var(--tracking-tight);
+    }
+    .btn-logout {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      flex-shrink: 0;
+      margin-left: var(--space-1);
+      padding: 0;
+      background: none;
+      border: none;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      color: var(--color-muted);
+      transition: color 0.2s ease;
+    }
+    .btn-logout:hover { color: var(--color-danger); background: var(--color-bg); }
+    .btn-logout svg { width: 16px; height: 16px; display: block; }
+    @media (max-width: 560px) {
+      .chip { margin-left: var(--space-2); padding-right: 3px; } /* 이름 숨김 → 아바타만, 여백도 줄여 메뉴에 폭 양보 */
+      .chip-name { display: none; }
+      .btn-logout { width: 30px; height: 30px; margin-left: 2px; }
     }
 
     /* --- 테마 세그먼티드 컨트롤 — 네비 밖 헤더 오른쪽 끝에 고정(스크롤 안 됨) --- */
@@ -238,6 +297,14 @@ export class AppShell extends LitElement {
     `
   }
 
+  // 계정 칩 라벨 — 이름 없으면 이메일로 표시
+  private get accountLabel(): string {
+    return this.user?.name || this.user?.email || ''
+  }
+  private get accountInitial(): string {
+    return this.accountLabel.trim().charAt(0).toUpperCase()
+  }
+
   render() {
     return html`
       <header>
@@ -246,14 +313,28 @@ export class AppShell extends LitElement {
           ${this.user && (this.user.role === 'manager' || this.user.role === 'admin')
             ? html`<a href="/admin">대시보드</a><a href="/admin/reservations">대여 관리</a><a href="/admin/members">회원 관리</a>`
             : ''}
-          ${this.user
-            ? html`
-                <span class="who">${this.user.name || this.user.email}</span>
-                <a href="/mypage">마이페이지</a>
-                <button @click=${this.signOut}>로그아웃</button>
-              `
-            : html`<a href="/login">로그인</a>`}
+          ${this.user ? '' : html`<a href="/login">로그인</a>`}
         </nav>
+        ${this.user
+          ? html`
+              <button
+                class="chip"
+                title="마이페이지"
+                aria-label="마이페이지 — ${this.accountLabel}"
+                @click=${() => navigate('/mypage')}
+              >
+                <span class="avatar" aria-hidden="true">${this.accountInitial}</span>
+                <span class="chip-name">${this.accountLabel}</span>
+              </button>
+              <button class="btn-logout" title="로그아웃" aria-label="로그아웃" @click=${this.signOut}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </button>
+            `
+          : ''}
         ${this.renderThemeSeg()}
       </header>
       <main></main>
