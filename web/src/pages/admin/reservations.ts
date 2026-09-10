@@ -10,6 +10,7 @@ import type { AdminReservation, ReservationStatus } from '../../types'
 export class PageAdminReservations extends LitElement {
   @state() private reservations: AdminReservation[] = []
   @state() private filter: '' | ReservationStatus = ''
+  @state() private loading = true /* 초기 로드 전 — "없어요" 깜빡임 방지 */
   @state() private busy = false
   @state() private message = ''
   @state() private rejectingId: number | null = null
@@ -92,6 +93,8 @@ export class PageAdminReservations extends LitElement {
       this.reservations = res.reservations
     } catch (e) {
       this.message = e instanceof Error ? e.message : '오류'
+    } finally {
+      this.loading = false
     }
   }
 
@@ -191,9 +194,11 @@ export class PageAdminReservations extends LitElement {
         </select>
       </div>
       <p class="msg">${this.message}</p>
-      ${this.reservations.length === 0
-        ? html`<p class="empty">예약이 없어요</p>`
-        : this.renderCards()}
+      ${this.loading
+        ? html`<p class="empty">불러오는 중…</p>`
+        : this.reservations.length === 0
+          ? html`<p class="empty">예약이 없어요</p>`
+          : this.renderCards()}
     `
   }
 

@@ -11,6 +11,7 @@ import type { AdminMember, Role } from '../../types'
 export class PageAdminMembers extends LitElement {
   @state() private members: AdminMember[] = []
   @state() private myRole: Role = 'user'
+  @state() private loading = true /* 초기 로드 전 — "없어요" 깜빡임 방지 */
   @state() private busy = false
   @state() private message = ''
 
@@ -67,6 +68,8 @@ export class PageAdminMembers extends LitElement {
       this.members = res.members
     } catch (e) {
       this.message = e instanceof Error ? e.message : '오류'
+    } finally {
+      this.loading = false
     }
   }
 
@@ -134,9 +137,11 @@ export class PageAdminMembers extends LitElement {
     return html`
       <h1>회원 관리</h1>
       <p class="msg">${this.message}</p>
-      ${this.members.length === 0
-        ? html`<p class="empty">아직 회원이 없어요</p>`
-        : this.renderCards()}
+      ${this.loading
+        ? html`<p class="empty">불러오는 중…</p>`
+        : this.members.length === 0
+          ? html`<p class="empty">아직 회원이 없어요</p>`
+          : this.renderCards()}
     `
   }
 
