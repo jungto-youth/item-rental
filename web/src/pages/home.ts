@@ -28,9 +28,8 @@ export class PageHome extends LitElement {
 
   static styles = css`
     .top {
-      display: flex;
+      display: grid;
       gap: var(--space-2);
-      align-items: center;
       margin-bottom: var(--space-4);
     }
     .search {
@@ -49,13 +48,12 @@ export class PageHome extends LitElement {
     .search:focus { outline: none; border-color: var(--color-primary); }
     .search::placeholder { color: var(--color-muted); }
     .btn-add {
-      flex-shrink: 0;
       height: 44px;
       padding: 0 var(--space-4);
       border-radius: var(--radius-pill);
-      background: var(--color-primary);
-      border: none;
-      color: var(--color-primary-text);
+      background: transparent;
+      border: 1px solid var(--color-primary);
+      color: var(--color-primary);
       font: inherit;
       font-size: 1rem;
       cursor: pointer;
@@ -283,15 +281,14 @@ export class PageHome extends LitElement {
 
   render() {
     return html`
-      ${this.isManager
-        ? this.creating
-          ? this.renderCreate()
-          : html`<button class="btn-add" @click=${this.openCreate}>+ 물품 등록</button>`
+      ${this.isManager && !this.creating
+        ? html`<button class="btn-add" @click=${this.openCreate}>+ 물품 등록</button>`
         : ''}
-      ${this.createMsg ? html`<p class="msg">${this.createMsg}</p>` : ''}
+      ${this.creating ? this.renderCreate() : ''}
       <div class="top">
         <input class="search" placeholder="이름·설명·용도로 검색해 보세요" .value=${this.q} @input=${this.onSearch} />
       </div>
+      ${this.createMsg ? html`<p class="msg">${this.createMsg}</p>` : ''}
       ${this.error
         ? html`<p class="error">${this.error}</p>`
         : this.loading
