@@ -20,6 +20,10 @@ function isDateStr(s: unknown): s is string {
 // 신청 — 가용 검사를 INSERT와 한 문장으로 처리 (§8 원자성 — 동시 신청에도 이중 예약 불가)
 reservationsRoute.post('/', async (c) => {
   const user = c.get('user')!
+
+  // 수령·반납 연락용 — 미등록 회원은 프로필 입력으로 유도 (§4.1)
+  if (!user.phone) return c.json({ error: 'phone_required' }, 400)
+
   const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>
 
   const itemId = Number(body.item_id)

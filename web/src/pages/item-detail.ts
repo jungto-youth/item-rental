@@ -219,6 +219,8 @@ export class PageItemDetail extends LitElement {
       else if (msg.includes('too_long'))
         this.formMsg = `최대 ${this.item.max_days}일까지 대여할 수 있어요`
       else if (msg.includes('past_date')) this.formMsg = '과거 날짜는 선택할 수 없어요'
+      else if (msg.includes('phone_required'))
+        this.formMsg = '연락처를 등록한 후 신청할 수 있어요 — 마이페이지에서 등록해 주세요'
       else this.formMsg = err instanceof Error ? err.message : '신청에 실패했어요'
       this.formOk = false
     } finally {
@@ -261,13 +263,15 @@ export class PageItemDetail extends LitElement {
     `
   }
 
-  // 신청 영역 — 로그인/승인/물품 상태 분기 (§2 권한)
+  // 신청 영역 — 로그인/승인/연락처/물품 상태 분기 (§2 권한)
   private renderApply() {
     if (!this.userReady) return html`<div class="notice">&nbsp;</div>`
     if (!this.user)
       return html`<div class="notice">대여하려면 로그인이 필요해요 — <a href="/login">로그인하기</a></div>`
     if (this.user.status !== 'approved')
       return html`<div class="notice">승인 대기 중이에요 — 관리자 승인 후 신청할 수 있어요</div>`
+    if (!this.user.phone)
+      return html`<div class="notice">물품을 대여하려면 연락처를 등록해야 해요 — <a href="/signup/profile">연락처 등록하기</a></div>`
     if (this.item!.status !== 'active')
       return html`<div class="notice">지금은 대여할 수 없는 물품이에요 (수리 중/폐기)</div>`
     return this.renderForm()

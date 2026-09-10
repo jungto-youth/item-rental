@@ -23,17 +23,34 @@ export function authConfig(env: Bindings): AuthConfig {
     basePath: '/api/auth',
     session: { strategy: 'jwt' },
     pages: { error: '/login' }, // 로그인 거부 시 SPA 로그인 화면으로 ?error=와 함께 복귀
-    providers: [Google({ clientId: env.AUTH_GOOGLE_ID, clientSecret: env.AUTH_GOOGLE_SECRET })],
+    providers: [
+      Google({
+        clientId: env.AUTH_GOOGLE_ID,
+        clientSecret: env.AUTH_GOOGLE_SECRET,
+        // 브라우저에 로그인된 개인 계정이 자동 선택되는 것을 막음 — 항상 계정 선택부터
+        authorization: { params: { prompt: 'select_account' } },
+      }),
+    ],
     callbacks: {
       // 최초 로그인 시 members 생성 (§4.1 — 승인 대기 상태로 시작)
       // 정토회 계정이 아니면 여기서 차단 — members 생성 자체를 하지 않음
       async signIn({ user }) {
-        if (!user.email || !isAllowed(user.email)) return false
-        const sql: Sql = db()
-        await sql.query(
-          `INSERT INTO members (email, name) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING`,
-          [user.email, user.name ?? ''],
-        )
+        if (!user.email || !isAllowed(user.email)) {
+          // 진단용 — 실제 OAuth로 들어온 이메일 확인 (wrangler tail에서 확인 후 제거 예정)
+          console.log('로그인 거부 — 허용되지 않는 계정:', user.email ?? '(이메일 없음)')
+          return false
+        }
+        try {
+          const sql: Sql = db()
+          await sql.query(
+            `INSERT INTO members (email, name) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING`,
+            [user.email, user.name ?? ''],
+          )
+        } catch (err) {
+          // DB 실패도 AccessDenied로 포장되어 같은 화면이 뜨므로 로그로 반드시 구분
+          console.error('members 생성 실패 (DB 오류 — 허용 계정이 맞음):', err)
+          throw err
+        }
         return true
       },
       // JWT sub를 members.id로 교체 — 이후 모든 쿼리가 이 값으로 권한 판단 (§8)
