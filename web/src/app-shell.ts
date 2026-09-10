@@ -48,9 +48,16 @@ export class AppShell extends LitElement {
       display: flex;
       gap: var(--space-4);
       align-items: center;
-      flex-wrap: wrap;
-      justify-content: flex-end;
+      flex-wrap: nowrap;
+      justify-content: flex-start;
+      flex: 1;
+      min-width: 0; /* flex 안에서 overflow-x가 동작하려면 필요 */
+      padding-left: var(--space-4); /* 브랜드와 메뉴 사이 간격 */
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; /* 스크롤바 숨김 — 스와이프 제스처로 탐색 */
     }
+    nav::-webkit-scrollbar { display: none; }
     nav a,
     nav button {
       background: none;
@@ -62,10 +69,17 @@ export class AppShell extends LitElement {
       text-decoration: none;
       font-size: var(--text-fine); /* 12px — Apple nav-link */
       line-height: 44px;
+      white-space: nowrap; /* 링크 텍스트 줄바꿈 금지 — 좌우 스크롤 */
+      flex-shrink: 0; /* 좁아져도 항목이 눌리지 않게 */
     }
     nav a:hover,
     nav button:hover { color: #ffffff; }
-    .who { color: #86868b; font-size: var(--text-fine); }
+    .who {
+      color: #86868b;
+      font-size: var(--text-fine);
+      white-space: nowrap;
+      flex-shrink: 0; /* 좁은 화면에서 세로 줄바꿈 방지 */
+    }
     main {
       max-width: 640px;
       margin: 0 auto;
