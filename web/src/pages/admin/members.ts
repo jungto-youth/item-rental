@@ -16,16 +16,24 @@ export class PageAdminMembers extends LitElement {
 
   static styles = css`
     h1 { font-size: 1.375rem; font-weight: 600; letter-spacing: var(--tracking-tight); line-height: 1.1; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    /* 표 대신 카드 목록 — 대여 관리와 같은 이유: 표는 좌우 스크롤로 처리 버튼을 가림 (§4.4) */
+    .cards { display: grid; gap: var(--space-3); }
+    .card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: var(--space-4);
+      display: grid;
+      gap: var(--space-1);
       font-size: var(--text-caption);
-      display: block;
-      overflow-x: auto;
     }
-    th, td { text-align: left; padding: var(--space-3) var(--space-2); border-bottom: 1px solid var(--color-border); white-space: nowrap; }
-    th { color: var(--color-muted); font-weight: 600; font-size: var(--text-fine); }
-    td.actions button { margin-right: var(--space-1); }
+    .head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+    .name { font-weight: 600; font-size: var(--text-body); letter-spacing: var(--tracking-tight); }
+    .head x-badge { flex-shrink: 0; }
+    .email, .phone { color: var(--color-muted); word-break: break-all; }
+    .meta { color: var(--color-muted); font-size: var(--text-fine); }
+    .role { display: flex; align-items: center; gap: var(--space-2); }
+    .role-label { color: var(--color-muted); font-size: var(--text-fine); }
     .link {
       background: none;
       border: 0;
@@ -36,12 +44,22 @@ export class PageAdminMembers extends LitElement {
       font-family: inherit;
     }
     .link.danger { color: var(--color-danger); }
+    .acts {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-1);
+      border-top: 1px solid var(--color-border);
+      margin-top: var(--space-1);
+      padding-top: var(--space-2);
+    }
+    .acts .link { min-height: 44px; } /* DESIGN.md §1 — 터치 타깃 44px */
     select {
       height: 36px;
       padding: 0 var(--space-2);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-sm);
-      background: var(--color-surface);
+      background: var(--color-bg);
       color: var(--color-text);
       font-size: var(--text-caption);
       font-family: inherit;
@@ -132,31 +150,36 @@ export class PageAdminMembers extends LitElement {
       <p class="msg">${this.message}</p>
       ${this.members.length === 0
         ? html`<p class="empty">아직 회원이 없어요</p>`
-        : this.renderTable()}
+        : this.renderCards()}
     `
   }
 
-  private renderTable() {
+  private renderCards() {
     return html`
-      <table>
-        <thead>
-          <tr><th>이름</th><th>이메일</th><th>연락처</th><th>상태</th><th>역할</th><th>가입일</th><th></th></tr>
-        </thead>
-        <tbody>
-          ${this.members.map((m) => this.renderRow(m))}
-        </tbody>
-      </table>
+      <div class="cards">
+        ${this.members.map((m) => this.renderCard(m))}
+      </div>
     `
   }
 
-  private renderRow(m: AdminMember) {
+  private renderCard(m: AdminMember) {
+    const acts =
+      m.status === 'pending'
+        ? html`
+            <button class="link" ?disabled=${this.busy} @click=${() => this.approve(m)}>승인</button>
+            <button class="link danger" ?disabled=${this.busy} @click=${() => this.reject(m)}>거절</button>
+          `
+        : ''
     return html`
-      <tr>
-        <td>${m.name || '—'}</td>
-        <td>${m.email}</td>
-        <td>${m.phone ?? '—'}</td>
-        <td><x-badge kind=${m.status}></x-badge></td>
-        <td>
+      <div class="card">
+        <span class="head">
+          <span class="name">${m.name || '—'}</span>
+          <x-badge kind=${m.status}></x-badge>
+        </span>
+        <span class="email">${m.email}</span>
+        <span class="phone">${m.phone ?? '연락처 미등록'}</span>
+        <span class="role">
+          <span class="role-label">역할</span>
           ${this.myRole === 'admin' && m.status === 'approved'
             ? html`<select
                 ?disabled=${this.busy}
@@ -168,17 +191,10 @@ export class PageAdminMembers extends LitElement {
                 <option value="admin" ?selected=${m.role === 'admin'}>총관리자</option>
               </select>`
             : html`<x-badge kind=${m.role}></x-badge>`}
-        </td>
-        <td>${m.created_at.slice(0, 10)}</td>
-        <td class="actions">
-          ${m.status === 'pending'
-            ? html`
-                <button class="link" ?disabled=${this.busy} @click=${() => this.approve(m)}>승인</button>
-                <button class="link danger" ?disabled=${this.busy} @click=${() => this.reject(m)}>거절</button>
-              `
-            : ''}
-        </td>
-      </tr>
+        </span>
+        <span class="meta">가입 ${m.created_at.slice(0, 10)}</span>
+        ${acts ? html`<div class="acts">${acts}</div>` : ''}
+      </div>
     `
   }
 }

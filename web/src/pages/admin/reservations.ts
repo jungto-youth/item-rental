@@ -29,16 +29,22 @@ export class PageAdminReservations extends LitElement {
       font-size: var(--text-caption);
       font-family: inherit;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    /* 표 대신 카드 목록 — 640px 본문에 테이블이 원래 안 맞아 좌우 스크롤로 처리 버튼이 가려짐 (§4.3) */
+    .cards { display: grid; gap: var(--space-3); }
+    .card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: var(--space-4);
+      display: grid;
+      gap: var(--space-1);
       font-size: var(--text-caption);
-      display: block;
-      overflow-x: auto;
     }
-    th, td { text-align: left; padding: var(--space-3) var(--space-2); border-bottom: 1px solid var(--color-border); white-space: nowrap; }
-    th { color: var(--color-muted); font-weight: 600; font-size: var(--text-fine); }
-    td.actions button { margin-right: var(--space-1); }
+    .head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+    .name { font-weight: 600; font-size: var(--text-body); letter-spacing: var(--tracking-tight); }
+    .head x-badge { flex-shrink: 0; }
+    .who, .memo { color: var(--color-muted); }
+    .meta { color: var(--color-muted); font-size: var(--text-fine); }
     .link {
       background: none;
       border: 0;
@@ -50,6 +56,16 @@ export class PageAdminReservations extends LitElement {
     }
     .link.danger { color: var(--color-danger); }
     .link:disabled { opacity: 0.5; cursor: not-allowed; }
+    .acts {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-1);
+      border-top: 1px solid var(--color-border);
+      margin-top: var(--space-1);
+      padding-top: var(--space-2);
+    }
+    .acts .link { min-height: 44px; } /* DESIGN.md §1 — 터치 타깃 44px */
     .reject input {
       font: inherit;
       font-size: var(--text-caption);
@@ -57,12 +73,11 @@ export class PageAdminReservations extends LitElement {
       padding: 0 var(--space-2);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-sm);
-      background: var(--color-surface);
+      background: var(--color-bg);
       color: var(--color-text);
-      width: 130px;
+      width: 180px;
     }
     .conflict { color: var(--color-warning); font-size: var(--text-fine); }
-    .memo { color: var(--color-muted); font-size: var(--text-fine); }
     .msg { color: var(--color-primary); font-size: var(--text-caption); min-height: 1.2em; }
     .empty { color: var(--color-muted); font-size: var(--text-caption); }
   `
@@ -187,43 +202,37 @@ export class PageAdminReservations extends LitElement {
       <p class="msg">${this.message}</p>
       ${this.reservations.length === 0
         ? html`<p class="empty">예약이 없어요</p>`
-        : this.renderTable()}
+        : this.renderCards()}
     `
   }
 
-  private renderTable() {
+  private renderCards() {
     return html`
-      <table>
-        <thead>
-          <tr>
-            <th>물품</th><th>신청자</th><th>기간</th><th>상태</th><th>메모</th><th>거절 사유</th><th>신청일</th><th></th>
-          </tr>
-        </thead>
-        <tbody>
-          ${this.reservations.map((r) => this.renderRow(r))}
-        </tbody>
-      </table>
+      <div class="cards">
+        ${this.reservations.map((r) => this.renderCard(r))}
+      </div>
     `
   }
 
-  private renderRow(r: AdminReservation) {
+  private renderCard(r: AdminReservation) {
     const days = Math.round((Date.parse(r.end_date) - Date.parse(r.start_date)) / 86400000)
+    const acts = this.renderActions(r)
     return html`
-      <tr>
-        <td>${r.item_name}</td>
-        <td>${r.member_name || '—'}<br /><span class="memo">${r.member_phone ?? r.member_email}</span></td>
-        <td>${r.start_date}<br />~ ${r.end_date} (${days}일)</td>
-        <td>
+      <div class="card">
+        <span class="head">
+          <span class="name">${r.item_name}</span>
           <x-badge kind=${r.is_overdue ? 'overdue' : r.status}></x-badge>
-          ${r.status === 'pending' && r.conflict_count > 0
-            ? html`<br /><span class="conflict">겹침 ${r.conflict_count}건</span>`
-            : ''}
-        </td>
-        <td>${r.member_memo ?? '—'}</td>
-        <td>${r.status_note ?? '—'}</td>
-        <td>${r.created_at.slice(0, 10)}</td>
-        <td class="actions">${this.renderActions(r)}</td>
-      </tr>
+        </span>
+        <span class="who">${r.member_name || '—'} · ${r.member_phone ?? r.member_email}</span>
+        <span>${r.start_date} ~ ${r.end_date} (${days}일)</span>
+        ${r.member_memo ? html`<span class="memo">메모 · ${r.member_memo}</span>` : ''}
+        ${r.status_note ? html`<span class="memo">사유 · ${r.status_note}</span>` : ''}
+        ${r.status === 'pending' && r.conflict_count > 0
+          ? html`<span class="conflict">확정 예약과 ${r.conflict_count}건 겹침</span>`
+          : ''}
+        <span class="meta">신청 ${r.created_at.slice(0, 10)}</span>
+        ${acts ? html`<div class="acts">${acts}</div>` : ''}
+      </div>
     `
   }
 }
