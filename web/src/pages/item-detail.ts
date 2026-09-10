@@ -85,10 +85,10 @@ export class PageItemDetail extends LitElement {
       gap: var(--space-3);
     }
     .apply-form h2 { font-size: 1.0625rem; font-weight: 600; letter-spacing: var(--tracking-tight); margin: 0; }
-    .dates { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+    /* 날짜 2개는 항상 세로 스택 — 가로 나열 시 390px 폰에서 네이티브 date 입력의
+       고유 최소 폭(~164px)이 라벨 폭(152px)을 넘어 두 입력이 서로 겹침 */
+    .dates { display: grid; gap: var(--space-3); }
     .dates label {
-      flex: 1;
-      min-width: 140px;
       display: grid;
       gap: 4px;
       font-size: var(--text-caption);
@@ -363,7 +363,7 @@ export class PageItemDetail extends LitElement {
   // 실시간 폼 검증 — 통과 시 빈 문자열
   private get formError(): string {
     if (!this.item || !this.startDate || !this.endDate) return ''
-    if (this.rentalDays < 1) return '반납일은 시작일 이후로 선택해 주세요'
+    if (this.rentalDays < 1) return '반납일은 시작일 다음 날부터 선택할 수 있어요'
     if (this.rentalDays > this.item.max_days)
       return `최대 ${this.item.max_days}일까지 대여할 수 있어요`
     if (this.startDate < this.today) return '과거 날짜는 선택할 수 없어요'
@@ -589,7 +589,7 @@ export class PageItemDetail extends LitElement {
         <p class="hint">
           ${this.rentalDays > 0
             ? `${this.rentalDays}일 대여 (반납일 제외) · 최대 ${item.max_days}일`
-            : '반납일은 물품을 돌려주는 날이에요'}
+            : '반납일은 물품을 돌려주는 날이에요 — 하루만 빌리려면 시작일 다음 날을 고르세요'}
         </p>
         ${this.formError ? html`<p class="warn">${this.formError}</p>` : ''}
         <label class="memo">
