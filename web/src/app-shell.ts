@@ -100,6 +100,7 @@ export class AppShell extends LitElement {
     }
     .seg-thumb {
       position: absolute;
+      box-sizing: border-box; /* 보더 포함 폭 계산 — 없으면 1px 보더만큼 커져 마지막 세그먼트에서 삐져나옴 */
       top: 2px;
       bottom: 2px;
       left: 2px;
