@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import { session, type SessionUser } from '../context/session'
 import '../components/ui/badge'
 import '../components/ui/availability-strip'
+import { processPhoto } from '../utils/photo'
 import type { AvailabilityDay, Item, ItemStatus, Photo } from '../types'
 
 // SPEC §5 — 물품 상세 + 대여 신청 폼 (§4.3, 원자적 INSERT는 서버 §8)
@@ -313,10 +314,14 @@ export class PageItemDetail extends LitElement {
       return
     }
     const fd = new FormData()
-    fd.append('file', file)
     try {
+      // 업로드 전 브라우저에서 리사이즈(1600px·WebP) — 변환본만 저장 (§4.2)
+      const processed = await processPhoto(file)
+      fd.append('file', processed)
       await api(`/api/admin/items/${this.item.id}/photos`, { method: 'POST', body: fd })
       await this.load()
+    } catch (err) {
+      this.editMsg = err instanceof Error ? err.message : '업로드 실패'
     } finally {
       input.value = ''
     }

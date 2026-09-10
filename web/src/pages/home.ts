@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import { session, type SessionUser } from '../context/session'
 import { navigate } from '../router'
 import '../components/ui/badge'
+import { processPhoto } from '../utils/photo'
 import type { Item, ItemStatus } from '../types'
 
 // SPEC §5 — 물품 목록: 검색(키워드+의미) + 가용 배지. 카테고리는 v2.5에서 제거 — 검색으로 탐색
@@ -213,7 +214,7 @@ export class PageHome extends LitElement {
   private static readonly PHOTO_OK = ['image/jpeg', 'image/png', 'image/webp']
   private static readonly MAX_PHOTO_BYTES = 5 * 1024 * 1024
 
-  private pickStaged(e: Event) {
+  private async pickStaged(e: Event) {
     const input = e.target as HTMLInputElement
     for (const f of Array.from(input.files ?? [])) {
       if (this.staged.length >= 3) {
@@ -224,8 +225,14 @@ export class PageHome extends LitElement {
         this.createMsg = 'JPEG/PNG/WebP, 5MB 이하만 가능해요'
         continue
       }
-      this.staged = [...this.staged, f]
-      this.stagedUrls = [...this.stagedUrls, URL.createObjectURL(f)]
+      try {
+        // 업로드 전 브라우저에서 리사이즈(1600px·WebP) — 변환본만 저장 (§4.2)
+        const processed = await processPhoto(f)
+        this.staged = [...this.staged, processed]
+        this.stagedUrls = [...this.stagedUrls, URL.createObjectURL(processed)]
+      } catch (err) {
+        this.createMsg = err instanceof Error ? err.message : '이미지 처리 실패'
+      }
     }
     input.value = ''
   }
