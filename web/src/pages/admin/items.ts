@@ -100,6 +100,11 @@ export class PageAdminItems extends LitElement {
     await this.reload()
   }
 
+  // 기존 사진 404(R2 부재) 시 — 이미지를 숨겨 깨진 아이콘이 보이지 않게 함
+  private onPicError(e: Event) {
+    ;(e.target as HTMLImageElement).style.visibility = 'hidden'
+  }
+
   private async reload() {
     try {
       const res = await api<{ items: AdminItem[] }>('/api/admin/items')
@@ -308,7 +313,7 @@ export class PageAdminItems extends LitElement {
             ? this.stagedUrls.map(
                 (u, i) => html`
                   <div class="pic">
-                    <img src=${u} alt="" />
+                    <img src=${u} alt="" @error=${(e: Event) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />
                     <button type="button" title="삭제" @click=${() => this.removeStaged(i)}>×</button>
                   </div>
                 `,
@@ -316,7 +321,7 @@ export class PageAdminItems extends LitElement {
             : this.photos.map(
                 (p) => html`
                   <div class="pic">
-                    <img src=${p.url} alt="" />
+                    <img src=${p.url} alt="" @error=${this.onPicError} />
                     <button type="button" title="삭제" @click=${() => this.deletePhoto(p)}>×</button>
                   </div>
                 `,

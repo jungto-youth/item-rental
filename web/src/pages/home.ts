@@ -90,6 +90,14 @@ export class PageHome extends LitElement {
     this.searchTimer = setTimeout(() => this.fetchItems(), 300) as unknown as number
   }
 
+  // 사진 404(R2 부재·네트워크 오류) 시 플레이스홀더로 대체 — 콘솔 에러는 브라우저가 남기지만 UI는 깨끗하게 유지
+  private onImgError(e: Event) {
+    const img = e.target as HTMLImageElement
+    const thumb = img.parentElement
+    img.remove()
+    if (thumb) thumb.textContent = '📦'
+  }
+
   render() {
     return html`
       <input class="search" placeholder="이름·설명·용도로 검색해 보세요" .value=${this.q} @input=${this.onSearch} />
@@ -106,7 +114,7 @@ export class PageHome extends LitElement {
                       <a class="card" href="/items/${it.id}">
                         <div class="thumb">
                           ${it.photos[0]
-                            ? html`<img src=${it.photos[0].url} alt=${it.name} loading="lazy" />`
+                            ? html`<img src=${it.photos[0].url} alt=${it.name} loading="lazy" @error=${this.onImgError} />`
                             : '📦'}
                         </div>
                         <div class="meta">

@@ -238,6 +238,32 @@ export class PageItemDetail extends LitElement {
     }
   }
 
+  // 사진 404(R2 부재·네트워크 오류) 시 플레이스홀더로 대체
+  // 메인: 📦 텍스트로 교체, 썸네일: 버튼을 비활성화해 선택지에서 제외
+  private onMainImgError(e: Event) {
+    const img = e.target as HTMLImageElement
+    const photo = this.item?.photos[this.photoIdx]
+    img.replaceWith(document.createTextNode('📦'))
+    // 사라진 사진이 썸네일에도 있으면 해당 썸네일 비활성화
+    const idx = this.photoIdx
+    const btn = this.renderRoot.querySelectorAll('.thumbs button')[idx] as HTMLButtonElement | undefined
+    if (btn) {
+      btn.disabled = true
+      btn.style.opacity = '0.4'
+    }
+  }
+
+  private onThumbImgError(e: Event) {
+    const img = e.target as HTMLImageElement
+    const btn = img.closest('button')
+    if (btn) {
+      btn.disabled = true
+      btn.style.opacity = '0.3'
+      btn.replaceChildren(document.createTextNode('✕'))
+    }
+    img.remove()
+  }
+
   render() {
     if (this.error) return html`<p class="error">${this.error}</p>`
     if (!this.item) return html`<p class="cat">불러오는 중…</p>`
@@ -246,7 +272,7 @@ export class PageItemDetail extends LitElement {
     const main = photos[this.photoIdx]
     return html`
       <div class="photo">
-        ${main ? html`<img src=${main.url} alt=${this.item.name} />` : '📦'}
+        ${main ? html`<img src=${main.url} alt=${this.item.name} @error=${this.onMainImgError} />` : '📦'}
       </div>
       ${photos.length > 1
         ? html`
@@ -254,7 +280,7 @@ export class PageItemDetail extends LitElement {
               ${photos.map(
                 (p, i) => html`
                   <button class=${i === this.photoIdx ? 'on' : ''} @click=${() => (this.photoIdx = i)}>
-                    <img src=${p.url} alt="" />
+                    <img src=${p.url} alt="" @error=${this.onThumbImgError} />
                   </button>
                 `,
               )}
