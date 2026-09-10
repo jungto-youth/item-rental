@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import { session, type SessionUser } from '../context/session'
 import '../components/ui/badge'
 import '../components/ui/availability-strip'
+import '../components/ui/x-calendar'
 import { processPhoto } from '../utils/photo'
 import type { AvailabilityDay, Item, ItemStatus, Photo } from '../types'
 
@@ -85,15 +86,6 @@ export class PageItemDetail extends LitElement {
       gap: var(--space-3);
     }
     .apply-form h2 { font-size: 1.0625rem; font-weight: 600; letter-spacing: var(--tracking-tight); margin: 0; }
-    /* 날짜 2개는 항상 세로 스택 — 가로 나열 시 390px 폰에서 네이티브 date 입력의
-       고유 최소 폭(~164px)이 라벨 폭(152px)을 넘어 두 입력이 서로 겹침 */
-    .dates { display: grid; gap: var(--space-3); }
-    .dates label {
-      display: grid;
-      gap: 4px;
-      font-size: var(--text-caption);
-      color: var(--color-muted);
-    }
     input, textarea {
       font: inherit;
       font-size: 1rem; /* iOS 줌 방지 */
@@ -347,14 +339,6 @@ export class PageItemDetail extends LitElement {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   }
 
-  // 반납일 최소값 — 시작일 다음날 (반개구간 [start, end), 당일 반납 불가)
-  private get endMin(): string {
-    if (!this.startDate) return this.today
-    const d = new Date(this.startDate + 'T00:00:00')
-    d.setDate(d.getDate() + 1)
-    return this.fmt(d)
-  }
-
   private get rentalDays(): number {
     if (!this.startDate || !this.endDate) return 0
     return Math.round((Date.parse(this.endDate) - Date.parse(this.startDate)) / 86400000)
@@ -370,16 +354,17 @@ export class PageItemDetail extends LitElement {
     return ''
   }
 
-  private setStart(v: string) {
-    this.startDate = v
-    // 시작일이 바뀌어 반납일이 무효해지면 비움 — 재선택 유도
-    if (this.endDate && this.endDate <= v) this.endDate = ''
+  // x-calendar의 change — 선택값 소유는 부모가 (controlled 컴포넌트)
+  private onRange(e: Event) {
+    const d = (e as CustomEvent<{ start: string; end: string }>).detail
+    this.startDate = d.start
+    this.endDate = d.end
     this.formMsg = ''
   }
 
   private async submit(e: Event) {
     e.preventDefault()
-    if (this.saving || this.formError || !this.item) return
+    if (this.saving || this.formError || !this.item || !this.startDate || !this.endDate) return
     this.saving = true
     this.formMsg = ''
     try {
@@ -561,35 +546,20 @@ export class PageItemDetail extends LitElement {
     return html`
       <form class="apply-form" @submit=${this.submit}>
         <h2>대여 신청</h2>
-        <div class="dates">
-          <label>
-            대여 시작일
-            <input
-              type="date"
-              required
-              min=${this.today}
-              .value=${this.startDate}
-              @change=${(e: Event) => this.setStart((e.target as HTMLInputElement).value)}
-            />
-          </label>
-          <label>
-            반납일
-            <input
-              type="date"
-              required
-              min=${this.endMin}
-              .value=${this.endDate}
-              @change=${(e: Event) => {
-                this.endDate = (e.target as HTMLInputElement).value
-                this.formMsg = ''
-              }}
-            />
-          </label>
-        </div>
+        <x-calendar
+          .startDate=${this.startDate}
+          .endDate=${this.endDate}
+          .days=${this.availability}
+          .totalQty=${item.total_qty}
+          .maxDays=${item.max_days}
+          @change=${this.onRange}
+        ></x-calendar>
         <p class="hint">
-          ${this.rentalDays > 0
+          ${this.startDate && this.endDate
             ? `${this.rentalDays}일 대여 (반납일 제외) · 최대 ${item.max_days}일`
-            : '반납일은 물품을 돌려주는 날이에요 — 하루만 빌리려면 시작일 다음 날을 고르세요'}
+            : this.startDate
+              ? '반납일을 선택해 주세요 — 하루만 빌리려면 시작일 다음 날을 고르세요'
+              : '시작일을 먼저 선택해 주세요 — 반납일은 물품을 돌려주는 날이에요'}
         </p>
         ${this.formError ? html`<p class="warn">${this.formError}</p>` : ''}
         <label class="memo">
@@ -601,7 +571,11 @@ export class PageItemDetail extends LitElement {
             @input=${(e: Event) => (this.memo = (e.target as HTMLTextAreaElement).value)}
           ></textarea>
         </label>
-        <button class="primary" type="submit" ?disabled=${this.saving || !!this.formError}>
+        <button
+          class="primary"
+          type="submit"
+          ?disabled=${this.saving || !!this.formError || !this.startDate || !this.endDate}
+        >
           ${this.saving ? '신청 중…' : '신청하기'}
         </button>
         ${this.formMsg ? html`<p class=${this.formOk ? 'ok' : 'err'}>${this.formMsg}</p>` : ''}
