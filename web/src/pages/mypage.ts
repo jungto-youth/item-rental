@@ -15,8 +15,8 @@ export class PageMypage extends LitElement {
   @state() private message = ''
 
   static styles = css`
-    h1 { font-size: 1.15rem; }
-    h2 { font-size: 0.95rem; margin: var(--space-6) 0 var(--space-2); }
+    h1 { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
+    h2 { font-size: 0.95rem; font-weight: 600; margin: var(--space-6) 0 var(--space-2); }
     .card {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
@@ -25,6 +25,7 @@ export class PageMypage extends LitElement {
       display: grid;
       gap: var(--space-2);
       font-size: 0.9rem;
+      line-height: 1.6;
     }
     .pending {
       border-color: var(--color-warning);
@@ -40,6 +41,7 @@ export class PageMypage extends LitElement {
       align-items: center;
       gap: var(--space-3);
       font-size: 0.9rem;
+      margin-bottom: var(--space-2);
     }
     .row .name { font-weight: 600; }
     .row .dates { color: var(--color-muted); font-size: 0.8rem; }
@@ -49,14 +51,16 @@ export class PageMypage extends LitElement {
       border: 0;
       color: var(--color-danger);
       cursor: pointer;
-      padding: 2px;
+      padding: 0 var(--space-2);
       font-size: 0.8rem;
+      font-family: inherit;
+      line-height: 44px; /* DESIGN.md §1 — 터치 타깃 */
     }
     .link:disabled { opacity: 0.5; cursor: not-allowed; }
     .note { color: var(--color-muted); font-size: 0.8rem; }
     .empty { color: var(--color-muted); font-size: 0.85rem; }
     .msg { color: var(--color-primary); font-size: 0.85rem; min-height: 1.2em; }
-    p { color: var(--color-muted); }
+    p { color: var(--color-muted); line-height: 1.6; }
   `
 
   async connectedCallback() {

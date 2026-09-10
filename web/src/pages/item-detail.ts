@@ -52,7 +52,7 @@ export class PageItemDetail extends LitElement {
     }
     .thumbs button.on { border-color: var(--color-primary); }
     .thumbs img { width: 100%; height: 100%; object-fit: cover; }
-    h1 { font-size: 1.2rem; margin: var(--space-4) 0 var(--space-2); }
+    h1 { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; margin: var(--space-4) 0 var(--space-2); }
     .desc { line-height: 1.6; white-space: pre-wrap; }
     .spec {
       display: flex;
@@ -87,15 +87,17 @@ export class PageItemDetail extends LitElement {
     }
     input, textarea {
       font: inherit;
-      padding: var(--space-2);
+      padding: 0 var(--space-3);
+      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
       border: 1px solid var(--color-border);
       border-radius: var(--radius);
-      background: var(--color-bg);
+      background: var(--color-surface);
       color: inherit;
       box-sizing: border-box;
       width: 100%;
     }
-    textarea { min-height: 56px; resize: vertical; }
+    textarea { height: auto; min-height: 72px; padding: var(--space-3); resize: vertical; }
+    input:focus, textarea:focus { outline: none; border-color: var(--color-primary); }
     .memo { display: grid; gap: 4px; font-size: 0.8rem; color: var(--color-muted); }
     .hint { margin: 0; font-size: 0.8rem; color: var(--color-muted); }
     .warn { margin: 0; color: var(--color-danger); font-size: 0.8rem; }
@@ -104,18 +106,22 @@ export class PageItemDetail extends LitElement {
     .primary {
       justify-self: start;
       font: inherit;
-      padding: var(--space-2) var(--space-6);
+      font-weight: 600;
+      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
+      padding: 0 var(--space-6);
       background: var(--color-primary);
       color: var(--color-primary-text);
       border: none;
       border-radius: var(--radius);
       cursor: pointer;
     }
+    .primary:hover:not(:disabled) { opacity: 0.9; }
     .primary:disabled { opacity: 0.5; cursor: not-allowed; }
     .notice {
       margin-top: var(--space-4);
-      padding: var(--space-3);
-      border: 1px dashed var(--color-border);
+      padding: var(--space-4);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
       border-radius: var(--radius);
       text-align: center;
       color: var(--color-muted);

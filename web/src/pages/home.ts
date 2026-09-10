@@ -15,14 +15,19 @@ export class PageHome extends LitElement {
   static styles = css`
     .search {
       width: 100%;
-      padding: var(--space-3);
+      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
+      padding: 0 var(--space-4);
       border: 1px solid var(--color-border);
       border-radius: var(--radius);
       background: var(--color-surface);
       color: var(--color-text);
       box-sizing: border-box;
-      font-size: 1rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      margin-bottom: var(--space-4);
     }
+    .search:focus { outline: none; border-color: var(--color-primary); }
+    .search::placeholder { color: var(--color-muted); }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -36,7 +41,9 @@ export class PageHome extends LitElement {
       border: 1px solid var(--color-border);
       border-radius: var(--radius);
       overflow: hidden;
+      transition: border-color 0.15s ease;
     }
+    .card:hover { border-color: var(--color-muted); }
     .thumb {
       aspect-ratio: 4 / 3;
       background: var(--color-bg);
@@ -47,9 +54,14 @@ export class PageHome extends LitElement {
       font-size: 1.6rem;
     }
     .thumb img { width: 100%; height: 100%; object-fit: cover; }
-    .meta { padding: var(--space-2) var(--space-3) var(--space-3); }
-    .name { font-weight: 600; font-size: 0.9rem; margin-bottom: var(--space-2); }
-    .empty, .error { color: var(--color-muted); padding: var(--space-6) 0; text-align: center; }
+    .meta { padding: var(--space-3); }
+    .name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: var(--space-2);
+      letter-spacing: -0.01em;
+    }
+    .empty, .error { color: var(--color-muted); padding: var(--space-6) 0; text-align: center; font-size: 0.9rem; }
     .error { color: var(--color-danger); }
   `
 

@@ -36,7 +36,9 @@ export class AppShell extends LitElement {
       top: 0;
     }
     .brand {
-      font-weight: 700;
+      font-weight: 600;
+      font-size: 1rem;
+      letter-spacing: -0.01em;
       text-decoration: none;
       color: var(--color-text);
     }
@@ -52,6 +54,7 @@ export class AppShell extends LitElement {
       color: var(--color-muted);
       text-decoration: none;
       font-size: 0.85rem;
+      line-height: 44px; /* DESIGN.md §1 — 터치 타깃 44px */
     }
     nav a:hover { color: var(--color-text); }
     .who { color: var(--color-muted); font-size: 0.8rem; }
@@ -64,6 +67,7 @@ export class AppShell extends LitElement {
       font-size: 0.85rem;
       font-family: inherit;
       cursor: pointer;
+      line-height: 44px;
     }
     nav button:hover { color: var(--color-text); }
     main {

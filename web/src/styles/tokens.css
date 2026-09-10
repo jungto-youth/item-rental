@@ -31,7 +31,8 @@
   --tone-violet-bg: #ede9fe;
   --tone-violet-text: #5b21b6;
 
-  --radius: 8px;
+  /* DESIGN.md §2 — 카드·입력 12px, 배지·칩은 999px(필) */
+  --radius: 12px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;

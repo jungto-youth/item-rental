@@ -21,23 +21,24 @@ export class PageLogin extends LitElement {
 
   static styles = css`
     div { text-align: center; padding: var(--space-6) 0; }
-    p { color: var(--color-muted); font-size: 0.85rem; }
+    h1 { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
+    p { color: var(--color-muted); font-size: 0.85rem; line-height: 1.6; }
     button {
       display: block;
-      margin: var(--space-3) auto 0;
+      margin: var(--space-4) auto 0;
       max-width: 260px;
       width: 100%;
-      padding: var(--space-3);
+      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
       border-radius: var(--radius);
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      color: var(--color-text);
-      text-decoration: none;
+      background: var(--color-primary);
+      border: none;
+      color: var(--color-primary-text);
       font-weight: 600;
       font-size: 0.95rem;
+      font-family: inherit;
       cursor: pointer;
     }
-    button:hover:not(:disabled) { border-color: var(--color-primary); }
+    button:hover:not(:disabled) { opacity: 0.9; }
     button:disabled { opacity: 0.6; cursor: default; }
     .msg { color: var(--color-danger); font-size: 0.8rem; }
     .links { margin-top: var(--space-4); font-size: 0.75rem; }

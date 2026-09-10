@@ -19,16 +19,20 @@ export class PageAdminItems extends LitElement {
   @state() private message = ''
 
   static styles = css`
-    h1 { font-size: 1.15rem; }
+    h1 { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
     .bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); }
     button.primary {
       background: var(--color-primary);
       color: var(--color-primary-text);
       border: 0;
       border-radius: var(--radius);
-      padding: var(--space-2) var(--space-4);
+      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
+      padding: 0 var(--space-4);
+      font: inherit;
+      font-weight: 600;
       cursor: pointer;
     }
+    button.primary:hover:not(:disabled) { opacity: 0.9; }
     button.primary:disabled { opacity: .55; cursor: default; }
     table {
       width: 100%;
@@ -37,9 +41,18 @@ export class PageAdminItems extends LitElement {
       display: block;
       overflow-x: auto;
     }
-    th, td { text-align: left; padding: var(--space-2); border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+    th, td { text-align: left; padding: var(--space-3) var(--space-2); border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+    th { color: var(--color-muted); font-weight: 500; font-size: 0.75rem; }
     td.actions button { margin-right: var(--space-1); }
-    .link { background: none; border: 0; color: var(--color-primary); cursor: pointer; padding: 2px; }
+    .link {
+      background: none;
+      border: 0;
+      color: var(--color-primary);
+      cursor: pointer;
+      padding: var(--space-2);
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
     .link.danger { color: var(--color-danger); }
     form {
       display: grid;
@@ -52,14 +65,18 @@ export class PageAdminItems extends LitElement {
     }
     label { font-size: 0.75rem; color: var(--color-muted); display: grid; gap: 4px; }
     input, select, textarea {
-      padding: var(--space-2);
+      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
+      padding: 0 var(--space-3);
       border: 1px solid var(--color-border);
       border-radius: var(--radius);
-      background: var(--color-bg);
+      background: var(--color-surface);
       color: var(--color-text);
       font-size: 0.9rem;
       font-family: inherit;
+      box-sizing: border-box;
     }
+    textarea { height: auto; min-height: 72px; padding: var(--space-3); }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--color-primary); }
     .row { display: flex; gap: var(--space-3); }
     .row > label { flex: 1; }
     .pics { display: flex; gap: var(--space-2); flex-wrap: wrap; }

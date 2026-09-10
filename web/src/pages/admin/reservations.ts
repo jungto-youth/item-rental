@@ -16,16 +16,17 @@ export class PageAdminReservations extends LitElement {
   @state() private rejectReason = ''
 
   static styles = css`
-    h1 { font-size: 1.15rem; }
+    h1 { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
     .bar { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); }
     .bar label { font-size: 0.8rem; color: var(--color-muted); }
     select {
-      padding: 2px var(--space-1);
+      height: 36px;
+      padding: 0 var(--space-2);
       border: 1px solid var(--color-border);
       border-radius: var(--radius);
-      background: var(--color-bg);
+      background: var(--color-surface);
       color: var(--color-text);
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       font-family: inherit;
     }
     table {
@@ -35,18 +36,28 @@ export class PageAdminReservations extends LitElement {
       display: block;
       overflow-x: auto;
     }
-    th, td { text-align: left; padding: var(--space-2); border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+    th, td { text-align: left; padding: var(--space-3) var(--space-2); border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+    th { color: var(--color-muted); font-weight: 500; font-size: 0.75rem; }
     td.actions button { margin-right: var(--space-1); }
-    .link { background: none; border: 0; color: var(--color-primary); cursor: pointer; padding: 2px; }
+    .link {
+      background: none;
+      border: 0;
+      color: var(--color-primary);
+      cursor: pointer;
+      padding: var(--space-2);
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
     .link.danger { color: var(--color-danger); }
     .link:disabled { opacity: 0.5; cursor: not-allowed; }
     .reject input {
       font: inherit;
-      font-size: 0.78rem;
-      padding: 2px var(--space-1);
+      font-size: 0.8rem;
+      height: 36px;
+      padding: 0 var(--space-2);
       border: 1px solid var(--color-border);
       border-radius: var(--radius);
-      background: var(--color-bg);
+      background: var(--color-surface);
       color: var(--color-text);
       width: 130px;
     }

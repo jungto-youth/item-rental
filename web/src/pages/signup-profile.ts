@@ -25,22 +25,30 @@ export class PageSignupProfile extends LitElement {
     }
     label { font-size: 0.75rem; color: var(--color-muted); display: grid; gap: 4px; }
     input {
-      padding: var(--space-2) var(--space-3);
+      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
+      padding: 0 var(--space-3);
       border: 1px solid var(--color-border);
       border-radius: var(--radius);
-      background: var(--color-bg);
+      background: var(--color-surface);
       color: var(--color-text);
       font-size: 0.95rem;
+      font-family: inherit;
+      box-sizing: border-box;
+      width: 100%;
     }
+    input:focus { outline: none; border-color: var(--color-primary); }
     button {
       background: var(--color-primary);
       color: var(--color-primary-text);
       border: 0;
       border-radius: var(--radius);
-      padding: var(--space-3);
+      height: 44px; /* DESIGN.md §1 — 터치 타깃 */
       cursor: pointer;
       font-size: 0.95rem;
+      font-weight: 600;
+      font-family: inherit;
     }
+    button:hover:not(:disabled) { opacity: 0.9; }
     button:disabled { opacity: 0.6; cursor: default; }
     .msg { color: var(--color-danger); font-size: 0.8rem; margin: 0; min-height: 1em; }
     p.hint { color: var(--color-muted); font-size: 0.8rem; margin: 0; }
