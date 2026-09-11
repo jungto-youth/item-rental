@@ -121,9 +121,11 @@ export class PageAdminReservations extends LitElement {
   }
 
   private async approve(r: AdminReservation) {
-    // 겹침 경고 — pending은 가용을 차지하지만 확정 건과 겹치면 관리자 판단 (§3)
+    // 초과 경고 — 정상 흐름에선 0. 0이 아니면 확정 예약만으로 이미 정원인 날이 있다는 뜻이라
+    // (동시성 레이스·수량 인하) 관리자 판단이 필요하다 (§3). '겹침 건수' 경고가 아니다
     if (r.conflict_count > 0) {
-      if (!confirm(`다른 확정 예약과 ${r.conflict_count}건 겹쳐요. 그래도 승인할까요?`)) return
+      if (!confirm(`확정 예약만으로 이미 정원인 날이 ${r.conflict_count}일 있어요. 그래도 승인할까요?`))
+        return
     }
     await this.transition(r, 'approve', undefined, '승인했어요')
   }
@@ -224,7 +226,7 @@ export class PageAdminReservations extends LitElement {
         ${r.member_memo ? html`<span class="memo">메모 · ${r.member_memo}</span>` : ''}
         ${r.status_note ? html`<span class="memo">사유 · ${r.status_note}</span>` : ''}
         ${r.status === 'pending' && r.conflict_count > 0
-          ? html`<span class="conflict">확정 예약과 ${r.conflict_count}건 겹침</span>`
+          ? html`<span class="conflict">정원 초과 ${r.conflict_count}일 — 승인 시 확인 필요</span>`
           : ''}
       </div>
     `

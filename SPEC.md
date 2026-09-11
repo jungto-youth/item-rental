@@ -1,6 +1,6 @@
 # 청년지부 물품 대여 사이트 — 사양서 (SPEC)
 
-버전: v2.10 (2026-09-10) · 규모: 소규모 (물품 ~50개) · 대상: 지부 회원 (계정제) · 플랫폼: Cloudflare (호스팅·저장소) + Neon (PostgreSQL DB)
+버전: v2.11 (2026-09-11) · 규모: 소규모 (물품 ~50개) · 대상: 지부 회원 (계정제) · 플랫폼: Cloudflare (호스팅·저장소) + Neon (PostgreSQL DB)
 
 > **변경 이력**
 > - v1.1 (2026-09-03): Supabase/Vercel → Cloudflare(Workers + D1 + R2) 전면 교체. 인증은 Auth.js로 자체 구현. 이메일은 Resend 유지.
@@ -15,6 +15,7 @@
 > - v2.8 (2026-09-09): **헤더 네비에 물품 대여(홈) 링크 추가.** 기존엔 로고("물품 대여")만이 홈 링크라 일반 회원·익명 방문자에게 물품 목록 진입점이 메뉴에 없었음 — 전체 방문자 대상 첫 메뉴로 추가.
 > - v2.9 (2026-09-10): **로그인 이메일 제한.** `@jungto.org` 계정만 로그인 허용, 나머지는 Auth.js `signIn` 콜백에서 차단(members 생성도 하지 않음) 후 `/login?error=AccessDenied`로 복귀 — 로그인 화면에 "정토회 계정(@jungto.org)으로 로그인해주세요" 표시. 운영진 개인 계정 등 예외는 `AUTH_ALLOWED_EMAILS` 시크릿(콤마 구분)으로 허용.
 > - v2.10 (2026-09-10): **대여 플로우 구현** (마일스톤 3단계 — 이메일 알림·크론은 4단계). 회원: 물품 상세에서 기간 선택해 신청, 마이페이지 그룹 목록(대여 중/승인 대기/대여 예정/이력)·취소. 관리자: `/admin/reservations` 목록(상태 필터)·승인(겹침 경고 confirm)/거절(사유 필수, status_note 기록)/수령/반납. 세부 결정: ① 대여 기간 상한은 `items.max_days` 기준(settings.max_rental_days 미사용), ② 날짜는 반개구간 `[start, end)` — end_date는 반납일이며 대여일에서 제외(당일 반납 불가, 붙어 있는 예약은 충돌 아님), ③ 취소는 수령 전(pending/approved) 상태 기반으로 허용, ④ 연체는 저장 상태가 아닌 계산값(`picked_up` + 반납일 경과), ⑤ 승인 시점 겹침은 차단 대신 경고 표시(§3 그대로) — pending 예약도 가용 수량 차감, ⑥ 대여 신청에는 연락처 필수 — 미등록 시 물품 상세에서 프로필 입력으로 유도하고 서버도 400(`phone_required`)으로 강제(§4.1 수령·반납 연락 목적), ⑦ 개인정보 처리방침·서비스 이용약관 페이지 구현(`/policy/privacy`·`/policy/terms` — §9.1, 구글 OAuth 앱 게시 요건 충족용).
+> - v2.11 (2026-09-11): **캘린더·가용 판정 정합성 수정.** ① 신청 INSERT 가드를 '구간과 겹치는 예약 건수' → **일별 동시 점유 검사**로 교체(§3·§8) — 수량 ≥ 2 물품에서 인접 예약 사이 구간이 UI(일별 점유 캘린더)에선 선택 가능한데 서버가 409로 거짓 거부하던 모델 불일치 제거. ② 캘린더가 **로컬 오늘 이전을 차단** — 서버 가용 창은 UTC라 KST 새벽 0~9시에 days[0]가 어제가 되어 완료 순간에야 '과거 날짜' 경고가 나던 균열 제거. ③ 범위 띠 배경을 `--color-primary-tint` 토큰으로 — 다크(순흑 위 12% 고정 알파는 사실상 비가시)·color-mix 미지원 브라우저 동시 해결. ④ 신청 성공 후 가용 갱신 실패가 성공 메시지를 에러 화면으로 덮지 않게(load quiet 모드), 409 거부 시 가용 현황 재조회. ⑤ 캘린더 비활성 **사유 라벨**(과거/전량 예약/최대 대여일 초과/구간 내 전량 예약) — 취소선은 '그날 자체 전량 예약'에만, 범례 추가. ⑥ 접근성: aria-live/role, 날짜 라벨에 요일·(오늘), roving tabindex + 방향키 이동, `:focus-visible`. ⑦ '다시 선택' 초기화 수단. ⑧ 대여 기간 선택을 네이티브 input 2개 → 커스텀 인라인 범위 캘린더(`x-calendar`)로 교체(§7.6). ⑨ 신청 INSERT를 **물품별 advisory 락 트랜잭션**으로 — '단일 문장이니 원자적'은 READ COMMITTED(문장 시작 스냅샷)에서 두 동시 신청의 직렬화를 보장하지 못해 이중 예약이 가능했다(§3·§8). ⑩ 관리자 승인 경고를 '확정 건과 겹친 건수' → '확정 예약만으로 이미 정원인 날 수'로 재정의 — 일별 점유 모델에서 같은 날 공존은 정상이라 구 기준은 매번 뜨는 무해한 소음이었다(§3). ⑪ 신청 도중 물품이 삭제된 경우(FK 위반)를 '수량 없음' 409가 아닌 404로 구분 — 오안내 제거.
 
 ---
 
@@ -55,9 +56,9 @@
    → 반납일 지연 시 연체(overdue) 표시
 ```
 
-- **가용성 판정**: 신청한 기간과 상태가 `pending/approved/picked_up`인 예약 수량 합 < `items.total_qty` 이면 신청 가능
-- **이중 예약 방지**: 가용 검사를 신청 INSERT와 한 문장으로 처리 (`INSERT ... SELECT ... WHERE 가용수량 > 0`) — Postgres 단일 문장은 원자적으로 실행되어 원자성 보장
-- 승인 시점에 다른 예약과 겹치면 관리자에게 경고 표시
+- **가용성 판정** (v2.11 — 일별 동시 점유 기준): 신청 기간의 **매 대여일**마다 상태가 `pending/approved/picked_up`인 예약 수량 합 < `items.total_qty` 이면 신청 가능. 이전의 '구간과 겹치는 예약 건수' 기준은 수량 ≥ 2에서 인접 예약(붙어 있는 예약은 충돌 아님 — v2.10 ②)이 건수에 합쳐져 UI가 허용한 구간을 거짓 거부했음. 반납일은 점유에서 제외(반개구간 `[start, end)`)
+- **이중 예약 방지**: 물품별 advisory 락(`pg_advisory_xact_lock`)을 잡은 트랜잭션 안에서 가용 검사 INSERT를 실행 — `INSERT ... SELECT ... WHERE NOT EXISTS(일별 점유 초과)`. 단일 문장의 원자성(all-or-nothing)만으로는 두 동시 신청의 직렬화가 보장되지 않는다 (READ COMMITTED에서 각 문장은 문장 시작 스냅샷을 쓰고, HTTP 드라이버는 무상태라 요청마다 별도 세션 — 락 없이는 둘 다 통과)
+- 승인 시점에 확정 예약만으로 이미 정원인 날이 있으면 관리자에게 경고 표시 — 신청 가드가 pending까지 일별 점유로 세므로 정상 흐름에선 0이고, 0이 아니면 이상 상태(동시성 레이스·`total_qty` 인하)다
 - 반납일 하루 전·연체 시 이메일 알림 (Workers Cron Trigger)
 
 ## 4. 기능 명세
@@ -201,10 +202,9 @@ server/src/
 }
 ```
 
-### 7.6 날짜 선택·가용 UI (v1 범위)
-- `date-range-picker`: 네이티브 `<input type="date">` 2개 + 기간 유효성 검사 (최소/최대 대여일, 과거 불가)
+### 7.6 날짜 선택·가용 UI
+- `x-calendar` (v2.11): 인라인 범위 캘린더 — 두 번 탭(첫 탭 시작일, 두 번 탭 반납일). 일별 점유(days×totalQty)로 전량 예약일을 미리 비활성화하되 반납일로는 선택 가능(반개구간), 로컬 오늘 이전 차단, 최대 대여일·구간 내 전량 예약 검사는 사유 라벨로 표기. roving tabindex + 방향키 이동, `:focus-visible`. v1의 네이티브 `<input type="date">` 2개 조합을 대체
 - `availability-strip`: 서버가 내려준 점유 기간을 향후 90일 막대로 시각화 (점유일/잔여 수량)
-- 커스텀 캘린더 그리드(월간)는 v2 후보 — v1에서는 위 조합으로 충분
 
 ## 8. 데이터베이스 설계 (Neon / PostgreSQL)
 
@@ -267,21 +267,29 @@ INSERT INTO settings (key, value) VALUES ('max_rental_days', '7')
 ON CONFLICT (key) DO NOTHING;
 ```
 
-**가용 수량 쿼리 (이중 예약 방지)**:
+**가용 수량 쿼리 (이중 예약 방지 — v2.11 일별 동시 점유 기준 + 물품별 advisory 락)**:
 ```sql
-INSERT INTO reservations (item_id, member_id, start_date, end_date)
-SELECT $1, $2, $3, $4
-WHERE (
-  SELECT items.total_qty - COUNT(*)
-  FROM reservations, items
-  WHERE reservations.item_id = $1
-    AND items.id = $1
-    AND reservations.status IN ('pending','approved','picked_up')
-    AND reservations.start_date < $4::date
-    AND reservations.end_date > $3::date
-) > 0;
--- affected rows = 0 이면 기간 겹침 → 신청 거절 (API는 409 반환)
--- 단일 문장이라 원자적 — 동시 신청에도 이중 예약 불가
+-- 한 트랜잭션 (neon HTTP 드라이버의 transaction([...]) — 락은 커밋/롤백 시 자동 해제)
+SELECT pg_advisory_xact_lock($1::bigint);          -- 물품별 직렬화 지점
+
+INSERT INTO reservations (item_id, member_id, start_date, end_date, member_memo)
+SELECT $1, $2, $3, $4, $5
+WHERE NOT EXISTS (
+  -- 요청 기간의 매 대여일마다 동시 점유 수량 확인 — 하루라도 전량 점유면 거절
+  SELECT 1
+  FROM generate_series($3::date, $4::date - 1, interval '1 day') AS d(day)
+  JOIN reservations r
+    ON r.item_id = $1
+   AND r.status IN ('pending','approved','picked_up')
+   AND r.start_date <= d.day::date
+   AND r.end_date > d.day::date
+  GROUP BY d.day
+  HAVING COUNT(*) >= (SELECT total_qty FROM items WHERE items.id = $1)
+)
+RETURNING id;
+-- NOT EXISTS 실패 (하루라도 전량 점유) → affected rows = 0 → 신청 거절 (API는 409 반환)
+-- 락이 두 동시 신청을 직렬화한다 — 락 없이 단일 문장만으로는 READ COMMITTED 스냅샷 때문에
+-- 둘 다 통과할 수 있다 (구 버전의 '단일 문장이니 원자적' 주장은 이 점에서 부정확했음)
 ```
 
 **연결 방식**: `@neondatabase/serverless` HTTP 드라이버 (fetch 기반) — Workers 무료 플랜에서 동작, TCP/Hyperdrive 불필요. HTTP 모드는 무상태이므로 요청마다 클라이언트를 생성해도 안전. `DATABASE_URL`은 배포 시 `wrangler secret put`, 로컬 개발은 `.dev.vars`/.env로 관리.

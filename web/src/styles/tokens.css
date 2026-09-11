@@ -14,6 +14,7 @@
   --color-primary: #0066cc;     /* Action Blue — 유일한 인터랙션 색 */
   --color-primary-text: #ffffff;
   --color-primary-focus: #0071e3;
+  --color-primary-tint: rgba(0, 102, 204, 0.12); /* primary 은은한 배경 — 캘린더 범위 띠 등 */
   --color-link-on-dark: #2997ff;
   --color-success: #16a34a;
   --color-warning: #d97706;
@@ -66,6 +67,8 @@
     --color-primary: #0071e3;
     --color-primary-text: #ffffff;
     --color-primary-focus: #2997ff;
+    /* 블랙 캔버스 위 고정 알파는 어두워 사라지므로 다크에선 밝은 톤 + 높은 알파 */
+    --color-primary-tint: rgba(41, 151, 255, 0.25);
     --color-link-on-dark: #2997ff;
     --color-success: #22c55e;
     --color-warning: #f59e0b;
@@ -95,6 +98,8 @@
   --color-primary: #0071e3;
   --color-primary-text: #ffffff;
   --color-primary-focus: #2997ff;
+  /* 블랙 캔버스 위 고정 알파는 어두워 사라지므로 다크에선 밝은 톤 + 높은 알파 */
+  --color-primary-tint: rgba(41, 151, 255, 0.25);
   --color-link-on-dark: #2997ff;
   --color-success: #22c55e;
   --color-warning: #f59e0b;

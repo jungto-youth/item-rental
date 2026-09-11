@@ -22,7 +22,7 @@ async function finish(c: Ctx, id: number, rows: { id: number }[]): Promise<Respo
   return c.json({ error: 'bad_status' }, 409)
 }
 
-// 목록 — pending이 맨 위, 최근 신청순. pending 행의 겹침 경고용 conflict_count 포함 (§3)
+// 목록 — pending이 맨 위, 최근 신청순. pending 행의 초과 경고용 conflict_count 포함 (§3)
 adminReservationsRoute.get('/', async (c) => {
   const status = c.req.query('status') || null
   if (status && !STATUSES.includes(status)) return c.json({ error: 'bad_status' }, 400)
@@ -34,10 +34,17 @@ adminReservationsRoute.get('/', async (c) => {
             r.start_date::text AS start_date, r.end_date::text AS end_date,
             r.status, r.status_note, r.member_memo,
             (r.status = 'picked_up' AND r.end_date < CURRENT_DATE) AS is_overdue,
-            (SELECT COUNT(*)::int FROM reservations r2
-              WHERE r2.item_id = r.item_id AND r2.id <> r.id
-                AND r2.status IN ('approved','picked_up')
-                AND r2.start_date < r.end_date AND r2.end_date > r.start_date) AS conflict_count,
+            -- 초과일 수 — 이 건을 승인하면 정원을 넘는 날. 신청 가드(v2.11)가 pending까지 일별
+            -- 점유로 세므로 정상 흐름에선 항상 0이고, 0이 아니면 이상 상태(동시성 레이스나
+            -- 운영진의 total_qty 인하)다. '확정 건과 겹치는 건수'가 아니다 — 수량 ≥ 2에선
+            -- 같은 날 공존이 정상이라 그 기준은 매번 뜨는 무해한 소음이 된다 (§3)
+            (SELECT COUNT(*)::int
+               FROM generate_series(r.start_date, r.end_date - 1, interval '1 day') AS d(day)
+              WHERE (SELECT COUNT(*) FROM reservations r2
+                      WHERE r2.item_id = r.item_id AND r2.id <> r.id
+                        AND r2.status IN ('approved','picked_up')
+                        AND r2.start_date <= d.day::date AND r2.end_date > d.day::date
+                    ) >= items.total_qty) AS conflict_count,
             a.name AS admin_name, r.created_at
        FROM reservations r
        JOIN items ON items.id = r.item_id

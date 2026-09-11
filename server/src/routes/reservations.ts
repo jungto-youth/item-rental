@@ -17,7 +17,7 @@ function isDateStr(s: unknown): s is string {
   )
 }
 
-// 신청 — 가용 검사를 INSERT와 한 문장으로 처리 (§8 원자성 — 동시 신청에도 이중 예약 불가)
+// 신청 — 가용 검사를 advisory 락 + 단일 INSERT 문장으로 처리 (§8 — 동시 신청에도 이중 예약 불가)
 reservationsRoute.post('/', async (c) => {
   const user = c.get('user')!
 
@@ -49,27 +49,41 @@ reservationsRoute.post('/', async (c) => {
   if (item.status !== 'active') return c.json({ error: 'item_not_active' }, 409)
   if (days > item.max_days) return c.json({ error: 'too_long' }, 400)
 
-  const inserted = (await db.query(
-    `INSERT INTO reservations (item_id, member_id, start_date, end_date, member_memo)
-     SELECT $1, $2, $3, $4, $5
-     WHERE (
-       (SELECT items.total_qty FROM items WHERE items.id = $1)
-       - (
-         SELECT COUNT(*)
-         FROM reservations
-         WHERE reservations.item_id = $1
-           AND reservations.status IN ('pending','approved','picked_up')
-           AND reservations.start_date < $4::date
-           AND reservations.end_date > $3::date
-       )
-     ) > 0
-     RETURNING id`,
-    [itemId, user.id, start_date, end_date, memo],
-  ).catch((err: { code?: string }) => {
-    // 신청 사이 물품 삭제 — FK 위반을 404로 흡수
-    if (err.code === '23503') return []
-    throw err
-  })) as { id: number }[]
+  // 동시 신청 직렬화 — 물품별 advisory 락을 먼저 잡고 같은 트랜잭션에서 가드 INSERT를 실행한다.
+  // '단일 문장이니 원자적'은 all-or-nothing 실행일 뿐 두 동시 INSERT의 직렬화를 보장하지 않는다:
+  // READ COMMITTED에서 각 문장은 문장 시작 스냅샷을 쓰고(서로의 미커밋 행을 보지 못함) HTTP
+  // 드라이버는 무상태라 요청마다 별도 세션이다 — 락이 없으면 total_qty=1 물품에 동시 신청 둘이
+  // 모두 통과해 그날이 이중 배정된다. 락은 트랜잭션 종료 시 자동 해제된다.
+  const results = await db
+    .transaction([
+      db`SELECT pg_advisory_xact_lock(${itemId}::bigint)`,
+      // 일별 최대 동시 점유 검사 — 요청 기간의 매 대여일마다 잔여 수량이 있어야 INSERT.
+      // '구간과 겹치는 예약 건수'가 아니라 일별 점유로 판정 (§3·§8, v2.11) — 수량 ≥ 2에서
+      // 인접 예약(A·B가 붙은) 사이 구간을 건수만으로 막히게 하는 거짓 거부를 없애고,
+      // 가용 스트립·캘린더(일별 점유)와 같은 기준이 된다. 반납일은 점유에서 제외(반개구간).
+      db`INSERT INTO reservations (item_id, member_id, start_date, end_date, member_memo)
+         SELECT ${itemId}, ${user.id}, ${start_date}, ${end_date}, ${memo}
+         WHERE NOT EXISTS (
+           SELECT 1
+           FROM generate_series(${start_date}::date, ${end_date}::date - 1, interval '1 day') AS d(day)
+           JOIN reservations r
+             ON r.item_id = ${itemId}
+            AND r.status IN ('pending','approved','picked_up')
+            AND r.start_date <= d.day::date
+            AND r.end_date > d.day::date
+           GROUP BY d.day
+           HAVING COUNT(*) >= (SELECT total_qty FROM items WHERE items.id = ${itemId})
+         )
+         RETURNING id`,
+    ])
+    .catch((err: { code?: string }) => {
+      // 신청 사이 물품 삭제 — FK 위반은 '수량 없음'이 아니므로 404로 구분
+      if (err.code === '23503') return null
+      throw err
+    })
+  if (results === null) return c.json({ error: 'not_found' }, 404)
+
+  const inserted = results[1] as { id: number }[]
   if (inserted.length === 0) return c.json({ error: 'no_availability' }, 409)
 
   return c.json({ id: inserted[0].id }, 201)

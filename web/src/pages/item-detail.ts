@@ -101,7 +101,34 @@ export class PageItemDetail extends LitElement {
     textarea { height: auto; min-height: 72px; padding: var(--space-3); resize: vertical; }
     input:focus, textarea:focus { outline: none; border-color: var(--color-primary); }
     .memo { display: grid; gap: 4px; font-size: var(--text-caption); color: var(--color-muted); }
+    .hint-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
     .hint { margin: 0; font-size: var(--text-caption); color: var(--color-muted); }
+    /* '다시 선택' — 힌트 옆 텍스트 링크. 탭만으론 빈 선택으로 못 돌아가는 보완 */
+    .clear {
+      position: relative;
+      flex-shrink: 0;
+      background: none;
+      border: 0;
+      padding: 0;
+      color: var(--color-primary);
+      font: inherit;
+      font-size: var(--text-caption);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    /* DESIGN.md §1 — 시각은 텍스트 링크 그대로, 히트 영역만 상하로 넓혀 44px에 맞춤 */
+    .clear::after {
+      content: '';
+      position: absolute;
+      inset: -13px -6px;
+    }
+    .clear:active { transform: scale(0.95); }
+    /* DESIGN.md 버튼 문법 — UA 기본 링 대신 토큰 링 (.primary와 같은 규칙) */
+    .clear:focus-visible {
+      outline: 2px solid var(--color-primary-focus);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
+    }
     .warn { margin: 0; color: var(--color-danger); font-size: var(--text-caption); }
     .ok { margin: 0; color: var(--color-success); font-size: var(--text-caption); }
     .err { margin: 0; color: var(--color-danger); font-size: var(--text-caption); }
@@ -218,7 +245,9 @@ export class PageItemDetail extends LitElement {
     this.userReady = true
   }
 
-  private async load() {
+  // quiet: 성공 경로의 현황 갱신용 — 실패해도 화면을 에러로 갈아끊지 않고 현 데이터 유지.
+  // 전체 에러 화면은 초기 로드 실패뿐 (갱신 실패는 다음 신청 때 서버가 재검증)
+  private async load(quiet = false) {
     try {
       const res = await api<{ item: Item; availability: AvailabilityDay[] }>(
         `/api/items/${this.itemId}`,
@@ -227,7 +256,7 @@ export class PageItemDetail extends LitElement {
       this.availability = res.availability
       this.editPhotos = res.item.photos
     } catch (e) {
-      this.error = e instanceof Error ? e.message : '오류'
+      if (!quiet) this.error = e instanceof Error ? e.message : '오류'
     }
   }
 
@@ -268,7 +297,7 @@ export class PageItemDetail extends LitElement {
         body: JSON.stringify(this.editForm),
       })
       this.editing = false
-      await this.load()
+      await this.load(true) // 저장은 성공 — 갱신 실패가 화면을 덮지 않게
     } catch (e) {
       this.editMsg = e instanceof Error ? e.message : '저장 실패'
     } finally {
@@ -311,7 +340,7 @@ export class PageItemDetail extends LitElement {
       const processed = await processPhoto(file)
       fd.append('file', processed)
       await api(`/api/admin/items/${this.item.id}/photos`, { method: 'POST', body: fd })
-      await this.load()
+      await this.load(true) // 업로드는 성공 — 갱신 실패가 화면을 덮지 않게
     } catch (err) {
       this.editMsg = err instanceof Error ? err.message : '업로드 실패'
     } finally {
@@ -362,6 +391,21 @@ export class PageItemDetail extends LitElement {
     this.formMsg = ''
   }
 
+  // 선택 초기화 — '다시 선택' (탭만으로는 빈 선택 상태에 도달할 수 없어 부모가 직접 클리어)
+  private clearRange() {
+    this.startDate = ''
+    this.endDate = ''
+    this.formMsg = ''
+    // 이 버튼은 startDate가 비면 렌더에서 빠진다 — 포커스를 달력으로 되돌리지 않으면
+    // 키보드 사용자의 포커스가 body로 떨어져 Tab이 문서 처음부터 다시 시작한다
+    void this.updateComplete.then(() => {
+      const cal = this.renderRoot.querySelector('x-calendar') as
+        | (HTMLElement & { focusCursor?: () => void })
+        | null
+      cal?.focusCursor?.()
+    })
+  }
+
   private async submit(e: Event) {
     e.preventDefault()
     if (this.saving || this.formError || !this.item || !this.startDate || !this.endDate) return
@@ -382,13 +426,16 @@ export class PageItemDetail extends LitElement {
       this.startDate = ''
       this.endDate = ''
       this.memo = ''
-      await this.load() // 가용 현황 갱신
+      await this.load(true) // 가용 현황 갱신 — 갱신 실패가 성공 메시지를 덮지 않게
     } catch (err) {
       const msg = err instanceof Error ? err.message : ''
-      if (msg.includes('no_availability'))
+      if (msg.includes('no_availability')) {
         this.formMsg = '선택한 기간에 대여 가능 수량이 없어요. 다른 기간을 선택해 주세요'
-      else if (msg.includes('item_not_active'))
+        void this.load(true) // 사이에 다른 신청이 들어왔을 수 있음 — 달력·스트립 최신화
+      } else if (msg.includes('item_not_active'))
         this.formMsg = '지금은 대여할 수 없는 물품이에요'
+      else if (msg.includes('not_found'))
+        this.formMsg = '삭제되었거나 찾을 수 없는 물품이에요'
       else if (msg.includes('too_long'))
         this.formMsg = `최대 ${this.item.max_days}일까지 대여할 수 있어요`
       else if (msg.includes('past_date')) this.formMsg = '과거 날짜는 선택할 수 없어요'
@@ -554,14 +601,19 @@ export class PageItemDetail extends LitElement {
           .maxDays=${item.max_days}
           @change=${this.onRange}
         ></x-calendar>
-        <p class="hint">
-          ${this.startDate && this.endDate
-            ? `${this.rentalDays}일 대여 (반납일 제외) · 최대 ${item.max_days}일`
-            : this.startDate
-              ? '반납일을 선택해 주세요 — 하루만 빌리려면 시작일 다음 날을 고르세요'
-              : '시작일을 먼저 선택해 주세요 — 반납일은 물품을 돌려주는 날이에요'}
-        </p>
-        ${this.formError ? html`<p class="warn">${this.formError}</p>` : ''}
+        <div class="hint-row">
+          <p class="hint" role="status">
+            ${this.startDate && this.endDate
+              ? `${this.rentalDays}일 대여 (반납일 제외) · 최대 ${item.max_days}일 — 날짜를 다시 눌러 바꿀 수 있어요`
+              : this.startDate
+                ? '반납일을 선택해 주세요 — 하루만 빌리려면 시작일 다음 날을 고르세요'
+                : '시작일을 먼저 선택해 주세요 — 반납일은 물품을 돌려주는 날이에요'}
+          </p>
+          ${this.startDate
+            ? html`<button type="button" class="clear" @click=${this.clearRange}>다시 선택</button>`
+            : ''}
+        </div>
+        ${this.formError ? html`<p class="warn" role="alert">${this.formError}</p>` : ''}
         <label class="memo">
           메모 (선택)
           <textarea
@@ -578,7 +630,7 @@ export class PageItemDetail extends LitElement {
         >
           ${this.saving ? '신청 중…' : '신청하기'}
         </button>
-        ${this.formMsg ? html`<p class=${this.formOk ? 'ok' : 'err'}>${this.formMsg}</p>` : ''}
+        ${this.formMsg ? html`<p class=${this.formOk ? 'ok' : 'err'} role="status">${this.formMsg}</p>` : ''}
       </form>
     `
   }
