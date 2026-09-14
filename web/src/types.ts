@@ -100,6 +100,10 @@ export type Dashboard = {
   pickups: DashboardRow[];
   returns: DashboardRow[];
   overdue: (DashboardRow & { days_late: number })[];
+  // 하드 리밋(수령/반납/연체 각 20건)으로 잘렸는지 — 잘렸으면 화면에 '상위 20건만' 안내 (§4.4, v3.1)
+  pickups_truncated: boolean;
+  returns_truncated: boolean;
+  overdue_truncated: boolean;
 };
 
 // 과거 대여 이력 (§4.3) — 2025 청년페스타 '물품대여' 시트 스냅샷.
