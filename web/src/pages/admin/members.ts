@@ -102,6 +102,27 @@ export class PageAdminMembers extends LitElement {
     }
   }
 
+  // 탈퇴(비활성화) — 활성 회원을 비활성화한다. 약관이 '탈퇴는 관리자에게 요청'이라 안내하는데
+  // 처리 수단이 없어 신설했다(§4.1, v3.1). 마지막 총관리자 보호는 서버가 409 로 거부한다.
+  private async deactivate(m: AdminMember) {
+    const who = m.name || m.email || '이 회원'
+    if (!confirm(`'${who}'님을 비활성화(탈퇴 처리)할까요?\n이후 다시 로그인할 수 없습니다.`)) return
+    if (this.busy) return
+    this.busy = true
+    try {
+      await api(`/api/admin/members/${m.id}/deactivate`, { method: 'POST' })
+      this.message = `${who}님을 비활성화했어요`
+      await this.reload()
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : ''
+      if (detail.includes('last_admin')) this.message = '마지막 총관리자는 비활성화할 수 없어요'
+      else this.message = '비활성화 실패'
+      await this.reload()
+    } finally {
+      this.busy = false
+    }
+  }
+
   // 역할 변경 — 총관리자만 가능 (서버도 requireAdmin으로 강제)
   private async setRole(m: AdminMember, role: Role) {
     if (role === m.role) return
@@ -168,6 +189,7 @@ export class PageAdminMembers extends LitElement {
           ${this.myRole === 'admin' && m.status === 'approved'
             ? html`<select
                 ?disabled=${this.busy}
+                aria-label="역할 지정"
                 .value=${m.role}
                 @change=${(e: Event) => this.setRole(m, (e.target as HTMLSelectElement).value as Role)}
               >
@@ -177,6 +199,9 @@ export class PageAdminMembers extends LitElement {
               </select>`
             : html`<x-badge kind=${m.role}></x-badge>`}
           <x-badge kind=${m.status}></x-badge>
+          ${m.status === 'approved'
+            ? html`<button class="link danger" ?disabled=${this.busy} @click=${() => this.deactivate(m)}>비활성화</button>`
+            : ''}
           ${acts}
         </span>
         <span class="who">${m.email} · ${m.phone ?? '연락처 미등록'}</span>

@@ -1,80 +1,80 @@
-import { css, html, LitElement } from 'lit'
-import { customElement, state } from 'lit/decorators.js'
-import type { RouterLocation } from '@vaadin/router'
-import { api } from '../api/client'
-import { session, type SessionUser } from '../context/session'
-import '../components/ui/badge'
-import '../components/ui/availability-strip'
-import '../components/ui/x-calendar'
-import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from '../utils/photo'
+import { css, html, LitElement } from "lit";
+import { customElement, state } from "lit/decorators.js";
+import type { RouterLocation } from "@vaadin/router";
+import { api } from "../api/client";
+import { session, type SessionUser } from "../context/session";
+import "../components/ui/badge";
+import "../components/ui/availability-strip";
+import "../components/ui/x-calendar";
+import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../utils/photo";
 import {
   type AvailabilityDay,
   type Item,
   type ItemKind,
   type ItemStatus,
   type Photo,
-} from '../types'
+} from "../types";
 
 // SPEC §5 — 물품 상세 + 대여 신청 폼 (§4.3, 원자적 INSERT는 서버 §8)
 // 운영진(manager 이상)은 이 화면에서 바로 편집·사진 관리 — 별도 관리 화면 없음 (DESIGN 통합안)
-@customElement('page-item-detail')
+@customElement("page-item-detail")
 export class PageItemDetail extends LitElement {
   @state()
-  private itemId = ''
+  private itemId = "";
   @state()
-  private item: Item | null = null
+  private item: Item | null = null;
   @state()
-  private availability: AvailabilityDay[] = []
+  private availability: AvailabilityDay[] = [];
   @state()
-  private photoIdx = 0
+  private photoIdx = 0;
   @state()
-  private error = ''
+  private error = "";
 
   // 신청 폼
   @state()
-  private user: SessionUser | null = null
+  private user: SessionUser | null = null;
   @state()
-  private userReady = false
+  private userReady = false;
   @state()
-  private startDate = ''
+  private startDate = "";
   @state()
-  private endDate = ''
+  private endDate = "";
   @state()
-  private memo = ''
+  private memo = "";
   // 부분 대여 수량 (§8 P0) — 한 예약이 여러 개를 점유한다. 기본 1개.
   // 날짜가 바뀌면 기간 잔여가 달라지므로 날짜 선택 때마다 1로 되돌린다
   @state()
-  private qty = 1
+  private qty = 1;
   @state()
-  private saving = false
+  private saving = false;
   @state()
-  private formMsg = ''
+  private formMsg = "";
   @state()
-  private formOk = false
+  private formOk = false;
 
   // 편집 모드 (운영진 전용)
   @state()
-  private editing = false
+  private editing = false;
   @state()
   private editForm = {
-    name: '',
-    kind: 'rental' as ItemKind,
+    name: "",
+    kind: "rental" as ItemKind,
     total_qty: 1,
     qty_broken: 0,
     max_days: 7,
-    status: 'active' as ItemStatus,
-    location: '',
-    size: '',
-    color: '',
-    note: '',
-    description: '',
-  }
+    status: "active" as ItemStatus,
+    location: "",
+    size: "",
+    color: "",
+    note: "",
+    description: "",
+  };
   @state()
-  private editPhotos: Photo[] = []
+  private editPhotos: Photo[] = [];
   @state()
-  private editSaving = false
+  private editSaving = false;
   @state()
-  private editMsg = ''
+  private editMsg = "";
 
   static styles = css`
     .photo {
@@ -462,19 +462,19 @@ export class PageItemDetail extends LitElement {
       font-size: var(--text-caption);
       padding: var(--space-2);
     }
-  `
+  `;
 
   // @vaadin/router 라이프사이클 — /items/:id 파라미터는 여기서 주입받음
   onAfterEnter(location: RouterLocation) {
-    this.itemId = String(location.params.id ?? '')
-    if (this.itemId) void this.load()
-    else this.error = '물품을 찾을 수 없어요'
+    this.itemId = String(location.params.id ?? "");
+    if (this.itemId) void this.load();
+    else this.error = "물품을 찾을 수 없어요";
   }
 
   async connectedCallback() {
-    super.connectedCallback()
-    this.user = await session.ensure()
-    this.userReady = true
+    super.connectedCallback();
+    this.user = await session.ensure();
+    this.userReady = true;
   }
 
   // quiet: 성공 경로의 현황 갱신용 — 실패해도 화면을 에러로 갈아끊지 않고 현 데이터 유지.
@@ -483,176 +483,176 @@ export class PageItemDetail extends LitElement {
     try {
       const res = await api<{ item: Item; availability: AvailabilityDay[] }>(
         `/api/items/${this.itemId}`,
-      )
-      this.item = res.item
-      this.availability = res.availability
-      this.editPhotos = res.item.photos
+      );
+      this.item = res.item;
+      this.availability = res.availability;
+      this.editPhotos = res.item.photos;
     } catch (e) {
-      if (!quiet) this.error = e instanceof Error ? e.message : '오류'
+      if (!quiet) this.error = e instanceof Error ? e.message : "오류";
     }
   }
 
   private get isManager(): boolean {
-    return this.user?.role === 'manager' || this.user?.role === 'admin'
+    return this.user?.role === "manager" || this.user?.role === "admin";
   }
 
   // 수리중 수량을 뺀 실제로 빌려줄 수 있는 수량.
   // 배지·달력·스트립이 모두 이 값을 써야 한다 — total_qty를 쓰면 수리중 물량까지
   // 예약을 받아 실제 재고보다 많이 나가게 된다.
   private get rentableQty(): number {
-    if (!this.item) return 0
+    if (!this.item) return 0;
     return (
       this.item.rentable_qty ??
-        this.item.total_qty - (this.item.qty_broken ?? 0)
-    )
+      this.item.total_qty - (this.item.qty_broken ?? 0)
+    );
   }
 
   // 실물 정보 — 값이 있는 항목만 라벨/값 쌍으로 만든다 (빈 칸은 프레임만 늘리므로 제외)
   private attrPairs(): [string, string][] {
-    const it = this.item
-    if (!it) return []
-    const pairs: [string, string][] = []
-    if (it.kind === 'consumable') pairs.push(['구분', '소모품'])
-    if (it.location) pairs.push(['보관 위치', it.location])
-    if (it.size) pairs.push(['규격', it.size])
-    if (it.color) pairs.push(['색상', it.color])
-    if (it.note) pairs.push(['비고', it.note])
-    return pairs
+    const it = this.item;
+    if (!it) return [];
+    const pairs: [string, string][] = [];
+    if (it.kind === "consumable") pairs.push(["구분", "소모품"]);
+    if (it.location) pairs.push(["보관 위치", it.location]);
+    if (it.size) pairs.push(["규격", it.size]);
+    if (it.color) pairs.push(["색상", it.color]);
+    if (it.note) pairs.push(["비고", it.note]);
+    return pairs;
   }
 
   // --- 편집 모드 (운영진) ---
   private async startEdit() {
-    if (!this.item) return
-    this.editMsg = ''
+    if (!this.item) return;
+    this.editMsg = "";
     // 공개 상세에는 note(내부 메모)가 없다 — 관리자 단건으로 채우지 않으면
     // undefined → ''로 저장되어 메모가 지워진다
     const res = await api<{ item: Partial<Item> }>(
       `/api/admin/items/${this.item.id}`,
-    ).catch(() => null)
+    ).catch(() => null);
     if (!res) {
       this.editMsg =
-        '물품 정보를 불러오지 못했어요 — 잠시 후 다시 시도해 주세요'
-      return
+        "물품 정보를 불러오지 못했어요 — 잠시 후 다시 시도해 주세요";
+      return;
     }
-    const it = res.item
+    const it = res.item;
     this.editForm = {
       name: it.name ?? this.item.name,
-      kind: it.kind ?? 'rental',
+      kind: it.kind ?? "rental",
       total_qty: it.total_qty ?? this.item.total_qty,
       qty_broken: it.qty_broken ?? 0,
       max_days: it.max_days ?? this.item.max_days,
       status: it.status ?? this.item.status,
-      location: it.location ?? '',
-      size: it.size ?? '',
-      color: it.color ?? '',
-      note: it.note ?? '',
-      description: it.description ?? '',
-    }
-    this.editing = true
+      location: it.location ?? "",
+      size: it.size ?? "",
+      color: it.color ?? "",
+      note: it.note ?? "",
+      description: it.description ?? "",
+    };
+    this.editing = true;
   }
 
   private cancelEdit() {
-    this.editing = false
-    this.editMsg = ''
+    this.editing = false;
+    this.editMsg = "";
   }
 
   private setEdit<K extends keyof typeof this.editForm>(
     k: K,
     v: (typeof this.editForm)[K],
   ) {
-    this.editForm = { ...this.editForm, [k]: v }
+    this.editForm = { ...this.editForm, [k]: v };
   }
 
   private async saveEdit() {
-    if (!this.item || this.editSaving) return
-    this.editSaving = true
-    this.editMsg = ''
+    if (!this.item || this.editSaving) return;
+    this.editSaving = true;
+    this.editMsg = "";
     try {
       await api(`/api/admin/items/${this.item.id}`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify(this.editForm),
-      })
-      this.editing = false
-      await this.load(true) // 저장은 성공 — 갱신 실패가 화면을 덮지 않게
+      });
+      this.editing = false;
+      await this.load(true); // 저장은 성공 — 갱신 실패가 화면을 덮지 않게
     } catch (e) {
-      this.editMsg = e instanceof Error ? e.message : '저장 실패'
+      this.editMsg = e instanceof Error ? e.message : "저장 실패";
     } finally {
-      this.editSaving = false
+      this.editSaving = false;
     }
   }
 
   private async removeItem() {
-    if (!this.item) return
-    if (!confirm(`'${this.item.name}'을(를) 삭제할까요?`)) return
+    if (!this.item) return;
+    if (!confirm(`'${this.item.name}'을(를) 삭제할까요?`)) return;
     try {
-      await api(`/api/admin/items/${this.item.id}`, { method: 'DELETE' })
-      history.back()
+      await api(`/api/admin/items/${this.item.id}`, { method: "DELETE" });
+      history.back();
     } catch (e) {
-      this.editMsg = e instanceof Error ? e.message : '삭제 실패'
+      this.editMsg = e instanceof Error ? e.message : "삭제 실패";
     }
   }
 
   private async uploadPhoto(e: Event) {
-    if (!this.item) return
-    const input = e.target as HTMLInputElement
-    const file = input.files?.[0]
-    if (!file) return
+    if (!this.item) return;
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
     if (!PHOTO_OK.includes(file.type) || file.size > MAX_PHOTO_BYTES) {
-      this.editMsg = 'JPEG/PNG/WebP, 5MB 이하만 가능해요'
-      input.value = ''
-      return
+      this.editMsg = "JPEG/PNG/WebP, 5MB 이하만 가능해요";
+      input.value = "";
+      return;
     }
     if (this.editPhotos.length >= 3) {
-      this.editMsg = '사진은 최대 3장이에요'
-      input.value = ''
-      return
+      this.editMsg = "사진은 최대 3장이에요";
+      input.value = "";
+      return;
     }
-    const fd = new FormData()
+    const fd = new FormData();
     try {
       // 업로드 전 브라우저에서 리사이즈(1600px·WebP) — 변환본만 저장 (§4.2)
-      const processed = await processPhoto(file)
-      fd.append('file', processed)
+      const processed = await processPhoto(file);
+      fd.append("file", processed);
       await api(`/api/admin/items/${this.item.id}/photos`, {
-        method: 'POST',
+        method: "POST",
         body: fd,
-      })
-      await this.load(true) // 업로드는 성공 — 갱신 실패가 화면을 덮지 않게
+      });
+      await this.load(true); // 업로드는 성공 — 갱신 실패가 화면을 덮지 않게
     } catch (err) {
-      this.editMsg = err instanceof Error ? err.message : '업로드 실패'
+      this.editMsg = err instanceof Error ? err.message : "업로드 실패";
     } finally {
-      input.value = ''
+      input.value = "";
     }
   }
 
   private async deletePhoto(p: Photo) {
-    if (!this.item) return
+    if (!this.item) return;
     try {
       await api(`/api/admin/items/${this.item.id}/photos/${p.id}`, {
-        method: 'DELETE',
-      })
-      this.editPhotos = this.editPhotos.filter((x) => x.id !== p.id)
-      if (this.item) this.item = { ...this.item, photos: this.editPhotos }
+        method: "DELETE",
+      });
+      this.editPhotos = this.editPhotos.filter((x) => x.id !== p.id);
+      if (this.item) this.item = { ...this.item, photos: this.editPhotos };
     } catch (e) {
-      this.editMsg = e instanceof Error ? e.message : '삭제 실패'
+      this.editMsg = e instanceof Error ? e.message : "삭제 실패";
     }
   }
 
   // 로컬(브라우저) 기준 오늘 — 과거 날짜 차단의 1차 방어선 (서버는 UTC 기준 백스톱)
   private get today(): string {
-    return this.fmt(new Date())
+    return this.fmt(new Date());
   }
 
   private fmt(d: Date): string {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${
-      String(d.getDate()).padStart(2, '0')
-    }`
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate(),
+    ).padStart(2, "0")}`;
   }
 
   private get rentalDays(): number {
-    if (!this.startDate || !this.endDate) return 0
+    if (!this.startDate || !this.endDate) return 0;
     return Math.round(
       (Date.parse(this.endDate) - Date.parse(this.startDate)) / 86400000,
-    )
+    );
   }
 
   // 선택 기간에 실제로 빌릴 수 있는 수량 = 대여가능 − 기간 중 최대 일별 점유.
@@ -660,67 +660,69 @@ export class PageItemDetail extends LitElement {
   // 매 대여일마다 잔여를 보므로 어느 하루라도 넘치면 거부된다(§8). 같은 기준을 써야
   // 폼이 통과시킨 신청이 서버에서 거부되는 일이 없다.
   private get availableForRange(): number {
-    if (!this.startDate || !this.endDate) return this.rentableQty
-    let max = 0
+    if (!this.startDate || !this.endDate) return this.rentableQty;
+    let max = 0;
     for (const d of this.availability) {
       // 반개구간 [start, end) — 반납일은 점유에서 제외 (§8 겹침 조건과 동일)
       if (
-        d.date >= this.startDate && d.date < this.endDate && d.reserved > max
+        d.date >= this.startDate &&
+        d.date < this.endDate &&
+        d.reserved > max
       ) {
-        max = d.reserved
+        max = d.reserved;
       }
     }
-    return Math.max(0, this.rentableQty - max)
+    return Math.max(0, this.rentableQty - max);
   }
 
   // 실시간 폼 검증 — 통과 시 빈 문자열
   private get formError(): string {
-    if (!this.item || !this.startDate || !this.endDate) return ''
+    if (!this.item || !this.startDate || !this.endDate) return "";
     if (this.rentalDays < 1) {
-      return '반납일은 시작일 다음 날부터 선택할 수 있어요'
+      return "반납일은 시작일 다음 날부터 선택할 수 있어요";
     }
     if (this.rentalDays > this.item.max_days) {
-      return `최대 ${this.item.max_days}일까지 대여할 수 있어요`
+      return `최대 ${this.item.max_days}일까지 대여할 수 있어요`;
     }
-    if (this.startDate < this.today) return '과거 날짜는 선택할 수 없어요'
+    if (this.startDate < this.today) return "과거 날짜는 선택할 수 없어요";
     if (!Number.isInteger(this.qty) || this.qty < 1) {
-      return '수량은 1개 이상이어야 해요'
+      return "수량은 1개 이상이어야 해요";
     }
     if (this.qty > this.availableForRange) {
       return this.availableForRange === 0
-        ? '선택한 기간에는 남은 수량이 없어요 — 다른 기간을 선택해 주세요'
-        : `선택한 기간에는 ${this.availableForRange}개까지 빌릴 수 있어요`
+        ? "선택한 기간에는 남은 수량이 없어요 — 다른 기간을 선택해 주세요"
+        : `선택한 기간에는 ${this.availableForRange}개까지 빌릴 수 있어요`;
     }
-    return ''
+    return "";
   }
 
   // x-calendar의 change — 선택값 소유는 부모가 (controlled 컴포넌트)
   private onRange(e: Event) {
-    const d = (e as CustomEvent<{ start: string; end: string }>).detail
-    this.startDate = d.start
-    this.endDate = d.end
-    this.formMsg = ''
-    this.qty = 1 // 기간이 바뀌면 잔여 상한도 바뀔다 — 이전 수량을 그대로 두면 상한 초과 상태가 된다
+    const d = (e as CustomEvent<{ start: string; end: string }>).detail;
+    this.startDate = d.start;
+    this.endDate = d.end;
+    this.formMsg = "";
+    this.qty = 1; // 기간이 바뀌면 잔여 상한도 바뀔다 — 이전 수량을 그대로 두면 상한 초과 상태가 된다
   }
 
   // 선택 초기화 — '다시 선택' (탭만으로는 빈 선택 상태에 도달할 수 없어 부모가 직접 클리어)
   private clearRange() {
-    this.startDate = ''
-    this.endDate = ''
-    this.formMsg = ''
-    this.qty = 1
+    this.startDate = "";
+    this.endDate = "";
+    this.formMsg = "";
+    this.qty = 1;
     // 이 버튼은 startDate가 비면 렌더에서 빠진다 — 포커스를 달력으로 되돌리지 않으면
     // 키보드 사용자의 포커스가 body로 떨어져 Tab이 문서 처음부터 다시 시작한다
     void this.updateComplete.then(() => {
-      const cal = this.renderRoot.querySelector('x-calendar') as
+      const cal = this.renderRoot.querySelector("x-calendar") as
         | (HTMLElement & { focusCursor?: () => void })
-        | null
-      cal?.focusCursor?.()
-    })
+        | null;
+      cal?.focusCursor?.();
+    });
   }
 
   private async submit(e: Event) {
-    e.preventDefault()
+    e.preventDefault();
     if (
       this.saving ||
       this.formError ||
@@ -728,13 +730,13 @@ export class PageItemDetail extends LitElement {
       !this.startDate ||
       !this.endDate
     ) {
-      return
+      return;
     }
-    this.saving = true
-    this.formMsg = ''
+    this.saving = true;
+    this.formMsg = "";
     try {
-      await api('/api/reservations', {
-        method: 'POST',
+      await api("/api/reservations", {
+        method: "POST",
         body: JSON.stringify({
           item_id: Number(this.itemId),
           start_date: this.startDate,
@@ -742,126 +744,146 @@ export class PageItemDetail extends LitElement {
           qty: this.qty,
           memo: this.memo || undefined,
         }),
-      })
-      this.formOk = true
-      this.formMsg = '신청했어요 — 마이페이지에서 확인할 수 있어요'
-      this.startDate = ''
-      this.endDate = ''
-      this.memo = ''
-      this.qty = 1
-      await this.load(true) // 가용 현황 갱신 — 갱신 실패가 성공 메시지를 덮지 않게
+      });
+      this.formOk = true;
+      this.formMsg = "신청했어요 — 마이페이지에서 확인할 수 있어요";
+      this.startDate = "";
+      this.endDate = "";
+      this.memo = "";
+      this.qty = 1;
+      await this.load(true); // 가용 현황 갱신 — 갱신 실패가 성공 메시지를 덮지 않게
     } catch (err) {
-      const msg = err instanceof Error ? err.message : ''
-      if (msg.includes('no_availability')) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("no_availability")) {
         this.formMsg =
-          '선택한 기간에 대여 가능 수량이 없어요. 다른 기간을 선택해 주세요'
-        void this.load(true) // 사이에 다른 신청이 들어왔을 수 있음 — 달력·스트립 최신화
-      } else if (msg.includes('too_many')) {
+          "선택한 기간에 대여 가능 수량이 없어요. 다른 기간을 선택해 주세요";
+        void this.load(true); // 사이에 다른 신청이 들어왔을 수 있음 — 달력·스트립 최신화
+      } else if (msg.includes("too_many")) {
         this.formMsg =
-          '요청한 수량이 대여 가능 수량보다 많아요 — 수량을 줄여 주세요'
-      } else if (msg.includes('item_not_active')) {
-        this.formMsg = '지금은 대여할 수 없는 물품이에요'
-      } else if (msg.includes('not_found')) {
-        this.formMsg = '삭제되었거나 찾을 수 없는 물품이에요'
-      } else if (msg.includes('too_long')) {
-        this.formMsg = `최대 ${this.item.max_days}일까지 대여할 수 있어요`
-      } else if (msg.includes('past_date')) {
-        this.formMsg = '과거 날짜는 선택할 수 없어요'
-      } else if (msg.includes('phone_required')) {
+          "요청한 수량이 대여 가능 수량보다 많아요 — 수량을 줄여 주세요";
+      } else if (msg.includes("item_not_active")) {
+        this.formMsg = "지금은 대여할 수 없는 물품이에요";
+      } else if (msg.includes("not_found")) {
+        this.formMsg = "삭제되었거나 찾을 수 없는 물품이에요";
+      } else if (msg.includes("too_long")) {
+        this.formMsg = `최대 ${this.item.max_days}일까지 대여할 수 있어요`;
+      } else if (msg.includes("past_date")) {
+        this.formMsg = "과거 날짜는 선택할 수 없어요";
+      } else if (msg.includes("phone_required")) {
         this.formMsg =
-          '연락처를 등록한 후 신청할 수 있어요 — 마이페이지에서 등록해 주세요'
+          "연락처를 등록한 후 신청할 수 있어요 — 마이페이지에서 등록해 주세요";
       } else {
-        this.formMsg = err instanceof Error ? err.message : '신청에 실패했어요'
+        this.formMsg = err instanceof Error ? err.message : "신청에 실패했어요";
       }
-      this.formOk = false
+      this.formOk = false;
     } finally {
-      this.saving = false
+      this.saving = false;
     }
   }
 
   // 사진 404(R2 부재·네트워크 오류) 시 플레이스홀더로 대체
   // 메인: 📦 텍스트로 교체, 썸네일: 버튼을 비활성화해 선택지에서 제외
   private onMainImgError(e: Event) {
-    const img = e.target as HTMLImageElement
-    img.replaceWith(document.createTextNode('📦'))
+    const img = e.target as HTMLImageElement;
+    img.replaceWith(document.createTextNode("📦"));
     // 사라진 사진이 썸네일에도 있으면 해당 썸네일 비활성화
-    const idx = this.photoIdx
-    const btn = this.renderRoot.querySelectorAll('.thumbs button')[idx] as
+    const idx = this.photoIdx;
+    const btn = this.renderRoot.querySelectorAll(".thumbs button")[idx] as
       | HTMLButtonElement
-      | undefined
+      | undefined;
     if (btn) {
-      btn.disabled = true
-      btn.style.opacity = '0.4'
+      btn.disabled = true;
+      btn.style.opacity = "0.4";
     }
   }
 
   private onThumbImgError(e: Event) {
-    const img = e.target as HTMLImageElement
-    const btn = img.closest('button')
+    const img = e.target as HTMLImageElement;
+    const btn = img.closest("button");
     if (btn) {
-      btn.disabled = true
-      btn.style.opacity = '0.3'
-      btn.replaceChildren(document.createTextNode('✕'))
+      btn.disabled = true;
+      btn.style.opacity = "0.3";
+      btn.replaceChildren(document.createTextNode("✕"));
     }
-    img.remove()
+    img.remove();
   }
 
   render() {
-    if (this.error) return html`<p class="error">${this.error}</p>`
-    if (!this.item) return html`<p class="cat">불러오는 중…</p>`
+    if (this.error) return html`<p class="error">${this.error}</p>`;
+    if (!this.item) return html`<p class="cat">불러오는 중…</p>`;
 
-    if (this.editing) return this.renderEdit()
+    if (this.editing) return this.renderEdit();
 
-    const photos = this.item.photos
-    const main = photos[this.photoIdx]
+    const photos = this.item.photos;
+    const main = photos[this.photoIdx];
     return html`
-      ${this.isManager
-        ? html`
+      ${
+        this.isManager
+          ? html`
           <div class="edit-bar">
-            <span class="edit-inline">${this.editing ? '' : this.editMsg}</span>
+            <span class="edit-inline">${this.editing ? "" : this.editMsg}</span>
             <button class="btn-ghost" @click=${() =>
               void this.startEdit()}>편집</button>
           </div>
         `
-        : ''}
+          : ""
+      }
       <div class="photo">
-        ${main
-          ? html`<img src=${main.url} alt=${this.item.name} @error=${this.onMainImgError} />`
-          : '📦'}
+        ${
+          main
+            ? html`<img src=${main.url} alt=${this.item.name} @error=${this.onMainImgError} />`
+            : "📦"
+        }
       </div>
-      ${photos.length > 1
-        ? html`
+      ${
+        photos.length > 1
+          ? html`
           <div class="thumbs">
             ${photos.map(
               (p, i) =>
                 html`
-                  <button class=${i === this.photoIdx
-                    ? 'on'
-                    : ''} @click=${() => (this.photoIdx = i)}>
+                  <button class=${
+                    i === this.photoIdx ? "on" : ""
+                  } @click=${() => (this.photoIdx = i)}>
                     <img src=${p.url} alt="" @error=${this.onThumbImgError} />
                   </button>
                 `,
             )}
           </div>
         `
-        : ''}
-      <h1>${this.item.name} <x-badge kind=${this.item.availability_badge ??
-        this.item.status}></x-badge></h1>
-      ${this.item.description
-        ? html`<p class="desc">${this.item.description}</p>`
-        : ''}
+          : ""
+      }
+      <h1>${this.item.name} ${
+        this.item.availability_badge
+          ? html`<x-badge kind=${this.item.availability_badge}></x-badge>`
+          : ""
+      }</h1>
+      ${
+        this.item.description
+          ? html`<p class="desc">${this.item.description}</p>`
+          : ""
+      }
       <div class="spec">
-        <span><b>대여 가능</b>${this.rentableQty}개</span>
-        ${this.item.qty_broken
-          ? html`<span><b>수리중</b>${this.item.qty_broken}개</span>`
-          : ''}
+        ${
+          this.item.kind === "consumable"
+            ? ""
+            : html`<span><b>대여 가능</b>${this.rentableQty}개</span>`
+        }
+        ${
+          this.item.qty_broken
+            ? html`<span><b>수리중</b>${this.item.qty_broken}개</span>`
+            : ""
+        }
         <span><b>전체 보유</b>${this.item.total_qty}개</span>
-        ${this.item.kind === 'consumable'
-          ? ''
-          : html`<span><b>최대 대여일</b>${this.item.max_days}일</span>`}
+        ${
+          this.item.kind === "consumable"
+            ? ""
+            : html`<span><b>최대 대여일</b>${this.item.max_days}일</span>`
+        }
       </div>
-      ${this.attrPairs().length
-        ? html`
+      ${
+        this.attrPairs().length
+          ? html`
           <dl class="attrs">
             ${this.attrPairs().map(
               ([k, v]) =>
@@ -874,56 +896,68 @@ export class PageItemDetail extends LitElement {
             )}
           </dl>
         `
-        : ''}
+          : ""
+      }
+      ${
+        this.item.kind === "consumable"
+          ? ""
+          : html`
       <div class="strip-label">향후 90일 예약 현황</div>
       <availability-strip .days=${this.availability}
         .totalQty=${this.rentableQty}></availability-strip>
+      `
+      }
       ${this.renderApply()}
-    `
+    `;
   }
 
   // 편집 화면 — 물품 정보 수정 + 사진 관리 (삭제는 여기서, 위험 동작이라 대여 신청 폼 위에 두지 않음)
   private renderEdit() {
-    const f = this.editForm
+    const f = this.editForm;
     return html`
       <form
         class="edit-form"
         @submit=${(e: Event) => {
-          e.preventDefault()
-          this.saveEdit()
+          e.preventDefault();
+          this.saveEdit();
         }}
       >
         <h2>물품 편집</h2>
         <label>이름
           <input required .value=${f.name} @input=${(e: Event) =>
-            this.setEdit('name', (e.target as HTMLInputElement).value)} />
+            this.setEdit("name", (e.target as HTMLInputElement).value)} />
         </label>
         <div class="edit-row">
           <label>구분
             <select .value=${f.kind} @change=${(e: Event) =>
               this.setEdit(
-                'kind',
+                "kind",
                 (e.target as HTMLSelectElement).value as ItemKind,
               )}>
-              <option value="rental" ?selected=${f.kind ===
-                'rental'}>대여품</option>
-              <option value="consumable" ?selected=${f.kind ===
-                'consumable'}>소모품</option>
+              <option value="rental" ?selected=${
+                f.kind === "rental"
+              }>대여품</option>
+              <option value="consumable" ?selected=${
+                f.kind === "consumable"
+              }>소모품</option>
             </select>
           </label>
         </div>
         <label>상태
           <select .value=${f.status} @change=${(e: Event) =>
             this.setEdit(
-              'status',
+              "status",
               (e.target as HTMLSelectElement).value as ItemStatus,
             )}>
-            <option value="active" ?selected=${f.status ===
-              'active'}>정상</option>
-            <option value="repair" ?selected=${f.status ===
-              'repair'}>수리중</option>
-            <option value="retired" ?selected=${f.status ===
-              'retired'}>폐기</option>
+            <option value="active" ?selected=${
+              f.status === "active"
+            }>정상</option>
+            <option value="repair" ?selected=${
+              f.status === "repair"
+            }>수리중</option>
+            <option value="retired" ?selected=${
+              f.status === "retired"
+            }>폐기</option>
           </select>
         </label>
         <div class="edit-row">
@@ -932,7 +966,7 @@ export class PageItemDetail extends LitElement {
               f.total_qty,
             )} @input=${(e: Event) =>
               this.setEdit(
-                'total_qty',
+                "total_qty",
                 Number((e.target as HTMLInputElement).value),
               )} />
           </label>
@@ -941,120 +975,126 @@ export class PageItemDetail extends LitElement {
               f.qty_broken,
             )} @input=${(e: Event) =>
               this.setEdit(
-                'qty_broken',
+                "qty_broken",
                 Number((e.target as HTMLInputElement).value),
               )} />
           </label>
-          ${f.kind === 'consumable' ? '' : html`
+          ${
+            f.kind === "consumable"
+              ? ""
+              : html`
             <label>최대 대여일
               <input type="number" min="1" max="365" .value=${String(
                 f.max_days,
               )} @input=${(e: Event) =>
                 this.setEdit(
-                  'max_days',
+                  "max_days",
                   Number((e.target as HTMLInputElement).value),
                 )} />
             </label>
-          `}
+          `
+          }
         </div>
         <div class="edit-row">
           <label>보관 위치
-            <input .value=${f
-              .location} placeholder="예: 2층 창고 A선반" @input=${(e: Event) =>
-              this.setEdit('location', (e.target as HTMLInputElement).value)} />
+            <input .value=${
+              f.location
+            } placeholder="예: 2층 창고 A선반" @input=${(e: Event) =>
+              this.setEdit("location", (e.target as HTMLInputElement).value)} />
           </label>
           <label>규격
             <input .value=${f.size} placeholder="예: 20×30cm" @input=${(
               e: Event,
-            ) => this.setEdit('size', (e.target as HTMLInputElement).value)} />
+            ) => this.setEdit("size", (e.target as HTMLInputElement).value)} />
           </label>
           <label>색상
             <input .value=${f.color} placeholder="예: 남색" @input=${(
               e: Event,
-            ) => this.setEdit('color', (e.target as HTMLInputElement).value)} />
+            ) => this.setEdit("color", (e.target as HTMLInputElement).value)} />
           </label>
         </div>
         <label>설명
           <textarea rows="3" .value=${f.description} @input=${(e: Event) =>
             this.setEdit(
-              'description',
+              "description",
               (e.target as HTMLTextAreaElement).value,
             )}></textarea>
         </label>
         <label>비고 (내부 메모)
           <textarea rows="2" .value=${f.note} @input=${(e: Event) =>
             this.setEdit(
-              'note',
+              "note",
               (e.target as HTMLTextAreaElement).value,
             )}></textarea>
         </label>
         <label>사진 추가 (JPEG/PNG/WebP · 5MB · 최대 3장)
-          <input type="file" accept="image/jpeg,image/png,image/webp" @change=${this
-            .uploadPhoto} />
+          <input type="file" accept="image/jpeg,image/png,image/webp" @change=${
+            this.uploadPhoto
+          } />
         </label>
         <div class="edit-pics">
           ${this.editPhotos.map(
             (p) =>
               html`
                 <div class="pic">
-                  <img src=${p.url} alt="" @error=${(
-                    ev: Event,
-                  ) => ((ev.target as HTMLImageElement).style.visibility =
-                    'hidden')} />
+                  <img src=${p.url} alt="" @error=${(ev: Event) =>
+                    ((ev.target as HTMLImageElement).style.visibility =
+                      "hidden")} />
                   <button type="button" title="사진 삭제" @click=${() =>
                     this.deletePhoto(p)}>×</button>
                 </div>
               `,
           )}
         </div>
-        <p class=${this.editMsg ? 'edit-err' : 'edit-msg'}>${this.editMsg}</p>
+        <p class=${this.editMsg ? "edit-err" : "edit-msg"}>${this.editMsg}</p>
         <div class="edit-actions">
           <button type="button" class="btn-danger"
             @click=${this.removeItem}>물품 삭제</button>
           <span>
-            <button type="button" class="btn-ghost" @click=${this
-              .cancelEdit}>취소</button>
+            <button type="button" class="btn-ghost" @click=${
+              this.cancelEdit
+            }>취소</button>
             <button class="primary" type="submit" ?disabled=${this.editSaving}>
-              ${this.editSaving ? '저장 중…' : '저장'}
+              ${this.editSaving ? "저장 중…" : "저장"}
             </button>
           </span>
         </div>
       </form>
-    `
+    `;
   }
 
   // 신청 영역 — 로그인/승인/연락처/물품 상태 분기 (§2 권한)
   private renderApply() {
-    if (!this.userReady) return html`<div class="notice">&nbsp;</div>`
+    if (!this.userReady) return html`<div class="notice">&nbsp;</div>`;
     if (!this.user) {
       return html`
         <div
           class="notice">대여하려면 로그인이 필요해요 — <a href="/login">로그인하기</a></div>
-      `
+      `;
     }
-    if (this.user.status !== 'approved') {
-      return html`<div class="notice">승인 대기 중이에요 — 관리자 승인 후 신청할 수 있어요</div>`
+    if (this.user.status !== "approved") {
+      return html`<div class="notice">승인 대기 중이에요 — 관리자 승인 후 신청할 수 있어요</div>`;
     }
     if (!this.user.phone) {
       return html`
         <div
           class="notice">물품을 대여하려면 연락처를 등록해야 해요 — <a href="/signup/profile">연락처 등록하기</a></div>
-      `
+      `;
     }
-    if (this.item!.kind === 'consumable') {
+    if (this.item!.kind === "consumable") {
       return html`
         <div
           class="notice">소모품은 대여 대상이 아니에요 — 필요한 수량은 담당자에게 문의해 주세요</div>
-      `
+      `;
     }
-    if (this.item!.status !== 'active') {
-      return html`<div class="notice">지금은 대여할 수 없는 물품이에요 (수리 중/폐기)</div>`
+    if (this.item!.status !== "active") {
+      return html`<div class="notice">지금은 대여할 수 없는 물품이에요 (수리 중/폐기)</div>`;
     }
-    return this.renderForm()
+    return this.renderForm();
   }
 
   private renderForm() {
-    const item = this.item!
+    const item = this.item!;
     return html`
       <form class="apply-form" @submit=${this.submit}>
         <h2>대여 신청</h2>
@@ -1068,21 +1108,28 @@ export class PageItemDetail extends LitElement {
         ></x-calendar>
         <div class="hint-row">
           <p class="hint" role="status">
-            ${this.startDate && this.endDate
-              ? `${this.rentalDays}일 대여 (반납일 제외) · 최대 ${item.max_days}일 — 날짜를 다시 눌러 바꿀 수 있어요`
-              : this.startDate
-              ? '반납일을 선택해 주세요 — 하루만 빌리려면 시작일 다음 날을 고르세요'
-              : '시작일을 먼저 선택해 주세요 — 반납일은 물품을 돌려주는 날이에요'}
+            ${
+              this.startDate && this.endDate
+                ? `${this.rentalDays}일 대여 (반납일 제외) · 최대 ${item.max_days}일 — 날짜를 다시 눌러 바꿀 수 있어요`
+                : this.startDate
+                  ? "반납일을 선택해 주세요 — 하루만 빌리려면 시작일 다음 날을 고르세요"
+                  : "시작일을 먼저 선택해 주세요 — 반납일은 물품을 돌려주는 날이에요"
+            }
           </p>
-          ${this.startDate
-            ? html`<button type="button" class="clear" @click=${this.clearRange}>다시 선택</button>`
-            : ''}
+          ${
+            this.startDate
+              ? html`<button type="button" class="clear" @click=${this.clearRange}>다시 선택</button>`
+              : ""
+          }
         </div>
-        ${this.formError
-          ? html`<p class="warn" role="alert">${this.formError}</p>`
-          : ''}
-        ${this.rentableQty > 1
-          ? html`
+        ${
+          this.formError
+            ? html`<p class="warn" role="alert">${this.formError}</p>`
+            : ""
+        }
+        ${
+          this.rentableQty > 1
+            ? html`
             <label class="qty">
               수량 (최대 ${this.availableForRange}개)
               <input
@@ -1090,49 +1137,53 @@ export class PageItemDetail extends LitElement {
                 min="1"
                 max=${Math.max(1, this.availableForRange)}
                 .value=${String(this.qty)}
-                @input=${(
-                  e: Event,
-                ) => (this.qty = Number((e.target as HTMLInputElement).value))}
+                @input=${(e: Event) =>
+                  (this.qty = Number((e.target as HTMLInputElement).value))}
               />
               <span class="qty-hint">
-                ${this.startDate && this.endDate
-                  ? `선택한 기간에 ${this.availableForRange}개까지 신청할 수 있어요`
-                  : `이 물품은 모두 ${this.rentableQty}개까지 빌릴 수 있어요`}
+                ${
+                  this.startDate && this.endDate
+                    ? `선택한 기간에 ${this.availableForRange}개까지 신청할 수 있어요`
+                    : `이 물품은 모두 ${this.rentableQty}개까지 빌릴 수 있어요`
+                }
               </span>
             </label>
           `
-          : ''}
+            : ""
+        }
         <label class="memo">
           메모 (선택)
           <textarea
             maxlength="500"
             placeholder="사용 목적 등을 적어주세요"
             .value=${this.memo}
-            @input=${(
-              e: Event,
-            ) => (this.memo = (e.target as HTMLTextAreaElement).value)}
+            @input=${(e: Event) =>
+              (this.memo = (e.target as HTMLTextAreaElement).value)}
           ></textarea>
         </label>
         <button
           class="primary"
           type="submit"
-          ?disabled=${this.saving || !!this.formError || !this.startDate ||
-            !this.endDate}
+          ?disabled=${
+            this.saving || !!this.formError || !this.startDate || !this.endDate
+          }
         >
-          ${this.saving ? '신청 중…' : '신청하기'}
+          ${this.saving ? "신청 중…" : "신청하기"}
         </button>
-        ${this.formMsg
-          ? html`<p class=${
-            this.formOk ? 'ok' : 'err'
-          } role="status">${this.formMsg}</p>`
-          : ''}
+        ${
+          this.formMsg
+            ? html`<p class=${
+                this.formOk ? "ok" : "err"
+              } role="status">${this.formMsg}</p>`
+            : ""
+        }
       </form>
-    `
+    `;
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'page-item-detail': PageItemDetail
+    "page-item-detail": PageItemDetail;
   }
 }

@@ -1,33 +1,33 @@
-import { LitElement, html, css } from 'lit'
-import { customElement, state } from 'lit/decorators.js'
-import { initRouter, navigate } from './router'
-import { session, type SessionUser } from './context/session'
+import { LitElement, html, css } from "lit";
+import { customElement, state } from "lit/decorators.js";
+import { initRouter, navigate } from "./router";
+import { session, type SessionUser } from "./context/session";
 
 // 테마 3단계(자동/라이트/다크) — tokens.css의 data-theme 셀렉터와 짝을 이룸.
 // 저장값 'light'|'dark', 없으면 시스템 설정 따름.
-type Theme = 'system' | 'light' | 'dark'
-const THEME_KEY = 'theme'
+type Theme = "system" | "light" | "dark";
+const THEME_KEY = "theme";
 // iOS 세그먼티드 컨트롤 문법 — 3개 상태가 아이콘으로 모두 보이고 원하는 것을 직접 누름(순환 없음)
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
-  { value: 'system', label: '테마 자동' },
-  { value: 'light', label: '라이트 모드' },
-  { value: 'dark', label: '다크 모드' },
-]
+  { value: "system", label: "테마 자동" },
+  { value: "light", label: "라이트 모드" },
+  { value: "dark", label: "다크 모드" },
+];
 
 function readStoredTheme(): Theme {
   try {
-    const t = localStorage.getItem(THEME_KEY)
-    return t === 'light' || t === 'dark' ? t : 'system'
+    const t = localStorage.getItem(THEME_KEY);
+    return t === "light" || t === "dark" ? t : "system";
   } catch {
-    return 'system'
+    return "system";
   }
 }
 
-@customElement('app-shell')
+@customElement("app-shell")
 export class AppShell extends LitElement {
-  @state() private user: SessionUser | null = null
-  @state() private theme: Theme = readStoredTheme()
-  private unsubscribe: (() => void) | null = null
+  @state() private user: SessionUser | null = null;
+  @state() private theme: Theme = readStoredTheme();
+  private unsubscribe: (() => void) | null = null;
 
   static styles = css`
     :host {
@@ -246,83 +246,83 @@ export class AppShell extends LitElement {
       font-size: var(--text-body); /* 본문 17px 기본 (DESIGN.md §4) */
       line-height: 1.47;
     }
-  `
+  `;
 
   connectedCallback() {
-    super.connectedCallback()
-    session.ensure()
+    super.connectedCallback();
+    session.ensure();
     this.unsubscribe = session.subscribe(() => {
-      this.user = session.user
-    })
+      this.user = session.user;
+    });
   }
 
   disconnectedCallback() {
-    super.disconnectedCallback()
-    this.unsubscribe?.()
+    super.disconnectedCallback();
+    this.unsubscribe?.();
   }
 
   firstUpdated() {
-    const outlet = this.renderRoot.querySelector('main')
-    if (outlet) initRouter(outlet)
+    const outlet = this.renderRoot.querySelector("main");
+    if (outlet) initRouter(outlet);
   }
 
   // 세그먼트 직접 선택 — 자동이면 저장값을 지워 시스템 설정 추종
   private setTheme(t: Theme) {
-    this.theme = t
+    this.theme = t;
     try {
-      if (t === 'system') localStorage.removeItem(THEME_KEY)
-      else localStorage.setItem(THEME_KEY, t)
+      if (t === "system") localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, t);
     } catch {
       // 저장 불가 환경에서도 세션 내 선택은 유지
     }
-    if (t === 'system') document.documentElement.removeAttribute('data-theme')
-    else document.documentElement.dataset.theme = t
+    if (t === "system") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.dataset.theme = t;
   }
 
   // Auth.js 확인 페이지를 거치지 않고 바로 POST signout (§7.2)
   private async signOut() {
     try {
-      const csrfRes = await fetch('/api/auth/csrf')
-      const { csrfToken } = (await csrfRes.json()) as { csrfToken: string }
-      await fetch('/api/auth/signout', {
-        method: 'POST',
+      const csrfRes = await fetch("/api/auth/csrf");
+      const { csrfToken } = (await csrfRes.json()) as { csrfToken: string };
+      await fetch("/api/auth/signout", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-Auth-Return-Redirect': '1',
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-Auth-Return-Redirect": "1",
         },
         body: new URLSearchParams({ csrfToken }),
-      })
+      });
     } catch {
       // 네트워크 오류가 나도 세션 갱신 시도는 진행
     }
-    await session.refresh()
-    navigate('/')
+    await session.refresh();
+    navigate("/");
   }
 
   // 세그먼트 아이콘 — 자동(반원), 라이트(해), 다크(초승달)
   private themeIcon(t: Theme) {
-    if (t === 'light') {
+    if (t === "light") {
       return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
         <circle cx="12" cy="12" r="5" />
         <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
         <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
         <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
         <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-      </svg>`
+      </svg>`;
     }
-    if (t === 'dark') {
+    if (t === "dark") {
       return html`<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-      </svg>`
+      </svg>`;
     }
     return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
       <circle cx="12" cy="12" r="9" />
       <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none" />
-    </svg>`
+    </svg>`;
   }
 
   private renderThemeSeg() {
-    const idx = THEME_OPTIONS.findIndex((o) => o.value === this.theme)
+    const idx = THEME_OPTIONS.findIndex((o) => o.value === this.theme);
     return html`
       <div class="seg" role="radiogroup" aria-label="화면 테마" title="화면 테마">
         <span class="seg-thumb" style=${`transform: translateX(${idx * 100}%)`} aria-hidden="true"></span>
@@ -331,7 +331,7 @@ export class AppShell extends LitElement {
             <button
               type="button"
               role="radio"
-              class=${this.theme === o.value ? 'on' : ''}
+              class=${this.theme === o.value ? "on" : ""}
               aria-checked=${this.theme === o.value}
               aria-label=${o.label}
               title=${o.label}
@@ -342,15 +342,15 @@ export class AppShell extends LitElement {
           `,
         )}
       </div>
-    `
+    `;
   }
 
   // 계정 칩 라벨 — 이름 없으면 이메일로 표시
   private get accountLabel(): string {
-    return this.user?.name || this.user?.email || ''
+    return this.user?.name || this.user?.email || "";
   }
   private get accountInitial(): string {
-    return this.accountLabel.trim().charAt(0).toUpperCase()
+    return this.accountLabel.trim().charAt(0).toUpperCase();
   }
 
   render() {
@@ -361,13 +361,14 @@ export class AppShell extends LitElement {
             <img src="/logo.png" alt="" />
           </a>
           <div class="actions">
-            ${this.user
-              ? html`
+            ${
+              this.user
+                ? html`
                   <button
                     class="chip"
                     title="마이페이지"
                     aria-label="마이페이지 — ${this.accountLabel}"
-                    @click=${() => navigate('/mypage')}
+                    @click=${() => navigate("/mypage")}
                   >
                     <span class="avatar" aria-hidden="true">${this.accountInitial}</span>
                     <span class="chip-name">${this.accountLabel}</span>
@@ -380,26 +381,30 @@ export class AppShell extends LitElement {
                     </svg>
                   </button>
                 `
-              : html`<a class="btn-login" href="/login">로그인</a>`}
+                : html`<a class="btn-login" href="/login">로그인</a>`
+            }
             ${this.renderThemeSeg()}
           </div>
         </div>
         <div class="row-nav">
           <nav>
             <a href="/">물품 대여</a>
-            ${this.user && (this.user.role === 'manager' || this.user.role === 'admin')
-              ? html`<a href="/admin">대시보드</a><a href="/admin/reservations">대여 관리</a><a href="/admin/history">대여 이력</a><a href="/admin/members">회원 관리</a>`
-              : ''}
+            ${
+              this.user &&
+              (this.user.role === "manager" || this.user.role === "admin")
+                ? html`<a href="/admin">대시보드</a><a href="/admin/reservations">대여 관리</a><a href="/admin/history">대여 이력</a><a href="/admin/members">회원 관리</a>`
+                : ""
+            }
           </nav>
         </div>
       </header>
       <main></main>
-    `
+    `;
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'app-shell': AppShell
+    "app-shell": AppShell;
   }
 }
