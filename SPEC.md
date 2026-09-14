@@ -78,6 +78,7 @@
   - 검색: 공백 구분 단어 전부 일치(AND) — **키워드 매치(이름·설명 ILIKE)를 먼저, 의미 매치(pgvector)를 그 뒤에 배치**
   - 의미 검색: Workers AI `@cf/baai/bge-m3`로 쿼리 임베딩 → 코사인 거리 상위 8개(거리 < 0.75) 물품을 키워드 매치에 없는 것만 추가. bge-m3 거리는 0.4~0.65에 뭉쳐 절대 임계(0.55)로 관련/무관 구분이 안 되므로 상대 랭킹으로만 사용 (실측). 임베딩은 물품 등록/수정 시 자동 생성(이름·설명), 실패 시 키워드 검색만 동작(폴백)
 - 물품 속성 (v3.0): `kind`(대여품 `rental` / 소모품 `consumable`), `location`(보관 위치), `size`(사이즈·규격), `color`, `qty_broken`(수리중 수량), `note`(비고) — 실물 시트에서 들어온 값이라 대부분 비어 있을 수 있고 **전부 선택 항목**이다. 위치는 상세·편집 폼에만 표시하고 카드에는 띄우지 않는다(청년물품은 '정토회관' 단일 값이라 잡음)
+  - 소모품 `consumable` (v3.1): **대여 대상이 아니다.** 상세는 신청 폼 대신 "소모품은 대여 대상이 아니에요 — 필요한 수량은 담당자에게 문의해 주세요" 안내를 띄우고 재고(`전체 보유`)만 보여준다. 홈 카드·상세에 "대여 가능" 수량과 가용 배지를 내리지 않는다(서버가 `availability_badge` 를 `null` 로 반환, 화면은 배지를 아예 안 그림). API 로 직접 신청(`POST /api/reservations`)해도 서버가 `409 consumable` 로 거부한다(화면 가드는 UX 일 뿐 실제 권한은 서버가 검사 — §8). 재고 조정은 관리자만(`total_qty` 수정, 편집 폼에서 항상 입력 가능)
 - 상세: 사진(최대 3장), 설명, 보유 수량(`total_qty` 중 `qty_broken` 은 대여 불가), 대여 규칙(기본 대여일 수 등), 실시간 가용 일정
   - 수량 표시 (v3.1): 잔여 수량은 홈 카드(`대여 가능 3 / 7개` — 수량 ≥ 2 인 물품만), 상세(가용 일정 띠·캘린더), 마이페이지 예약 목록(`물품명 · N개`), 관리자 대시보드(수령·반납·연체 목록)와 관리자 예약 목록에 나온다. 신청 수량은 상세에서 **1 ~ 해당 기간 잔여 수량** 사이로 고르고, 기간을 바꾸면 1로 초기화한다(기간이 넓어지면 잔여 수량이 줄어들므로 유지하면 잘못된 수량이 남는다)
   - 사진은 업로드 전 브라우저에서 재인코딩(최장 변 1600px·WebP q80, 미지원 브라우저는 JPEG 폴백) — 원본 미보관, EXIF(위치정보) 제거, 파일당 통상 300KB 이하
@@ -202,6 +203,9 @@ CREATE TABLE IF NOT EXISTS items (
   note        TEXT,                            -- 비고 (v3.0)
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- 소모품/대여품 종류·수리중 수량 정합성 (0010)
+ALTER TABLE items DROP CONSTRAINT IF EXISTS chk_items_kind, ADD CONSTRAINT chk_items_kind CHECK (kind IN ('rental', 'consumable'));
+ALTER TABLE items DROP CONSTRAINT IF EXISTS chk_items_qty_broken, ADD CONSTRAINT chk_items_qty_broken CHECK (qty_broken >= 0 AND qty_broken <= total_qty);
 
 -- 대여 가능 수량 rentable_qty = total_qty - qty_broken (서버가 계산해 내려줌 — v3.0)
 -- source_key 는 부분 유니크 — 수동 등록 물품(NULL)은 제약에서 제외한다 (0008)
@@ -229,6 +233,8 @@ CREATE TABLE IF NOT EXISTS reservations (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- 예약 수량 qty >= 1 보증 (0009)
+ALTER TABLE reservations DROP CONSTRAINT IF EXISTS chk_reservations_qty, ADD CONSTRAINT chk_reservations_qty CHECK (qty >= 1);
 
 -- 가용성 판정(§3)과 이력 조회용 인덱스
 CREATE INDEX IF NOT EXISTS idx_reservations_item_dates
@@ -243,7 +249,7 @@ CREATE INDEX IF NOT EXISTS idx_reservations_member
 -- 이력 '조회(참고)'용이며 가용성 판정(§3)에는 절대 관여하지 않는다.
 -- 관리자 화면 /admin/history 가 검색·구분 필터·페이지네이션으로 읽는다 (v3.1).
 CREATE TABLE IF NOT EXISTS rental_history (
-  id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id              serial PRIMARY KEY,
   source_key      TEXT NOT NULL,               -- 원본 행 식별자 (재수입 멱등 키)
   source_row      INTEGER,
   item_name       TEXT NOT NULL,               -- 시트의 자유 텍스트 물품명
@@ -265,8 +271,14 @@ CREATE TABLE IF NOT EXISTS rental_history (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_rental_history_source
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rental_history_source_key
   ON rental_history (source_key);
+CREATE INDEX IF NOT EXISTS idx_rental_history_item_id
+  ON rental_history (item_id);
+CREATE INDEX IF NOT EXISTS idx_rental_history_item_name
+  ON rental_history (item_name);
+CREATE INDEX IF NOT EXISTS idx_rental_history_requested_on
+  ON rental_history (requested_on);
 
 CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,
@@ -341,7 +353,6 @@ RETURNING id;
 | Neon Free | PITR 창 짧음 (시간 단위) | 주간 pg_dump로 보완 | ⚠️ 보완 필요 |
 | R2 Free | 저장 10GB · Class A 100만/월 · Class B 1,000만/월 · 이그레스 무료 | 사진 50개 물품 × 3장 ≈ 수백 MB | ✅ 여유 |
 | Cron Triggers | 무료 플랜 포함 (계정당 3개) | 미사용 | ✅ |
-| Resend Free | 100통/일, 3,000통/월 | 미사용 (이메일 알림 v3.0 제거) | ➖ |
 
 **총 운영 비용: 월 0원** (커스텀 도메인 사용 시 연 약 2만원 선택 · Cloudflare 무료 플랜은 비영리 제한 없음)
 
