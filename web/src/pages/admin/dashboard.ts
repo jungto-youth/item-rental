@@ -110,6 +110,12 @@ export class PageAdminDashboard extends LitElement {
     `
   }
 
+  // 수량은 수령·반납 시 실제로 챙길 개수라 목록에서 바로 보여야 한다 (§3).
+  // 1개짜리에 '1개'를 붙이면 모든 행이 길어지고 정보가 없다 — 2개 이상만 표시
+  private itemLabel(r: DashboardRow) {
+    return r.qty > 1 ? `${r.item_name} · ${r.qty}개` : r.item_name
+  }
+
   private rowMeta(r: DashboardRow, due: string | TemplateResult) {
     const contact = r.member_phone ? `${r.member_name} · ${r.member_phone}` : r.member_name
     return html`<span class="who">${contact}</span><span>${due}</span>`
@@ -124,7 +130,7 @@ export class PageAdminDashboard extends LitElement {
           : html`
               <ul>
                 ${rows.map(
-                  (r) => html`<li><span>${r.item_name}</span>${this.rowMeta(r, r.end_date)}</li>`,
+                  (r) => html`<li><span>${this.itemLabel(r)}</span>${this.rowMeta(r, r.end_date)}</li>`,
                 )}
               </ul>
             `}
@@ -143,7 +149,7 @@ export class PageAdminDashboard extends LitElement {
                 ${rows.map(
                   (r) => html`
                     <li>
-                      <span>${r.item_name}</span>
+                      <span>${this.itemLabel(r)}</span>
                       ${this.rowMeta(r, html`<span class="late">${r.days_late}일 지남</span>`)}
                     </li>
                   `,

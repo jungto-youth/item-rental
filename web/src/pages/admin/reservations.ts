@@ -15,6 +15,10 @@ export class PageAdminReservations extends LitElement {
   @state() private message = ''
   @state() private rejectingId: number | null = null
   @state() private rejectReason = ''
+  // 승인 시 수량 조정 (§3) — 재고가 모자랄 때 현장에서 줄인다. 신청 수량이 2개 이상일 때만
+  // 확인 단계를 열어, 1개짜리 승인에 클릭을 더하지 않는다
+  @state() private approvingId: number | null = null
+  @state() private approveQty = 1
 
   static styles = css`
     h1 { font-size: 1.375rem; font-weight: 600; letter-spacing: var(--tracking-tight); line-height: 1.1; }
@@ -70,6 +74,7 @@ export class PageAdminReservations extends LitElement {
       min-width: 0;
     }
     .conflict { color: var(--color-warning); font-size: var(--text-fine); }
+    .reject input[type='number'] { flex: 0 0 auto; max-width: 6rem; }
     .msg { color: var(--color-primary); font-size: var(--text-caption); min-height: 1.2em; }
     .empty { color: var(--color-muted); font-size: var(--text-caption); }
   `
@@ -98,7 +103,12 @@ export class PageAdminReservations extends LitElement {
     }
   }
 
-  private async transition(r: AdminReservation, action: string, body?: object, okMsg = '') {
+  private async transition(
+    r: AdminReservation,
+    action: string,
+    body?: Record<string, unknown>,
+    okMsg = '',
+  ) {
     if (this.busy) return
     this.busy = true
     try {
@@ -109,10 +119,14 @@ export class PageAdminReservations extends LitElement {
       this.message = okMsg || '처리했어요'
       this.rejectingId = null
       this.rejectReason = ''
+      this.approvingId = null
       await this.reload()
     } catch (e) {
       const msg = e instanceof Error ? e.message : ''
       if (msg.includes('bad_status')) this.message = '이미 처리된 예약이에요'
+      else if (msg.includes('qty_increase_not_allowed'))
+        this.message = '신청 수량보다 늘릴 수는 없어요 — 늘리려면 거절 후 재신청받아 주세요'
+      else if (msg.includes('bad_qty')) this.message = '수량은 1개 이상이어야 해요'
       else this.message = msg || '처리에 실패했어요'
       await this.reload()
     } finally {
@@ -120,14 +134,27 @@ export class PageAdminReservations extends LitElement {
     }
   }
 
-  private async approve(r: AdminReservation) {
+  private startApprove(r: AdminReservation) {
     // 초과 경고 — 정상 흐름에선 0. 0이 아니면 확정 예약만으로 이미 정원인 날이 있다는 뜻이라
     // (동시성 레이스·수량 인하) 관리자 판단이 필요하다 (§3). '겹침 건수' 경고가 아니다
     if (r.conflict_count > 0) {
       if (!confirm(`확정 예약만으로 이미 정원인 날이 ${r.conflict_count}일 있어요. 그래도 승인할까요?`))
         return
     }
-    await this.transition(r, 'approve', undefined, '승인했어요')
+    // 1개짜리는 조정할 것이 없다 — 확인 단계 없이 바로 승인
+    if (r.qty <= 1) {
+      void this.transition(r, 'approve', undefined, '승인했어요')
+      return
+    }
+    this.approvingId = r.id
+    this.approveQty = r.qty
+    this.message = ''
+  }
+
+  private async submitApprove(r: AdminReservation) {
+    // 그대로 승인이면 qty를 보내지 않는다 — 서버도 미지정이면 신청 수량을 유지한다
+    const body = this.approveQty === r.qty ? undefined : { qty: this.approveQty }
+    await this.transition(r, 'approve', body, '승인했어요')
   }
 
   private startReject(r: AdminReservation) {
@@ -161,8 +188,26 @@ export class PageAdminReservations extends LitElement {
             <button class="link" ?disabled=${this.busy} @click=${() => (this.rejectingId = null)}>취소</button>
           </span>
         `
+      if (this.approvingId === r.id)
+        return html`
+          <span class="reject">
+            <input
+              type="number"
+              min="1"
+              max=${r.qty}
+              aria-label="승인 수량"
+              .value=${String(this.approveQty)}
+              @input=${(e: Event) => (this.approveQty = Number((e.target as HTMLInputElement).value))}
+              @keydown=${(e: KeyboardEvent) => {
+                if (e.key === 'Enter') void this.submitApprove(r)
+              }}
+            />
+            <button class="link" ?disabled=${this.busy} @click=${() => this.submitApprove(r)}>확인</button>
+            <button class="link" ?disabled=${this.busy} @click=${() => (this.approvingId = null)}>취소</button>
+          </span>
+        `
       return html`
-        <button class="link" ?disabled=${this.busy} @click=${() => this.approve(r)}>승인</button>
+        <button class="link" ?disabled=${this.busy} @click=${() => this.startApprove(r)}>승인</button>
         <button class="link danger" ?disabled=${this.busy} @click=${() => this.startReject(r)}>거절</button>
       `
     }
@@ -218,7 +263,7 @@ export class PageAdminReservations extends LitElement {
     return html`
       <div class="row">
         <span class="head">
-          <span class="name">${r.item_name}</span>
+          <span class="name">${r.item_name}${r.qty > 1 ? ` · ${r.qty}개` : ''}</span>
           <x-badge kind=${r.is_overdue ? 'overdue' : r.status}></x-badge>
           ${acts}
         </span>

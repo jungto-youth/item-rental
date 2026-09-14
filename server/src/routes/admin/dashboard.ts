@@ -16,6 +16,8 @@ type Row = {
   member_phone: string | null
   start_date: string
   end_date: string
+  // 부분 대여 수량 (§3) — 수령·반납 목록에서 실제로 챙길 개수
+  qty: number
 }
 
 type Counts = { pending_count: number; pickups_count: number; returns_count: number; overdue_count: number }
@@ -33,11 +35,15 @@ adminDashboardRoute.get('/', async (c) => {
               COUNT(*) FILTER (WHERE status = 'picked_up' AND end_date = CURRENT_DATE)::int AS returns_count,
               COUNT(*) FILTER (WHERE status = 'picked_up' AND end_date < CURRENT_DATE)::int AS overdue_count
          FROM reservations`,
+    // SAFETY: SELECT 목록이 Counts와 일치한다. neon HTTP 드라이버의 반환형이 유니온이라
+    // 결과별 단언이 필요한데, tsc는 SELECT 문자열을 읽지 못해 이 일치를 검사할 수 없다
     ) as unknown as Promise<Counts[]>,
     // 수령 예정 — 승인됐는데 아직 수령 전 (오늘 포함, 기한 지난 미수령 포함)
+    // SAFETY: SELECT 목록이 Row와 일치한다 — tsc는 SELECT 문자열을 읽지 못해 단언이 필요하다
     db.query(
       `SELECT r.id, r.item_id, items.name AS item_name, m.name AS member_name, m.phone AS member_phone,
-              r.start_date::text AS start_date, r.end_date::text AS end_date
+              r.start_date::text AS start_date, r.end_date::text AS end_date,
+              r.qty
          FROM reservations r
          JOIN items ON items.id = r.item_id
          JOIN members m ON m.id = r.member_id
@@ -46,9 +52,11 @@ adminDashboardRoute.get('/', async (c) => {
         LIMIT 20`,
     ) as unknown as Promise<Row[]>,
     // 반납 예정 — 오늘이 반납 기한 (기한 지남은 연체 리스트로 분리 — is_overdue 정의와 동일 기준)
+    // SAFETY: SELECT 목록이 Row와 일치한다 — tsc는 SELECT 문자열을 읽지 못해 단언이 필요하다
     db.query(
       `SELECT r.id, r.item_id, items.name AS item_name, m.name AS member_name, m.phone AS member_phone,
-              r.start_date::text AS start_date, r.end_date::text AS end_date
+              r.start_date::text AS start_date, r.end_date::text AS end_date,
+              r.qty
          FROM reservations r
          JOIN items ON items.id = r.item_id
          JOIN members m ON m.id = r.member_id
@@ -57,9 +65,11 @@ adminDashboardRoute.get('/', async (c) => {
         LIMIT 20`,
     ) as unknown as Promise<Row[]>,
     // 연체 — 반납 기한 지남, 경과일 포함
+    // SAFETY: SELECT 목록이 Row + days_late와 일치한다 — tsc는 SELECT 문자열을 못 읽는다
     db.query(
       `SELECT r.id, r.item_id, items.name AS item_name, m.name AS member_name, m.phone AS member_phone,
               r.start_date::text AS start_date, r.end_date::text AS end_date,
+              r.qty,
               (CURRENT_DATE - r.end_date)::int AS days_late
          FROM reservations r
          JOIN items ON items.id = r.item_id

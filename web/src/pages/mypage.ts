@@ -107,7 +107,7 @@ export class PageMypage extends LitElement {
     return html`
       <div class="row">
         <div>
-          <div class="name">${r.item_name}</div>
+          <div class="name">${r.item_name}${r.qty > 1 ? ` · ${r.qty}개` : ''}</div>
           <div class="dates">
             ${r.start_date} ~ ${r.end_date}
             (${Math.round((Date.parse(r.end_date) - Date.parse(r.start_date)) / 86400000)}일)
