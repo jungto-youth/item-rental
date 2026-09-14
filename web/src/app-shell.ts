@@ -388,7 +388,7 @@ export class AppShell extends LitElement {
           <nav>
             <a href="/">물품 대여</a>
             ${this.user && (this.user.role === 'manager' || this.user.role === 'admin')
-              ? html`<a href="/admin">대시보드</a><a href="/admin/reservations">대여 관리</a><a href="/admin/members">회원 관리</a>`
+              ? html`<a href="/admin">대시보드</a><a href="/admin/reservations">대여 관리</a><a href="/admin/history">대여 이력</a><a href="/admin/members">회원 관리</a>`
               : ''}
           </nav>
         </div>

@@ -9,6 +9,7 @@ import './pages/not-found'
 import './pages/admin/members'
 import './pages/admin/reservations'
 import './pages/admin/dashboard'
+import './pages/admin/history'
 import './pages/policy'
 
 // vaadin의 action 시그니처 — Route 타입에서 추출해 가드에 재사용
@@ -53,6 +54,7 @@ export function initRouter(outlet: HTMLElement): Router {
     { path: '/admin', component: 'page-admin-dashboard', action: requireManager },
     { path: '/admin/reservations', component: 'page-admin-reservations', action: requireManager },
     { path: '/admin/members', component: 'page-admin-members', action: requireManager },
+    { path: '/admin/history', component: 'page-admin-history', action: requireManager },
     { path: '/policy/:kind', component: 'page-policy' },
     { path: '(.*)', component: 'page-not-found' },
   ])

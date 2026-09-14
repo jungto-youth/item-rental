@@ -101,3 +101,24 @@ export type Dashboard = {
   returns: DashboardRow[];
   overdue: (DashboardRow & { days_late: number })[];
 };
+
+// 과거 대여 이력 (§4.3) — 2025 청년페스타 '물품대여' 시트 스냅샷.
+// 살아 있는 운영 큐인 reservations 와 별개 테이블이다 (migrations/0012 주석 참고)
+export type RentalHistoryRow = {
+  id: number;
+  source_row: number | null;
+  item_name: string;
+  // 시트에 상품 ID 가 없어 대부분 null 이다 (216건 중 10건만 연결) — 이름 문자열로만 이어진다
+  item_id: number | null;
+  item_scope: string | null; // '청년물품' | '회관물품' | null
+  member_name: string;
+  org: string | null;
+  qty: number | null;
+  requested_on: string | null;
+  start_at: string | null;
+  end_at: string | null;
+  use_location: string | null;
+  procurement: string | null;
+  checkout_state: string | null;
+  note: string | null;
+};

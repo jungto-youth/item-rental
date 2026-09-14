@@ -10,6 +10,7 @@ import { adminItemsRoute } from './routes/admin/items'
 import { adminMembersRoute } from './routes/admin/members'
 import { adminReservationsRoute } from './routes/admin/reservations'
 import { adminDashboardRoute } from './routes/admin/dashboard'
+import { adminHistoryRoute } from './routes/admin/history'
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -49,6 +50,7 @@ app.route('/api/admin/items', adminItemsRoute)
 app.route('/api/admin/members', adminMembersRoute)
 app.route('/api/admin/reservations', adminReservationsRoute)
 app.route('/api/admin/dashboard', adminDashboardRoute)
+app.route('/api/admin/history', adminHistoryRoute)
 
 // --- 에러 처리 ---
 app.notFound((c) => c.json({ error: 'not_found' }, 404))
