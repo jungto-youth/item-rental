@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
 import { getDb, type Sql } from "../db";
-import { embed } from "../embedding";
-import { KST_TODAY } from "../dates";
+import { searchItemsCombined } from "../services/search.service";
+import { getItemDetail, getItemAvailability } from "../services/items.service";
 
 // SPEC §7.4 — GET /api/items, /api/items/:id (전체 열람 가능)
 export const itemsRoute = new Hono<{
@@ -10,148 +10,15 @@ export const itemsRoute = new Hono<{
   Variables: Variables;
 }>();
 
-// 공개 응답에 내려줄 실물 속성 — note(내부 메모)는 회원에게 노출하지 않는다 (§7.6과 같은 이유)
-type ItemAttrs = {
-  kind: "rental" | "consumable";
-  location: string | null;
-  size: string | null;
-  color: string | null;
-  qty_broken: number;
-};
-
-type ListItemRow = ItemAttrs & {
-  id: number;
-  name: string;
-  description: string | null;
-  total_qty: number;
-  rentable_qty: number;
-  max_days: number;
-  status: "active" | "repair" | "retired";
-  photos: { id: number; url: string }[];
-  active_now: number;
-};
-
-// 목록 SELECT 공용 — 키워드/의미 두 단계가 where 절만 다르게 재사용
-function listSql(where: string): string {
-  // '오늘' 판정은 KST 자정 기준(dates.ts KST_TODAY) — CURRENT_DATE(UTC)는 KST 오전 9시까지
-  // 하루 어긋나 가용 배지·가용 스트립이 새벽에 어제 기준으로 뜬다 (§3, v3.1)
-  return `SELECT items.id, items.name, items.description, items.total_qty, items.max_days, items.status,
-            items.kind, items.location, items.size, items.color,
-            items.qty_broken,
-            (items.total_qty - items.qty_broken) AS rentable_qty,
-            (SELECT COALESCE(json_agg(json_build_object('id', p.id, 'url', '/api/photos/' || p.r2_key)
-                              ORDER BY p.sort_order), '[]'::json)
-             FROM item_photos p WHERE p.item_id = items.id) AS photos,
-            (SELECT COALESCE(SUM(r.qty), 0)::int FROM reservations r
-             WHERE r.item_id = items.id
-               AND r.status IN ('pending','approved','picked_up')
-               AND ${KST_TODAY} < r.end_date AND r.start_date <= ${KST_TODAY}) AS active_now
-     FROM items
-     WHERE items.status <> 'retired' ${where}
-     ORDER BY items.id DESC`;
-}
-
-// 의미 후보 — 쿼리 임베딩과 거리 상위 8개 (§4.2)
-// bge-m3 거리는 0.4~0.65에 뭉쳐 절대 임계로 관련/무관 구분이 안 됨 → 상대 랭킹으로만 사용
-// 실패해도 키워드 검색은 계속 동작해야 하므로 빈 배열로 흡수
-async function semanticItemIds(
-  env: Bindings,
-  db: Sql,
-  q: string,
-): Promise<number[]> {
-  try {
-    const vec = await embed(env, q);
-    const rows = (await db.query(
-      `SELECT id FROM items
-       WHERE status <> 'retired' AND embedding IS NOT NULL
-         AND embedding <=> $1::vector < 0.75
-       ORDER BY embedding <=> $1::vector
-       LIMIT 8`,
-      [vec],
-    )) as { id: number }[];
-    return rows.map((r) => r.id);
-  } catch (err) {
-    console.error("의미 검색 실패 — 키워드 검색으로 폴백", err);
-    return [];
-  }
-}
-
 // 목록 — 검색(키워드 → 의미 순) + 가용 배지 (§4.2)
+// (v3.0 — `location` 컬럼이 실데이터로 채워졌다. 검색창 문구가 '이름·설명·위치'라고
+//  안내하는데 서버가 위치를 안 봐서 안내가 거짓이었음)
 itemsRoute.get("/", async (c) => {
   const db: Sql = getDb(c.env);
-  // 단어 단위 AND 검색 — 각 단어가 이름·설명·위치 중 하나라도 매치되면 통과
-  // (v3.0 — `location` 컬럼이 실데이터로 채워졌다. 검색창 문구가 '이름·설명·위치'라고
-  //  안내하는데 서버가 위치를 안 봐서 안내가 거짓이었음)
-  const tokens = (c.req.query("q") ?? "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 5);
-  const searchConds = tokens
-    .map(
-      (_, i) =>
-        `(items.name ILIKE '%' || $${i + 1} || '%'
-        OR items.description ILIKE '%' || $${i + 1} || '%'
-        OR items.location ILIKE '%' || $${i + 1} || '%')`,
-    )
-    .join(" AND ");
-
-  const filterParams: string[] = [...tokens];
-
-  // 1단계 — 키워드 매치 (정확 검색이 항상 앞에 옴)
-  const kwWhere = searchConds ? ` AND ${searchConds}` : "";
-  const kwRows = (await db.query(
-    listSql(kwWhere),
-    filterParams,
-  )) as ListItemRow[];
-
-  // 2단계 — 의미 매치 (키워드에 이미 나온 물품 제외, 거리순)
-  let semRows: ListItemRow[] = [];
-  if (tokens.length) {
-    const kwIds = new Set(kwRows.map((r) => r.id));
-    // 키워드 매치 id는 이미 JS에서 제외 (SQL NOT 절 대신 — 파라미터 인덱스 꼬임 방지)
-    const extra = (await semanticItemIds(c.env, db, tokens.join(" "))).filter(
-      (id) => !kwIds.has(id),
-    );
-    if (extra.length) {
-      semRows = (await db.query(
-        listSql(` AND items.id = ANY(string_to_array($1, ',')::int[])`),
-        [extra.join(",")],
-      )) as ListItemRow[];
-      // listSql이 id DESC로 정렬하므로 거리 순위를 JS에서 복원
-      const rank = new Map(extra.map((id, i) => [id, i]));
-      semRows.sort((a, b) => (rank.get(a.id) ?? 99) - (rank.get(b.id) ?? 99));
-    }
-  }
-
-  const items = [...kwRows, ...semRows].map((r) => ({
-    ...r,
-    // 대여가능 = 전체 − 수리중. 0이면 수리중과 같이 '지금은 못 빌린다'로 묶는다.
-    // 소모품은 대여 대상이 아니라 배지를 내리지 않는다(null) — '대여 가능' 표시를 피한다 (§4.2, v3.1)
-    availability_badge:
-      r.kind === "consumable"
-        ? null
-        : r.status === "repair" || r.rentable_qty <= 0
-          ? "repair"
-          : r.active_now >= r.rentable_qty
-            ? "rented"
-            : r.active_now > 0
-              ? "reserved"
-              : "available",
-  }));
+  const q = (c.req.query("q") ?? "").trim();
+  const items = q ? await searchItemsCombined(c.env, db, q) : [];
   return c.json({ items });
 });
-
-type DetailRow = ItemAttrs & {
-  id: number;
-  name: string;
-  description: string | null;
-  status: "active" | "repair" | "retired";
-  total_qty: number;
-  rentable_qty: number;
-  max_days: number;
-  photos: { id: number; url: string }[];
-};
 
 // 상세 — 설명·수량·규칙 + 향후 90일 일별 점유 수 (§7.6, 회원 정보 제외)
 itemsRoute.get("/:id", async (c) => {
@@ -159,33 +26,11 @@ itemsRoute.get("/:id", async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
 
-  const itemRows = (await db.query(
-    `SELECT items.id, items.name, items.description, items.status,
-            items.total_qty, items.max_days,
-            items.kind, items.location, items.size, items.color,
-            items.qty_broken,
-            (items.total_qty - items.qty_broken) AS rentable_qty,
-            (SELECT COALESCE(json_agg(json_build_object('id', p.id, 'url', '/api/photos/' || p.r2_key)
-                              ORDER BY p.sort_order), '[]'::json)
-             FROM item_photos p WHERE p.item_id = items.id) AS photos
-     FROM items
-     WHERE items.id = $1`,
-    [id],
-  )) as DetailRow[];
-  if (itemRows.length === 0) return c.json({ error: "not_found" }, 404);
-  const item = itemRows[0];
+  const item = await getItemDetail(db, id);
+  if (!item) return c.json({ error: "not_found" }, 404);
 
   // 일별 점유는 건수가 아니라 수량 합계다 (P0) — 대량 재고를 한 예약으로 나눠 담는다
-  const availability = (await db.query(
-    `SELECT d::date::text AS date, COALESCE(SUM(r.qty), 0)::int AS reserved
-     FROM generate_series(${KST_TODAY}, ${KST_TODAY} + INTERVAL '89 days', '1 day') d
-     LEFT JOIN reservations r
-       ON r.item_id = $1
-      AND r.status IN ('pending','approved','picked_up')
-      AND r.start_date <= d::date AND r.end_date > d::date
-     GROUP BY d ORDER BY d`,
-    [id],
-  )) as { date: string; reserved: number }[];
+  const availability = await getItemAvailability(db, id);
 
   // 목록과 같은 기준의 가용 배지 — 상세도 같은 라벨을 쓴다. 소모품은 대여 대상이 아니라 null 을 내려
   // 화면이 '대여 가능/예약 있음' 배지를 아예 안 그리게 한다 (§4.2, v3.1). 오늘 점유는 availability[0] 이다.
@@ -201,5 +46,8 @@ itemsRoute.get("/:id", async (c) => {
             ? "reserved"
             : "available";
 
-  return c.json({ item: { ...item, availability_badge: availabilityBadge }, availability });
+  return c.json({
+    item: { ...item, availability_badge: availabilityBadge },
+    availability,
+  });
 });

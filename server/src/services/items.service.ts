@@ -1,0 +1,288 @@
+// 물품(Item) 도메인 서비스 — 목록/상세/가용성/CRUD/사진의 SQL 을 직접 소유
+// SPEC §4.2·§7.4·§7.6 — 검색 외 물품 조회·관리에 필요한 모든 쿼리
+import type { Sql } from "../db";
+import type { Bindings } from "../types";
+import { KST_TODAY } from "../dates";
+import { embedItem } from "../embedding";
+
+// ===== 행 타입 =====
+
+export type ItemAttrs = {
+  kind: "rental" | "consumable";
+  location: string | null;
+  size: string | null;
+  color: string | null;
+  qty_broken: number;
+};
+
+export type ListItemRow = ItemAttrs & {
+  id: number;
+  name: string;
+  description: string | null;
+  total_qty: number;
+  rentable_qty: number;
+  max_days: number;
+  status: "active" | "repair" | "retired";
+  photos: { id: number; url: string }[];
+  active_now: number;
+};
+
+// 관리자용 Item 행 (note 포함)
+export type AdminItemRow = {
+  id: number;
+  name: string;
+  description: string | null;
+  status: string;
+  total_qty: number;
+  qty_broken: number;
+  max_days: number;
+  kind: string;
+  location: string | null;
+  size: string | null;
+  color: string | null;
+  note: string | null;
+};
+
+// ===== 공개 조회 (§7.4·§7.6) =====
+
+// 상세 페이지 — 설명·수량·규칙 + 오늘 점유(active_now)
+export async function getItemDetail(
+  db: Sql,
+  itemId: number,
+): Promise<ListItemRow | null> {
+  const rows = (await db.query(
+    `SELECT items.id, items.name, items.description, items.total_qty, items.max_days, items.status,
+      items.kind, items.location, items.size, items.color,
+      items.qty_broken,
+      (items.total_qty - items.qty_broken) AS rentable_qty,
+      (SELECT COALESCE(json_agg(json_build_object('id', p.id, 'url', '/api/photos/' || p.r2_key)
+                        ORDER BY p.sort_order), '[]'::json)
+       FROM item_photos p WHERE p.item_id = items.id) AS photos,
+      (SELECT COALESCE(SUM(r.qty), 0)::int FROM reservations r
+        WHERE r.item_id = items.id
+          AND r.status IN ('pending', 'approved', 'picked_up')
+          AND ${KST_TODAY} < r.end_date AND r.start_date <= ${KST_TODAY}) AS active_now
+     FROM items
+    WHERE items.id = $1`,
+    [itemId],
+  )) as ListItemRow[];
+
+  return rows.length === 0 ? null : rows[0];
+}
+
+// 상세 페이지 가용성 — 향후 90일 일별 점유 (§3, §7.6)
+export async function getItemAvailability(
+  db: Sql,
+  itemId: number,
+): Promise<{ date: string; reserved: number }[]> {
+  // SAFETY: SELECT 목록이 반환 타입과 일치한다 — tsc는 SELECT 문자열을 읽지 못해 단언이 필요하다
+  return (await db.query(
+    `SELECT d::date::text AS date, COALESCE(SUM(r.qty), 0)::int AS reserved
+     FROM generate_series(${KST_TODAY}, ${KST_TODAY} + INTERVAL '89 days', '1 day') d
+   LEFT JOIN reservations r
+     ON r.item_id = $1
+    AND r.status IN ('pending', 'approved', 'picked_up')
+    AND r.start_date <= d::date AND r.end_date > d::date
+   GROUP BY d ORDER BY d`,
+    [itemId],
+  )) as { date: string; reserved: number }[];
+}
+
+// ===== 관리자 CRUD (§7.4) =====
+
+// 목록 — 폐기 포함 전체 (관리자)
+export async function listAdminItems(db: Sql) {
+  return db.query(
+    `SELECT items.*,
+            (SELECT COUNT(*)::int FROM item_photos p WHERE p.item_id = items.id) AS photo_count,
+            (SELECT COUNT(*)::int FROM reservations r WHERE r.item_id = items.id) AS reservation_count
+     FROM items
+     ORDER BY items.id DESC`,
+  );
+}
+
+// 편집용 단건 — 공개 상세(§7.4)와 달리 note(내부 메모)까지 내려준다
+export async function getAdminItem(
+  db: Sql,
+  itemId: number,
+): Promise<AdminItemRow | null> {
+  const rows = (await db.query(`SELECT * FROM items WHERE id = $1`, [
+    itemId,
+  ])) as AdminItemRow[];
+  return rows.length === 0 ? null : rows[0];
+}
+
+// 등록 — 입력 검증은 라우트, SQL·임베딩은 서비스
+export async function createItem(
+  db: Sql,
+  env: Bindings,
+  input: {
+    name: string;
+    status: string;
+    total_qty: number;
+    max_days: number;
+    attrs: Record<string, unknown>;
+  },
+): Promise<number> {
+  const cols = [
+    "name",
+    "status",
+    "total_qty",
+    "max_days",
+    ...Object.keys(input.attrs),
+  ];
+  const vals = [
+    input.name,
+    input.status,
+    input.total_qty,
+    input.max_days,
+    ...Object.values(input.attrs),
+  ];
+  const [row] = (await db.query(
+    `INSERT INTO items (${cols.join(", ")})
+     VALUES (${cols.map((_, i) => `$${i + 1}`).join(", ")}) RETURNING id`,
+    vals,
+  )) as { id: number }[];
+  // 등록 즉시 의미 검색용 임베딩 생성 (실패해도 등록은 성공 — 키워드 검색은 계속 동작)
+  await embedItem(env, db, row.id);
+  return row.id;
+}
+
+// 수정 결과 — qty_constraint: 수량 조합이 제약(qty_broken ≤ total_qty) 위반 (라우트가 400 응답)
+export type UpdateItemResult =
+  | { ok: true }
+  | { error: "not_found" }
+  | { error: "qty_constraint" };
+
+export async function updateItem(
+  db: Sql,
+  env: Bindings,
+  itemId: number,
+  fields: Record<string, unknown>,
+): Promise<UpdateItemResult> {
+  // 수량 관련 필드가 바뀌면 결과 조합이 제약(qty_broken ≤ total_qty)을 지키는지 본다.
+  // 한쪽만 보내는 경우가 흔하므로 현재 값을 읽어 합쳐서 판정한다.
+  if ("qty_broken" in fields || "total_qty" in fields) {
+    const [cur] = (await db.query(
+      `SELECT total_qty, qty_broken FROM items WHERE id = $1`,
+      [itemId],
+    )) as { total_qty: number; qty_broken: number }[];
+    if (!cur) return { error: "not_found" };
+    const nextTotal = (fields.total_qty as number | undefined) ?? cur.total_qty;
+    const nextBroken =
+      (fields.qty_broken as number | undefined) ?? cur.qty_broken;
+    if (nextBroken > nextTotal) return { error: "qty_constraint" };
+  }
+  const keys = Object.keys(fields);
+  const setSql = keys.map((k, i) => `${k} = $${i + 2}`).join(", ");
+  const rows = (await db.query(
+    `UPDATE items SET ${setSql} WHERE id = $1 RETURNING id`,
+    [itemId, ...keys.map((k) => fields[k])],
+  )) as { id: number }[];
+  if (rows.length === 0) return { error: "not_found" };
+  // 이름·설명이 바뀌면 임베딩도 갱신 (무조건 재생성 — 소규모라 비용 무시)
+  await embedItem(env, db, itemId);
+  return { ok: true };
+}
+
+// 삭제 결과 — has_history: 대여 이력 있어 거부 (라우트가 409 응답, 폐기 상태 전환 권장)
+export type DeleteItemResult =
+  | { ok: true }
+  | { error: "not_found" }
+  | { error: "has_history" };
+
+export async function deleteItem(
+  db: Sql,
+  env: Bindings,
+  itemId: number,
+): Promise<DeleteItemResult> {
+  // 대여 이력 확인
+  const [cnt] = (await db.query(
+    `SELECT COUNT(*)::int AS n FROM reservations WHERE item_id = $1`,
+    [itemId],
+  )) as { n: number }[];
+  if (cnt.n > 0) return { error: "has_history" };
+
+  // 사진 R2 키를 먼저 읽는다 — 행은 FK CASCADE 로 함께 지워지지만 R2 오브젝트는 그대로 남아
+  // 영구 고아가 되므로 키를 읽어 함께 삭제한다(v3.1). R2 삭제가 일부 실패하면 오브젝트가 남을
+  // 수 있으나 키를 잃어 사후 정리조차 못 하는 것보다 낫다.
+  const keys = (await db.query(
+    `SELECT r2_key FROM item_photos WHERE item_id = $1`,
+    [itemId],
+  )) as { r2_key: string }[];
+  const rows = (await db.query(`DELETE FROM items WHERE id = $1 RETURNING id`, [
+    itemId,
+  ])) as { id: number }[];
+  if (rows.length === 0) return { error: "not_found" };
+  try {
+    for (const key of keys) await env.PHOTOS.delete(key.r2_key);
+  } catch (err) {
+    console.error(`R2 사진 삭제 실패 (item ${itemId})`, err);
+  }
+  return { ok: true };
+}
+
+// ===== 사진 관리 (§4.2) =====
+
+export const MAX_PHOTOS = 3; // §4.2 사진 최대 3장
+
+// 사진 추가 결과 — too_many: 최대 장수 초과 (라우트가 409 응답)
+export type AddPhotoResult =
+  | { ok: true; id: number; url: string }
+  | { error: "not_found" }
+  | { error: "too_many" };
+
+export async function addPhoto(
+  db: Sql,
+  env: Bindings,
+  itemId: number,
+  file: File,
+  ext: string,
+): Promise<AddPhotoResult> {
+  // 물품 존재 확인
+  const exists = (await db.query(`SELECT id FROM items WHERE id = $1`, [
+    itemId,
+  ])) as { id: number }[];
+  if (exists.length === 0) return { error: "not_found" };
+
+  // 사진 개수 확인
+  const [cnt] = (await db.query(
+    `SELECT COUNT(*)::int AS n FROM item_photos WHERE item_id = $1`,
+    [itemId],
+  )) as { n: number }[];
+  if (cnt.n >= MAX_PHOTOS) return { error: "too_many" };
+
+  const key = `items/${itemId}/${crypto.randomUUID()}.${ext}`;
+  await env.PHOTOS.put(key, file.stream(), {
+    httpMetadata: { contentType: file.type },
+  });
+  // 등록순 확정 — 기존 최대 sort_order + 1 을 할당한다. 대표 사진(목록 photos[0]·상세 대표)이
+  // 첫 사진으로 결정되는 근거가 된다. 전부 0 이면 ORDER BY p.sort_order 가 동점이라 순서·대표가
+  // 임의로 바뀌었다 (§4.2, v3.1).
+  const [mx] = (await db.query(
+    `SELECT COALESCE(MAX(sort_order), 0) AS m FROM item_photos WHERE item_id = $1`,
+    [itemId],
+  )) as { m: number }[];
+  const [row] = (await db.query(
+    `INSERT INTO item_photos (item_id, r2_key, sort_order) VALUES ($1, $2, $3) RETURNING id`,
+    [itemId, key, mx.m + 1],
+  )) as { id: number }[];
+  return { ok: true, id: row.id, url: `/api/photos/${key}` };
+}
+
+// 사진 삭제 — R2 오브젝트 + 행 함께 제거. false 면 없음(404)
+export async function deletePhoto(
+  db: Sql,
+  env: Bindings,
+  itemId: number,
+  photoId: number,
+): Promise<boolean> {
+  const rows = (await db.query(
+    `SELECT id, r2_key FROM item_photos WHERE id = $1 AND item_id = $2`,
+    [photoId, itemId],
+  )) as { id: number; r2_key: string }[];
+  if (rows.length === 0) return false;
+  await env.PHOTOS.delete(rows[0].r2_key);
+  await db.query(`DELETE FROM item_photos WHERE id = $1`, [photoId]);
+  return true;
+}
