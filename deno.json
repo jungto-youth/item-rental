@@ -1,10 +1,14 @@
 {
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1"
+  },
   "tasks": {
     "dev:web": "vite",
     "dev:api": "wrangler dev",
     "build": "vite build",
     "deploy": "vite build && wrangler deploy",
     "check": "tsc --noEmit -p web && tsc --noEmit -p server",
+    "test": "deno test -A --sloppy-imports server/tests",
     "db:migrate": "deno run -A server/scripts/migrate.ts",
     "db:seed": "deno run -A server/scripts/seed.ts",
     "db:reembed": "deno run -A --sloppy-imports server/scripts/reembed.ts",

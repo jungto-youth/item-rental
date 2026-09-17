@@ -125,7 +125,10 @@ export async function createReservation(
   if (results === null) return { error: "not_found" };
   if (results === TIMEOUT) return { error: "busy" };
 
-  const inserted = results[1] as { id: number }[];
+  // transaction() 결과는 쿼리 순서와 1:1: [SET LOCAL, advisory lock, INSERT]
+  // 락 SELECT는 항상 1행을 반환하므로 results[1]을 보면 재고가 없어도 성공으로 오인한다.
+  const inserted = results.at(-1) as { id: number }[];
+
   if (inserted.length > 0) return { ok: true, id: inserted[0].id };
 
   // 0행 — 가드가 거절했다(재고·상태·기간 변경 또는 물품 삭제). 재조회로 원인을 가려
@@ -162,9 +165,7 @@ export async function getMyReservations(db: Sql, memberId: string) {
 // ===== 예약 취소 (§3) =====
 // 결과 — bad_status: 본인 건이지만 수령 후(picked_up 이후)라 취소 불가
 export type CancelResult =
-  | { ok: true }
-  | { error: "not_found" }
-  | { error: "bad_status" };
+  { ok: true } | { error: "not_found" } | { error: "bad_status" };
 
 export async function cancelReservation(
   db: Sql,
@@ -202,9 +203,7 @@ export const RESERVATION_STATUSES = [
 
 // 조건부 전이 결과 — bad_status: 잘못된 전이 (기대 상태가 아님)
 export type TransitionResult =
-  | { ok: true }
-  | { error: "not_found" }
-  | { error: "bad_status" };
+  { ok: true } | { error: "not_found" } | { error: "bad_status" };
 
 // 조건부 전이 공용 처리 — 기대 상태가 아니면 빈 결과 → 없음(404) vs 잘못된 전이(409) 구분
 async function transition(
