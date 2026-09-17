@@ -1,6 +1,6 @@
 import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { initRouter, navigate } from "./router";
+import { createRouter, navigate } from "./router";
 import { session, type SessionUser } from "./context/session";
 import { reduceMotion } from "./styles/motion";
 
@@ -29,6 +29,7 @@ export class AppShell extends LitElement {
   @state() private user: SessionUser | null = null;
   @state() private theme: Theme = readStoredTheme();
   private unsubscribe: (() => void) | null = null;
+  private router = createRouter(this);
 
   static styles = [
     reduceMotion,
@@ -304,11 +305,6 @@ export class AppShell extends LitElement {
     this.unsubscribe?.();
   }
 
-  firstUpdated() {
-    const outlet = this.renderRoot.querySelector("main");
-    if (outlet) initRouter(outlet);
-  }
-
   // 세그먼트 직접 선택 — 자동이면 저장값을 지워 시스템 설정 추종
   private setTheme(t: Theme) {
     this.theme = t;
@@ -322,7 +318,7 @@ export class AppShell extends LitElement {
     else document.documentElement.dataset.theme = t;
   }
 
-  // Auth.js 확인 페이지를 거치지 않고 바로 POST signout (§7.2)
+  // Auth.js 확인 페이지를 거치지 않고 바로 POST signout
   private async signOut() {
     try {
       const csrfRes = await fetch("/api/auth/csrf");
@@ -513,7 +509,7 @@ export class AppShell extends LitElement {
           </nav>
         </div>
       </header>
-      <main></main>
+      <main>${this.router.outlet()}</main>
     `;
   }
 }

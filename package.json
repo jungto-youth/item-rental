@@ -4,8 +4,8 @@
   "type": "module",
   "dependencies": {
     "@auth/core": "^0.41.3",
+    "@lit-labs/router": "^0.1.4",
     "@neondatabase/serverless": "^1",
-    "@vaadin/router": "^2.0.0",
     "hono": "^4",
     "lit": "^3"
   },

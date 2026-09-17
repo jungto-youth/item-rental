@@ -1,6 +1,5 @@
-import { css, html, LitElement } from "lit";
-import { customElement, state } from "lit/decorators.js";
-import type { RouterLocation } from "@vaadin/router";
+import { css, html, LitElement, type PropertyValues } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../api/client";
 import { session, type SessionUser } from "../context/session";
 import "../components/ui/badge";
@@ -20,7 +19,7 @@ import { reduceMotion } from "../styles/motion";
 // 운영진(admin)은 이 화면에서 바로 편집·사진 관리 — 별도 관리 화면 없음 (DESIGN 통합안)
 @customElement("page-item-detail")
 export class PageItemDetail extends LitElement {
-  @state()
+  @property()
   private itemId = "";
   @state()
   private item: Item | null = null;
@@ -468,9 +467,9 @@ export class PageItemDetail extends LitElement {
     `,
   ];
 
-  // @vaadin/router 라이프사이클 — /items/:id 파라미터는 여기서 주입받음
-  onAfterEnter(location: RouterLocation) {
-    this.itemId = String(location.params.id ?? "");
+  // 라우터가 주입한 itemId가 바뀔 때마다 재로드 — 목록에서 다른 물품으로 이동해도 갱신된다
+  protected updated(changed: PropertyValues) {
+    if (!changed.has("itemId")) return;
     if (this.itemId) void this.load();
     else this.error = "물품을 찾을 수 없어요";
   }
