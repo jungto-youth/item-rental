@@ -136,6 +136,7 @@ deno task dev:api     # wrangler dev → localhost:8787
 deno task dev:web     # vite        → localhost:5173 (/api 는 8787 로 프록시)
 
 deno task check       # 타입 검사 (web + server)
+deno task test        # 단위 테스트 (server/tests — DB 불필요, Sql 스텁)
 deno task build       # vite build → web/dist
 deno task deploy      # vite build && wrangler deploy
 
