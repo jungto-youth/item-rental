@@ -200,7 +200,7 @@ const missingCols = ["source_key", "kind", "location", "size", "note"].filter(
 );
 if (missingCols.length) {
   console.error(`⚠ items 테이블에 컬럼이 없습니다: ${missingCols.join(", ")}`);
-  console.error("  먼저 마이그레이션을 적용하세요: npm run db:migrate");
+  console.error("  먼저 마이그레이션을 적용하세요: deno task db:migrate");
   if (APPLY) Deno.exit(1);
 }
 

@@ -1,10 +1,12 @@
 import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { api } from "../../api/client";
 import "../../components/ui/badge";
 import type { AdminReservation, ReservationStatus } from "../../types";
+import { api, ApiError } from "../../api/client";
+import { diffDays } from "../../utils/date";
+import { reduceMotion } from "../../styles/motion";
 
-// SPEC §4.3 — 대여 신청 관리: 승인/거절(사유 필수)/수령/반납 (manager 이상)
+// SPEC §4.3 — 대여 신청 관리: 승인/거절(사유 필수)/수령/반납 (admin 전용)
 // pending 예약은 가용 수량을 차지함 — conflict_count가 0이 아니면 겹침 경고 후 승인 가능 (§3)
 @customElement("page-admin-reservations")
 export class PageAdminReservations extends LitElement {
@@ -22,64 +24,123 @@ export class PageAdminReservations extends LitElement {
   @state() private approvingId: number | null = null;
   @state() private approveQty = 1;
 
-  static styles = css`
-    h1 { font-size: 1.375rem; font-weight: 600; letter-spacing: var(--tracking-tight); line-height: 1.1; }
-    .bar { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); }
-    .bar label { font-size: var(--text-caption); color: var(--color-muted); }
-    select {
-      height: 36px;
-      padding: 0 var(--space-2);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      background: var(--color-surface);
-      color: var(--color-text);
-      font-size: var(--text-caption);
-      font-family: inherit;
-    }
-    /* 표 대신 두 줄 로우 — 640px 본문에 테이블이 원래 안 맞아 좌우 스크롤로 처리 버튼이 가려짐 (§4.3) */
-    .rows { display: grid; }
-    .row {
-      border-bottom: 1px solid var(--color-border);
-      padding: var(--space-2) 0;
-      display: grid;
-      gap: var(--space-1);
-      font-size: var(--text-caption);
-    }
-    .head { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
-    .name { font-weight: 600; font-size: var(--text-body); letter-spacing: var(--tracking-tight); flex: 1; min-width: 0; }
-    .head x-badge { flex-shrink: 0; }
-    .who, .memo { color: var(--color-muted); }
-    .conflict { color: var(--color-warning); font-size: var(--text-fine); }
-    .link {
-      background: none;
-      border: 0;
-      color: var(--color-primary);
-      cursor: pointer;
-      padding: var(--space-2);
-      font-size: var(--text-caption);
-      font-family: inherit;
-    }
-    .link.danger { color: var(--color-danger); }
-    .link:disabled { opacity: 0.5; cursor: not-allowed; }
-    .head .link { flex-shrink: 0; } /* 액션 링크가 눌리지 않게 — 44px 터치 타깃 유지 */
-    .reject { display: flex; align-items: center; gap: var(--space-1); flex: 1; min-width: 0; }
-    .reject input {
-      font: inherit;
-      font-size: var(--text-caption);
-      height: 36px;
-      padding: 0 var(--space-2);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      background: var(--color-bg);
-      color: var(--color-text);
-      flex: 1;
-      min-width: 0;
-    }
-    .conflict { color: var(--color-warning); font-size: var(--text-fine); }
-    .reject input[type='number'] { flex: 0 0 auto; max-width: 6rem; }
-    .msg { color: var(--color-primary); font-size: var(--text-caption); min-height: 1.2em; }
-    .empty { color: var(--color-muted); font-size: var(--text-caption); }
-  `;
+  static styles = [
+    reduceMotion,
+    css`
+      h1 {
+        font-size: 1.375rem;
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+        line-height: 1.1;
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin-bottom: var(--space-3);
+      }
+      .bar label {
+        font-size: var(--text-caption);
+        color: var(--color-muted);
+      }
+      select {
+        height: 36px;
+        padding: 0 var(--space-2);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-surface);
+        color: var(--color-text);
+        font-size: var(--text-caption);
+        font-family: inherit;
+      }
+      /* 표 대신 두 줄 로우 — 640px 본문에 테이블이 원래 안 맞아 좌우 스크롤로 처리 버튼이 가려짐 (§4.3) */
+      .rows {
+        display: grid;
+      }
+      .row {
+        border-bottom: 1px solid var(--color-border);
+        padding: var(--space-2) 0;
+        display: grid;
+        gap: var(--space-1);
+        font-size: var(--text-caption);
+      }
+      .head {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-height: 44px;
+      }
+      .name {
+        font-weight: 600;
+        font-size: var(--text-body);
+        letter-spacing: var(--tracking-tight);
+        flex: 1;
+        min-width: 0;
+      }
+      .head x-badge {
+        flex-shrink: 0;
+      }
+      .who,
+      .memo {
+        color: var(--color-muted);
+      }
+      .link {
+        background: none;
+        border: 0;
+        color: var(--color-primary);
+        cursor: pointer;
+        padding: var(--space-2);
+        font-size: var(--text-caption);
+        font-family: inherit;
+      }
+      .link.danger {
+        color: var(--tone-danger-text);
+      }
+      .link:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .head .link {
+        flex-shrink: 0;
+      } /* 액션 링크가 눌리지 않게 — 44px 터치 타깃 유지 */
+      .reject {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        flex: 1;
+        min-width: 0;
+      }
+      .reject input {
+        font: inherit;
+        font-size: var(--text-caption);
+        height: 36px;
+        padding: 0 var(--space-2);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-bg);
+        color: var(--color-text);
+        flex: 1;
+        min-width: 0;
+      }
+      .conflict {
+        color: var(--tone-warning-text);
+        font-size: var(--text-fine);
+      }
+      .reject input[type="number"] {
+        flex: 0 0 auto;
+        max-width: 6rem;
+      }
+      .msg {
+        color: var(--color-primary);
+        font-size: var(--text-caption);
+        min-height: 1.2em;
+      }
+      .empty {
+        color: var(--color-muted);
+        font-size: var(--text-caption);
+      }
+    `,
+  ];
 
   async connectedCallback() {
     super.connectedCallback();
@@ -104,9 +165,10 @@ export class PageAdminReservations extends LitElement {
   private async reload() {
     try {
       const qs = this.filter ? `?status=${this.filter}` : "";
-      const res = await api<{ reservations: AdminReservation[]; truncated?: boolean }>(
-        `/api/admin/reservations${qs}`,
-      );
+      const res = await api<{
+        reservations: AdminReservation[];
+        truncated?: boolean;
+      }>(`/api/admin/reservations${qs}`);
       this.reservations = res.reservations;
       this.truncated = res.truncated === true;
     } catch (e) {
@@ -135,14 +197,13 @@ export class PageAdminReservations extends LitElement {
       this.approvingId = null;
       await this.reload();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "";
-      if (msg.includes("bad_status")) this.message = "이미 처리된 예약이에요";
-      else if (msg.includes("qty_increase_not_allowed"))
+      const code = e instanceof ApiError ? e.code : undefined;
+      if (code === "bad_status") this.message = "이미 처리된 예약이에요";
+      else if (code === "qty_increase_not_allowed")
         this.message =
           "신청 수량보다 늘릴 수는 없어요 — 늘리려면 거절 후 재신청받아 주세요";
-      else if (msg.includes("bad_qty"))
-        this.message = "수량은 1개 이상이어야 해요";
-      else this.message = msg || "처리에 실패했어요";
+      else if (code === "bad_qty") this.message = "수량은 1개 이상이어야 해요";
+      else this.message = e instanceof Error ? e.message : "처리에 실패했어요";
       await this.reload();
     } finally {
       this.busy = false;
@@ -171,9 +232,10 @@ export class PageAdminReservations extends LitElement {
   }
 
   private async submitApprove(r: AdminReservation) {
-    // 그대로 승인이면 qty를 보내지 않는다 — 서버도 미지정이면 신청 수량을 유지한다
-    const body =
-      this.approveQty === r.qty ? undefined : { qty: this.approveQty };
+    // 빈 값·0·소수·상한 초과를 여기서 정리 — 서버 왕복 없이 바로 확인된다
+    const qty = Math.min(Math.max(Math.trunc(this.approveQty) || 1, 1), r.qty);
+    this.approveQty = qty;
+    const body = qty === r.qty ? undefined : { qty };
     await this.transition(r, "approve", body, "승인했어요");
   }
 
@@ -210,8 +272,20 @@ export class PageAdminReservations extends LitElement {
                 if (e.key === "Enter") void this.submitReject(r);
               }}
             />
-            <button class="link" ?disabled=${this.busy} @click=${() => this.submitReject(r)}>확인</button>
-            <button class="link" ?disabled=${this.busy} @click=${() => (this.rejectingId = null)}>취소</button>
+            <button
+              class="link"
+              ?disabled=${this.busy}
+              @click=${() => this.submitReject(r)}
+            >
+              확인
+            </button>
+            <button
+              class="link"
+              ?disabled=${this.busy}
+              @click=${() => (this.rejectingId = null)}
+            >
+              취소
+            </button>
           </span>
         `;
       if (this.approvingId === r.id)
@@ -228,19 +302,55 @@ export class PageAdminReservations extends LitElement {
                 if (e.key === "Enter") void this.submitApprove(r);
               }}
             />
-            <button class="link" ?disabled=${this.busy} @click=${() => this.submitApprove(r)}>확인</button>
-            <button class="link" ?disabled=${this.busy} @click=${() => (this.approvingId = null)}>취소</button>
+            <button
+              class="link"
+              ?disabled=${this.busy}
+              @click=${() => this.submitApprove(r)}
+            >
+              확인
+            </button>
+            <button
+              class="link"
+              ?disabled=${this.busy}
+              @click=${() => (this.approvingId = null)}
+            >
+              취소
+            </button>
           </span>
         `;
       return html`
-        <button class="link" ?disabled=${this.busy} @click=${() => this.startApprove(r)}>승인</button>
-        <button class="link danger" ?disabled=${this.busy} @click=${() => this.startReject(r)}>거절</button>
+        <button
+          class="link"
+          ?disabled=${this.busy}
+          @click=${() => this.startApprove(r)}
+        >
+          승인
+        </button>
+        <button
+          class="link danger"
+          ?disabled=${this.busy}
+          @click=${() => this.startReject(r)}
+        >
+          거절
+        </button>
       `;
     }
     if (r.status === "approved")
-      return html`<button class="link" ?disabled=${this.busy} @click=${() => this.transition(r, "pickup", undefined, "수령 처리했어요")}>수령</button>`;
+      return html`<button
+        class="link"
+        ?disabled=${this.busy}
+        @click=${() => this.transition(r, "pickup", undefined, "수령 처리했어요")}
+      >
+        수령
+      </button>`;
     if (r.status === "picked_up")
-      return html`<button class="link" ?disabled=${this.busy} @click=${() => this.transition(r, "return", undefined, "반납 처리했어요")}>반납</button>`;
+      return html`<button
+        class="link"
+        ?disabled=${this.busy}
+        @click=${() => this.transition(r, "return", undefined, "반납 처리했어요")}
+      >
+        반납
+      </button>`;
     return "";
   }
 
@@ -254,19 +364,30 @@ export class PageAdminReservations extends LitElement {
           .value=${this.filter}
           @change=${(e: Event) => {
             this.filter = (e.target as HTMLSelectElement).value as
-              | ""
-              | ReservationStatus;
+              "" | ReservationStatus;
             this.rejectingId = null;
             void this.reload();
           }}
         >
           <option value="" ?selected=${this.filter === ""}>전체</option>
-          <option value="pending" ?selected=${this.filter === "pending"}>승인 대기</option>
-          <option value="approved" ?selected=${this.filter === "approved"}>승인</option>
-          <option value="picked_up" ?selected=${this.filter === "picked_up"}>대여 중</option>
-          <option value="returned" ?selected=${this.filter === "returned"}>반납 완료</option>
-          <option value="rejected" ?selected=${this.filter === "rejected"}>거절</option>
-          <option value="cancelled" ?selected=${this.filter === "cancelled"}>취소</option>
+          <option value="pending" ?selected=${this.filter === "pending"}>
+            승인 대기
+          </option>
+          <option value="approved" ?selected=${this.filter === "approved"}>
+            승인
+          </option>
+          <option value="picked_up" ?selected=${this.filter === "picked_up"}>
+            대여 중
+          </option>
+          <option value="returned" ?selected=${this.filter === "returned"}>
+            반납 완료
+          </option>
+          <option value="rejected" ?selected=${this.filter === "rejected"}>
+            거절
+          </option>
+          <option value="cancelled" ?selected=${this.filter === "cancelled"}>
+            취소
+          </option>
         </select>
       </div>
       <p class="msg" aria-live="polite">${this.message}</p>
@@ -289,23 +410,28 @@ export class PageAdminReservations extends LitElement {
   }
 
   private renderCard(r: AdminReservation) {
-    const days = Math.round(
-      (Date.parse(r.end_date) - Date.parse(r.start_date)) / 86400000,
-    );
+    const days = diffDays(r.start_date, r.end_date);
     const acts = this.renderActions(r);
     return html`
       <div class="row">
         <span class="head">
-          <span class="name">${r.item_name}${r.qty > 1 ? ` · ${r.qty}개` : ""}</span>
+          <span class="name"
+            >${r.item_name}${r.qty > 1 ? ` · ${r.qty}개` : ""}</span
+          >
           <x-badge kind=${r.is_overdue ? "overdue" : r.status}></x-badge>
           ${acts}
         </span>
-        <span class="who">${r.member_name || "—"} · ${r.member_phone ?? r.member_email} · ${r.start_date}~${r.end_date} (${days}일)</span>
+        <span class="who"
+          >${r.member_name || "—"} · ${r.member_phone ?? r.member_email} ·
+          ${r.start_date}~${r.end_date} (${days}일)</span
+        >
         ${r.member_memo ? html`<span class="memo">메모 · ${r.member_memo}</span>` : ""}
         ${r.status_note ? html`<span class="memo">사유 · ${r.status_note}</span>` : ""}
         ${
           r.status === "pending" && r.conflict_count > 0
-            ? html`<span class="conflict">정원 초과 ${r.conflict_count}일 — 승인 시 확인 필요</span>`
+            ? html`<span class="conflict"
+                >정원 초과 ${r.conflict_count}일 — 승인 시 확인 필요</span
+              >`
             : ""
         }
       </div>

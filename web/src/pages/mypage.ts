@@ -4,6 +4,8 @@ import { api } from "../api/client";
 import { session, type SessionUser } from "../context/session";
 import "../components/ui/badge";
 import type { MyReservation } from "../types";
+import { diffDays } from "../utils/date";
+import { reduceMotion } from "../styles/motion";
 
 // SPEC §4.1 — 마이페이지: 프로필 + 내 예약 현황·이력·취소
 @customElement("page-mypage")
@@ -14,54 +16,93 @@ export class PageMypage extends LitElement {
   @state() private busy = false;
   @state() private message = "";
 
-  static styles = css`
-    h1 { font-size: 1.375rem; font-weight: 600; letter-spacing: var(--tracking-tight); line-height: 1.1; }
-    h2 { font-size: 1.0625rem; font-weight: 600; letter-spacing: var(--tracking-tight); margin: var(--space-6) 0 var(--space-2); }
-    .card {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      padding: var(--space-4);
-      display: grid;
-      gap: var(--space-2);
-      font-size: var(--text-body);
-      line-height: 1.47;
-    }
-    .pending {
-      border-color: var(--color-warning);
-      background: var(--tone-warning-bg);
-      color: var(--tone-warning-text);
-    }
-    .row {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      padding: var(--space-3) var(--space-4);
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-      font-size: var(--text-body);
-      margin-bottom: var(--space-2);
-    }
-    .row .name { font-weight: 600; letter-spacing: var(--tracking-tight); }
-    .row .dates { color: var(--color-muted); font-size: var(--text-caption); }
-    .row .spacer { flex: 1; }
-    .link {
-      background: none;
-      border: 0;
-      color: var(--color-primary); /* DESIGN.md §5 — 텍스트 동작은 블루 링크 */
-      cursor: pointer;
-      padding: 0 var(--space-2);
-      font-size: var(--text-caption);
-      font-family: inherit;
-      line-height: 44px;
-    }
-    .link:disabled { opacity: 0.5; cursor: not-allowed; }
-    .note { color: var(--color-muted); font-size: var(--text-caption); }
-    .empty { color: var(--color-muted); font-size: var(--text-caption); }
-    .msg { color: var(--color-primary); font-size: var(--text-caption); min-height: 1.2em; }
-    p { color: var(--color-muted); line-height: 1.47; }
-  `;
+  static styles = [
+    reduceMotion,
+    css`
+      h1 {
+        font-size: 1.375rem;
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+        line-height: 1.1;
+      }
+      h2 {
+        font-size: 1.0625rem;
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+        margin: var(--space-6) 0 var(--space-2);
+      }
+      .card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: var(--space-4);
+        display: grid;
+        gap: var(--space-2);
+        font-size: var(--text-body);
+        line-height: 1.47;
+      }
+      .pending {
+        border-color: var(--color-warning);
+        background: var(--tone-warning-bg);
+        color: var(--tone-warning-text);
+      }
+      .row {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: var(--space-3) var(--space-4);
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        font-size: var(--text-body);
+        margin-bottom: var(--space-2);
+      }
+      .row .name {
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+      }
+      .row .dates {
+        color: var(--color-muted);
+        font-size: var(--text-caption);
+      }
+      .row .spacer {
+        flex: 1;
+      }
+      .link {
+        background: none;
+        border: 0;
+        color: var(
+          --color-primary
+        ); /* DESIGN.md §5 — 텍스트 동작은 블루 링크 */
+        cursor: pointer;
+        padding: 0 var(--space-2);
+        font-size: var(--text-caption);
+        font-family: inherit;
+        line-height: 44px;
+      }
+      .link:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .note {
+        color: var(--color-muted);
+        font-size: var(--text-caption);
+      }
+      .empty {
+        color: var(--color-muted);
+        font-size: var(--text-caption);
+      }
+      .msg {
+        color: var(--color-primary);
+        font-size: var(--text-caption);
+        min-height: 1.2em;
+      }
+      p {
+        color: var(--color-muted);
+        line-height: 1.47;
+      }
+    `,
+  ];
 
   async connectedCallback() {
     super.connectedCallback();
@@ -115,17 +156,25 @@ export class PageMypage extends LitElement {
     return html`
       <div class="row">
         <div>
-          <div class="name">${r.item_name}${r.qty > 1 ? ` · ${r.qty}개` : ""}</div>
+          <div class="name">
+            ${r.item_name}${r.qty > 1 ? ` · ${r.qty}개` : ""}
+          </div>
           <div class="dates">
             ${r.start_date} ~ ${r.end_date}
-            (${Math.round((Date.parse(r.end_date) - Date.parse(r.start_date)) / 86400000)}일)
+            (${diffDays(r.start_date, r.end_date)}일)
           </div>
         </div>
         <div class="spacer"></div>
         <x-badge kind=${r.is_overdue ? "overdue" : r.status}></x-badge>
         ${
           r.status === "pending" || r.status === "approved"
-            ? html`<button class="link" ?disabled=${this.busy} @click=${() => this.cancel(r)}>취소</button>`
+            ? html`<button
+                class="link"
+                ?disabled=${this.busy}
+                @click=${() => this.cancel(r)}
+              >
+                취소
+              </button>`
             : ""
         }
       </div>
@@ -153,55 +202,60 @@ export class PageMypage extends LitElement {
       ${
         this.user.status === "inactive"
           ? html`
-            <div class="card" style="margin-top: var(--space-3)">
-              비활성화된 계정이에요 — 재대여를 원하시면 관리자에게 문의해주세요.
-            </div>
-          `
+              <div class="card" style="margin-top: var(--space-3)">
+                비활성화된 계정이에요 — 재대여를 원하시면 관리자에게
+                문의해주세요.
+              </div>
+            `
           : this.user.status === "pending"
-          ? html`
-            <div class="card pending" style="margin-top: var(--space-3)">
-              승인 대기 중이에요 — 관리자 승인 후 물품을 대여할 수 있어요.
-            </div>
-          `
-          : html`
-            <p class="msg" aria-live="polite">${this.message}</p>
-            ${this.renderGroup(
-              "대여 중",
-              this.reservations.filter((r) => r.status === "picked_up"),
-            )}
-            ${this.renderGroup(
-              "승인 대기",
-              this.reservations.filter((r) => r.status === "pending"),
-            )}
-            ${this.renderGroup(
-              "대여 예정",
-              this.reservations.filter((r) => r.status === "approved"),
-            )}
-            ${this.renderGroup(
-              "대여 이력",
-              this.reservations.filter(
-                (r) =>
-                  r.status === "returned" ||
-                  r.status === "rejected" ||
-                  r.status === "cancelled",
-              ),
-            )}
-            ${
-              this.reservations.length === 0
-                ? html`<h2>내 예약</h2><p class="empty">아직 예약 내역이 없어요 — 물품 상세에서 신청할 수 있어요</p>`
-                : ""
-            }
-          `
+            ? html`
+                <div class="card pending" style="margin-top: var(--space-3)">
+                  승인 대기 중이에요 — 관리자 승인 후 물품을 대여할 수 있어요.
+                </div>
+              `
+            : html`
+                <p class="msg" aria-live="polite">${this.message}</p>
+                ${this.renderGroup(
+                  "대여 중",
+                  this.reservations.filter((r) => r.status === "picked_up"),
+                )}
+                ${this.renderGroup(
+                  "승인 대기",
+                  this.reservations.filter((r) => r.status === "pending"),
+                )}
+                ${this.renderGroup(
+                  "대여 예정",
+                  this.reservations.filter((r) => r.status === "approved"),
+                )}
+                ${this.renderGroup(
+                  "대여 이력",
+                  this.reservations.filter(
+                    (r) =>
+                      r.status === "returned" ||
+                      r.status === "rejected" ||
+                      r.status === "cancelled",
+                  ),
+                )}
+                ${
+                  this.reservations.length === 0
+                    ? html`<h2>내 예약</h2>
+                        <p class="empty">
+                          아직 예약 내역이 없어요 — 물품 상세에서 신청할 수
+                          있어요
+                        </p>`
+                    : ""
+                }
+              `
       }
       ${
         this.user.phone
           ? ""
           : html`
-            <div class="card" style="margin-top: var(--space-3)">
-              물품을 대여하려면 연락처를 등록해야 해요 —
-              <a href="/signup/profile">프로필 입력하기</a>
-            </div>
-          `
+              <div class="card" style="margin-top: var(--space-3)">
+                물품을 대여하려면 연락처를 등록해야 해요 —
+                <a href="/signup/profile">프로필 입력하기</a>
+              </div>
+            `
       }
     `;
   }

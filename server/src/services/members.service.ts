@@ -1,5 +1,5 @@
 // 회원(Member) 도메인 서비스 — 목록/승인/거절/비활성화/역할 SQL 을 직접 소유
-// SPEC §4.1·§4.4 — 소프트 삭제(이력 보존), 마지막 총관리자 보호
+// SPEC §4.1·§4.4 — 소프트 삭제(이력 보존), 마지막 관리자 보호
 import type { Sql } from "../db";
 import type { Role } from "../types";
 
@@ -39,7 +39,7 @@ export async function rejectMember(
   return rows.length > 0 ? { ok: true } : { error: "not_found" };
 }
 
-// 탈퇴(비활성화) 결과 — last_admin: 마지막 총관리자 보호 (409)
+// 탈퇴(비활성화) 결과 — last_admin: 마지막 관리자 보호 (409)
 export type DeactivateResult =
   | { ok: true }
   | { error: "not_found" }
@@ -47,7 +47,7 @@ export type DeactivateResult =
 
 // 탈퇴(비활성화) — 관리자가 활성 회원을 비활성화한다. 약관이 회원에게 '탈퇴는 관리자에게 요청'이라
 // 안내하는데 처리 수단이 없어 신설(§4.1, v3.1). 소프트 삭제 — 대여 이력 보존 위해 행 삭제 대신
-// status = 'inactive'. 마지막 총관리자 보호는 역할 핸들러와 같은 기준.
+// status = 'inactive'. 마지막 관리자 보호는 역할 핸들러와 같은 기준.
 export async function deactivateMember(
   db: Sql,
   memberId: string,
@@ -79,7 +79,7 @@ export type RoleResult =
   | { error: "member_not_approved" }
   | { error: "last_admin" };
 
-// 역할 지정/해제 — 총관리자 전용 (검증은 라우트, v2.7)
+// 역할 지정/해제 — admin ↔ user (검증은 라우트, v3.2)
 export async function setMemberRole(
   db: Sql,
   memberId: string,
@@ -99,7 +99,7 @@ export async function setMemberRole(
   if (role !== "user" && target.status !== "approved") {
     return { error: "member_not_approved" };
   }
-  // 마지막 총관리자 보호 — 해임하면 역할 관리가 불가능해짐 (본인 포함)
+  // 마지막 관리자 보호 — 해임하면 관리 기능 사용 불가 (본인 포함)
   if (target.role === "admin" && role !== "admin") {
     const cnt = (await db.query(
       `SELECT COUNT(*)::int AS n FROM members WHERE role = 'admin'`,

@@ -6,6 +6,11 @@ import type { ListItemRow } from "./items.service";
 import { embed } from "../embedding";
 import { KST_TODAY } from "../dates";
 
+// 배지까지 계산된 목록 행 — 화면(web/src/types.ts Item)과 같은 모양
+export type ListItemWithBadge = ListItemRow & {
+  availability_badge: "available" | "reserved" | "rented" | "repair" | null;
+};
+
 // 목록 SELECT 공용 — 키워드/의미 두 단계가 where 절만 다르게 재사용
 // KST 자정 기준 '오늘' 판정 (v3.1)
 function buildListSql(where: string): string {
@@ -111,19 +116,46 @@ export async function searchSemanticItems(
   }
 }
 
+// ===== 전체 목록 (검색어 없음) =====
+// 가용 배지 계산 — 키워드·의미·전체 목록이 같은 라벨을 쓴다 (상세도 같은 규칙: routes/items.ts)
+function withAvailabilityBadge(r: ListItemRow): ListItemWithBadge {
+  return {
+    ...r,
+    availability_badge:
+      r.kind === "consumable"
+        ? null
+        : r.status === "repair" || r.rentable_qty <= 0
+          ? "repair"
+          : r.active_now >= r.rentable_qty
+            ? "rented"
+            : r.active_now > 0
+              ? "reserved"
+              : "available",
+  };
+}
+
+/**
+ * 전체 목록 — 검색어가 없을 때 홈이 부르는 경로 (§4.2)
+ * 정렬·필터는 buildListSql 그대로 (id DESC = 최근 등록 우선, retired 는 SQL 이 제외)
+ */
+export async function listItems(db: Sql): Promise<ListItemWithBadge[]> {
+  const rows = (await db.query(buildListSql(""))) as ListItemRow[];
+  return rows.map(withAvailabilityBadge);
+}
+
 // ===== 전체 검색 (키워드 + 의미) =====
 /**
  * 전체 검색 — 키워드 검색 후 의미 검색 순으로 결과 반환
  * @param env - Cloudflare Workers 바인딩
  * @param db - Neon SQL 클라이언트
  * @param q - 검색어
- * @returns ListItemRow 배열 (키워드 결과 먼저, 그 다음 의미 결과)
+ * @returns ListItemWithBadge 배열 (키워드 결과 먼저, 그 다음 의미 결과)
  */
 export async function searchItemsCombined(
   env: Bindings,
   db: Sql,
   q: string,
-): Promise<ListItemRow[]> {
+): Promise<ListItemWithBadge[]> {
   // 토큰 처리: 단어 단위 AND 검색 (최대 5개 토큰)
   const tokens = q.trim().split(/\s+/).filter(Boolean).slice(0, 5);
 
@@ -136,18 +168,6 @@ export async function searchItemsCombined(
   const kwIds = new Set(kwRows.map((r) => r.id));
   const semRows = await searchSemanticItems(env, db, tokens.join(" "), kwIds);
 
-  // 가용 배지 계산
-  return [...kwRows, ...semRows].map((r) => ({
-    ...r,
-    availability_badge:
-      r.kind === "consumable"
-        ? null
-        : r.status === "repair" || r.rentable_qty <= 0
-          ? "repair"
-          : r.active_now >= r.rentable_qty
-            ? "rented"
-            : r.active_now > 0
-              ? "reserved"
-              : "available",
-  }));
+  // 가용 배지 계산 (전체 목록과 같은 helper)
+  return [...kwRows, ...semRows].map(withAvailabilityBadge);
 }

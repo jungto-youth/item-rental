@@ -1,7 +1,7 @@
 import { Hono, type Context } from "hono";
 import type { Bindings, Variables } from "../../types";
 import { getDb, type Sql } from "../../db";
-import { requireManager } from "../../middleware/auth";
+import { requireAdmin } from "../../middleware/auth";
 import {
   RESERVATION_STATUSES,
   listReservations,
@@ -12,14 +12,14 @@ import {
   type TransitionResult,
 } from "../../services/reservations.service";
 
-// SPEC §4.3 — 대여 신청 승인/거절/수령/반납 (manager 이상)
+// SPEC §4.3 — 대여 신청 승인/거절/수령/반납 (admin 전용)
 // 조건부 전이의 존재/상태 구분은 reservations.service 가 한다
 export const adminReservationsRoute = new Hono<{
   Bindings: Bindings;
   Variables: Variables;
 }>();
 
-adminReservationsRoute.use("*", requireManager);
+adminReservationsRoute.use("*", requireAdmin);
 
 type Ctx = Context<{ Bindings: Bindings; Variables: Variables }>;
 

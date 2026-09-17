@@ -14,9 +14,10 @@ import {
   type ItemStatus,
   type Photo,
 } from "../types";
+import { reduceMotion } from "../styles/motion";
 
 // SPEC §5 — 물품 상세 + 대여 신청 폼 (§4.3, 원자적 INSERT는 서버 §8)
-// 운영진(manager 이상)은 이 화면에서 바로 편집·사진 관리 — 별도 관리 화면 없음 (DESIGN 통합안)
+// 운영진(admin)은 이 화면에서 바로 편집·사진 관리 — 별도 관리 화면 없음 (DESIGN 통합안)
 @customElement("page-item-detail")
 export class PageItemDetail extends LitElement {
   @state()
@@ -76,393 +77,396 @@ export class PageItemDetail extends LitElement {
   @state()
   private editMsg = "";
 
-  static styles = css`
-    .photo {
-      aspect-ratio: 4 / 3;
-      border-radius: var(--radius);
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3rem;
-      overflow: hidden;
-    }
-    .photo img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .thumbs {
-      display: flex;
-      gap: var(--space-2);
-      margin-top: var(--space-2);
-    }
-    .thumbs button {
-      width: 56px;
-      height: 56px;
-      border-radius: var(--radius-sm);
-      border: 2px solid transparent;
-      padding: 0;
-      overflow: hidden;
-      cursor: pointer;
-      background: var(--color-surface);
-    }
-    .thumbs button.on {
-      border-color: var(--color-primary-focus);
-    } /* DESIGN.md §5 — 선택 상태 2px 링 */
-    .thumbs img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    h1 {
-      font-size: 1.375rem;
-      font-weight: 600;
-      letter-spacing: var(--tracking-tight);
-      line-height: 1.1;
-      margin: var(--space-4) 0 var(--space-2);
-    }
-    .desc {
-      line-height: 1.47;
-      white-space: pre-wrap;
-    }
-    .spec {
-      display: flex;
-      gap: var(--space-6);
-      margin: var(--space-4) 0;
-      padding: var(--space-4);
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      font-size: var(--text-body);
-    }
-    .spec b {
-      display: block;
-      color: var(--color-muted);
-      font-weight: 400;
-      font-size: var(--text-fine);
-    }
-    /* 실물 속성 — 값이 있는 항목만. 좁은 화면에선 한 열로 접힌다 */
-    .attrs {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: var(--space-3) var(--space-5);
-      margin: 0 0 var(--space-4);
-      padding: var(--space-4);
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      font-size: var(--text-body);
-    }
-    .attrs dt {
-      color: var(--color-muted);
-      font-weight: 400;
-      font-size: var(--text-fine);
-    }
-    .attrs dd {
-      margin: 0;
-      white-space: pre-wrap;
-    }
-    .strip-label {
-      font-size: var(--text-caption);
-      color: var(--color-muted);
-      margin-bottom: var(--space-2);
-    }
-    .apply-form {
-      margin-top: var(--space-4);
-      padding: var(--space-5);
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      display: grid;
-      gap: var(--space-3);
-    }
-    .apply-form h2 {
-      font-size: 1.0625rem;
-      font-weight: 600;
-      letter-spacing: var(--tracking-tight);
-      margin: 0;
-    }
-    input,
-    textarea {
-      font: inherit;
-      font-size: 1rem; /* iOS 줌 방지 */
-      padding: 0 var(--space-3);
-      height: 44px;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm); /* DESIGN.md §5 — 입력 필 유틸 8px */
-      background: var(--color-bg); /* 화이트 카드 위 파치먼트 fill */
-      color: inherit;
-      box-sizing: border-box;
-      width: 100%;
-    }
-    textarea {
-      height: auto;
-      min-height: 72px;
-      padding: var(--space-3);
-      resize: vertical;
-    }
-    input:focus,
-    textarea:focus {
-      outline: none;
-      border-color: var(--color-primary);
-    }
-    .memo {
-      display: grid;
-      gap: 4px;
-      font-size: var(--text-caption);
-      color: var(--color-muted);
-    }
-    .qty {
-      display: grid;
-      gap: 4px;
-      font-size: var(--text-caption);
-      color: var(--color-muted);
-    }
-    .qty input {
-      max-width: 8rem;
-    }
-    .qty-hint {
-      font-size: var(--text-fine);
-    }
-    .hint-row {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: var(--space-3);
-    }
-    .hint {
-      margin: 0;
-      font-size: var(--text-caption);
-      color: var(--color-muted);
-    }
-    /* '다시 선택' — 힌트 옆 텍스트 링크. 탭만으론 빈 선택으로 못 돌아가는 보완 */
-    .clear {
-      position: relative;
-      flex-shrink: 0;
-      background: none;
-      border: 0;
-      padding: 0;
-      color: var(--color-primary);
-      font: inherit;
-      font-size: var(--text-caption);
-      cursor: pointer;
-      transition: transform 0.15s ease;
-    }
-    /* DESIGN.md §1 — 시각은 텍스트 링크 그대로, 히트 영역만 상하로 넓혀 44px에 맞춤 */
-    .clear::after {
-      content: '';
-      position: absolute;
-      inset: -13px -6px;
-    }
-    .clear:active {
-      transform: scale(0.95);
-    }
-    /* DESIGN.md 버튼 문법 — UA 기본 링 대신 토큰 링 (.primary와 같은 규칙) */
-    .clear:focus-visible {
-      outline: 2px solid var(--color-primary-focus);
-      outline-offset: 2px;
-      border-radius: var(--radius-sm);
-    }
-    .warn {
-      margin: 0;
-      color: var(--color-danger);
-      font-size: var(--text-caption);
-    }
-    .ok {
-      margin: 0;
-      color: var(--color-success);
-      font-size: var(--text-caption);
-    }
-    .err {
-      margin: 0;
-      color: var(--color-danger);
-      font-size: var(--text-caption);
-    }
-    .primary {
-      justify-self: start;
-      font: inherit;
-      font-size: 1rem;
-      font-weight: 400; /* Apple 버튼 문법 */
-      height: 44px;
-      padding: 0 var(--space-6);
-      background: var(--color-primary);
-      color: var(--color-primary-text);
-      border: none;
-      border-radius: var(--radius-pill);
-      cursor: pointer;
-      transition: transform 0.15s ease;
-    }
-    .primary:active:not(:disabled) {
-      transform: scale(0.95);
-    }
-    .primary:focus-visible {
-      outline: 2px solid var(--color-primary-focus);
-      outline-offset: 2px;
-    }
-    .primary:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .notice {
-      margin-top: var(--space-4);
-      padding: var(--space-4);
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      text-align: center;
-      color: var(--color-muted);
-      font-size: var(--text-caption);
-    }
-    .notice a {
-      color: var(--color-primary);
-    }
-    .error {
-      color: var(--color-danger);
-      padding: var(--space-6) 0;
-    }
+  static styles = [
+    reduceMotion,
+    css`
+      .photo {
+        aspect-ratio: 4 / 3;
+        border-radius: var(--radius);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        overflow: hidden;
+      }
+      .photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .thumbs {
+        display: flex;
+        gap: var(--space-2);
+        margin-top: var(--space-2);
+      }
+      .thumbs button {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--radius-sm);
+        border: 2px solid transparent;
+        padding: 0;
+        overflow: hidden;
+        cursor: pointer;
+        background: var(--color-surface);
+      }
+      .thumbs button.on {
+        border-color: var(--color-primary-focus);
+      } /* DESIGN.md §5 — 선택 상태 2px 링 */
+      .thumbs img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      h1 {
+        font-size: 1.375rem;
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+        line-height: 1.1;
+        margin: var(--space-4) 0 var(--space-2);
+      }
+      .desc {
+        line-height: 1.47;
+        white-space: pre-wrap;
+      }
+      .spec {
+        display: flex;
+        gap: var(--space-6);
+        margin: var(--space-4) 0;
+        padding: var(--space-4);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        font-size: var(--text-body);
+      }
+      .spec b {
+        display: block;
+        color: var(--color-muted);
+        font-weight: 400;
+        font-size: var(--text-fine);
+      }
+      /* 실물 속성 — 값이 있는 항목만. 좁은 화면에선 한 열로 접힌다 */
+      .attrs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: var(--space-3) var(--space-5);
+        margin: 0 0 var(--space-4);
+        padding: var(--space-4);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        font-size: var(--text-body);
+      }
+      .attrs dt {
+        color: var(--color-muted);
+        font-weight: 400;
+        font-size: var(--text-fine);
+      }
+      .attrs dd {
+        margin: 0;
+        white-space: pre-wrap;
+      }
+      .strip-label {
+        font-size: var(--text-caption);
+        color: var(--color-muted);
+        margin-bottom: var(--space-2);
+      }
+      .apply-form {
+        margin-top: var(--space-4);
+        padding: var(--space-5);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        display: grid;
+        gap: var(--space-3);
+      }
+      .apply-form h2 {
+        font-size: 1.0625rem;
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+        margin: 0;
+      }
+      input,
+      textarea {
+        font: inherit;
+        font-size: 1rem; /* iOS 줌 방지 */
+        padding: 0 var(--space-3);
+        height: 44px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm); /* DESIGN.md §5 — 입력 필 유틸 8px */
+        background: var(--color-bg); /* 화이트 카드 위 파치먼트 fill */
+        color: inherit;
+        box-sizing: border-box;
+        width: 100%;
+      }
+      textarea {
+        height: auto;
+        min-height: 72px;
+        padding: var(--space-3);
+        resize: vertical;
+      }
+      input:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--color-primary);
+      }
+      .memo {
+        display: grid;
+        gap: 4px;
+        font-size: var(--text-caption);
+        color: var(--color-muted);
+      }
+      .qty {
+        display: grid;
+        gap: 4px;
+        font-size: var(--text-caption);
+        color: var(--color-muted);
+      }
+      .qty input {
+        max-width: 8rem;
+      }
+      .qty-hint {
+        font-size: var(--text-fine);
+      }
+      .hint-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--space-3);
+      }
+      .hint {
+        margin: 0;
+        font-size: var(--text-caption);
+        color: var(--color-muted);
+      }
+      /* '다시 선택' — 힌트 옆 텍스트 링크. 탭만으론 빈 선택으로 못 돌아가는 보완 */
+      .clear {
+        position: relative;
+        flex-shrink: 0;
+        background: none;
+        border: 0;
+        padding: 0;
+        color: var(--color-primary);
+        font: inherit;
+        font-size: var(--text-caption);
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      }
+      /* DESIGN.md §1 — 시각은 텍스트 링크 그대로, 히트 영역만 상하로 넓혀 44px에 맞춤 */
+      .clear::after {
+        content: "";
+        position: absolute;
+        inset: -13px -6px;
+      }
+      .clear:active {
+        transform: scale(0.95);
+      }
+      /* DESIGN.md 버튼 문법 — UA 기본 링 대신 토큰 링 (.primary와 같은 규칙) */
+      .clear:focus-visible {
+        outline: 2px solid var(--color-primary-focus);
+        outline-offset: 2px;
+        border-radius: var(--radius-sm);
+      }
+      .warn {
+        margin: 0;
+        color: var(--color-danger);
+        font-size: var(--text-caption);
+      }
+      .ok {
+        margin: 0;
+        color: var(--color-success);
+        font-size: var(--text-caption);
+      }
+      .err {
+        margin: 0;
+        color: var(--color-danger);
+        font-size: var(--text-caption);
+      }
+      .primary {
+        justify-self: start;
+        font: inherit;
+        font-size: 1rem;
+        font-weight: 400; /* Apple 버튼 문법 */
+        height: 44px;
+        padding: 0 var(--space-6);
+        background: var(--color-primary);
+        color: var(--color-primary-text);
+        border: none;
+        border-radius: var(--radius-pill);
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      }
+      .primary:active:not(:disabled) {
+        transform: scale(0.95);
+      }
+      .primary:focus-visible {
+        outline: 2px solid var(--color-primary-focus);
+        outline-offset: 2px;
+      }
+      .primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .notice {
+        margin-top: var(--space-4);
+        padding: var(--space-4);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        text-align: center;
+        color: var(--color-muted);
+        font-size: var(--text-caption);
+      }
+      .notice a {
+        color: var(--color-primary);
+      }
+      .error {
+        color: var(--color-danger);
+        padding: var(--space-6) 0;
+      }
 
-    /* --- 편집 모드 (운영진) --- */
-    .edit-bar {
-      display: flex;
-      justify-content: flex-end;
-      gap: var(--space-2);
-      margin-bottom: var(--space-2);
-    }
-    .edit-form {
-      display: grid;
-      gap: var(--space-3);
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      padding: var(--space-5);
-      margin-top: var(--space-4);
-    }
-    .edit-form h2 {
-      font-size: 1.0625rem;
-      font-weight: 600;
-      letter-spacing: var(--tracking-tight);
-      margin: 0;
-    }
-    .edit-form label {
-      font-size: var(--text-caption);
-      color: var(--color-muted);
-      display: grid;
-      gap: 4px;
-    }
-    /* 편집 진입 실패 메시지 — 편집 폼 밖(편집 바)에서 보여야 하므로 오른쪽 자동 밀기 */
-    .edit-inline {
-      margin-right: auto;
-      text-align: left;
-      font-size: var(--text-caption);
-      color: var(--color-danger);
-    }
-    .edit-form input,
-    .edit-form select,
-    .edit-form textarea {
-      height: 44px;
-      padding: 0 var(--space-3);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-sm);
-      background: var(--color-bg);
-      color: var(--color-text);
-      font-size: 1rem;
-      font-family: inherit;
-      box-sizing: border-box;
-    }
-    .edit-form textarea {
-      height: auto;
-      min-height: 72px;
-      padding: var(--space-3);
-    }
-    .edit-form input:focus,
-    .edit-form select:focus,
-    .edit-form textarea:focus {
-      outline: none;
-      border-color: var(--color-primary);
-    }
-    .edit-row {
-      display: flex;
-      gap: var(--space-3);
-    }
-    .edit-row > label {
-      flex: 1;
-    }
-    .edit-pics {
-      display: flex;
-      gap: var(--space-2);
-      flex-wrap: wrap;
-    }
-    .edit-pics .pic {
-      position: relative;
-      width: 72px;
-      height: 72px;
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-      border: 1px solid var(--color-border);
-    }
-    .edit-pics img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .edit-pics .pic button {
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      background: rgba(210, 210, 215, 0.64);
-      color: #1d1d1f;
-      border: 0;
-      border-radius: 50%;
-      width: 22px;
-      height: 22px;
-      cursor: pointer;
-      line-height: 1;
-      font-size: 0.7rem;
-    }
-    .edit-actions {
-      display: flex;
-      gap: var(--space-2);
-      justify-content: space-between;
-      align-items: center;
-    }
-    .edit-msg {
-      color: var(--color-primary);
-      font-size: var(--text-caption);
-      min-height: 1.2em;
-      margin: 0;
-    }
-    .edit-err {
-      color: var(--color-danger);
-      font-size: var(--text-caption);
-      margin: 0;
-    }
-    .btn-ghost {
-      height: 44px;
-      padding: 0 var(--space-4);
-      border-radius: var(--radius-pill);
-      background: transparent;
-      border: 1px solid var(--color-primary);
-      color: var(--color-primary);
-      font: inherit;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: transform 0.15s ease;
-    }
-    .btn-ghost:active {
-      transform: scale(0.95);
-    }
-    .btn-danger {
-      background: none;
-      border: 0;
-      color: var(--color-danger);
-      cursor: pointer;
-      font: inherit;
-      font-size: var(--text-caption);
-      padding: var(--space-2);
-    }
-  `;
+      /* --- 편집 모드 (운영진) --- */
+      .edit-bar {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--space-2);
+        margin-bottom: var(--space-2);
+      }
+      .edit-form {
+        display: grid;
+        gap: var(--space-3);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: var(--space-5);
+        margin-top: var(--space-4);
+      }
+      .edit-form h2 {
+        font-size: 1.0625rem;
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+        margin: 0;
+      }
+      .edit-form label {
+        font-size: var(--text-caption);
+        color: var(--color-muted);
+        display: grid;
+        gap: 4px;
+      }
+      /* 편집 진입 실패 메시지 — 편집 폼 밖(편집 바)에서 보여야 하므로 오른쪽 자동 밀기 */
+      .edit-inline {
+        margin-right: auto;
+        text-align: left;
+        font-size: var(--text-caption);
+        color: var(--color-danger);
+      }
+      .edit-form input,
+      .edit-form select,
+      .edit-form textarea {
+        height: 44px;
+        padding: 0 var(--space-3);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-bg);
+        color: var(--color-text);
+        font-size: 1rem;
+        font-family: inherit;
+        box-sizing: border-box;
+      }
+      .edit-form textarea {
+        height: auto;
+        min-height: 72px;
+        padding: var(--space-3);
+      }
+      .edit-form input:focus,
+      .edit-form select:focus,
+      .edit-form textarea:focus {
+        outline: none;
+        border-color: var(--color-primary);
+      }
+      .edit-row {
+        display: flex;
+        gap: var(--space-3);
+      }
+      .edit-row > label {
+        flex: 1;
+      }
+      .edit-pics {
+        display: flex;
+        gap: var(--space-2);
+        flex-wrap: wrap;
+      }
+      .edit-pics .pic {
+        position: relative;
+        width: 72px;
+        height: 72px;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        border: 1px solid var(--color-border);
+      }
+      .edit-pics img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .edit-pics .pic button {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        background: rgba(210, 210, 215, 0.64);
+        color: #1d1d1f;
+        border: 0;
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        cursor: pointer;
+        line-height: 1;
+        font-size: 0.7rem;
+      }
+      .edit-actions {
+        display: flex;
+        gap: var(--space-2);
+        justify-content: space-between;
+        align-items: center;
+      }
+      .edit-msg {
+        color: var(--color-primary);
+        font-size: var(--text-caption);
+        min-height: 1.2em;
+        margin: 0;
+      }
+      .edit-err {
+        color: var(--color-danger);
+        font-size: var(--text-caption);
+        margin: 0;
+      }
+      .btn-ghost {
+        height: 44px;
+        padding: 0 var(--space-4);
+        border-radius: var(--radius-pill);
+        background: transparent;
+        border: 1px solid var(--color-primary);
+        color: var(--color-primary);
+        font: inherit;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      }
+      .btn-ghost:active {
+        transform: scale(0.95);
+      }
+      .btn-danger {
+        background: none;
+        border: 0;
+        color: var(--color-danger);
+        cursor: pointer;
+        font: inherit;
+        font-size: var(--text-caption);
+        padding: var(--space-2);
+      }
+    `,
+  ];
 
   // @vaadin/router 라이프사이클 — /items/:id 파라미터는 여기서 주입받음
   onAfterEnter(location: RouterLocation) {
@@ -492,8 +496,8 @@ export class PageItemDetail extends LitElement {
     }
   }
 
-  private get isManager(): boolean {
-    return this.user?.role === "manager" || this.user?.role === "admin";
+  private get isAdmin(): boolean {
+    return this.user?.role === "admin";
   }
 
   // 수리중 수량을 뺀 실제로 빌려줄 수 있는 수량.
@@ -715,8 +719,7 @@ export class PageItemDetail extends LitElement {
     // 키보드 사용자의 포커스가 body로 떨어져 Tab이 문서 처음부터 다시 시작한다
     void this.updateComplete.then(() => {
       const cal = this.renderRoot.querySelector("x-calendar") as
-        | (HTMLElement & { focusCursor?: () => void })
-        | null;
+        (HTMLElement & { focusCursor?: () => void }) | null;
       cal?.focusCursor?.();
     });
   }
@@ -789,8 +792,7 @@ export class PageItemDetail extends LitElement {
     // 사라진 사진이 썸네일에도 있으면 해당 썸네일 비활성화
     const idx = this.photoIdx;
     const btn = this.renderRoot.querySelectorAll(".thumbs button")[idx] as
-      | HTMLButtonElement
-      | undefined;
+      HTMLButtonElement | undefined;
     if (btn) {
       btn.disabled = true;
       btn.style.opacity = "0.4";
@@ -818,46 +820,56 @@ export class PageItemDetail extends LitElement {
     const main = photos[this.photoIdx];
     return html`
       ${
-        this.isManager
+        this.isAdmin
           ? html`
-          <div class="edit-bar">
-            <span class="edit-inline">${this.editing ? "" : this.editMsg}</span>
-            <button class="btn-ghost" @click=${() =>
-              void this.startEdit()}>편집</button>
-          </div>
-        `
+              <div class="edit-bar">
+                <span class="edit-inline"
+                  >${this.editing ? "" : this.editMsg}</span
+                >
+                <button class="btn-ghost" @click=${() => void this.startEdit()}>
+                  편집
+                </button>
+              </div>
+            `
           : ""
       }
       <div class="photo">
         ${
           main
-            ? html`<img src=${main.url} alt=${this.item.name} @error=${this.onMainImgError} />`
+            ? html`<img
+                src=${main.url}
+                alt=${this.item.name}
+                @error=${this.onMainImgError}
+              />`
             : "📦"
         }
       </div>
       ${
         photos.length > 1
           ? html`
-          <div class="thumbs">
-            ${photos.map(
-              (p, i) =>
-                html`
-                  <button class=${
-                    i === this.photoIdx ? "on" : ""
-                  } @click=${() => (this.photoIdx = i)}>
-                    <img src=${p.url} alt="" @error=${this.onThumbImgError} />
-                  </button>
-                `,
-            )}
-          </div>
-        `
+              <div class="thumbs">
+                ${photos.map(
+                  (p, i) => html`
+                    <button
+                      class=${i === this.photoIdx ? "on" : ""}
+                      @click=${() => (this.photoIdx = i)}
+                    >
+                      <img src=${p.url} alt="" @error=${this.onThumbImgError} />
+                    </button>
+                  `,
+                )}
+              </div>
+            `
           : ""
       }
-      <h1>${this.item.name} ${
-        this.item.availability_badge
-          ? html`<x-badge kind=${this.item.availability_badge}></x-badge>`
-          : ""
-      }</h1>
+      <h1>
+        ${this.item.name}
+        ${
+          this.item.availability_badge
+            ? html`<x-badge kind=${this.item.availability_badge}></x-badge>`
+            : ""
+        }
+      </h1>
       ${
         this.item.description
           ? html`<p class="desc">${this.item.description}</p>`
@@ -884,28 +896,29 @@ export class PageItemDetail extends LitElement {
       ${
         this.attrPairs().length
           ? html`
-          <dl class="attrs">
-            ${this.attrPairs().map(
-              ([k, v]) =>
-                html`
-                  <div>
-                    <dt>${k}</dt>
-                    <dd>${v}</dd>
-                  </div>
-                `,
-            )}
-          </dl>
-        `
+              <dl class="attrs">
+                ${this.attrPairs().map(
+                  ([k, v]) => html`
+                    <div>
+                      <dt>${k}</dt>
+                      <dd>${v}</dd>
+                    </div>
+                  `,
+                )}
+              </dl>
+            `
           : ""
       }
       ${
         this.item.kind === "consumable"
           ? ""
           : html`
-      <div class="strip-label">향후 90일 예약 현황</div>
-      <availability-strip .days=${this.availability}
-        .totalQty=${this.rentableQty}></availability-strip>
-      `
+              <div class="strip-label">향후 90일 예약 현황</div>
+              <availability-strip
+                .days=${this.availability}
+                .totalQty=${this.rentableQty}
+              ></availability-strip>
+            `
       }
       ${this.renderApply()}
     `;
@@ -923,137 +936,193 @@ export class PageItemDetail extends LitElement {
         }}
       >
         <h2>물품 편집</h2>
-        <label>이름
-          <input required .value=${f.name} @input=${(e: Event) =>
-            this.setEdit("name", (e.target as HTMLInputElement).value)} />
+        <label
+          >이름
+          <input
+            required
+            .value=${f.name}
+            @input=${(e: Event) =>
+              this.setEdit("name", (e.target as HTMLInputElement).value)}
+          />
         </label>
         <div class="edit-row">
-          <label>구분
-            <select .value=${f.kind} @change=${(e: Event) =>
-              this.setEdit(
-                "kind",
-                (e.target as HTMLSelectElement).value as ItemKind,
-              )}>
-              <option value="rental" ?selected=${
-                f.kind === "rental"
-              }>대여품</option>
-              <option value="consumable" ?selected=${
-                f.kind === "consumable"
-              }>소모품</option>
+          <label
+            >구분
+            <select
+              .value=${f.kind}
+              @change=${(e: Event) =>
+                this.setEdit(
+                  "kind",
+                  (e.target as HTMLSelectElement).value as ItemKind,
+                )}
+            >
+              <option value="rental" ?selected=${f.kind === "rental"}>
+                대여품
+              </option>
+              <option value="consumable" ?selected=${f.kind === "consumable"}>
+                소모품
+              </option>
             </select>
           </label>
         </div>
-        <label>상태
-          <select .value=${f.status} @change=${(e: Event) =>
-            this.setEdit(
-              "status",
-              (e.target as HTMLSelectElement).value as ItemStatus,
-            )}>
-            <option value="active" ?selected=${
-              f.status === "active"
-            }>정상</option>
-            <option value="repair" ?selected=${
-              f.status === "repair"
-            }>수리중</option>
-            <option value="retired" ?selected=${
-              f.status === "retired"
-            }>폐기</option>
+        <label
+          >상태
+          <select
+            .value=${f.status}
+            @change=${(e: Event) =>
+              this.setEdit(
+                "status",
+                (e.target as HTMLSelectElement).value as ItemStatus,
+              )}
+          >
+            <option value="active" ?selected=${f.status === "active"}>
+              정상
+            </option>
+            <option value="repair" ?selected=${f.status === "repair"}>
+              수리중
+            </option>
+            <option value="retired" ?selected=${f.status === "retired"}>
+              폐기
+            </option>
           </select>
         </label>
         <div class="edit-row">
-          <label>보유 수량
-            <input type="number" min="1" .value=${String(
-              f.total_qty,
-            )} @input=${(e: Event) =>
-              this.setEdit(
-                "total_qty",
-                Number((e.target as HTMLInputElement).value),
-              )} />
+          <label
+            >보유 수량
+            <input
+              type="number"
+              min="1"
+              .value=${String(f.total_qty)}
+              @input=${(e: Event) =>
+                this.setEdit(
+                  "total_qty",
+                  Number((e.target as HTMLInputElement).value),
+                )}
+            />
           </label>
-          <label>수리중 수량
-            <input type="number" min="0" .value=${String(
-              f.qty_broken,
-            )} @input=${(e: Event) =>
-              this.setEdit(
-                "qty_broken",
-                Number((e.target as HTMLInputElement).value),
-              )} />
+          <label
+            >수리중 수량
+            <input
+              type="number"
+              min="0"
+              .value=${String(f.qty_broken)}
+              @input=${(e: Event) =>
+                this.setEdit(
+                  "qty_broken",
+                  Number((e.target as HTMLInputElement).value),
+                )}
+            />
           </label>
           ${
             f.kind === "consumable"
               ? ""
               : html`
-            <label>최대 대여일
-              <input type="number" min="1" max="365" .value=${String(
-                f.max_days,
-              )} @input=${(e: Event) =>
-                this.setEdit(
-                  "max_days",
-                  Number((e.target as HTMLInputElement).value),
-                )} />
-            </label>
-          `
+                  <label
+                    >최대 대여일
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      .value=${String(f.max_days)}
+                      @input=${(e: Event) =>
+                        this.setEdit(
+                          "max_days",
+                          Number((e.target as HTMLInputElement).value),
+                        )}
+                    />
+                  </label>
+                `
           }
         </div>
         <div class="edit-row">
-          <label>보관 위치
-            <input .value=${
-              f.location
-            } placeholder="예: 2층 창고 A선반" @input=${(e: Event) =>
-              this.setEdit("location", (e.target as HTMLInputElement).value)} />
+          <label
+            >보관 위치
+            <input
+              .value=${f.location}
+              placeholder="예: 2층 창고 A선반"
+              @input=${(e: Event) =>
+                this.setEdit("location", (e.target as HTMLInputElement).value)}
+            />
           </label>
-          <label>규격
-            <input .value=${f.size} placeholder="예: 20×30cm" @input=${(
-              e: Event,
-            ) => this.setEdit("size", (e.target as HTMLInputElement).value)} />
+          <label
+            >규격
+            <input
+              .value=${f.size}
+              placeholder="예: 20×30cm"
+              @input=${(e: Event) =>
+                this.setEdit("size", (e.target as HTMLInputElement).value)}
+            />
           </label>
-          <label>색상
-            <input .value=${f.color} placeholder="예: 남색" @input=${(
-              e: Event,
-            ) => this.setEdit("color", (e.target as HTMLInputElement).value)} />
+          <label
+            >색상
+            <input
+              .value=${f.color}
+              placeholder="예: 남색"
+              @input=${(e: Event) =>
+                this.setEdit("color", (e.target as HTMLInputElement).value)}
+            />
           </label>
         </div>
-        <label>설명
-          <textarea rows="3" .value=${f.description} @input=${(e: Event) =>
-            this.setEdit(
-              "description",
-              (e.target as HTMLTextAreaElement).value,
-            )}></textarea>
+        <label
+          >설명
+          <textarea
+            rows="3"
+            .value=${f.description}
+            @input=${(e: Event) =>
+              this.setEdit(
+                "description",
+                (e.target as HTMLTextAreaElement).value,
+              )}
+          ></textarea>
         </label>
-        <label>비고 (내부 메모)
-          <textarea rows="2" .value=${f.note} @input=${(e: Event) =>
-            this.setEdit(
-              "note",
-              (e.target as HTMLTextAreaElement).value,
-            )}></textarea>
+        <label
+          >비고 (내부 메모)
+          <textarea
+            rows="2"
+            .value=${f.note}
+            @input=${(e: Event) =>
+              this.setEdit("note", (e.target as HTMLTextAreaElement).value)}
+          ></textarea>
         </label>
-        <label>사진 추가 (JPEG/PNG/WebP · 5MB · 최대 3장)
-          <input type="file" accept="image/jpeg,image/png,image/webp" @change=${
-            this.uploadPhoto
-          } />
+        <label
+          >사진 추가 (JPEG/PNG/WebP · 5MB · 최대 3장)
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            @change=${this.uploadPhoto}
+          />
         </label>
         <div class="edit-pics">
           ${this.editPhotos.map(
-            (p) =>
-              html`
-                <div class="pic">
-                  <img src=${p.url} alt="" @error=${(ev: Event) =>
+            (p) => html`
+              <div class="pic">
+                <img
+                  src=${p.url}
+                  alt=""
+                  @error=${(ev: Event) =>
                     ((ev.target as HTMLImageElement).style.visibility =
-                      "hidden")} />
-                  <button type="button" title="사진 삭제" @click=${() =>
-                    this.deletePhoto(p)}>×</button>
-                </div>
-              `,
+                      "hidden")}
+                />
+                <button
+                  type="button"
+                  title="사진 삭제"
+                  @click=${() => this.deletePhoto(p)}
+                >
+                  ×
+                </button>
+              </div>
+            `,
           )}
         </div>
         <p class=${this.editMsg ? "edit-err" : "edit-msg"}>${this.editMsg}</p>
         <div class="edit-actions">
-          <button type="button" class="btn-danger"
-            @click=${this.removeItem}>물품 삭제</button>
+          <button type="button" class="btn-danger" @click=${this.removeItem}>
+            물품 삭제
+          </button>
           <span>
-            <button type="button" class="btn-ghost" @click=${
-              this.cancelEdit
-            }>취소</button>
+            <button type="button" class="btn-ghost" @click=${this.cancelEdit}>
+              취소
+            </button>
             <button class="primary" type="submit" ?disabled=${this.editSaving}>
               ${this.editSaving ? "저장 중…" : "저장"}
             </button>
@@ -1068,27 +1137,35 @@ export class PageItemDetail extends LitElement {
     if (!this.userReady) return html`<div class="notice">&nbsp;</div>`;
     if (!this.user) {
       return html`
-        <div
-          class="notice">대여하려면 로그인이 필요해요 — <a href="/login">로그인하기</a></div>
+        <div class="notice">
+          대여하려면 로그인이 필요해요 — <a href="/login">로그인하기</a>
+        </div>
       `;
     }
     if (this.user.status !== "approved") {
-      return html`<div class="notice">승인 대기 중이에요 — 관리자 승인 후 신청할 수 있어요</div>`;
+      return html`<div class="notice">
+        승인 대기 중이에요 — 관리자 승인 후 신청할 수 있어요
+      </div>`;
     }
     if (!this.user.phone) {
       return html`
-        <div
-          class="notice">물품을 대여하려면 연락처를 등록해야 해요 — <a href="/signup/profile">연락처 등록하기</a></div>
+        <div class="notice">
+          물품을 대여하려면 연락처를 등록해야 해요 —
+          <a href="/signup/profile">연락처 등록하기</a>
+        </div>
       `;
     }
     if (this.item!.kind === "consumable") {
       return html`
-        <div
-          class="notice">소모품은 대여 대상이 아니에요 — 필요한 수량은 담당자에게 문의해 주세요</div>
+        <div class="notice">
+          소모품은 대여 대상이 아니에요 — 필요한 수량은 담당자에게 문의해 주세요
+        </div>
       `;
     }
     if (this.item!.status !== "active") {
-      return html`<div class="notice">지금은 대여할 수 없는 물품이에요 (수리 중/폐기)</div>`;
+      return html`<div class="notice">
+        지금은 대여할 수 없는 물품이에요 (수리 중/폐기)
+      </div>`;
     }
     return this.renderForm();
   }
@@ -1118,7 +1195,13 @@ export class PageItemDetail extends LitElement {
           </p>
           ${
             this.startDate
-              ? html`<button type="button" class="clear" @click=${this.clearRange}>다시 선택</button>`
+              ? html`<button
+                  type="button"
+                  class="clear"
+                  @click=${this.clearRange}
+                >
+                  다시 선택
+                </button>`
               : ""
           }
         </div>
@@ -1130,25 +1213,25 @@ export class PageItemDetail extends LitElement {
         ${
           this.rentableQty > 1
             ? html`
-            <label class="qty">
-              수량 (최대 ${this.availableForRange}개)
-              <input
-                type="number"
-                min="1"
-                max=${Math.max(1, this.availableForRange)}
-                .value=${String(this.qty)}
-                @input=${(e: Event) =>
-                  (this.qty = Number((e.target as HTMLInputElement).value))}
-              />
-              <span class="qty-hint">
-                ${
-                  this.startDate && this.endDate
-                    ? `선택한 기간에 ${this.availableForRange}개까지 신청할 수 있어요`
-                    : `이 물품은 모두 ${this.rentableQty}개까지 빌릴 수 있어요`
-                }
-              </span>
-            </label>
-          `
+                <label class="qty">
+                  수량 (최대 ${this.availableForRange}개)
+                  <input
+                    type="number"
+                    min="1"
+                    max=${Math.max(1, this.availableForRange)}
+                    .value=${String(this.qty)}
+                    @input=${(e: Event) =>
+                      (this.qty = Number((e.target as HTMLInputElement).value))}
+                  />
+                  <span class="qty-hint">
+                    ${
+                      this.startDate && this.endDate
+                        ? `선택한 기간에 ${this.availableForRange}개까지 신청할 수 있어요`
+                        : `이 물품은 모두 ${this.rentableQty}개까지 빌릴 수 있어요`
+                    }
+                  </span>
+                </label>
+              `
             : ""
         }
         <label class="memo">
@@ -1172,9 +1255,9 @@ export class PageItemDetail extends LitElement {
         </button>
         ${
           this.formMsg
-            ? html`<p class=${
-                this.formOk ? "ok" : "err"
-              } role="status">${this.formMsg}</p>`
+            ? html`<p class=${this.formOk ? "ok" : "err"} role="status">
+                ${this.formMsg}
+              </p>`
             : ""
         }
       </form>

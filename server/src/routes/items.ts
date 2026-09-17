@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
 import { getDb, type Sql } from "../db";
-import { searchItemsCombined } from "../services/search.service";
+import { searchItemsCombined, listItems } from "../services/search.service";
 import { getItemDetail, getItemAvailability } from "../services/items.service";
 
 // SPEC §7.4 — GET /api/items, /api/items/:id (전체 열람 가능)
@@ -16,7 +16,10 @@ export const itemsRoute = new Hono<{
 itemsRoute.get("/", async (c) => {
   const db: Sql = getDb(c.env);
   const q = (c.req.query("q") ?? "").trim();
-  const items = q ? await searchItemsCombined(c.env, db, q) : [];
+  // 검색어가 없으면 전체 목록 - 이전에는 빈 배열을 내려 홈이 늘 "물품이 없어요" 였다
+  const items = q
+    ? await searchItemsCombined(c.env, db, q)
+    : await listItems(db);
   return c.json({ items });
 });
 

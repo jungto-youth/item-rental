@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Bindings, Role } from "../../types";
 import { getDb, type Sql } from "../../db";
-import { requireManager, requireAdmin } from "../../middleware/auth";
+import { requireAdmin } from "../../middleware/auth";
 import {
   listMembers,
   approveMember,
@@ -10,11 +10,11 @@ import {
   setMemberRole,
 } from "../../services/members.service";
 
-// SPEC §4.4 — 회원 관리
-// 목록·승인/거절은 manager 이상, 역할 지정/해제는 admin(총관리자) 전용
+// SPEC §4.4 — 회원 관리 (admin 전용)
+// 목록·승인/거절·역할 지정/해제 모두 admin만 사용
 export const adminMembersRoute = new Hono<{ Bindings: Bindings }>();
 
-adminMembersRoute.use("*", requireManager);
+adminMembersRoute.use("*", requireAdmin);
 
 // 회원 목록 — 승인 대기가 맨 위, 그 뒤 최근 가입순
 adminMembersRoute.get("/", async (c) => {
@@ -49,11 +49,11 @@ adminMembersRoute.post("/:id/deactivate", async (c) => {
   return c.json({ error: "not_found" }, 404);
 });
 
-// 역할 지정/해제 — 총관리자 전용 (v2.7)
-adminMembersRoute.put("/:id/role", requireAdmin, async (c) => {
+// 역할 지정/해제 — admin 전용: admin ↔ user 전환 (v3.2, 2단계)
+adminMembersRoute.put("/:id/role", async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as { role?: Role };
   const role = body.role;
-  if (!role || (role !== "user" && role !== "manager" && role !== "admin")) {
+  if (!role || (role !== "user" && role !== "admin")) {
     return c.json({ error: "bad_role" }, 400);
   }
   const db: Sql = getDb(c.env);
@@ -64,7 +64,7 @@ adminMembersRoute.put("/:id/role", requireAdmin, async (c) => {
   if (result.error === "member_not_approved") {
     return c.json({ error: "member_not_approved" }, 409);
   }
-  // 마지막 총관리자 보호 — 해임하면 역할 관리가 불가능해짐 (본인 포함)
+  // 마지막 관리자 보호 — 해임하면 관리 기능 사용 불가 (본인 포함)
   if (result.error === "last_admin")
     return c.json({ error: "last_admin" }, 409);
   return c.json({ error: "not_found" }, 404);

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "../../types";
 import { getDb, type Sql } from "../../db";
-import { requireManager } from "../../middleware/auth";
+import { requireAdmin } from "../../middleware/auth";
 import { imageSize } from "../../image-size";
 import {
   listAdminItems,
@@ -20,7 +20,7 @@ export const adminItemsRoute = new Hono<{
   Bindings: Bindings;
   Variables: Variables;
 }>();
-adminItemsRoute.use("*", requireManager);
+adminItemsRoute.use("*", requireAdmin);
 
 const ITEM_STATUS = ["active", "repair", "retired"] as const;
 const ITEM_KIND = ["rental", "consumable"] as const;
