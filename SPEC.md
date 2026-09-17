@@ -62,17 +62,17 @@
   - 의미 검색: Workers AI `@cf/baai/bge-m3`로 쿼리 임베딩 → 코사인 거리 상위 8개(거리 < 0.75) 중 키워드에 없는 물품만 추가. bge-m3 거리는 0.4~0.65에 뭉쳐 절대 임계로는 관련/무관을 가르지 못하므로 상대 랭킹으로만 쓴다. 임베딩은 등록/수정 시 자동 생성하고, 실패하면 키워드 검색만 동작한다(폴백)
 - 물품 속성: `kind`(대여품 `rental` / 소모품 `consumable`), `location`(보관 위치), `size`, `color`, `qty_broken`(수리중 수량), `note` — 실물 시트에서 들어온 값이라 대부분 비어 있을 수 있고 **전부 선택 항목**이다. 보관 위치는 상세·편집 폼에만 표시하고 카드에는 띄우지 않는다(청년물품은 '정토회관' 단일 값이라 잡음)
   - 소모품: **대여 대상이 아니다.** 상세는 신청 폼 대신 "소모품은 대여 대상이 아니에요" 안내와 재고(`전체 보유`)만 보여주고, 홈 카드·상세에 가용 배지와 "대여 가능" 수량을 내리지 않는다(서버가 `availability_badge`를 `null`로 반환). API로 직접 신청해도 서버가 `409 consumable`로 거부한다. 재고 조정은 관리자만 가능하다
-- 상세: 사진(최대 3장), 설명, 보유 수량, 대여 규칙(기본 대여일 수), 실시간 가용 일정
+- 상세: 사진(최대 3장), 설명, 보유 수량, 대여 규칙(`max_days` — 물품별 최대 대여일), 실시간 가용 일정
   - 수량 표시: 잔여 수량은 홈 카드(`대여 가능 3 / 7개` — 수량 ≥ 2인 물품만), 상세(일정 띠·캘린더), 마이페이지 예약 목록, 관리자 대시보드·예약 목록에 나온다. 신청 수량은 **1 ~ 해당 기간 잔여 수량** 사이에서 고르고, 기간을 바꾸면 1로 초기화한다(기간이 넓어지면 잔여 수량이 줄어든다)
   - 사진은 업로드 전 브라우저에서 재인코딩(최장 변 1600px·WebP q80, 미지원 브라우저는 JPEG) — 원본 미보관, EXIF 제거, 파일당 통상 300KB 이하. 서버는 픽셀 1600px·바이트 2MB를 다시 검사한다(API 직접 호출 우회 방지)
 - 관리자: 등록/수정/삭제, 상태(정상/수리중/폐기) 관리, 수리중 수량 입력, 사진 업로드(R2)
 
 ### 4.3 대여
 
+- 대여 기간 정책: 물품별 `items.max_days`(기본 7일)가 유일한 출처다 — 전역 설정 테이블은 두지 않는다. 서버는 신청 시 `days <= max_days`를 검사하고, 값은 관리자가 물품 편집에서 바꾼다
 - 신청: 날짜 범위 + **수량(1 ~ 해당 기간 잔여 수량)** 선택 → 겹침 검사 → 신청 (메모 입력 가능). 잔여 수량이 있으면 부분 대여(10개 중 3개)가 가능하다
 - 관리자 처리: 승인/거절(사유 필수), 수령 체크, 반납 체크. 승인 시 수량은 **줄일 수 있고 늘릴 수는 없다**(늘리면 재고를 넘길 수 있어 400 `qty_increase_not_allowed`). 확정 예약만으로 이미 정원인 날이 있는 신청은 목록에 `정원 초과 N일` 배지로 뜨고 승인 시 confirm을 거친다
 - 연체: 반납일 경과 시 목록에 `연체` 배지
-- 대여 기간 정책: 기본 7일, `settings` 테이블에서 변경 가능
 
 ### 4.4 관리자
 
@@ -87,7 +87,7 @@
 ```
 web/src/
   app-shell.ts        — 헤더·네비 + 라우터 아웃렛
-  router.ts           — @vaadin/router 라우트 정의 + 가드
+  router.ts           — @lit-labs/router 라우트 정의 + 가드
   styles/tokens.css   — 디자인 토큰 (색·간격·타입)
   context/            — session, toast (@lit/context)
   api/                — fetch 래퍼 (401 처리, 에러 토스트)
@@ -175,7 +175,7 @@ CREATE TABLE IF NOT EXISTS items (
   description TEXT,
   status      TEXT NOT NULL DEFAULT 'active',   -- active | repair | retired
   total_qty   INTEGER NOT NULL DEFAULT 1,
-  max_days    INTEGER NOT NULL DEFAULT 7,
+  max_days    INTEGER NOT NULL DEFAULT 7,       -- 대여 기간 정책 — 물품별 최대 대여일 (전역 설정 테이블 없음)
   embedding   vector(1024),                     -- 의미 검색 (pgvector) — 등록/수정 시 자동 생성
   source_key  TEXT,                             -- 실물 시트 행 키('Y26-*') — 일괄 반영의 멱등 키
   kind        TEXT NOT NULL DEFAULT 'rental',   -- rental 대여품 | consumable 소모품
@@ -258,14 +258,6 @@ CREATE INDEX IF NOT EXISTS idx_rental_history_item_name
   ON rental_history (item_name);
 CREATE INDEX IF NOT EXISTS idx_rental_history_requested_on
   ON rental_history (requested_on);
-
-CREATE TABLE IF NOT EXISTS settings (
-  key   TEXT PRIMARY KEY,
-  value TEXT NOT NULL
-);
-
-INSERT INTO settings (key, value) VALUES ('max_rental_days', '7')
-ON CONFLICT (key) DO NOTHING;
 ```
 
 ### 6.2 가용성 판정 쿼리 (이중 예약 방지)

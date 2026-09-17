@@ -12,7 +12,7 @@
 | 서버            | Hono 4                                        | Workers 네이티브 JSON API (라우팅·미들웨어)           |
 | 클라이언트      | Lit 3 + TypeScript                            | Shadow DOM 캡슐화 웹 컴포넌트 SPA                     |
 | 클라이언트 빌드 | Vite                                          | `web/dist` 산출물을 그대로 배포                       |
-| 라우팅·상태     | @vaadin/router · @lit/context                 | history API 라우트 가드 / session·toast 컨텍스트      |
+| 라우팅·상태     | @lit-labs/router · @lit/context               | history API 라우트 가드 / session·toast 컨텍스트      |
 | DB              | Neon (PostgreSQL 16)                          | `@neondatabase/serverless` HTTP 드라이버 (fetch 기반) |
 | 검색            | Cloudflare Workers AI `@cf/baai/bge-m3`       | pgvector `vector(1024)` 의미 검색, API 키 불필요      |
 | 이미지          | Cloudflare R2                                 | 사진 저장 + 이그레스 0 — `/api/photos/*`로 서빙       |
@@ -52,7 +52,7 @@ web/src/
   components/ui/          — badge, availability-strip, x-calendar
   utils/photo.ts          — 사진 리사이즈·업로드 (1600px WebP)
   pages/                  — home, item-detail, mypage, login, signup-profile, policy, admin/*
-migrations/               — Neon 마이그레이션 SQL (0001~0013, 순차 실행·멱등)
+migrations/               — Neon 마이그레이션 SQL (0001~0014, 순차 실행·멱등)
 server/scripts/           — migrate, seed, reembed, import-items, import-rentals (Deno)
 ```
 
@@ -103,7 +103,7 @@ server/scripts/           — migrate, seed, reembed, import-items, import-renta
 
 ## DB 스키마 (요약)
 
-`members` · `items` · `item_photos` · `reservations` · `rental_history` · `settings` — 전체 DDL과 가용성 쿼리는 [SPEC.md](SPEC.md) §6.
+`members` · `items` · `item_photos` · `reservations` · `rental_history` — 전체 DDL과 가용성 쿼리는 [SPEC.md](SPEC.md) §6.
 
 ## SPA 라우트
 
