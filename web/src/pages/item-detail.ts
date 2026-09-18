@@ -113,6 +113,45 @@ export class PageItemDetail extends LitElement {
         font-size: var(--text-caption, 13px);
       }
 
+      /* 재고 상세(전체 보유·수리중)는 기본 접힘 — 회원이 알아야 할 핵심 숫자는 하나뿐 */
+      .stock-detail {
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md, 8px);
+        background: var(--color-surface);
+        font-size: var(--text-caption, 13px);
+      }
+
+      .stock-detail summary {
+        cursor: pointer;
+        padding: 10px 16px;
+        color: var(--color-muted);
+        font-weight: 500;
+        user-select: none;
+        list-style: none;
+      }
+
+      .stock-detail summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .stock-detail summary::after {
+        content: "▾";
+        float: right;
+        color: var(--color-muted);
+        opacity: 0.7;
+      }
+
+      .stock-detail[open] summary::after {
+        content: "▴";
+      }
+
+      .stock-detail .stock-grid {
+        display: flex;
+        gap: 16px;
+        padding: 0 16px 12px;
+        flex-wrap: wrap;
+      }
+
       .spec-item {
         display: flex;
         flex-direction: column;
@@ -314,27 +353,35 @@ export class PageItemDetail extends LitElement {
           </div>
 
           <div class="specs">
-            ${it.kind !== "consumable"
-              ? html`
-                  <div class="spec-item">
-                    <span class="spec-label">대여 가능</span>
-                    <span class="spec-val">${this.availableNow}개</span>
-                  </div>
-                `
-              : ""}
-            ${(it.qty_broken ?? 0) > 0
-              ? html`
-                  <div class="spec-item">
-                    <span class="spec-label">수리중</span>
-                    <span class="spec-val">${it.qty_broken}개</span>
-                  </div>
-                `
-              : ""}
             <div class="spec-item">
-              <span class="spec-label">전체 보유</span>
-              <span class="spec-val">${it.total_qty}개</span>
+              <span class="spec-label">${it.kind === "consumable" ? "보유 수량" : "대여 가능"}</span>
+              <span class="spec-val"
+                >${it.kind === "consumable" ? `${it.total_qty}개` : `${this.availableNow}개`}</span
+              >
             </div>
           </div>
+
+          ${it.kind !== "consumable"
+            ? html`
+                <details class="stock-detail">
+                  <summary>재고 상세</summary>
+                  <div class="stock-grid">
+                    <div class="spec-item">
+                      <span class="spec-label">전체 보유</span>
+                      <span class="spec-val">${it.total_qty}개</span>
+                    </div>
+                    ${(it.qty_broken ?? 0) > 0
+                      ? html`
+                          <div class="spec-item">
+                            <span class="spec-label">수리중</span>
+                            <span class="spec-val">${it.qty_broken}개</span>
+                          </div>
+                        `
+                      : ""}
+                  </div>
+                </details>
+              `
+            : ""}
 
           ${attrs.length > 0
             ? html`

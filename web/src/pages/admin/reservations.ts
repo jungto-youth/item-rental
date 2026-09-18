@@ -4,6 +4,7 @@ import "../../components/ui/badge";
 import type { AdminReservation, ReservationStatus } from "../../types";
 import { api } from "../../api/client";
 import { reduceMotion } from "../../styles/motion";
+import "../../components/admin/admin-nav";
 
 // SPEC §4.3 — 대여 관리: 반납 처리만 (admin 전용)
 // 승인·거절·수령이 없어졌다 — 회원이 신청하면 즉시 대여 중이고, 관리자는 돌려받았을 때 반납을 누른다
@@ -156,6 +157,7 @@ export class PageAdminReservations extends LitElement {
 
   render() {
     return html`
+      <admin-nav active="reservations"></admin-nav>
       <h1>대여 관리</h1>
       <div class="bar">
         <label for="filter-status">상태</label>

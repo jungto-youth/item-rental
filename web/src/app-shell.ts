@@ -4,24 +4,26 @@ import { createRouter, navigate } from "./router";
 import { session, type SessionUser } from "./context/session";
 import { reduceMotion } from "./styles/motion";
 
-// 테마 3단계(자동/라이트/다크) — tokens.css의 data-theme 셀렉터와 짝을 이룸.
-// 저장값 'light'|'dark', 없으면 시스템 설정 따름.
-type Theme = "system" | "light" | "dark";
+// 테마 2단계(라이트/다크) — tokens.css의 data-theme 셀렉터와 짝을 이룸.
+// 저장값 없으면 시스템 설정을 최초 1회 따르고, 이후 토글 버튼으로 전환한다.
+type Theme = "light" | "dark";
 const THEME_KEY = "theme";
 
 function readStoredTheme(): Theme {
   try {
     const t = localStorage.getItem(THEME_KEY);
-    return t === "light" || t === "dark" ? t : "system";
+    if (t === "light" || t === "dark") return t;
   } catch {
-    return "system";
+    // 저장 불가 환경 대비
   }
+  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 @customElement("app-shell")
 export class AppShell extends LitElement {
   @state() private user: SessionUser | null = null;
   @state() private theme: Theme = readStoredTheme();
+  @state() private menuOpen = false;
   private unsubscribe: (() => void) | null = null;
   private router = createRouter(this);
 
@@ -71,20 +73,45 @@ export class AppShell extends LitElement {
         align-items: center;
         gap: var(--space-2);
       }
-      .nav-link {
-        display: flex;
-        align-items: center;
-        height: 32px;
-        padding: 0 10px;
+      /* 계정 메뉴 — 아바타 칩 + 드롭다운 */
+      .account {
+        position: relative;
+        flex-shrink: 0;
+      }
+      .menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        min-width: 160px;
+        border: 1px solid var(--color-border);
         border-radius: var(--radius-md, 8px);
+        background: var(--color-surface);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        overflow: hidden;
+        z-index: 20;
+      }
+      .menu a,
+      .menu button {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 12px 16px;
+        text-align: left;
+        background: none;
+        border: none;
         color: var(--color-text);
         text-decoration: none;
+        font-family: inherit;
         font-size: var(--text-caption, 13px);
-        font-weight: 500;
+        cursor: pointer;
         transition: background-color 0.15s ease;
       }
-      .nav-link:hover {
-        background: var(--color-surface);
+      .menu a:hover,
+      .menu button:hover {
+        background: var(--color-bg);
+      }
+      .menu .menu-logout {
+        color: var(--color-danger);
       }
       .btn-login {
         display: flex;
@@ -172,42 +199,6 @@ export class AppShell extends LitElement {
         height: 16px;
         display: block;
       }
-      .btn-logout:hover {
-        color: var(--color-danger);
-      }
-      /* --- 관리자 서브 네비 (관리자 접속 시에만 노출) --- */
-      .row-admin {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3);
-        box-sizing: border-box;
-        height: 36px;
-        padding: 0 var(--space-4);
-        background: var(--color-surface);
-        border-top: 1px solid var(--color-border);
-        overflow-x: auto;
-        scrollbar-width: none;
-      }
-      .row-admin::-webkit-scrollbar {
-        display: none;
-      }
-      .admin-tag {
-        font-size: var(--text-fine, 12px);
-        font-weight: 600;
-        color: var(--color-primary);
-        flex-shrink: 0;
-      }
-      .row-admin a {
-        color: var(--color-muted);
-        text-decoration: none;
-        font-size: var(--text-fine, 12px);
-        font-weight: 500;
-        white-space: nowrap;
-        flex-shrink: 0;
-      }
-      .row-admin a:hover {
-        color: var(--color-text);
-      }
       @media (max-width: 560px) {
         .chip-name {
           display: none;
@@ -228,38 +219,47 @@ export class AppShell extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this.applyTheme(this.theme); // 저장값(또는 시스템)을 최초 1회 적용
     this.user = session.user;
     session.ensure();
     this.unsubscribe = session.subscribe(() => {
       this.user = session.user;
     });
+    window.addEventListener("pointerdown", this.onGlobalPointerDown);
+    window.addEventListener("keydown", this.onGlobalKeydown);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this.unsubscribe?.();
+    window.removeEventListener("pointerdown", this.onGlobalPointerDown);
+    window.removeEventListener("keydown", this.onGlobalKeydown);
+    this.menuOpen = false;
   }
 
-  private setTheme(t: Theme) {
+  private applyTheme(t: Theme) {
     this.theme = t;
-    try {
-      if (t === "system") localStorage.removeItem(THEME_KEY);
-      else localStorage.setItem(THEME_KEY, t);
-    } catch {
-      // 저장 불가 환경 대비
-    }
-    if (t === "system") document.documentElement.removeAttribute("data-theme");
-    else document.documentElement.dataset.theme = t;
+    document.documentElement.dataset.theme = t;
   }
 
   private cycleTheme() {
-    const cycle: Record<Theme, Theme> = {
-      system: "light",
-      light: "dark",
-      dark: "system",
-    };
-    this.setTheme(cycle[this.theme] || "light");
+    this.applyTheme(this.theme === "light" ? "dark" : "light");
+    try {
+      localStorage.setItem(THEME_KEY, this.theme);
+    } catch {
+      // 저장 불가 환경 대비
+    }
   }
+
+  // 계정 메뉴 — 외부 클릭이나 Esc로 닫는다
+  private onGlobalPointerDown = (e: PointerEvent) => {
+    if (!this.menuOpen) return;
+    if (!e.composedPath().includes(this)) this.menuOpen = false;
+  };
+
+  private onGlobalKeydown = (e: KeyboardEvent) => {
+    if (e.key === "Escape") this.menuOpen = false;
+  };
 
   private async signOut() {
     try {
@@ -282,34 +282,26 @@ export class AppShell extends LitElement {
   }
 
   private themeIcon(t: Theme) {
-    if (t === "light") {
-      return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="5" />
-        <line x1="12" y1="1" x2="12" y2="3" />
-        <line x1="12" y1="21" x2="12" y2="23" />
-        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-        <line x1="1" y1="12" x2="3" y2="12" />
-        <line x1="21" y1="12" x2="23" y2="12" />
-        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-      </svg>`;
-    }
     if (t === "dark") {
       return html`<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
       </svg>`;
     }
-    return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none" />
+    return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
     </svg>`;
   }
 
   private get themeLabel(): string {
-    if (this.theme === "light") return "라이트 모드";
-    if (this.theme === "dark") return "다크 모드";
-    return "테마 자동 (시스템)";
+    return this.theme === "dark" ? "다크 모드" : "라이트 모드";
   }
 
   private get accountLabel(): string {
@@ -332,28 +324,39 @@ export class AppShell extends LitElement {
             ${
               this.user
                 ? html`
-                    <a class="nav-link" href="/mypage">내 대여</a>
-                    <button
-                      class="chip"
-                      title="마이페이지"
-                      aria-label="마이페이지 — ${this.accountLabel}"
-                      @click=${() => navigate("/mypage")}
-                    >
-                      <span class="avatar" aria-hidden="true">${this.accountInitial}</span>
-                      <span class="chip-name">${this.accountLabel}</span>
-                    </button>
-                    <button
-                      class="icon-btn btn-logout"
-                      title="로그아웃"
-                      aria-label="로그아웃"
-                      @click=${this.signOut}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                        <polyline points="16 17 21 12 16 7" />
-                        <line x1="21" y1="12" x2="9" y2="12" />
-                      </svg>
-                    </button>
+                    <div class="account">
+                      <button
+                        class="chip"
+                        aria-haspopup="menu"
+                        aria-expanded=${this.menuOpen}
+                        aria-label="계정 메뉴 — ${this.accountLabel}"
+                        title="계정 메뉴"
+                        @click=${() => (this.menuOpen = !this.menuOpen)}
+                      >
+                        <span class="avatar" aria-hidden="true">${this.accountInitial}</span>
+                        <span class="chip-name">${this.accountLabel}</span>
+                      </button>
+                      ${this.menuOpen
+                        ? html`
+                            <div class="menu" role="menu">
+                              <a
+                                role="menuitem"
+                                href="/mypage"
+                                @click=${() => (this.menuOpen = false)}
+                              >
+                                내 대여
+                              </a>
+                              <button
+                                role="menuitem"
+                                class="menu-logout"
+                                @click=${this.signOut}
+                              >
+                                로그아웃
+                              </button>
+                            </div>
+                          `
+                        : ""}
+                    </div>
                   `
                 : html`<a class="btn-login" href="/login">로그인</a>`
             }
@@ -369,20 +372,6 @@ export class AppShell extends LitElement {
             </button>
           </div>
         </div>
-
-        ${
-          this.user && this.user.role === "admin"
-            ? html`
-                <div class="row-admin">
-                  <span class="admin-tag">관리자</span>
-                  <a href="/admin">대시보드</a>
-                  <a href="/admin/reservations">대여 관리</a>
-                  <a href="/admin/history">대여 이력</a>
-                  <a href="/admin/members">회원 관리</a>
-                </div>
-              `
-            : ""
-        }
       </header>
       <main>${this.router.outlet()}</main>
     `;

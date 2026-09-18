@@ -4,6 +4,7 @@ import { api } from "../../api/client";
 import { navigate } from "../../router";
 import type { Dashboard, DashboardRow } from "../../types";
 import { reduceMotion } from "../../styles/motion";
+import "../../components/admin/admin-nav";
 
 // SPEC §4.4 — 관리자 대시보드: 지금 나가 있는 물품과 건수.
 // 기간·연체 개념이 사라져 '오늘 수령/반납 예정'과 '연체'를 계산할 수 없다.
@@ -135,6 +136,7 @@ export class PageAdminDashboard extends LitElement {
     }
     const d = this.data;
     return html`
+      <admin-nav active="dashboard"></admin-nav>
       <h1>대시보드</h1>
       <div class="cards">
         <button class="card link" @click=${() => this.goStatus("rented")}>

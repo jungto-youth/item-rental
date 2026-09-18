@@ -1,4 +1,4 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { api } from "../api/client";
 import { session, type SessionUser } from "../context/session";
@@ -59,10 +59,22 @@ export class PageMypage extends LitElement {
         justify-content: space-between;
         gap: 12px;
       }
-      .pending {
+      /* 상단 안내 — 최대 1개만 노출 (우선순위: 비활성화 > 승인 대기 > 연락처 등록) */
+      .banner {
+        margin-bottom: var(--space-4);
+      }
+      .banner.warning {
         border-color: var(--color-warning);
         background: var(--tone-warning-bg);
         color: var(--tone-warning-text);
+      }
+      .banner.danger {
+        border-color: var(--color-danger);
+        background: var(--tone-danger-bg);
+        color: var(--tone-danger-text);
+      }
+      .banner a {
+        color: var(--color-primary);
       }
       .row {
         background: var(--color-surface);
@@ -219,6 +231,32 @@ export class PageMypage extends LitElement {
     return iso.slice(0, 10);
   }
 
+  // 상단 안내는 최대 1개만 — 우선순위: 비활성화 > 승인 대기 > 연락처 등록
+  private get bannerCard(): { tone: string; text: TemplateResult } | null {
+    const u = this.user;
+    if (!u) return null;
+    if (u.status === "inactive") {
+      return {
+        tone: "danger",
+        text: html`비활성화된 계정이에요 — 재대여를 원하시면 관리자에게 문의해주세요.`,
+      };
+    }
+    if (u.status === "pending") {
+      return {
+        tone: "warning",
+        text: html`승인 대기 중이에요 — 관리자 승인 후 물품을 대여할 수 있어요.`,
+      };
+    }
+    if (!u.phone) {
+      return {
+        tone: "info",
+        text: html`물품을 대여하려면 연락처를 등록해야 해요 —
+          <a href="/signup/profile">연락처 등록하기</a>`,
+      };
+    }
+    return null;
+  }
+
   private async doCancel(r: MyReservation) {
     this.confirmingCancelId = null;
     if (this.busy) return;
@@ -357,27 +395,8 @@ export class PageMypage extends LitElement {
     return html`
       <h1>마이페이지</h1>
 
-      ${this.user.status === "inactive"
-        ? html`
-            <div class="card" style="margin-bottom: var(--space-4)">
-              비활성화된 계정이에요 — 재대여를 원하시면 관리자에게 문의해주세요.
-            </div>
-          `
-        : this.user.status === "pending"
-          ? html`
-              <div class="card pending" style="margin-bottom: var(--space-4)">
-                승인 대기 중이에요 — 관리자 승인 후 물품을 대여할 수 있어요.
-              </div>
-            `
-          : ""}
-
-      ${!this.user.phone
-        ? html`
-            <div class="card" style="margin-bottom: var(--space-4)">
-              물품을 대여하려면 연락처를 등록해야 해요 —
-              <a href="/signup/profile" style="color: var(--color-primary);">연락처 등록하기</a>
-            </div>
-          `
+      ${this.bannerCard
+        ? html`<div class="card banner ${this.bannerCard.tone}">${this.bannerCard.text}</div>`
         : ""}
 
       ${this.message ? html`<p class="msg" aria-live="polite">${this.message}</p>` : ""}

@@ -4,6 +4,7 @@ import { api } from "../../api/client";
 import { navigate } from "../../router";
 import type { RentalHistoryRow } from "../../types";
 import { reduceMotion } from "../../styles/motion";
+import "../../components/admin/admin-nav";
 
 // SPEC §4.3 — 과거 대여 이력 (2025 청년페스타 '물품대여' 시트 스냅샷, 관리자 전용)
 // 살아 있는 운영 큐(/admin/reservations)와 다른 자료다 — 수정·상태 전이가 없고 조회만 한다.
@@ -200,6 +201,7 @@ export class PageAdminHistory extends LitElement {
 
   render() {
     return html`
+      <admin-nav active="history"></admin-nav>
       <h1>대여 이력</h1>
       <p class="count">
         2025 청년페스타 시트 기록이에요 — 지난 대여를 찾아볼 때 쓰는 참고

@@ -143,11 +143,54 @@ export class ItemRentalForm extends LitElement {
       color: var(--color-success);
     }
 
-    .login-prompt {
+    /* 대여 불가 상태 — 박스 대신 한 줄 안내 (단순화) */
+    .notice {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg, 12px);
+      background: var(--color-surface);
+      font-size: var(--text-caption, 13px);
+      color: var(--color-text);
+      box-sizing: border-box;
+    }
+
+    .notice .msg {
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .notice.warn {
+      border-color: var(--color-warning);
+      background: var(--tone-warning-bg);
+      color: var(--tone-warning-text);
+    }
+
+    /* 메모는 접이식 — 기본 화면은 수량 + 버튼만 */
+    .memo-box summary {
+      cursor: pointer;
       font-size: var(--text-caption, 13px);
       color: var(--color-muted);
-      text-align: center;
-      padding: 8px 0;
+      font-weight: 500;
+      user-select: none;
+      padding: 4px 0;
+    }
+
+    .memo-box summary::after {
+      content: "▾";
+      float: right;
+      opacity: 0.7;
+    }
+
+    .memo-box[open] summary::after {
+      content: "▴";
+    }
+
+    .memo-box .memo-input {
+      margin-top: 8px;
     }
   `;
 
@@ -236,26 +279,31 @@ export class ItemRentalForm extends LitElement {
       `;
     }
 
+    const max = this.availableNow;
+
+    // 대여 불가 상태 — 각각 한 줄 안내로만 (박스 대신)
     if (this.item.kind === "consumable") {
       return html`
-        <div class="box">
-          <h3 class="title">소모품 안내</h3>
-          <p class="msg">소모품은 별도 대여 신청 없이 관리자 문의 후 사용해 주세요.</p>
+        <div class="notice">
+          <p class="msg">소모품이에요 — 별도 대여 신청 없이 관리자에게 문의해 주세요.</p>
         </div>
       `;
     }
 
     if (!this.userReady) {
-      return html`<div class="box"><p class="login-prompt">사용자 확인 중…</p></div>`;
+      return html`
+        <div class="notice">
+          <p class="msg">사용자 확인 중…</p>
+        </div>
+      `;
     }
 
     if (!this.user) {
       return html`
-        <div class="box">
-          <h3 class="title">대여 신청</h3>
-          <p class="login-prompt">대여를 신청하려면 먼저 로그인해 주세요.</p>
-          <x-button variant="primary" size="md" @click=${() => navigate("/login")}>
-            로그인하기
+        <div class="notice">
+          <p class="msg">대여하려면 로그인이 필요해요.</p>
+          <x-button variant="secondary" size="sm" @click=${() => navigate("/login")}>
+            로그인
           </x-button>
         </div>
       `;
@@ -263,24 +311,27 @@ export class ItemRentalForm extends LitElement {
 
     if (this.user.status === "pending") {
       return html`
-        <div class="box">
-          <h3 class="title">대여 신청</h3>
-          <p class="msg error">관리자 승인 대기 중인 계정입니다. 승인 후 대여가 가능해요.</p>
+        <div class="notice warn">
+          <p class="msg">관리자 승인 대기 중이에요 — 승인 후 대여할 수 있어요.</p>
         </div>
       `;
     }
 
     if (this.item.status !== "active") {
       return html`
-        <div class="box">
-          <h3 class="title">대여 불가</h3>
-          <p class="msg">현재 점검 또는 수리 중인 물품입니다.</p>
+        <div class="notice warn">
+          <p class="msg">현재 점검 또는 수리 중인 물품이에요.</p>
         </div>
       `;
     }
 
-    const max = this.availableNow;
-    const isOutOfStock = max === 0;
+    if (max === 0) {
+      return html`
+        <div class="notice warn">
+          <p class="msg">지금은 재고가 없어요 — 반납 후 다시 시도해 주세요.</p>
+        </div>
+      `;
+    }
 
     return html`
       <form class="box" @submit=${this.handleSubmit}>
@@ -295,46 +346,42 @@ export class ItemRentalForm extends LitElement {
                     type="button"
                     class="step-btn"
                     @click=${this.handleDec}
-                    ?disabled=${this.qty <= 1 || isOutOfStock}
+                    ?disabled=${this.qty <= 1}
                     aria-label="수량 감소"
                   >
                     −
                   </button>
-                  <span class="qty-display">${isOutOfStock ? 0 : this.qty}</span>
+                  <span class="qty-display">${this.qty}</span>
                   <button
                     type="button"
                     class="step-btn"
                     @click=${this.handleInc}
-                    ?disabled=${this.qty >= max || isOutOfStock}
+                    ?disabled=${this.qty >= max}
                     aria-label="수량 증가"
                   >
                     +
                   </button>
                 </div>
               `
-            : html`<span class="qty-single">${isOutOfStock ? "0개 (품절)" : "1개"}</span>`}
+            : html`<span class="qty-single">1개</span>`}
         </div>
 
-        <input
-          class="memo-input"
-          placeholder="메모 (용도, 수령처 등 선택 입력)"
-          .value=${this.memo}
-          @input=${(e: Event) => (this.memo = (e.target as HTMLInputElement).value)}
-          ?disabled=${isOutOfStock}
-        />
+        <details class="memo-box">
+          <summary>메모 추가 (선택)</summary>
+          <input
+            class="memo-input"
+            placeholder="용도, 수령처 등"
+            .value=${this.memo}
+            @input=${(e: Event) => (this.memo = (e.target as HTMLInputElement).value)}
+          />
+        </details>
 
         ${this.message
           ? html`<p class="msg ${this.isSuccess ? "success" : "error"}">${this.message}</p>`
           : ""}
 
-        <x-button
-          variant="primary"
-          size="md"
-          type="submit"
-          ?loading=${this.saving}
-          ?disabled=${isOutOfStock || this.saving}
-        >
-          ${isOutOfStock ? "현재 대여 불가 (재고 없음)" : "대여하기"}
+        <x-button variant="primary" size="md" type="submit" ?loading=${this.saving}>
+          대여하기
         </x-button>
       </form>
     `;

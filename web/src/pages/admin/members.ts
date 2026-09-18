@@ -4,6 +4,7 @@ import { api, ApiError } from "../../api/client";
 import "../../components/ui/badge";
 import type { AdminMember, Role } from "../../types";
 import { reduceMotion } from "../../styles/motion";
+import "../../components/admin/admin-nav";
 
 // SPEC §4.4 — 회원 관리: 승인/거절·역할 지정/해제 모두 admin 전용
 // 역할 변경 보호장치는 서버가 강제: 마지막 관리자 해임 불가, 미승인 회원 임명 불가
@@ -205,6 +206,7 @@ export class PageAdminMembers extends LitElement {
 
   render() {
     return html`
+      <admin-nav active="members"></admin-nav>
       <h1>회원 관리</h1>
       <p class="msg">${this.message}</p>
       ${
