@@ -1,132 +1,146 @@
-/* DESIGN.md — Apple 기반 디자인 토큰 (CSS 커스텀 프로퍼티는 Shadow DOM 안으로 상속됨)
+/* DESIGN.md — 미니멀 디자인 시스템 토큰
    테마 3단계: data-theme 없음=시스템 따름, "light"/"dark"=명시 선택.
-   라이트=파치먼트 캔버스, 다크=블랙 캔버스. 다크 블록은 두 셀렉터에 반복 — 수동 동기화. */
+   라이트=순백 캔버스(#ffffff), 다크=딥블랙 캔버스(#0c0c0e).
+   헤어라인 보더(1px)와 8px/12px 일관된 조형 언어. */
 
-/* ── 라이트 팔레트 (Apple 낮) ── */
+/* ── 라이트 팔레트 (순백 캔버스) ── */
 :root {
-    color-scheme: light;
+  color-scheme: light;
 
-    --color-bg: #f5f5f7; /* 파치먼트 캔버스 */
-    --color-surface: #ffffff; /* 유틸리티 카드 */
-    --color-border: #e0e0e0; /* 헤어라인 */
-    --color-text: #1d1d1f; /* 잉크 */
-    --color-muted: #6e6e73;
-    --color-primary: #0066cc; /* Action Blue — 유일한 인터랙션 색 */
-    --color-primary-text: #ffffff;
-    --color-primary-focus: #0071e3;
-    --color-primary-tint: rgba(
-        0,
-        102,
-        204,
-        0.12
-    ); /* primary 은은한 배경 — 선택 범위·강조 면 */
-    --color-link-on-dark: #2997ff;
-    --color-success: #16a34a;
-    --color-warning: #d97706;
-    --color-danger: #dc2626;
+  --color-bg: #ffffff; /* 순백 캔버스 */
+  --color-surface: #f8f8fa; /* 은은한 서피스/호버/필 */
+  --color-border: #e5e5ea; /* 1px 미세 헤어라인 */
+  --color-text: #111113; /* 선명한 블랙 본문 */
+  --color-muted: #71717a; /* 차분한 그레이 보조 텍스트 */
+  --color-primary: #0066cc; /* Action Blue — 단일 액센트 */
+  --color-primary-text: #ffffff;
+  --color-primary-focus: #0071e3;
+  --color-primary-tint: rgba(0, 102, 204, 0.08);
+  --color-link-on-dark: #2997ff;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #e11d48;
 
-    /* 상태 톤 — 배지·알림 배경/글자 쌍 */
-    --tone-success-bg: #dcfce7;
-    --tone-success-text: #166534;
-    --tone-warning-bg: #fef9c3;
-    --tone-warning-text: #854d0e;
-    --tone-danger-bg: #fee2e2;
-    --tone-danger-text: #991b1b;
-    --tone-info-bg: #e0e7ff;
-    --tone-info-text: #3730a3;
-    --tone-violet-bg: #ede9fe;
-    --tone-violet-text: #5b21b6;
+  /* 상태 인디케이터 점 색상 (DESIGN.md §2) */
+  --dot-available: #10b981;
+  --dot-rented: #71717a;
+  --dot-repair: #f59e0b;
 
-    /* 라운드 스케일 — 유틸 8 / 카드 18 / 필 9999 (DESIGN.md §3) */
-    --radius-sm: 8px;
-    --radius: 18px;
-    --radius-pill: 9999px;
+  /* 상태 톤 토큰 */
+  --tone-success-bg: #ecfdf5;
+  --tone-success-text: #065f46;
+  --tone-warning-bg: #fffbeb;
+  --tone-warning-text: #92400e;
+  --tone-danger-bg: #fff1f2;
+  --tone-danger-text: #9f1239;
+  --tone-info-bg: #f4f4f5;
+  --tone-info-text: #27272a;
+  --tone-violet-bg: #faf5ff;
+  --tone-violet-text: #581c87;
 
-    --space-1: 4px;
-    --space-2: 8px;
-    --space-3: 12px;
-    --space-4: 16px;
-    --space-5: 20px;
-    --space-6: 24px;
+  /* 라운드 스케일 — 컨트롤 8px / 카드 12px (DESIGN.md §3) */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  /* 이전 코드 하위 호환 별칭 */
+  --radius: 12px;
+  --radius-pill: 8px;
 
-    /* 타이포 — Apple tight (DESIGN.md §4) */
-    --text-body: 1.0625rem; /* 17px — 본문 기본 */
-    --text-caption: 0.875rem; /* 14px */
-    --text-fine: 0.75rem; /* 12px */
-    --tracking-tight: -0.02em;
+  /* 간격 스케일 (4px 그리드) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
 
-    --font-body:
-        system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
-        "Malgun Gothic", sans-serif;
+  /* 타이포그래피 (DESIGN.md §3) */
+  --text-title: 1.25rem;   /* 20px */
+  --text-heading: 1.0625rem; /* 17px */
+  --text-body: 0.9375rem;  /* 15px */
+  --text-caption: 0.8125rem; /* 13px */
+  --text-fine: 0.75rem;    /* 12px */
+  --tracking-tight: -0.015em;
+
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    "Malgun Gothic", sans-serif;
 }
 
-/* ── 다크 팔레트 (Apple 밤 — 블랙 캔버스) ──
+/* ── 다크 팔레트 (딥블랙 캔버스) ──
    아래 두 셀렉터는 동일 블록 반복 — 수정 시 둘 다! */
 @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-        color-scheme: dark;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
 
-        --color-bg: #000000;
-        --color-surface: #1d1d1f;
-        --color-border: #2a2a2c;
-        --color-text: #f5f5f7;
-        --color-muted: #86868b;
-        --color-primary: #0071e3;
-        --color-primary-text: #ffffff;
-        --color-primary-focus: #2997ff;
-        /* 블랙 캔버스 위 고정 알파는 어두워 사라지므로 다크에선 밝은 톤 + 높은 알파 */
-        --color-primary-tint: rgba(41, 151, 255, 0.25);
-        --color-link-on-dark: #2997ff;
-        --color-success: #22c55e;
-        --color-warning: #f59e0b;
-        --color-danger: #ef4444;
+    --color-bg: #0c0c0e; /* 딥블랙 캔버스 */
+    --color-surface: #161618; /* 다크 서피스/호버 */
+    --color-border: #262628; /* 다크 1px 헤어라인 */
+    --color-text: #f2f2f5; /* 밝은 텍스트 */
+    --color-muted: #8e8e93; /* 다크 보조 텍스트 */
+    --color-primary: #2997ff; /* 다크 액센트 블루 */
+    --color-primary-text: #ffffff;
+    --color-primary-focus: #388bfd;
+    --color-primary-tint: rgba(41, 151, 255, 0.15);
+    --color-link-on-dark: #2997ff;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-danger: #fb7185;
 
-        --tone-success-bg: #14532d;
-        --tone-success-text: #86efac;
-        --tone-warning-bg: #78350f;
-        --tone-warning-text: #fcd34d;
-        --tone-danger-bg: #7f1d1d;
-        --tone-danger-text: #fca5a5;
-        --tone-info-bg: #312e81;
-        --tone-info-text: #a5b4fc;
-        --tone-violet-bg: #4c1d95;
-        --tone-violet-text: #c4b5fd;
-    }
+    --dot-available: #10b981;
+    --dot-rented: #8e8e93;
+    --dot-repair: #f59e0b;
+
+    --tone-success-bg: #064e3b;
+    --tone-success-text: #a7f3d0;
+    --tone-warning-bg: #451a03;
+    --tone-warning-text: #fde68a;
+    --tone-danger-bg: #4c0519;
+    --tone-danger-text: #fecdd3;
+    --tone-info-bg: #27272a;
+    --tone-info-text: #e4e4e7;
+    --tone-violet-bg: #3b0764;
+    --tone-violet-text: #e9d5ff;
+  }
 }
 
 :root[data-theme="dark"] {
-    color-scheme: dark;
+  color-scheme: dark;
 
-    --color-bg: #000000;
-    --color-surface: #1d1d1f;
-    --color-border: #2a2a2c;
-    --color-text: #f5f5f7;
-    --color-muted: #86868b;
-    --color-primary: #0071e3;
-    --color-primary-text: #ffffff;
-    --color-primary-focus: #2997ff;
-    /* 블랙 캔버스 위 고정 알파는 어두워 사라지므로 다크에선 밝은 톤 + 높은 알파 */
-    --color-primary-tint: rgba(41, 151, 255, 0.25);
-    --color-link-on-dark: #2997ff;
-    --color-success: #22c55e;
-    --color-warning: #f59e0b;
-    --color-danger: #ef4444;
+  --color-bg: #0c0c0e;
+  --color-surface: #161618;
+  --color-border: #262628;
+  --color-text: #f2f2f5;
+  --color-muted: #8e8e93;
+  --color-primary: #2997ff;
+  --color-primary-text: #ffffff;
+  --color-primary-focus: #388bfd;
+  --color-primary-tint: rgba(41, 151, 255, 0.15);
+  --color-link-on-dark: #2997ff;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #fb7185;
 
-    --tone-success-bg: #14532d;
-    --tone-success-text: #86efac;
-    --tone-warning-bg: #78350f;
-    --tone-warning-text: #fcd34d;
-    --tone-danger-bg: #7f1d1d;
-    --tone-danger-text: #fca5a5;
-    --tone-info-bg: #312e81;
-    --tone-info-text: #a5b4fc;
-    --tone-violet-bg: #4c1d95;
-    --tone-violet-text: #c4b5fd;
+  --dot-available: #10b981;
+  --dot-rented: #8e8e93;
+  --dot-repair: #f59e0b;
+
+  --tone-success-bg: #064e3b;
+  --tone-success-text: #a7f3d0;
+  --tone-warning-bg: #451a03;
+  --tone-warning-text: #fde68a;
+  --tone-danger-bg: #4c0519;
+  --tone-danger-text: #fecdd3;
+  --tone-info-bg: #27272a;
+  --tone-info-text: #e4e4e7;
+  --tone-violet-bg: #3b0764;
+  --tone-violet-text: #e9d5ff;
 }
 
 body {
-    margin: 0;
-    font-family: var(--font-body);
-    background: var(--color-bg);
-    color: var(--color-text);
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }

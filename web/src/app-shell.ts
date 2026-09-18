@@ -50,7 +50,7 @@ export class AppShell extends LitElement {
         top: calc(-1 * var(--row-h));
         z-index: 10;
       }
-      /* --- 1행: 브랜드 + 계정/로그인 + 테마 세그먼트 — 헤더가 -44px까지 올라가며 자연스럽게 밀려나감 --- */
+      /* --- 1행: 브랜드 + 계정/로그인 + 테마 세그먼트 --- */
       .row-top {
         display: flex;
         align-items: center;
@@ -59,18 +59,16 @@ export class AppShell extends LitElement {
         box-sizing: border-box;
         min-height: var(--row-h);
         padding: 0 var(--space-4);
-        /* 헤어라인 — border 대신 inset 그림자: 레이아웃에 참여하지 않아 행이 진짜 44px,
-         header top:-44px 고정점 계산이 정확히 성립 (min-height는 하한이라 border를 흡수 못 함) */
-        box-shadow: inset 0 -1px var(--color-border);
+        border-bottom: 1px solid var(--color-border);
       }
-      /* --- 2행: 메뉴 네비 — 헤더가 고정되면 화면 상단에 남는 행 --- */
+      /* --- 2행: 메뉴 네비 --- */
       .row-nav {
         display: flex;
         align-items: center;
         box-sizing: border-box;
         min-height: var(--row-h);
         padding: 0 var(--space-4);
-        box-shadow: inset 0 -1px var(--color-border);
+        border-bottom: 1px solid var(--color-border);
       }
       .brand {
         display: flex;
@@ -281,10 +279,10 @@ export class AppShell extends LitElement {
         display: block;
       }
       main {
-        max-width: 640px;
+        max-width: 720px;
         margin: 0 auto;
         padding: var(--space-4);
-        font-size: var(--text-body); /* 본문 17px 기본 (DESIGN.md §4) */
+        font-size: var(--text-body);
         line-height: 1.47;
       }
     `,

@@ -13,53 +13,72 @@ const LABELS: Record<string, string> = {
   cancelled: "취소",
 };
 
+// DESIGN.md §2 — 미니멀 상태 배지: 무채색 칩 + 상태 점(Status Dot)
 @customElement("x-badge")
 export class XBadge extends LitElement {
   @property() kind = "neutral";
+  @property() label = "";
 
   static styles = css`
-    span {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: var(--radius-pill);
-      font-size: var(--text-fine); /* 12px */
-      font-weight: 600;
-      letter-spacing: -0.01em;
+    :host {
+      display: inline-flex;
+      vertical-align: middle;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm, 6px);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-size: var(--text-fine, 12px);
+      font-weight: 500;
+      line-height: 1.4;
       white-space: nowrap;
     }
-    /* 상태 색은 tokens.css의 톤 토큰 — 다크/라이트 자동 대응 */
-    .available,
-    .user,
-    .returned {
-      background: var(--tone-success-bg);
-      color: var(--tone-success-text);
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-muted);
+      flex-shrink: 0;
     }
-    /* 대여 중은 물품이 나가 있는 상태 — 회수해야 할 대상이라 경고 톤 */
-    .rented {
-      background: var(--tone-warning-bg);
-      color: var(--tone-warning-text);
+
+    /* 상태별 점 색상 */
+    .available .dot,
+    .returned .dot {
+      background: var(--dot-available, #10b981);
     }
-    .repair {
-      background: var(--tone-info-bg);
-      color: var(--tone-info-text);
+    .rented .dot {
+      background: var(--dot-rented, #71717a);
+      border: 1px solid currentColor;
+      box-sizing: border-box;
     }
-    .admin {
-      background: var(--tone-violet-bg);
-      color: var(--tone-violet-text);
+    .repair .dot {
+      background: var(--dot-repair, #f59e0b);
     }
-    .retired,
-    .neutral,
-    .cancelled,
-    .inactive {
-      background: var(--color-border);
-      color: var(--color-muted);
+    .admin .dot {
+      background: var(--color-primary);
+    }
+    .retired .dot,
+    .inactive .dot,
+    .cancelled .dot,
+    .neutral .dot {
+      background: var(--color-muted);
     }
   `;
 
   render() {
-    return html`<span class=${this.kind}
-      >${LABELS[this.kind] ?? this.kind}</span
-    >`;
+    const text = this.label || LABELS[this.kind] || this.kind;
+    return html`
+      <span class="badge ${this.kind}">
+        <span class="dot"></span>
+        <span class="text">${text}</span>
+      </span>
+    `;
   }
 }
 
