@@ -14,31 +14,50 @@ export class PageMypage extends LitElement {
   @state() private reservations: MyReservation[] = [];
   @state() private busy = false;
   @state() private message = "";
+  @state() private confirmingReturnId: number | null = null;
+  @state() private confirmingCancelId: number | null = null;
 
   static styles = [
     reduceMotion,
     css`
+      :host {
+        display: block;
+      }
       h1 {
         font-size: 1.375rem;
         font-weight: 600;
         letter-spacing: var(--tracking-tight);
-        line-height: 1.1;
+        line-height: 1.2;
+        margin: 0 0 var(--space-4);
       }
       h2 {
         font-size: 1.0625rem;
         font-weight: 600;
         letter-spacing: var(--tracking-tight);
-        margin: var(--space-6) 0 var(--space-2);
+        margin: var(--space-5) 0 var(--space-3);
+      }
+      .section-top {
+        margin-top: var(--space-2);
       }
       .card {
         background: var(--color-surface);
         border: 1px solid var(--color-border);
-        border-radius: var(--radius);
+        border-radius: var(--radius-lg, 12px);
         padding: var(--space-4);
         display: grid;
         gap: var(--space-2);
         font-size: var(--text-body);
         line-height: 1.47;
+      }
+      .profile-card {
+        margin-top: var(--space-3);
+        font-size: var(--text-caption, 13px);
+      }
+      .profile-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
       }
       .pending {
         border-color: var(--color-warning);
@@ -48,13 +67,17 @@ export class PageMypage extends LitElement {
       .row {
         background: var(--color-surface);
         border: 1px solid var(--color-border);
-        border-radius: var(--radius);
+        border-radius: var(--radius-md, 8px);
         padding: var(--space-3) var(--space-4);
         display: flex;
         align-items: center;
         gap: var(--space-3);
         font-size: var(--text-body);
         margin-bottom: var(--space-2);
+        transition: border-color 0.15s ease;
+      }
+      .row.active-row {
+        border-left: 3px solid var(--color-primary);
       }
       .row .name {
         font-weight: 600;
@@ -67,42 +90,109 @@ export class PageMypage extends LitElement {
       .row .spacer {
         flex: 1;
       }
-      .link {
-        background: none;
-        border: 0;
-        color: var(
-          --color-primary
-        ); /* DESIGN.md §5 — 텍스트 동작은 블루 링크 */
-        cursor: pointer;
-        padding: 0 var(--space-2);
-        font-size: var(--text-caption);
-        font-family: inherit;
-        line-height: 44px;
+      .action-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
       }
-      .link:disabled {
+      .link-btn {
+        background: none;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm, 6px);
+        color: var(--color-primary);
+        cursor: pointer;
+        padding: 5px 12px;
+        font-size: var(--text-caption, 13px);
+        font-weight: 500;
+        font-family: inherit;
+        transition: all 0.12s ease;
+      }
+      .link-btn:hover:not(:disabled) {
+        background: var(--color-primary);
+        color: var(--color-primary-text);
+        border-color: var(--color-primary);
+      }
+      .link-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
-      /* 취소만 danger — 되돌릴 수 없는 파괴적 동작이라 반납(블루)과 구분한다 (DESIGN.md §4) */
-      .link.danger {
+      .link-btn.danger {
+        border-color: transparent;
         color: var(--color-danger);
+      }
+      .link-btn.danger:hover:not(:disabled) {
+        background: var(--tone-danger-bg);
+        border-color: var(--color-danger);
+      }
+      .confirm-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .confirm-text {
+        font-size: var(--text-fine, 12px);
+        color: var(--color-muted);
+      }
+      .btn-confirm-yes {
+        background: var(--color-primary);
+        color: var(--color-primary-text);
+        border: none;
+        border-radius: var(--radius-sm, 6px);
+        padding: 4px 10px;
+        font-size: var(--text-caption, 13px);
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .btn-confirm-no {
+        background: var(--color-surface);
+        color: var(--color-muted);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm, 6px);
+        padding: 4px 8px;
+        font-size: var(--text-caption, 13px);
+        cursor: pointer;
       }
       .note {
         color: var(--color-muted);
         font-size: var(--text-caption);
+        margin: -4px 0 var(--space-2) var(--space-2);
       }
-      .empty {
+      .empty-box {
+        text-align: center;
+        padding: var(--space-5) var(--space-4);
+        background: var(--color-surface);
+        border: 1px dashed var(--color-border);
+        border-radius: var(--radius-md, 8px);
         color: var(--color-muted);
         font-size: var(--text-caption);
+      }
+      .empty-box a {
+        display: inline-block;
+        margin-top: var(--space-2);
+        color: var(--color-primary);
+        font-weight: 500;
+        text-decoration: none;
       }
       .msg {
         color: var(--color-primary);
         font-size: var(--text-caption);
         min-height: 1.2em;
+        margin: 0 0 var(--space-2);
       }
-      p {
-        color: var(--color-muted);
-        line-height: 1.47;
+      details.history-details {
+        margin-top: var(--space-5);
+      }
+      details.history-details summary {
+        cursor: pointer;
+        font-size: 1.0625rem;
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+        color: var(--color-text);
+        padding: var(--space-2) 0;
+        user-select: none;
+      }
+      .history-list {
+        margin-top: var(--space-3);
       }
     `,
   ];
@@ -125,18 +215,17 @@ export class PageMypage extends LitElement {
     }
   }
 
-  // created_at(ISO 8601) → YYYY-MM-DD. 날짜 개념이 없어져 신청일 표시만 남았다
   private fmtDate(iso: string): string {
     return iso.slice(0, 10);
   }
 
-  private async cancel(r: MyReservation) {
-    if (!confirm("대여를 취소할까요?")) return;
+  private async doCancel(r: MyReservation) {
+    this.confirmingCancelId = null;
     if (this.busy) return;
     this.busy = true;
     try {
       await api(`/api/reservations/${r.id}/cancel`, { method: "POST" });
-      this.message = "취소했어요";
+      this.message = `${r.item_name} 대여를 취소했어요`;
       await this.loadReservations();
     } catch (e) {
       this.message = e instanceof Error ? e.message : "취소 실패";
@@ -145,14 +234,13 @@ export class PageMypage extends LitElement {
     }
   }
 
-  // 반납 — 물품을 돌려준 회원이 직접 처리한다. 관리자에게 요청할 필요가 없다
-  private async returnItem(r: MyReservation) {
-    if (!confirm(`${r.item_name}을(를) 돌려주셨나요? 반납 처리할까요?`)) return;
+  private async doReturn(r: MyReservation) {
+    this.confirmingReturnId = null;
     if (this.busy) return;
     this.busy = true;
     try {
       await api(`/api/reservations/${r.id}/return`, { method: "POST" });
-      this.message = "반납 처리했어요";
+      this.message = `${r.item_name} 반납 완료 처리되었어요`;
       await this.loadReservations();
     } catch (e) {
       this.message = e instanceof Error ? e.message : "반납 실패";
@@ -161,15 +249,87 @@ export class PageMypage extends LitElement {
     }
   }
 
-  private renderGroup(title: string, rows: MyReservation[]) {
-    if (rows.length === 0) return "";
+  private renderActiveRow(r: MyReservation) {
+    const isConfirmingReturn = this.confirmingReturnId === r.id;
+    const isConfirmingCancel = this.confirmingCancelId === r.id;
+
     return html`
-      <h2>${title}</h2>
-      ${rows.map((r) => this.renderRow(r))}
+      <div class="row active-row">
+        <div>
+          <div class="name">
+            ${r.item_name}${r.qty > 1 ? ` · ${r.qty}개` : ""}
+          </div>
+          <div class="dates">${this.fmtDate(r.created_at)} 대여 신청</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="action-group">
+          ${isConfirmingReturn
+            ? html`
+                <div class="confirm-inline">
+                  <span class="confirm-text">반납할까요?</span>
+                  <button
+                    class="btn-confirm-yes"
+                    ?disabled=${this.busy}
+                    @click=${() => this.doReturn(r)}
+                  >
+                    확인
+                  </button>
+                  <button
+                    class="btn-confirm-no"
+                    @click=${() => (this.confirmingReturnId = null)}
+                  >
+                    취소
+                  </button>
+                </div>
+              `
+            : isConfirmingCancel
+              ? html`
+                  <div class="confirm-inline">
+                    <span class="confirm-text">취소할까요?</span>
+                    <button
+                      class="btn-confirm-yes"
+                      ?disabled=${this.busy}
+                      @click=${() => this.doCancel(r)}
+                    >
+                      확인
+                    </button>
+                    <button
+                      class="btn-confirm-no"
+                      @click=${() => (this.confirmingCancelId = null)}
+                    >
+                      닫기
+                    </button>
+                  </div>
+                `
+              : html`
+                  <button
+                    class="link-btn"
+                    ?disabled=${this.busy}
+                    @click=${() => {
+                      this.confirmingCancelId = null;
+                      this.confirmingReturnId = r.id;
+                    }}
+                  >
+                    반납하기
+                  </button>
+                  <button
+                    class="link-btn danger"
+                    ?disabled=${this.busy}
+                    @click=${() => {
+                      this.confirmingReturnId = null;
+                      this.confirmingCancelId = r.id;
+                    }}
+                  >
+                    취소
+                  </button>
+                `}
+        </div>
+      </div>
+      ${r.member_memo ? html`<p class="note">메모: ${r.member_memo}</p>` : ""}
     `;
   }
 
-  private renderRow(r: MyReservation) {
+  private renderHistoryRow(r: MyReservation) {
     return html`
       <div class="row">
         <div>
@@ -180,30 +340,8 @@ export class PageMypage extends LitElement {
         </div>
         <div class="spacer"></div>
         <x-badge kind=${r.status}></x-badge>
-        ${
-          r.status === "rented"
-            ? html`<button
-                  class="link"
-                  ?disabled=${this.busy}
-                  @click=${() => this.returnItem(r)}
-                >
-                  반납
-                </button>
-                <button
-                  class="link danger"
-                  ?disabled=${this.busy}
-                  @click=${() => this.cancel(r)}
-                >
-                  취소
-                </button>`
-            : ""
-        }
       </div>
-      ${
-        r.member_memo
-          ? html`<p class="note">메모: ${r.member_memo}</p>`
-          : ""
-      }
+      ${r.member_memo ? html`<p class="note">메모: ${r.member_memo}</p>` : ""}
     `;
   }
 
@@ -211,62 +349,87 @@ export class PageMypage extends LitElement {
     if (this.loading) return html`<p>불러오는 중…</p>`;
     if (!this.user) return html`<p>로그인이 필요해요</p>`;
 
+    const rentedList = this.reservations.filter((r) => r.status === "rented");
+    const historyList = this.reservations.filter(
+      (r) => r.status === "returned" || r.status === "cancelled",
+    );
+
     return html`
       <h1>마이페이지</h1>
-      <div class="card">
-        <span><b>${this.user.name || this.user.email}</b></span>
-        <span>${this.user.email}</span>
-        ${this.user.phone ? html`<span>연락처: ${this.user.phone}</span>` : ""}
-        <span>상태: <x-badge kind=${this.user.status}></x-badge></span>
-        ${this.user.phone ? html`<span><a class="link" href="/signup/profile">프로필 수정</a></span>` : ""}
-      </div>
-      ${
-        this.user.status === "inactive"
+
+      ${this.user.status === "inactive"
+        ? html`
+            <div class="card" style="margin-bottom: var(--space-4)">
+              비활성화된 계정이에요 — 재대여를 원하시면 관리자에게 문의해주세요.
+            </div>
+          `
+        : this.user.status === "pending"
           ? html`
-              <div class="card" style="margin-top: var(--space-3)">
-                비활성화된 계정이에요 — 재대여를 원하시면 관리자에게
-                문의해주세요.
+              <div class="card pending" style="margin-bottom: var(--space-4)">
+                승인 대기 중이에요 — 관리자 승인 후 물품을 대여할 수 있어요.
               </div>
             `
-          : this.user.status === "pending"
-            ? html`
-                <div class="card pending" style="margin-top: var(--space-3)">
-                  승인 대기 중이에요 — 관리자 승인 후 물품을 대여할 수 있어요.
-                </div>
-              `
-            : html`
-                <p class="msg" aria-live="polite">${this.message}</p>
-                ${this.renderGroup(
-                  "대여 중",
-                  this.reservations.filter((r) => r.status === "rented"),
-                )}
-                ${this.renderGroup(
-                  "대여 이력",
-                  this.reservations.filter(
-                    (r) => r.status === "returned" || r.status === "cancelled",
-                  ),
-                )}
-                ${
-                  this.reservations.length === 0
-                    ? html`<h2>내 대여</h2>
-                        <p class="empty">
-                          아직 대여 내역이 없어요 — 물품 상세에서 대여할 수
-                          있어요
-                        </p>`
-                    : ""
-                }
-              `
-      }
-      ${
-        this.user.phone
-          ? ""
+          : ""}
+
+      ${!this.user.phone
+        ? html`
+            <div class="card" style="margin-bottom: var(--space-4)">
+              물품을 대여하려면 연락처를 등록해야 해요 —
+              <a href="/signup/profile" style="color: var(--color-primary);">연락처 등록하기</a>
+            </div>
+          `
+        : ""}
+
+      ${this.message ? html`<p class="msg" aria-live="polite">${this.message}</p>` : ""}
+
+      <!-- 1순위: 현재 대여 중인 물품 -->
+      <section class="section-top">
+        <h2>현재 대여 중 (${rentedList.length})</h2>
+        ${rentedList.length > 0
+          ? html`${rentedList.map((r) => this.renderActiveRow(r))}`
           : html`
-              <div class="card" style="margin-top: var(--space-3)">
-                물품을 대여하려면 연락처를 등록해야 해요 —
-                <a href="/signup/profile">프로필 입력하기</a>
+              <div class="empty-box">
+                현재 대여 중인 물품이 없어요
+                <br />
+                <a href="/">물품 둘러보고 대여하기 →</a>
               </div>
-            `
-      }
+            `}
+      </section>
+
+      <!-- 2순위: 과거 대여 이력 -->
+      ${historyList.length > 0
+        ? html`
+            <details class="history-details" ?open=${rentedList.length === 0}>
+              <summary>대여 이력 (${historyList.length})</summary>
+              <div class="history-list">
+                ${historyList.map((r) => this.renderHistoryRow(r))}
+              </div>
+            </details>
+          `
+        : ""}
+
+      <!-- 3순위: 내 프로필 정보 -->
+      <section style="margin-top: var(--space-6)">
+        <h2>내 정보</h2>
+        <div class="card profile-card">
+          <div class="profile-row">
+            <div>
+              <b>${this.user.name || this.user.email}</b>
+              <div style="color: var(--color-muted); font-size: var(--text-fine, 12px);">
+                ${this.user.email} ${this.user.phone ? `· ${this.user.phone}` : ""}
+              </div>
+            </div>
+            <div>
+              <x-badge kind=${this.user.status}></x-badge>
+            </div>
+          </div>
+          <div style="margin-top: 4px;">
+            <a href="/signup/profile" style="color: var(--color-primary); text-decoration: none;">
+              프로필 수정 →
+            </a>
+          </div>
+        </div>
+      </section>
     `;
   }
 }

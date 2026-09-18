@@ -93,6 +93,23 @@ export class ItemRentalForm extends LitElement {
       font-size: var(--text-body, 15px);
     }
 
+    .qty-single {
+      font-size: var(--text-body, 15px);
+      font-weight: 600;
+      color: var(--color-text);
+      padding: 6px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md, 8px);
+      background: var(--color-bg);
+    }
+
+    .success-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
     .memo-input {
       width: 100%;
       height: 42px;
@@ -180,11 +197,6 @@ export class ItemRentalForm extends LitElement {
       this.qty = 1;
 
       this.dispatchEvent(new CustomEvent("rented", { bubbles: true, composed: true }));
-
-      // 1초 후 마이페이지로 자연스럽게 안내
-      setTimeout(() => {
-        navigate("/mypage");
-      }, 1000);
     } catch (err) {
       this.isSuccess = false;
       const msg = err instanceof Error ? err.message : "";
@@ -204,6 +216,25 @@ export class ItemRentalForm extends LitElement {
 
   render() {
     if (!this.item) return html``;
+
+    if (this.isSuccess) {
+      return html`
+        <div class="box">
+          <h3 class="title" style="color: var(--color-success)">🎉 대여 완료</h3>
+          <p class="msg">
+            <b>${this.item.name}</b> 대여가 접수되었어요. 사용 후 마이페이지에서 반납해 주세요.
+          </p>
+          <div class="success-actions">
+            <x-button variant="primary" size="md" @click=${() => navigate("/mypage")}>
+              내 대여 확인 / 반납하기
+            </x-button>
+            <x-button variant="secondary" size="md" @click=${() => navigate("/")}>
+              다른 물품 둘러보기
+            </x-button>
+          </div>
+        </div>
+      `;
+    }
 
     if (this.item.kind === "consumable") {
       return html`
@@ -257,27 +288,31 @@ export class ItemRentalForm extends LitElement {
 
         <div class="row">
           <span class="label">대여 수량</span>
-          <div class="stepper">
-            <button
-              type="button"
-              class="step-btn"
-              @click=${this.handleDec}
-              ?disabled=${this.qty <= 1 || isOutOfStock}
-              aria-label="수량 감소"
-            >
-              −
-            </button>
-            <span class="qty-display">${isOutOfStock ? 0 : this.qty}</span>
-            <button
-              type="button"
-              class="step-btn"
-              @click=${this.handleInc}
-              ?disabled=${this.qty >= max || isOutOfStock}
-              aria-label="수량 증가"
-            >
-              +
-            </button>
-          </div>
+          ${max > 1
+            ? html`
+                <div class="stepper">
+                  <button
+                    type="button"
+                    class="step-btn"
+                    @click=${this.handleDec}
+                    ?disabled=${this.qty <= 1 || isOutOfStock}
+                    aria-label="수량 감소"
+                  >
+                    −
+                  </button>
+                  <span class="qty-display">${isOutOfStock ? 0 : this.qty}</span>
+                  <button
+                    type="button"
+                    class="step-btn"
+                    @click=${this.handleInc}
+                    ?disabled=${this.qty >= max || isOutOfStock}
+                    aria-label="수량 증가"
+                  >
+                    +
+                  </button>
+                </div>
+              `
+            : html`<span class="qty-single">${isOutOfStock ? "0개 (품절)" : "1개"}</span>`}
         </div>
 
         <input

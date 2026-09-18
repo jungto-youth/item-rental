@@ -33,6 +33,14 @@ export class ItemCard extends LitElement {
       background: var(--color-surface);
     }
 
+    .card.out-of-stock .thumb {
+      background: var(--color-surface);
+    }
+    .card.out-of-stock .thumb img {
+      opacity: 0.55;
+      filter: grayscale(40%);
+    }
+
     .thumb {
       position: relative;
       width: 100%;
@@ -51,13 +59,14 @@ export class ItemCard extends LitElement {
       height: 100%;
       object-fit: cover;
       display: block;
+      transition: opacity 0.2s ease;
     }
 
     .content {
       display: flex;
       flex-direction: column;
       gap: 6px;
-      padding: 14px 16px;
+      padding: 12px 14px;
       flex: 1;
     }
 
@@ -74,15 +83,10 @@ export class ItemCard extends LitElement {
     .meta {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
       gap: 8px;
       margin-top: auto;
       padding-top: 4px;
-    }
-
-    .qty {
-      font-size: var(--text-fine, 12px);
-      color: var(--color-muted);
     }
   `;
 
@@ -103,11 +107,29 @@ export class ItemCard extends LitElement {
     if (!this.item) return html``;
 
     const it = this.item;
-    const hasMultiple = it.kind !== "consumable" && (it.rentable_qty ?? 0) > 1;
-    const available = Math.max(0, (it.rentable_qty ?? 0) - (it.active_now ?? 0));
+    const rentable = it.rentable_qty ?? (it.total_qty - (it.qty_broken ?? 0));
+    const available = Math.max(0, rentable - (it.active_now ?? 0));
+    const isOutOfStock = it.kind !== "consumable" && available === 0;
+
+    let badgeKind = "available";
+    let badgeLabel = "대여 가능";
+
+    if (it.kind === "consumable") {
+      badgeKind = "neutral";
+      badgeLabel = "소모품";
+    } else if (it.status !== "active" || (it.qty_broken ?? 0) >= it.total_qty) {
+      badgeKind = "repair";
+      badgeLabel = "수리중";
+    } else if (available === 0) {
+      badgeKind = "rented";
+      badgeLabel = "대여 중";
+    } else if (rentable > 1) {
+      badgeKind = "available";
+      badgeLabel = `${available}개 가능`;
+    }
 
     return html`
-      <a class="card" href="/items/${it.id}" @click=${this.handleClick}>
+      <a class="card ${isOutOfStock ? "out-of-stock" : ""}" href="/items/${it.id}" @click=${this.handleClick}>
         <div class="thumb">
           ${it.photos && it.photos[0]
             ? html`<img
@@ -121,12 +143,7 @@ export class ItemCard extends LitElement {
         <div class="content">
           <div class="name" title=${it.name}>${it.name}</div>
           <div class="meta">
-            ${hasMultiple
-              ? html`<span class="qty">${available}/${it.rentable_qty}개 가능</span>`
-              : html`<span></span>`}
-            ${it.availability_badge
-              ? html`<x-badge kind=${it.availability_badge}></x-badge>`
-              : ""}
+            <x-badge kind=${badgeKind} label=${badgeLabel}></x-badge>
           </div>
         </div>
       </a>

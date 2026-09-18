@@ -20,6 +20,7 @@ export class PageHome extends LitElement {
   @state() private user: SessionUser | null = null;
   @state() private createOpen = false;
   @state() private noticeMsg = "";
+  @state() private availableOnly = false;
 
   private searchTimer = 0;
 
@@ -55,7 +56,7 @@ export class PageHome extends LitElement {
       .search {
         width: 100%;
         height: 44px;
-        padding: 0 16px 0 38px;
+        padding: 0 36px 0 38px;
         border: 1px solid var(--color-border);
         border-radius: var(--radius-md, 8px);
         background: var(--color-surface);
@@ -74,6 +75,69 @@ export class PageHome extends LitElement {
 
       .search::placeholder {
         color: var(--color-muted);
+      }
+
+      .clear-btn {
+        position: absolute;
+        right: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border: none;
+        border-radius: 50%;
+        background: var(--color-border);
+        color: var(--color-muted);
+        font-size: 11px;
+        cursor: pointer;
+        padding: 0;
+        transition: background-color 0.15s ease, color 0.15s ease;
+      }
+
+      .clear-btn:hover {
+        background: var(--color-muted);
+        color: var(--color-bg);
+      }
+
+      .filter-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        margin-bottom: var(--space-4, 16px);
+      }
+
+      .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        height: 32px;
+        padding: 0 12px;
+        border-radius: var(--radius-pill, 8px);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface);
+        color: var(--color-muted);
+        font-size: var(--text-caption, 13px);
+        font-weight: 500;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s ease;
+      }
+
+      .filter-chip:hover {
+        border-color: var(--color-muted);
+        color: var(--color-text);
+      }
+
+      .filter-chip.active {
+        border-color: var(--color-primary);
+        background: var(--color-primary);
+        color: var(--color-primary-text);
+      }
+
+      .filter-chip .count {
+        font-size: var(--text-fine, 12px);
+        opacity: 0.85;
       }
 
       .notice {
@@ -153,6 +217,19 @@ export class PageHome extends LitElement {
     this.searchTimer = window.setTimeout(() => this.fetchItems(), 250);
   }
 
+  private clearSearch() {
+    this.q = "";
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.fetchItems();
+  }
+
+  private isItemAvailable(it: Item): boolean {
+    if (it.kind === "consumable") return true;
+    if (it.status !== "active") return false;
+    const rentable = it.rentable_qty ?? (it.total_qty - (it.qty_broken ?? 0));
+    return rentable - (it.active_now ?? 0) > 0;
+  }
+
   private handleItemCreated(e: CustomEvent<{ id: number; failedPhotos: string[] }>) {
     this.createOpen = false;
     this.fetchItems();
@@ -164,6 +241,11 @@ export class PageHome extends LitElement {
   }
 
   render() {
+    const availableCount = this.items.filter((it) => this.isItemAvailable(it)).length;
+    const visibleItems = this.availableOnly
+      ? this.items.filter((it) => this.isItemAvailable(it))
+      : this.items;
+
     return html`
       <div class="top-bar">
         <div class="search-box">
@@ -174,6 +256,19 @@ export class PageHome extends LitElement {
             .value=${this.q}
             @input=${this.onSearch}
           />
+          ${this.q
+            ? html`
+                <button
+                  type="button"
+                  class="clear-btn"
+                  aria-label="검색어 지우기"
+                  title="검색어 지우기"
+                  @click=${this.clearSearch}
+                >
+                  ✕
+                </button>
+              `
+            : ""}
         </div>
         ${this.isAdmin
           ? html`
@@ -182,6 +277,23 @@ export class PageHome extends LitElement {
               </x-button>
             `
           : ""}
+      </div>
+
+      <div class="filter-row">
+        <button
+          type="button"
+          class="filter-chip ${!this.availableOnly ? "active" : ""}"
+          @click=${() => (this.availableOnly = false)}
+        >
+          전체 <span class="count">${this.items.length}</span>
+        </button>
+        <button
+          type="button"
+          class="filter-chip ${this.availableOnly ? "active" : ""}"
+          @click=${() => (this.availableOnly = true)}
+        >
+          대여 가능만 <span class="count">${availableCount}</span>
+        </button>
       </div>
 
       ${this.noticeMsg ? html`<div class="notice">${this.noticeMsg}</div>` : ""}
@@ -197,11 +309,11 @@ export class PageHome extends LitElement {
         ? html`<p class="error">${this.error}</p>`
         : this.loading
           ? html`<p class="empty">물품 목록을 불러오는 중…</p>`
-          : this.items.length === 0
-            ? html`<p class="empty">검색 결과가 없어요</p>`
+          : visibleItems.length === 0
+            ? html`<p class="empty">${this.availableOnly ? "대여 가능한 물품이 없어요" : "검색 결과가 없어요"}</p>`
             : html`
                 <div class="grid">
-                  ${this.items.map((it) => html`<item-card .item=${it}></item-card>`)}
+                  ${visibleItems.map((it) => html`<item-card .item=${it}></item-card>`)}
                 </div>
               `}
 

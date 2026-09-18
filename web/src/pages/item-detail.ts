@@ -159,6 +159,57 @@ export class PageItemDetail extends LitElement {
         padding: 48px 16px;
         color: var(--color-muted);
       }
+
+      .mobile-cta-bar {
+        display: none;
+      }
+
+      @media (max-width: 767px) {
+        :host {
+          padding-bottom: 72px;
+        }
+
+        .mobile-cta-bar {
+          display: flex;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: var(--color-bg);
+          border-top: 1px solid var(--color-border);
+          padding: 10px var(--space-4, 16px);
+          gap: 12px;
+          align-items: center;
+          justify-content: space-between;
+          z-index: 20;
+          box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+        }
+
+        .mobile-cta-text {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+
+        .mobile-cta-name {
+          font-size: var(--text-caption, 13px);
+          font-weight: 600;
+          color: var(--color-text);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .mobile-cta-status {
+          font-size: var(--text-fine, 12px);
+          color: var(--color-muted);
+        }
+
+        .mobile-cta-btn {
+          flex-shrink: 0;
+        }
+      }
     `,
   ];
 
@@ -315,6 +366,30 @@ export class PageItemDetail extends LitElement {
         @photo-changed=${() => void this.load(true)}
         @deleted=${() => navigate("/")}
       ></item-edit-dialog>
+
+      ${it.kind !== "consumable" && this.availableNow > 0
+        ? html`
+            <div class="mobile-cta-bar">
+              <div class="mobile-cta-text">
+                <span class="mobile-cta-name">${it.name}</span>
+                <span class="mobile-cta-status">${this.availableNow}개 대여 가능</span>
+              </div>
+              <div class="mobile-cta-btn">
+                <x-button
+                  variant="primary"
+                  size="md"
+                  @click=${() => {
+                    this.renderRoot
+                      .querySelector("item-rental-form")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                >
+                  대여하기
+                </x-button>
+              </div>
+            </div>
+          `
+        : ""}
     `;
   }
 }
