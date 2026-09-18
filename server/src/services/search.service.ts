@@ -13,7 +13,7 @@ export type ListItemWithBadge = ListItemRow & {
 // 목록 SELECT 공용 — 키워드/의미 두 단계가 where 절만 다르게 재사용
 function buildListSql(where: string): string {
   return `SELECT items.id, items.name, items.description, items.total_qty, items.status,
-            items.kind, items.location, items.size, items.color,
+            items.kind, items.location,
             items.qty_broken,
             (items.total_qty - items.qty_broken) AS rentable_qty,
             (SELECT COALESCE(json_agg(json_build_object('id', p.id, 'url', '/api/photos/' || p.r2_key)

@@ -104,8 +104,6 @@ type Plan = {
   status: ItemStatus;
   kind: "rental" | "consumable";
   location: string | null;
-  size: string | null;
-  note: string | null;
   action: "insert" | "update" | "skip";
   reason: string;
 };
@@ -151,19 +149,21 @@ for (const row of table.slice(1)) {
       `${id}: 수량이 1 이상 정수가 아닙니다 ("${col(row, "수량")}") — 아직 미확정이면 '반영'을 보류로 바꾸세요`,
     );
   else if (ITEM_STATUS.includes(status)) {
-    // 시트의 내부 메모(비고/특이사항)는 공개 description 이 아니라 items.note 로 보존한다.
-    // color 는 자동 파생하지 않는다 — '녹회색' 등이 이름에 있어도 추출이 던지지
-    // 않아(예: '카키색 조끼 (2XL)'), 관리자가 필요한 만큼만 직접 채운다.
+    // 시트의 원본사이즈는 0016 이후 컬럼이 없으므로 공개 description 으로 접는다
+    // (backfill-remove-item-attrs.ts 와 같은 '규격: …' 규칙). 내부메모_비고(note)는
+    // 관리자 전용 필드로 0016 에서 제거 — 가져오지 않는다. color 는 시트에 컬럼이 없다.
+    const rawDesc = col(row, "설명");
+    const size = col(row, "원본사이즈");
     plan.push({
       id,
       name,
-      description: col(row, "설명") || null,
+      description: size
+        ? (rawDesc ? `${rawDesc} (규격: ${size})` : `규격: ${size}`)
+        : (rawDesc || null),
       total_qty,
       status,
       kind: toKind(name),
       location: col(row, "위치") || null,
-      size: col(row, "원본사이즈") || null,
-      note: col(row, "내부메모_비고") || null,
       action: "insert",
       reason: "",
     });
@@ -184,11 +184,11 @@ const sql = neon(url);
 const cols = (await sql.query(
   `SELECT column_name FROM information_schema.columns
    WHERE table_name = 'items'
-     AND column_name IN ('source_key', 'kind', 'location', 'size', 'note')`,
+     AND column_name IN ('source_key', 'kind', 'location')`,
 )) as { column_name: string }[];
 const have = new Set(cols.map((r) => r.column_name));
 const hasSourceKey = have.has("source_key");
-const missingCols = ["source_key", "kind", "location", "size", "note"].filter(
+const missingCols = ["source_key", "kind", "location"].filter(
   (c) => !have.has(c),
 );
 if (missingCols.length) {
@@ -233,7 +233,7 @@ for (const p of inserts.slice(0, 200)) {
         ? " [소모품]"
         : "";
   console.log(
-    `  + ${p.id} ${p.name} — ${p.total_qty}개${extra}${p.size ? ` (${p.size})` : ""}${p.location ? ` @${p.location}` : ""}`,
+    `  + ${p.id} ${p.name} — ${p.total_qty}개${extra}${p.location ? ` @${p.location}` : ""}`,
   );
 }
 if (updates.length) {
@@ -259,8 +259,8 @@ let updated = 0;
 for (const p of inserts) {
   await sql.query(
     `INSERT INTO items (name, description, status, total_qty, source_key,
-                        kind, location, size, note)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                        kind, location)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
     [
       p.name,
       p.description,
@@ -269,8 +269,6 @@ for (const p of inserts) {
       p.id,
       p.kind,
       p.location,
-      p.size,
-      p.note,
     ],
   );
   added++;
@@ -278,7 +276,7 @@ for (const p of inserts) {
 for (const p of updates) {
   await sql.query(
     `UPDATE items SET name = $2, description = $3, status = $4, total_qty = $5,
-            kind = $6, location = $7, size = $8, note = $9
+            kind = $6, location = $7
      WHERE source_key = $1`,
     [
       p.id,
@@ -288,8 +286,6 @@ for (const p of updates) {
       p.total_qty,
       p.kind,
       p.location,
-      p.size,
-      p.note,
     ],
   );
   updated++;

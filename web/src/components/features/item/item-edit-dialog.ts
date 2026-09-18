@@ -18,9 +18,6 @@ export class ItemEditDialog extends LitElement {
     qty_broken: 0,
     status: "active" as ItemStatus,
     location: "",
-    size: "",
-    color: "",
-    note: "",
     description: "",
   };
 
@@ -163,9 +160,6 @@ export class ItemEditDialog extends LitElement {
         qty_broken: it.qty_broken ?? this.item.qty_broken ?? 0,
         status: it.status ?? this.item.status,
         location: it.location ?? this.item.location ?? "",
-        size: it.size ?? this.item.size ?? "",
-        color: it.color ?? this.item.color ?? "",
-        note: it.note ?? this.item.note ?? "",
         description: it.description ?? this.item.description ?? "",
       };
     } catch {
@@ -177,9 +171,6 @@ export class ItemEditDialog extends LitElement {
         qty_broken: this.item.qty_broken ?? 0,
         status: this.item.status,
         location: this.item.location ?? "",
-        size: this.item.size ?? "",
-        color: this.item.color ?? "",
-        note: this.item.note ?? "",
         description: this.item.description ?? "",
       };
     }
@@ -345,43 +336,14 @@ export class ItemEditDialog extends LitElement {
               : ""}
           </div>
 
-          <div class="row">
-            <label>
-              보관 위치
-              <input
-                .value=${f.location}
-                placeholder="예: 7층 비품실"
-                @input=${(e: Event) => this.set("location", (e.target as HTMLInputElement).value)}
-              />
-            </label>
-            <label>
-              규격 / 크기
-              <input
-                .value=${f.size}
-                placeholder="예: 50x30cm"
-                @input=${(e: Event) => this.set("size", (e.target as HTMLInputElement).value)}
-              />
-            </label>
-          </div>
-
-          <div class="row">
-            <label>
-              색상
-              <input
-                .value=${f.color}
-                placeholder="예: 블랙"
-                @input=${(e: Event) => this.set("color", (e.target as HTMLInputElement).value)}
-              />
-            </label>
-            <label>
-              내부 관리 메모 (관리자 전용)
-              <input
-                .value=${f.note}
-                placeholder="구입처, 시리얼넘버 등"
-                @input=${(e: Event) => this.set("note", (e.target as HTMLInputElement).value)}
-              />
-            </label>
-          </div>
+          <label>
+            보관 위치
+            <input
+              .value=${f.location}
+              placeholder="예: 7층 비품실"
+              @input=${(e: Event) => this.set("location", (e.target as HTMLInputElement).value)}
+            />
+          </label>
 
           <label>
             설명

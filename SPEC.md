@@ -59,7 +59,7 @@
   - 검색어가 없으면 폐기(`retired`)를 뺀 전체 목록을 최근 등록 순으로 보여준다
   - **키워드 매치**(이름·설명·보관 위치 ILIKE)를 먼저, **의미 매치**(pgvector)를 그 뒤에 배치한다
   - 의미 검색: Workers AI `@cf/baai/bge-m3`로 쿼리 임베딩 → 코사인 거리 상위 8개(거리 < 0.75) 중 키워드에 없는 물품만 추가. bge-m3 거리는 0.4~0.65에 뭉쳐 절대 임계로는 관련/무관을 가르지 못하므로 상대 랭킹으로만 쓴다. 임베딩은 등록/수정 시 자동 생성하고, 실패하면 키워드 검색만 동작한다(폴백)
-- 물품 속성: `kind`(대여품 `rental` / 소모품 `consumable`), `location`(보관 위치), `size`, `color`, `qty_broken`(수리중 수량), `note` — 실물 시트에서 들어온 값이라 대부분 비어 있을 수 있고 **전부 선택 항목**이다. 보관 위치는 상세·편집 폼에만 표시하고 카드에는 띄우지 않는다(청년물품은 '정토회관' 단일 값이라 잡음)
+- 물품 속성: `kind`(대여품 `rental` / 소모품 `consumable`), `location`(보관 위치), `qty_broken`(수리중 수량) — 실물 시트에서 들어온 값이라 비어 있을 수 있고 **전부 선택 항목**이다. `size`/`color`/`note`는 로직·검색에 안 쓰여 0016에서 컬럼을 제거했고, 시트의 원본사이즈는 등록 시 설명으로 접는다(backfill-remove-item-attrs.ts 동일 규칙). 보관 위치는 상세·편집 폼에만 표시하고 카드에는 띄우지 않는다(청년물품은 '정토회관' 단일 값이라 잡음)
   - 소모품: **대여 대상이 아니다.** 상세는 신청 폼 대신 "소모품은 대여 대상이 아니에요" 안내와 재고(`전체 보유`)만 보여주고, 홈 카드·상세에 가용 배지와 "대여 가능" 수량을 내리지 않는다(서버가 `availability_badge`를 `null`로 반환). API로 직접 신청해도 서버가 `409 consumable`로 거부한다. 재고 조정은 관리자만 가능하다
 - 상세: 사진(최대 3장), 설명, 보유 수량, 실시간 잔여 수량
   - 수량 표시: 잔여 수량은 홈 카드(`대여 가능 3 / 7개` — 수량 ≥ 2인 물품만), 상세, 마이페이지 대여 목록, 관리자 대시보드·대여 목록에 나온다. 대여 수량은 **1 ~ 현재 대여 가능 수량** 사이에서 고르고 남은 수량이 없으면 버튼이 비활성화된다
@@ -180,12 +180,10 @@ CREATE TABLE IF NOT EXISTS items (
   source_key  TEXT,                             -- 실물 시트 행 키('Y26-*') — 일괄 반영의 멱등 키
   kind        TEXT NOT NULL DEFAULT 'rental',   -- rental 대여품 | consumable 소모품
   location    TEXT,                             -- 보관 위치
-  size        TEXT,                             -- 사이즈·규격
-  color       TEXT,
   qty_broken  INTEGER NOT NULL DEFAULT 0,       -- 수리중 수량 — rentable_qty 에서 차감
-  note        TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- 0016: size/color/note 컬럼 제거 (규격·색상·내부 메모 — 로직·검색에 미사용, 등록 폼에도 없었음)
 -- 대여 기간 정책(items.max_days)은 0015에서 제거했다 — 날짜 개념 자체가 없다
 ALTER TABLE items DROP CONSTRAINT IF EXISTS chk_items_kind, ADD CONSTRAINT chk_items_kind CHECK (kind IN ('rental', 'consumable'));
 ALTER TABLE items DROP CONSTRAINT IF EXISTS chk_items_qty_broken, ADD CONSTRAINT chk_items_qty_broken CHECK (qty_broken >= 0 AND qty_broken <= total_qty);

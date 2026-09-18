@@ -11,7 +11,5 @@ ALTER TABLE reservations ADD COLUMN IF NOT EXISTS qty INTEGER NOT NULL DEFAULT 1
 -- qty >= 1 보증. DROP + ADD를 한 문장으로 처리해 재실행에 안전하다
 -- (migrate.ts는 추적 테이블 없이 매번 전체를 재실행하므로 모든 문장이 멱등해야 한다).
 ALTER TABLE reservations DROP CONSTRAINT IF EXISTS chk_reservations_qty, ADD CONSTRAINT chk_reservations_qty CHECK (qty >= 1);
-
--- 가용성 판정이 SUM(qty) 기준으로 바뀌므로 기간 조회 인덱스에 qty를 포함시킨다
--- (커버링 인덱스 — idx_reservations_item_dates는 그대로 두고 확장만 한다).
-CREATE INDEX IF NOT EXISTS idx_reservations_item_dates_qty ON reservations (item_id, start_date, end_date, qty);
+-- (기간 조회 커버링 인덱스 idx_reservations_item_dates_qty 는 0015 가 제거 — 0015 가
+--  idx_reservations_item_status_qty 로 대체한다)

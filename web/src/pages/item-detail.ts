@@ -296,9 +296,6 @@ export class PageItemDetail extends LitElement {
     const pairs: [string, string][] = [];
     if (it.kind === "consumable") pairs.push(["구분", "소모품"]);
     if (it.location) pairs.push(["보관 위치", it.location]);
-    if (it.size) pairs.push(["규격", it.size]);
-    if (it.color) pairs.push(["색상", it.color]);
-    if (it.note) pairs.push(["비고", it.note]);
     return pairs;
   }
 

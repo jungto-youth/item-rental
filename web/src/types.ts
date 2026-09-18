@@ -18,9 +18,6 @@ export type Item = {
   qty_broken?: number;
   kind?: ItemKind;
   location?: string | null;
-  size?: string | null;
-  color?: string | null;
-  note?: string | null;
   description?: string | null;
   photos: Photo[];
   availability_badge?: AvailabilityBadge;

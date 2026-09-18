@@ -9,8 +9,6 @@ import { embedItem } from "../embedding";
 export type ItemAttrs = {
   kind: "rental" | "consumable";
   location: string | null;
-  size: string | null;
-  color: string | null;
   qty_broken: number;
 };
 
@@ -25,7 +23,7 @@ export type ListItemRow = ItemAttrs & {
   active_now: number;
 };
 
-// 관리자용 Item 행 (note 포함)
+// 관리자용 Item 행
 export type AdminItemRow = {
   id: number;
   name: string;
@@ -35,9 +33,6 @@ export type AdminItemRow = {
   qty_broken: number;
   kind: string;
   location: string | null;
-  size: string | null;
-  color: string | null;
-  note: string | null;
 };
 
 // ===== 공개 조회 (§7.4·§7.6) =====
@@ -49,7 +44,7 @@ export async function getItemDetail(
 ): Promise<ListItemRow | null> {
   const rows = (await db.query(
     `SELECT items.id, items.name, items.description, items.total_qty, items.status,
-      items.kind, items.location, items.size, items.color,
+      items.kind, items.location,
       items.qty_broken,
       (items.total_qty - items.qty_broken) AS rentable_qty,
       (SELECT COALESCE(json_agg(json_build_object('id', p.id, 'url', '/api/photos/' || p.r2_key)
@@ -78,7 +73,7 @@ export async function listAdminItems(db: Sql) {
   );
 }
 
-// 편집용 단건 — 공개 상세(§7.4)와 달리 note(내부 메모)까지 내려준다
+// 편집용 단건 — 공개 상세(§7.4)와 동일한 컬럼 집합 (SELECT * — 관리자 화면용)
 export async function getAdminItem(
   db: Sql,
   itemId: number,

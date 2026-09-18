@@ -1,2 +1,3 @@
--- 카테고리 이름 중복 방지 (admin/categories.ts 409 처리용)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_name ON categories (name);
+-- 카테고리 이름 중복 방지 인덱스 — 0005 가 categories 테이블을 제거하면서 함께 사라졌다.
+-- (migrate.ts 는 매번 전체를 재실행하므로, 사라진 테이블에 인덱스를 만드는 문장은
+--  재실행마다 'relation does not exist' 로 죽는다 — 문장 없이 유지한다)

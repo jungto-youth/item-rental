@@ -26,13 +26,10 @@ const ITEM_STATUS = ["active", "repair", "retired"] as const;
 const ITEM_KIND = ["rental", "consumable"] as const;
 
 // 자유 텍스트 속성 — 시트에서 온 빈 칸이 ''로 들어오는 경우가 있어 NULL로 정규화한다
-// (''와 NULL이 섞이면 위치·규격 검색이 갈라진다)
+// (''와 NULL이 섞이면 위치 검색이 갈라진다). size/color/note 는 0016 마이그레이션에서 제거.
 const TEXT_ATTRS = [
   "description",
   "location",
-  "size",
-  "color",
-  "note",
 ] as const;
 
 function normText(v: unknown): string | null {
