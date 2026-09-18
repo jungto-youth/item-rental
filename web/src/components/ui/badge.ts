@@ -3,20 +3,14 @@ import { customElement, property } from "lit/decorators.js";
 
 const LABELS: Record<string, string> = {
   available: "대여 가능",
-  reserved: "예약 있음",
   rented: "대여 중",
   repair: "수리중",
   retired: "폐기",
-  pending: "승인 대기",
-  approved: "승인",
   inactive: "비활성",
   user: "회원",
   admin: "관리자",
-  picked_up: "대여 중",
   returned: "반납 완료",
-  rejected: "거절",
   cancelled: "취소",
-  overdue: "연체",
 };
 
 @customElement("x-badge")
@@ -35,25 +29,17 @@ export class XBadge extends LitElement {
     }
     /* 상태 색은 tokens.css의 톤 토큰 — 다크/라이트 자동 대응 */
     .available,
-    .approved,
     .user,
     .returned {
       background: var(--tone-success-bg);
       color: var(--tone-success-text);
     }
-    .reserved,
-    .pending {
+    /* 대여 중은 물품이 나가 있는 상태 — 회수해야 할 대상이라 경고 톤 */
+    .rented {
       background: var(--tone-warning-bg);
       color: var(--tone-warning-text);
     }
-    .rented,
-    .rejected,
-    .overdue {
-      background: var(--tone-danger-bg);
-      color: var(--tone-danger-text);
-    }
-    .repair,
-    .picked_up {
+    .repair {
       background: var(--tone-info-bg);
       color: var(--tone-info-text);
     }

@@ -98,15 +98,11 @@ adminItemsRoute.post("/", async (c) => {
   const name = typeof body.name === "string" ? body.name.trim() : "";
   if (!name) return c.json({ error: "name 필수" }, 400);
   const total_qty = Number(body.total_qty ?? 1);
-  const max_days = Number(body.max_days ?? 7);
   const status = ITEM_STATUS.includes(body.status as never)
     ? (body.status as string)
     : "active";
   if (!Number.isInteger(total_qty) || total_qty < 1) {
     return c.json({ error: "total_qty는 1 이상" }, 400);
-  }
-  if (!Number.isInteger(max_days) || max_days < 1 || max_days > 365) {
-    return c.json({ error: "max_days는 1~365" }, 400);
   }
 
   const parsed = readAttrs(body);
@@ -122,7 +118,6 @@ adminItemsRoute.post("/", async (c) => {
     name,
     status,
     total_qty,
-    max_days,
     attrs,
   });
   return c.json({ id }, 201);
@@ -148,13 +143,6 @@ adminItemsRoute.put("/:id", async (c) => {
       return c.json({ error: "total_qty는 1 이상" }, 400);
     }
     fields.total_qty = total_qty;
-  }
-  if ("max_days" in body) {
-    const max_days = Number(body.max_days);
-    if (!Number.isInteger(max_days) || max_days < 1 || max_days > 365) {
-      return c.json({ error: "max_days는 1~365" }, 400);
-    }
-    fields.max_days = max_days;
   }
   if ("status" in body) {
     if (!ITEM_STATUS.includes(body.status as never)) {

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
 import { getDb, type Sql } from "../db";
 import { searchItemsCombined, listItems } from "../services/search.service";
-import { getItemDetail, getItemAvailability } from "../services/items.service";
+import { getItemDetail } from "../services/items.service";
 
 // SPEC §7.4 — GET /api/items, /api/items/:id (전체 열람 가능)
 export const itemsRoute = new Hono<{
@@ -23,7 +23,7 @@ itemsRoute.get("/", async (c) => {
   return c.json({ items });
 });
 
-// 상세 — 설명·수량·규칙 + 향후 90일 일별 점유 수 (§7.6, 회원 정보 제외)
+// 상세 — 설명·수량 + 현재 대여 중 수량 (회원 정보 제외)
 itemsRoute.get("/:id", async (c) => {
   const db: Sql = getDb(c.env);
   const id = Number(c.req.param("id"));
@@ -32,25 +32,17 @@ itemsRoute.get("/:id", async (c) => {
   const item = await getItemDetail(db, id);
   if (!item) return c.json({ error: "not_found" }, 404);
 
-  // 일별 점유는 건수가 아니라 수량 합계다 (P0) — 대량 재고를 한 예약으로 나눠 담는다
-  const availability = await getItemAvailability(db, id);
-
   // 목록과 같은 기준의 가용 배지 — 상세도 같은 라벨을 쓴다. 소모품은 대여 대상이 아니라 null 을 내려
-  // 화면이 '대여 가능/예약 있음' 배지를 아예 안 그리게 한다 (§4.2, v3.1). 오늘 점유는 availability[0] 이다.
-  const activeNow = availability[0]?.reserved ?? 0;
+  // 화면이 '대여 가능/대여 중' 배지를 아예 안 그리게 한다 (§4.2).
+  // 날짜 개념이 없어져 '예약 있음'(reserved)은 사라졌다 — 대여 중이거나 아니거나 둘 중 하나다.
   const availabilityBadge =
     item.kind === "consumable"
       ? null
       : item.status === "repair" || item.rentable_qty <= 0
         ? "repair"
-        : activeNow >= item.rentable_qty
+        : item.active_now >= item.rentable_qty
           ? "rented"
-          : activeNow > 0
-            ? "reserved"
-            : "available";
+          : "available";
 
-  return c.json({
-    item: { ...item, availability_badge: availabilityBadge },
-    availability,
-  });
+  return c.json({ item: { ...item, availability_badge: availabilityBadge } });
 });

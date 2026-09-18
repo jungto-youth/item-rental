@@ -101,7 +101,6 @@ type Plan = {
   name: string;
   description: string | null;
   total_qty: number;
-  max_days: number;
   status: ItemStatus;
   kind: "rental" | "consumable";
   location: string | null;
@@ -142,7 +141,6 @@ for (const row of table.slice(1)) {
   const id = col(row, "ID");
   const name = col(row, "사이트명");
   const total_qty = Number(col(row, "수량"));
-  const max_days = Number(col(row, "최대대여일")) || 7;
   const status = (col(row, "상태") || "active") as ItemStatus;
 
   if (!id) errors.push(`ID 없음: ${name}`);
@@ -151,10 +149,6 @@ for (const row of table.slice(1)) {
   else if (!Number.isInteger(total_qty) || total_qty < 1)
     errors.push(
       `${id}: 수량이 1 이상 정수가 아닙니다 ("${col(row, "수량")}") — 아직 미확정이면 '반영'을 보류로 바꾸세요`,
-    );
-  else if (!Number.isInteger(max_days) || max_days < 1 || max_days > 365)
-    errors.push(
-      `${id}: 최대대여일이 1~365 범위가 아닙니다 ("${col(row, "최대대여일")}")`,
     );
   else if (ITEM_STATUS.includes(status)) {
     // 시트의 내부 메모(비고/특이사항)는 공개 description 이 아니라 items.note 로 보존한다.
@@ -165,7 +159,6 @@ for (const row of table.slice(1)) {
       name,
       description: col(row, "설명") || null,
       total_qty,
-      max_days,
       status,
       kind: toKind(name),
       location: col(row, "위치") || null,
@@ -240,15 +233,13 @@ for (const p of inserts.slice(0, 200)) {
         ? " [소모품]"
         : "";
   console.log(
-    `  + ${p.id} ${p.name} — ${p.total_qty}개, 최대 ${p.max_days}일${extra}${p.size ? ` (${p.size})` : ""}${p.location ? ` @${p.location}` : ""}`,
+    `  + ${p.id} ${p.name} — ${p.total_qty}개${extra}${p.size ? ` (${p.size})` : ""}${p.location ? ` @${p.location}` : ""}`,
   );
 }
 if (updates.length) {
   console.log("\n갱신 예정:");
   for (const p of updates)
-    console.log(
-      `  ~ ${p.id} ${p.name} — ${p.total_qty}개, 최대 ${p.max_days}일`,
-    );
+    console.log(`  ~ ${p.id} ${p.name} — ${p.total_qty}개`);
 }
 if (skips.length) {
   console.log(`\n건너뜀: ${skips.length}건 (이미 반영됨)`);
@@ -267,15 +258,14 @@ let added = 0;
 let updated = 0;
 for (const p of inserts) {
   await sql.query(
-    `INSERT INTO items (name, description, status, total_qty, max_days, source_key,
+    `INSERT INTO items (name, description, status, total_qty, source_key,
                         kind, location, size, note)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
     [
       p.name,
       p.description,
       p.status,
       p.total_qty,
-      p.max_days,
       p.id,
       p.kind,
       p.location,
@@ -287,8 +277,8 @@ for (const p of inserts) {
 }
 for (const p of updates) {
   await sql.query(
-    `UPDATE items SET name = $2, description = $3, status = $4, total_qty = $5, max_days = $6,
-            kind = $7, location = $8, size = $9, note = $10
+    `UPDATE items SET name = $2, description = $3, status = $4, total_qty = $5,
+            kind = $6, location = $7, size = $8, note = $9
      WHERE source_key = $1`,
     [
       p.id,
@@ -296,7 +286,6 @@ for (const p of updates) {
       p.description,
       p.status,
       p.total_qty,
-      p.max_days,
       p.kind,
       p.location,
       p.size,

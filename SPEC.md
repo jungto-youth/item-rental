@@ -1,6 +1,6 @@
 # 청년지부 물품 대여 사이트 — 사양서 (SPEC)
 
-지부 회원(계정제)이 보유 물품을 검색해 대여를 신청하고, 관리자가 승인·수령·반납을 처리하는 소규모 서비스(물품 97개). Cloudflare(호스팅·저장소) + Neon(PostgreSQL) 위에서 동작한다.
+지부 회원(계정제)이 보유 물품을 검색해 수량과 메모로 대여하고, 관리자가 반납을 처리하는 소규모 서비스(물품 97개). Cloudflare(호스팅·저장소) + Neon(PostgreSQL) 위에서 동작한다.
 
 현재 구현 상태는 [README.md](README.md), 화면 규칙은 [DESIGN.md](DESIGN.md)를 본다.
 
@@ -22,8 +22,8 @@
 | ----------------------- | -------------------------------------------------------------------------------- |
 | 미인증 방문자           | 물품 목록·상세 열람, 로그인                                                      |
 | 승인 대기 회원          | 마이페이지(승인 대기 상태 확인)만 접근                                           |
-| 회원 (`user`, approved) | 물품 검색, 대여 신청, 내 예약 현황·이력 조회, 신청 취소                          |
-| 관리자 (`admin`)        | 물품 CRUD, 대여 승인/거절·수령·반납, 회원 승인, 전체 이력 조회, 관리자 지정/해제 |
+| 회원 (`user`, approved) | 물품 검색, 대여, 내 대여 현황·이력 조회, 대여 취소                               |
+| 관리자 (`admin`)        | 물품 CRUD, 대여 반납 처리, 회원 승인, 전체 이력 조회, 관리자 지정/해제           |
 
 - 가입: 구글 소셜 로그인 → 최초 로그인 시 `members` 자동 생성(pending) → 프로필(이름·연락처) 입력 → 관리자 승인 후 이용
 - 로그인 허용: `@jungto.org` 계정만. 예외는 `AUTH_ALLOWED_EMAILS` 시크릿에 콤마 구분으로 나열하고, 비허용 계정은 로그인 단계에서 거부한다
@@ -33,50 +33,49 @@
 ## 3. 대여 상태 흐름 (핵심 플로우)
 
 ```
-[물품 상세] 기간·수량 선택 → 신청(pending)
-   → 관리자 승인(approved) ── 거절(rejected)
-   → 수령(picked_up)
-   → 반납(returned)          ── 수령 전 취소(cancelled)
-   → 반납일 지연 시 연체(overdue) 표시
+[물품 상세] 수량·메모 입력 → 대여(rented)
+   → 반납(returned)   ← 회원이 직접 누르거나 관리자가 처리
+   → 취소(cancelled)  ← 빌리지 않기로 함
 ```
 
-- **가용성 판정**: 대여 가능 수량은 `rentable_qty = total_qty - qty_broken` (수리중 수량은 재고에서 제외). 신청 기간의 **매 대여일**마다 상태가 `pending/approved/picked_up`인 예약의 **`SUM(qty)` + 신청 수량 ≤ `rentable_qty`** 이면 신청 가능. 신청 수량 자체가 `rentable_qty`를 넘으면 겹치는 예약이 없어도 거부한다
-- **반개구간**: 반납일(`end_date`)은 점유에서 제외한다 — `[start, end)`. 당일 반납은 불가하고, 붙어 있는 예약은 충돌이 아니다
-- **이중 예약 방지**: 물품별 advisory 락(`pg_advisory_xact_lock`) 트랜잭션 안에서 `INSERT ... SELECT ... WHERE NOT EXISTS(일별 점유 초과)`를 실행한다. HTTP 드라이버는 무상태라 요청마다 별도 세션이고, READ COMMITTED에서 단일 문장의 원자성만으로는 두 동시 신청의 직렬화가 보장되지 않는다 (§6)
-- 승인 시점에 확정 예약만으로 이미 정원인 날이 있으면 관리자에게 경고를 표시한다. 신청 가드가 `pending`까지 일별 점유로 세므로 정상 흐름에서는 0이고, 0이 아니면 동시성 레이스나 `total_qty` 인하 같은 이상 상태다
-- 반납 예고·연체 알림은 **없다**. 연체는 목록·마이페이지의 **계산 배지**로만 드러난다 (`picked_up` + 반납일 경과)
+- **기간 개념이 없다**: 날짜·최대 대여일·승인 단계를 두지 않는다. 회원이 수량과 메모만으로 신청하면 **즉시 대여 중**이 되고, 관리자는 물품을 돌려받았을 때 반납만 누른다
+- **가용성 판정**: 대여 가능 수량은 `rentable_qty = total_qty - qty_broken` (수리중 수량은 재고에서 제외). **현재 대여 중(`rented`)인 수량의 합 + 신청 수량 ≤ `rentable_qty`** 이면 신청 가능하다. 반납·취소된 수량은 점유에서 빠져 다시 빌려줄 수 있다
+- **이중 대여 방지**: 물품별 advisory 락(`pg_advisory_xact_lock`) 트랜잭션 안에서 `INSERT ... SELECT ... WHERE` 가드로 점유 합계를 검사한다. HTTP 드라이버는 무상태라 요청마다 별도 세션이고, READ COMMITTED에서 단일 문장의 원자성만으로는 두 동시 신청의 직렬화가 보장되지 않는다 (§6)
+- **연체·반납 예고 알림은 없다**: 반납 기한 자체가 없으므로 연체 개념도 없다. 관리자는 대시보드의 '대여 중' 목록으로만 미반납 건을 파악한다
 
 ## 4. 기능 명세
 
 ### 4.1 회원
 
-- 최초 로그인 후 프로필 입력: 이름·연락처(휴대폰). 연락처는 대여 연락 목적으로만 사용하며, 미등록 상태로 신청하면 서버가 400(`phone_required`)으로 막고 화면이 프로필 입력으로 유도한다
-- 마이페이지: 대여 중 / 승인 대기 / 대여 예정 / 대여 이력 목록, 신청 취소
+- 최초 로그인 후 프로필 입력: 이름·연락처(휴대폰). 연락처는 대여 연락 목적으로만 사용하며, 미등록 상태로 대여하면 서버가 400(`phone_required`)으로 막고 화면이 프로필 입력으로 유도한다
+- 마이페이지: 대여 중 / 대여 이력 목록, **반납**, 대여 취소
+- **반납은 회원이 직접 한다**: 물품을 돌려준 사람이 마이페이지에서 [반납]을 누르면 바로 `returned`가 되고 재고가 복구된다. 관리자에게 요청할 필요가 없다. 관리자도 같은 일을 할 수 있다(§4.3) — 두 경로의 차이는 `admin_id` 기록 여부뿐이고, 회원이 반납한 건은 `admin_id`가 비어 관리자 목록에 "회원이 직접 반납했어요 — 물품 회수 여부를 확인해 주세요"로 뜬다
+- **취소와 반납은 다르다**: 취소(`cancelled`)는 "빌리지 않기로 함", 반납(`returned`)은 "돌려줬음". 둘 다 재고를 즉시 되돌리지만 이력 화면에서 구분되고, 회원 반납은 자기 신고이므로 관리자가 확인할 대상이 된다
 - 탈퇴: 소프트 삭제 (대여 이력 보존을 위해 비활성화 처리)
 
 ### 4.2 물품
 
-- 목록: 검색 + 가용 배지 4종 — `available`(대여 가능) / `reserved`(예약 있음) / `rented`(대여 중) / `repair`(수리중 — 상태가 `repair`이거나 `rentable_qty ≤ 0`). 카테고리는 없다
+- 목록: 검색 + 가용 배지 3종 — `available`(대여 가능) / `rented`(대여 중) / `repair`(수리중 — 상태가 `repair`이거나 `rentable_qty ≤ 0`). 카테고리는 없다
   - 검색어가 없으면 폐기(`retired`)를 뺀 전체 목록을 최근 등록 순으로 보여준다
   - **키워드 매치**(이름·설명·보관 위치 ILIKE)를 먼저, **의미 매치**(pgvector)를 그 뒤에 배치한다
   - 의미 검색: Workers AI `@cf/baai/bge-m3`로 쿼리 임베딩 → 코사인 거리 상위 8개(거리 < 0.75) 중 키워드에 없는 물품만 추가. bge-m3 거리는 0.4~0.65에 뭉쳐 절대 임계로는 관련/무관을 가르지 못하므로 상대 랭킹으로만 쓴다. 임베딩은 등록/수정 시 자동 생성하고, 실패하면 키워드 검색만 동작한다(폴백)
 - 물품 속성: `kind`(대여품 `rental` / 소모품 `consumable`), `location`(보관 위치), `size`, `color`, `qty_broken`(수리중 수량), `note` — 실물 시트에서 들어온 값이라 대부분 비어 있을 수 있고 **전부 선택 항목**이다. 보관 위치는 상세·편집 폼에만 표시하고 카드에는 띄우지 않는다(청년물품은 '정토회관' 단일 값이라 잡음)
   - 소모품: **대여 대상이 아니다.** 상세는 신청 폼 대신 "소모품은 대여 대상이 아니에요" 안내와 재고(`전체 보유`)만 보여주고, 홈 카드·상세에 가용 배지와 "대여 가능" 수량을 내리지 않는다(서버가 `availability_badge`를 `null`로 반환). API로 직접 신청해도 서버가 `409 consumable`로 거부한다. 재고 조정은 관리자만 가능하다
-- 상세: 사진(최대 3장), 설명, 보유 수량, 대여 규칙(`max_days` — 물품별 최대 대여일), 실시간 가용 일정
-  - 수량 표시: 잔여 수량은 홈 카드(`대여 가능 3 / 7개` — 수량 ≥ 2인 물품만), 상세(일정 띠·캘린더), 마이페이지 예약 목록, 관리자 대시보드·예약 목록에 나온다. 신청 수량은 **1 ~ 해당 기간 잔여 수량** 사이에서 고르고, 기간을 바꾸면 1로 초기화한다(기간이 넓어지면 잔여 수량이 줄어든다)
+- 상세: 사진(최대 3장), 설명, 보유 수량, 실시간 잔여 수량
+  - 수량 표시: 잔여 수량은 홈 카드(`대여 가능 3 / 7개` — 수량 ≥ 2인 물품만), 상세, 마이페이지 대여 목록, 관리자 대시보드·대여 목록에 나온다. 대여 수량은 **1 ~ 현재 대여 가능 수량** 사이에서 고르고 남은 수량이 없으면 버튼이 비활성화된다
   - 사진은 업로드 전 브라우저에서 재인코딩(최장 변 1600px·WebP q80, 미지원 브라우저는 JPEG) — 원본 미보관, EXIF 제거, 파일당 통상 300KB 이하. 서버는 픽셀 1600px·바이트 2MB를 다시 검사한다(API 직접 호출 우회 방지)
 - 관리자: 등록/수정/삭제, 상태(정상/수리중/폐기) 관리, 수리중 수량 입력, 사진 업로드(R2)
 
 ### 4.3 대여
 
-- 대여 기간 정책: 물품별 `items.max_days`(기본 7일)가 유일한 출처다 — 전역 설정 테이블은 두지 않는다. 서버는 신청 시 `days <= max_days`를 검사하고, 값은 관리자가 물품 편집에서 바꾼다
-- 신청: 날짜 범위 + **수량(1 ~ 해당 기간 잔여 수량)** 선택 → 겹침 검사 → 신청 (메모 입력 가능). 잔여 수량이 있으면 부분 대여(10개 중 3개)가 가능하다
-- 관리자 처리: 승인/거절(사유 필수), 수령 체크, 반납 체크. 승인 시 수량은 **줄일 수 있고 늘릴 수는 없다**(늘리면 재고를 넘길 수 있어 400 `qty_increase_not_allowed`). 확정 예약만으로 이미 정원인 날이 있는 신청은 목록에 `정원 초과 N일` 배지로 뜨고 승인 시 confirm을 거친다
-- 연체: 반납일 경과 시 목록에 `연체` 배지
+- **대여 기간 정책이 없다** — 날짜·최대 대여일(`max_days`)·승인 단계를 모두 제거했다 (§3)
+- 대여: **수량(1 ~ 현재 대여 가능 수량)** 선택 + 메모(선택) → 즉시 대여 중. 잔여 수량이 있으면 부분 대여(10개 중 3개)가 가능하다
+- 반납: 회원과 관리자가 모두 할 수 있다 (§4.1). 관리자 경로는 `admin_id` 를 기록하고, 회원 경로는 비워 둔다
+- 관리자 화면에서 가능한 처리: **반납 체크와 회원이 반납한 건의 확인**뿐이다. 승인·거절·수령·수량 조정은 없다
 
 ### 4.4 관리자
 
-- 대시보드: 오늘 수령/반납 예정, 승인 대기 건수, 연체 건수
+- 대시보드: 대여 중 건수와 대여 중 목록 (반납 대상 확인용), 반납 완료·취소 건수
 - 회원 관리: 승인 대기 목록 → 승인/거절, 역할 지정/해제 (역할 변경은 관리자만 — §2)
 - 이력: `/admin/history` — 2025 청년페스타 시트 스냅샷(`rental_history`)을 보는 조회 전용 화면. 물품명·신청자·소속을 한 검색어로 훑고(ILIKE `%q%` — 검색어의 `%`·`_`는 와일드카드로 남긴다) 청년/회관물품 필터와 50건씩 '더 보기'를 제공한다. 상태 전이·수정이 없는 참고 자료이며 가용성 판정에는 관여하지 않는다
 
@@ -122,17 +121,18 @@ server/src/
 | *                   | `/api/auth/*`                                                | Auth.js 표준 (signin/callback/signout)             | 전체     |
 | PUT                 | `/api/me/profile`                                            | 이름·연락처 입력                                   | 로그인   |
 | GET                 | `/api/items?q=`                                              | 물품 목록 + 가용 배지 — `q` 생략 시 전체 목록      | 전체     |
-| GET                 | `/api/items/:id`                                             | 상세 + 사진 + 향후 90일 점유 일정 (회원 정보 제외) | 전체     |
-| POST                | `/api/reservations`                                          | 대여 신청 (advisory 락 트랜잭션 — §6.2)            | approved |
-| GET                 | `/api/reservations/mine`                                     | 내 예약 현황·이력                                  | approved |
-| POST                | `/api/reservations/:id/cancel`                               | 신청 취소                                          | 본인     |
+| GET                 | `/api/items/:id`                                             | 상세 + 사진 (회원 정보 제외)                       | 전체     |
+| POST                | `/api/reservations`                                          | 대여 (advisory 락 트랜잭션 — §6.2)                 | approved |
+| GET                 | `/api/reservations/mine`                                     | 내 대여 현황·이력                                  | approved |
+| POST                | `/api/reservations/:id/cancel`                               | 대여 취소                                          | 본인     |
+| POST                | `/api/reservations/:id/return`                               | 반납 (회원 직접)                                   | 본인     |
 | GET/POST/PUT/DELETE | `/api/admin/items`                                           | 물품 CRUD (등록/수정 시 임베딩 자동 생성)          | admin    |
 | POST/DELETE         | `/api/admin/items/:id/photos[/:photoId]`                     | 사진 업로드·삭제 (R2)                              | admin    |
-| GET                 | `/api/admin/reservations?status=`                            | 전체 예약 목록                                     | admin    |
-| POST                | `/api/admin/reservations/:id/{approve,reject,pickup,return}` | 상태 처리                                          | admin    |
+| GET                 | `/api/admin/reservations?status=`                            | 전체 대여 목록                                     | admin    |
+| POST                | `/api/admin/reservations/:id/return`                         | 반납 처리 (관리자)                                 | admin    |
 | GET/POST            | `/api/admin/members`, `/:id/{approve,reject,deactivate}`     | 회원 목록·승인/거절/비활성화                       | admin    |
 | PUT                 | `/api/admin/members/:id/role`                                | 역할 지정/해제 (마지막 관리자 보호)                | admin    |
-| GET                 | `/api/admin/dashboard`                                       | 오늘 수령/반납, 승인 대기, 연체 건수               | admin    |
+| GET                 | `/api/admin/dashboard`                                       | 대여 중 건수·목록, 반납/취소 건수                  | admin    |
 | GET                 | `/api/admin/history?q=&scope=&page=&limit=`                  | 과거 대여 이력                                     | admin    |
 
 ### 5.5 Wrangler 설정 (SPA 폴백 + API 분기)
@@ -149,10 +149,11 @@ server/src/
 }
 ```
 
-### 5.6 날짜 선택·가용 UI
+### 5.6 대여 신청 UI
 
-- `x-calendar`: 인라인 범위 캘린더 — 두 번 탭(첫 탭 시작일, 두 번째 탭 반납일). 일별 점유(`days × rentable_qty`)로 전량 예약일을 미리 비활성화하되 반납일로는 선택 가능(반개구간). 로컬 오늘 이전은 차단하고, 최대 대여일·구간 내 전량 예약은 사유 라벨로 표기한다. roving tabindex + 방향키 이동, `:focus-visible` 지원
-- `availability-strip`: 서버가 내려준 점유 일정을 향후 90일 막대로 시각화 (점유일·잔여 수량)
+- 물품 상세의 신청 폼은 **수량 입력 + 메모 + 대여 버튼**뿐이다. 날짜 캘린더(`x-calendar`)와 90일 가용성 띠(`availability-strip`)는 제거했다
+- 수량 입력은 `1 ~ 현재 대여 가능 수량` 사이에서 고르고, 남은 수량이 없으면 사유를 표시하고 버튼을 비활성화한다
+- 남은 수량이 1개인 물품은 수량 입력을 숨긴다 (고를 것이 없다)
 
 ## 6. 데이터베이스 설계 (Neon / PostgreSQL)
 
@@ -175,7 +176,6 @@ CREATE TABLE IF NOT EXISTS items (
   description TEXT,
   status      TEXT NOT NULL DEFAULT 'active',   -- active | repair | retired
   total_qty   INTEGER NOT NULL DEFAULT 1,
-  max_days    INTEGER NOT NULL DEFAULT 7,       -- 대여 기간 정책 — 물품별 최대 대여일 (전역 설정 테이블 없음)
   embedding   vector(1024),                     -- 의미 검색 (pgvector) — 등록/수정 시 자동 생성
   source_key  TEXT,                             -- 실물 시트 행 키('Y26-*') — 일괄 반영의 멱등 키
   kind        TEXT NOT NULL DEFAULT 'rental',   -- rental 대여품 | consumable 소모품
@@ -186,6 +186,7 @@ CREATE TABLE IF NOT EXISTS items (
   note        TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- 대여 기간 정책(items.max_days)은 0015에서 제거했다 — 날짜 개념 자체가 없다
 ALTER TABLE items DROP CONSTRAINT IF EXISTS chk_items_kind, ADD CONSTRAINT chk_items_kind CHECK (kind IN ('rental', 'consumable'));
 ALTER TABLE items DROP CONSTRAINT IF EXISTS chk_items_qty_broken, ADD CONSTRAINT chk_items_qty_broken CHECK (qty_broken >= 0 AND qty_broken <= total_qty);
 
@@ -205,21 +206,20 @@ CREATE TABLE IF NOT EXISTS reservations (
   id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   item_id     INTEGER NOT NULL REFERENCES items (id),
   member_id   TEXT NOT NULL REFERENCES members (id),
-  start_date  DATE NOT NULL,
-  end_date    DATE NOT NULL,
-  status      TEXT NOT NULL DEFAULT 'pending',  -- pending | approved | picked_up | returned | rejected | cancelled
-  status_note TEXT,
+  status      TEXT NOT NULL DEFAULT 'rented',   -- rented | returned | cancelled
   member_memo TEXT,
   admin_id    TEXT REFERENCES members (id),
-  qty         INTEGER NOT NULL DEFAULT 1,       -- 예약 수량 — 가용 판정은 SUM(qty) 기준
+  qty         INTEGER NOT NULL DEFAULT 1,       -- 대여 수량 — 가용 판정은 SUM(qty) 기준
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE reservations DROP CONSTRAINT IF EXISTS chk_reservations_qty, ADD CONSTRAINT chk_reservations_qty CHECK (qty >= 1);
+-- 0015: start_date/end_date/status_note 를 제거하고 상태 집합을 3종으로 고정했다
+ALTER TABLE reservations DROP CONSTRAINT IF EXISTS chk_reservations_status, ADD CONSTRAINT chk_reservations_status CHECK (status IN ('rented', 'returned', 'cancelled'));
 
 -- 가용성 판정(§3)과 이력 조회용 인덱스
-CREATE INDEX IF NOT EXISTS idx_reservations_item_dates
-  ON reservations (item_id, start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_reservations_item_status_qty
+  ON reservations (item_id, status, qty);
 CREATE INDEX IF NOT EXISTS idx_reservations_member
   ON reservations (member_id, status);
 
@@ -260,35 +260,29 @@ CREATE INDEX IF NOT EXISTS idx_rental_history_requested_on
   ON rental_history (requested_on);
 ```
 
-### 6.2 가용성 판정 쿼리 (이중 예약 방지)
+### 6.2 가용성 판정 쿼리 (이중 대여 방지)
 
 ```sql
 -- 한 트랜잭션 (neon HTTP 드라이버의 transaction([...]) — 락은 커밋/롤백 시 자동 해제)
 SELECT pg_advisory_xact_lock($1::bigint);          -- 물품별 직렬화 지점
 
-INSERT INTO reservations (item_id, member_id, start_date, end_date, member_memo, qty)
-SELECT $1, $2, $3, $4, $5, $6
--- 재고보다 큰 수량은 겹치는 예약이 없어도 거부한다. 이 조건을 NOT EXISTS 안쪽 HAVING 에만
--- 두면 겹치는 예약이 0건일 때 평가될 행이 없어 통과한다 — 사전 검사와 이 문장 사이에
--- 관리자가 수량을 줄인 경쟁 조건이 정확히 그 경우다.
-WHERE $6 <= (SELECT total_qty - qty_broken FROM items WHERE items.id = $1)
-  AND NOT EXISTS (
-  -- 요청 기간의 매 대여일마다 잔여 수량 확인 — 하루라도 넘치면 거절 (SUM(qty) 기준)
-  SELECT 1
-  FROM generate_series($3::date, $4::date - 1, interval '1 day') AS d(day)
-  JOIN reservations r
-    ON r.item_id = $1
-   AND r.status IN ('pending','approved','picked_up')
-   AND r.start_date <= d.day::date
-   AND r.end_date > d.day::date
-  GROUP BY d.day
-  HAVING COALESCE(SUM(r.qty), 0) + $6
-         > (SELECT total_qty - qty_broken FROM items WHERE items.id = $1)
-)
+INSERT INTO reservations (item_id, member_id, member_memo, qty, status)
+SELECT $1, $2, $3, $4, 'rented'
+WHERE $4 <= (SELECT total_qty - qty_broken FROM items WHERE items.id = $1)   -- 재고 자체보다 큰 수량은 거부
+  AND EXISTS (SELECT 1 FROM items
+               WHERE items.id = $1 AND status = 'active' AND kind <> 'consumable')
+  AND $4 + COALESCE((SELECT SUM(r.qty) FROM reservations r
+                      WHERE r.item_id = $1 AND r.status = 'rented'), 0)
+      <= (SELECT total_qty - qty_broken FROM items WHERE items.id = $1)      -- 현재 대여 중 수량 합 검사
 RETURNING id;
--- 조건 실패 → affected rows = 0 → 신청 거절 (API는 409 반환)
+-- 조건 실패 → affected rows = 0 → 대여 거절 (API는 409 반환)
 -- 락이 두 동시 신청을 직렬화한다 — 락 없는 단일 문장은 READ COMMITTED 스냅샷 때문에 둘 다 통과할 수 있다
 ```
+
+날짜가 없어져 `generate_series` 일별 점유 검사가 사라졌다. 점유는 "지금 나가 있는 수량의 합" 하나뿐이고,
+`returned`·`cancelled` 행은 합계에서 제외되므로 반납된 수량은 즉시 다시 빌려줄 수 있다.
+재고 자체보다 큰 수량을 먼저 거르는 이유는, 겹치는 대여가 0건일 때 합계 조건만으로는
+`SUM = 0`이 되어 통과해버리기 때문이다.
 
 ### 6.3 임베딩 백필
 
@@ -303,7 +297,7 @@ RETURNING id;
 Hono 미들웨어에서 통일 강제한다.
 
 - `requireAuth`: 세션 JWT 검증
-- `requireApproved`: `status = 'approved'` 회원만 예약 API 접근
+- `requireApproved`: `status = 'approved'` 회원만 대여 API 접근
 - `requireAdmin`: `role = 'admin'`만 `/api/admin/*` 운영 라우트 접근
 - 모든 예약 쿼리에 `WHERE member_id = :session_user` 조건 필수 (관리자 제외)
 - 클라이언트 라우트 가드(§5.3)는 UX일 뿐 — 실제 권한은 전부 서버에서 검사한다
@@ -332,9 +326,9 @@ Hono 미들웨어에서 통일 강제한다.
 
 ## 9. 향후 확장
 
-- QR 코드로 수령/반납 처리 (관리자 스마트폰)
+- QR 코드로 물품 식별·대여/반납 처리 (관리자 스마트폰)
 - 물품별 대여 통계 대시보드
-- 연체·반납 예고 알림 (이메일 대신 카카오톡 알림톡 등)
+- 장기 미반납 알림 (반납 기한 개념을 되살리지 않고 `created_at` 경과일 기준으로)
 - 물품 예약 캘린더 뷰 (월간 그리드 — §5.6)
 - Cloudflare Access로 운영진 관리자 페이지 이중 보호
 - 중고 거래 게시판 등 지부 커뮤니티 기능

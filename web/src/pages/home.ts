@@ -15,7 +15,6 @@ const EMPTY_FORM = {
   kind: "rental" as ItemKind,
   total_qty: 1,
   qty_broken: 0,
-  max_days: 7,
   status: "active" as ItemStatus,
   description: "",
   location: "",
@@ -605,26 +604,6 @@ export class PageHome extends LitElement {
                       @input=${(e: Event) =>
                         this.set(
                           "qty_broken",
-                          Number((e.target as HTMLInputElement).value),
-                        )}
-                    />
-                  </label>
-                `
-              : ""
-          }
-          ${
-            f.kind === "rental"
-              ? html`
-                  <label
-                    >최대 대여일
-                    <input
-                      type="number"
-                      min="1"
-                      max="365"
-                      .value=${String(f.max_days)}
-                      @input=${(e: Event) =>
-                        this.set(
-                          "max_days",
                           Number((e.target as HTMLInputElement).value),
                         )}
                     />

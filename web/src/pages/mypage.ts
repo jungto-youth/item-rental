@@ -4,10 +4,9 @@ import { api } from "../api/client";
 import { session, type SessionUser } from "../context/session";
 import "../components/ui/badge";
 import type { MyReservation } from "../types";
-import { diffDays } from "../utils/date";
 import { reduceMotion } from "../styles/motion";
 
-// SPEC §4.1 — 마이페이지: 프로필 + 내 예약 현황·이력·취소
+// SPEC §4.1 — 마이페이지: 프로필 + 내 대여 현황·이력·취소
 @customElement("page-mypage")
 export class PageMypage extends LitElement {
   @state() private user: SessionUser | null = null;
@@ -84,6 +83,10 @@ export class PageMypage extends LitElement {
         opacity: 0.5;
         cursor: not-allowed;
       }
+      /* 취소만 danger — 되돌릴 수 없는 파괴적 동작이라 반납(블루)과 구분한다 (DESIGN.md §4) */
+      .link.danger {
+        color: var(--color-danger);
+      }
       .note {
         color: var(--color-muted);
         font-size: var(--text-caption);
@@ -122,15 +125,13 @@ export class PageMypage extends LitElement {
     }
   }
 
+  // created_at(ISO 8601) → YYYY-MM-DD. 날짜 개념이 없어져 신청일 표시만 남았다
+  private fmtDate(iso: string): string {
+    return iso.slice(0, 10);
+  }
+
   private async cancel(r: MyReservation) {
-    if (
-      !confirm(
-        r.status === "approved"
-          ? "승인된 예약이에요. 취소할까요?"
-          : "신청을 취소할까요?",
-      )
-    )
-      return;
+    if (!confirm("대여를 취소할까요?")) return;
     if (this.busy) return;
     this.busy = true;
     try {
@@ -139,6 +140,22 @@ export class PageMypage extends LitElement {
       await this.loadReservations();
     } catch (e) {
       this.message = e instanceof Error ? e.message : "취소 실패";
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  // 반납 — 물품을 돌려준 회원이 직접 처리한다. 관리자에게 요청할 필요가 없다
+  private async returnItem(r: MyReservation) {
+    if (!confirm(`${r.item_name}을(를) 돌려주셨나요? 반납 처리할까요?`)) return;
+    if (this.busy) return;
+    this.busy = true;
+    try {
+      await api(`/api/reservations/${r.id}/return`, { method: "POST" });
+      this.message = "반납 처리했어요";
+      await this.loadReservations();
+    } catch (e) {
+      this.message = e instanceof Error ? e.message : "반납 실패";
     } finally {
       this.busy = false;
     }
@@ -159,28 +176,32 @@ export class PageMypage extends LitElement {
           <div class="name">
             ${r.item_name}${r.qty > 1 ? ` · ${r.qty}개` : ""}
           </div>
-          <div class="dates">
-            ${r.start_date} ~ ${r.end_date}
-            (${diffDays(r.start_date, r.end_date)}일)
-          </div>
+          <div class="dates">${this.fmtDate(r.created_at)} 대여</div>
         </div>
         <div class="spacer"></div>
-        <x-badge kind=${r.is_overdue ? "overdue" : r.status}></x-badge>
+        <x-badge kind=${r.status}></x-badge>
         ${
-          r.status === "pending" || r.status === "approved"
+          r.status === "rented"
             ? html`<button
-                class="link"
-                ?disabled=${this.busy}
-                @click=${() => this.cancel(r)}
-              >
-                취소
-              </button>`
+                  class="link"
+                  ?disabled=${this.busy}
+                  @click=${() => this.returnItem(r)}
+                >
+                  반납
+                </button>
+                <button
+                  class="link danger"
+                  ?disabled=${this.busy}
+                  @click=${() => this.cancel(r)}
+                >
+                  취소
+                </button>`
             : ""
         }
       </div>
       ${
-        r.status === "rejected" && r.status_note
-          ? html`<p class="note">거절 사유: ${r.status_note}</p>`
+        r.member_memo
+          ? html`<p class="note">메모: ${r.member_memo}</p>`
           : ""
       }
     `;
@@ -217,30 +238,19 @@ export class PageMypage extends LitElement {
                 <p class="msg" aria-live="polite">${this.message}</p>
                 ${this.renderGroup(
                   "대여 중",
-                  this.reservations.filter((r) => r.status === "picked_up"),
-                )}
-                ${this.renderGroup(
-                  "승인 대기",
-                  this.reservations.filter((r) => r.status === "pending"),
-                )}
-                ${this.renderGroup(
-                  "대여 예정",
-                  this.reservations.filter((r) => r.status === "approved"),
+                  this.reservations.filter((r) => r.status === "rented"),
                 )}
                 ${this.renderGroup(
                   "대여 이력",
                   this.reservations.filter(
-                    (r) =>
-                      r.status === "returned" ||
-                      r.status === "rejected" ||
-                      r.status === "cancelled",
+                    (r) => r.status === "returned" || r.status === "cancelled",
                   ),
                 )}
                 ${
                   this.reservations.length === 0
-                    ? html`<h2>내 예약</h2>
+                    ? html`<h2>내 대여</h2>
                         <p class="empty">
-                          아직 예약 내역이 없어요 — 물품 상세에서 신청할 수
+                          아직 대여 내역이 없어요 — 물품 상세에서 대여할 수
                           있어요
                         </p>`
                     : ""

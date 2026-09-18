@@ -1,12 +1,13 @@
-import { LitElement, html, css, type TemplateResult } from "lit";
+import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { api } from "../../api/client";
 import { navigate } from "../../router";
 import type { Dashboard, DashboardRow } from "../../types";
 import { reduceMotion } from "../../styles/motion";
 
-// SPEC §4.4 — 관리자 대시보드: 오늘 수령/반납 예정, 승인 대기, 연체.
-// 운영진이 아침에 열어 "오늘 뭘 처리해야 하는지" 한 화면에서 파악 → 대여 관리로 이동해 처리.
+// SPEC §4.4 — 관리자 대시보드: 지금 나가 있는 물품과 건수.
+// 기간·연체 개념이 사라져 '오늘 수령/반납 예정'과 '연체'를 계산할 수 없다.
+// 대신 운영진이 실제로 챙겨야 하는 것 하나만 보여준다 — 반납되지 않은 대여 목록.
 @customElement("page-admin-dashboard")
 export class PageAdminDashboard extends LitElement {
   @state() private data: Dashboard | null = null;
@@ -56,9 +57,6 @@ export class PageAdminDashboard extends LitElement {
       .num.warn {
         color: var(--color-warning);
       }
-      .num.danger {
-        color: var(--color-danger);
-      }
       .label {
         margin-top: var(--space-1);
         font-size: var(--text-caption);
@@ -89,10 +87,6 @@ export class PageAdminDashboard extends LitElement {
       }
       .who {
         color: var(--color-muted);
-      }
-      .late {
-        color: var(--tone-danger-text);
-        white-space: nowrap;
       }
       .empty {
         color: var(--color-muted);
@@ -143,49 +137,36 @@ export class PageAdminDashboard extends LitElement {
     return html`
       <h1>대시보드</h1>
       <div class="cards">
-        <button class="card link" @click=${() => this.goStatus("pending")}>
-          <div class="num warn">${d.pending_count}</div>
-          <div class="label">승인 대기</div>
-        </button>
-        <div class="card">
-          <div class="num">${d.pickups_count}</div>
-          <div class="label">오늘 수령</div>
-        </div>
-        <div class="card">
-          <div class="num">${d.returns_count}</div>
-          <div class="label">오늘 반납</div>
-        </div>
-        <button class="card link" @click=${() => this.goStatus("picked_up")}>
-          <div class="num ${d.overdue_count > 0 ? "danger" : ""}">
-            ${d.overdue_count}
+        <button class="card link" @click=${() => this.goStatus("rented")}>
+          <div class="num ${d.rented_count > 0 ? "warn" : ""}">
+            ${d.rented_count}
           </div>
-          <div class="label">연체</div>
+          <div class="label">대여 중</div>
+        </button>
+        <button class="card link" @click=${() => this.goStatus("returned")}>
+          <div class="num">${d.returned_count}</div>
+          <div class="label">반납 완료</div>
+        </button>
+        <button class="card link" @click=${() => this.goStatus("cancelled")}>
+          <div class="num">${d.cancelled_count}</div>
+          <div class="label">취소</div>
         </button>
       </div>
 
-      ${this.renderList("오늘 수령 예정", d.pickups, d.pickups_truncated)}
-      ${this.renderList("오늘 반납 예정", d.returns, d.returns_truncated)}
-      ${this.renderOverdue(d.overdue, d.overdue_truncated)}
+      ${this.renderRented(d.rented, d.rented_truncated)}
     `;
   }
 
-  // 수량은 수령·반납 시 실제로 챙길 개수라 목록에서 바로 보여야 한다 (§3).
+  // 수량은 반납 시 실제로 챙길 개수라 목록에서 바로 보여야 한다.
   // 1개짜리에 '1개'를 붙이면 모든 행이 길어지고 정보가 없다 — 2개 이상만 표시
   private itemLabel(r: DashboardRow) {
     return r.qty > 1 ? `${r.item_name} · ${r.qty}개` : r.item_name;
   }
 
-  private rowMeta(r: DashboardRow, due: string | TemplateResult) {
-    const contact = r.member_phone
-      ? `${r.member_name} · ${r.member_phone}`
-      : r.member_name;
-    return html`<span class="who">${contact}</span><span>${due}</span>`;
-  }
-
-  private renderList(title: string, rows: DashboardRow[], truncated = false) {
+  private renderRented(rows: DashboardRow[], truncated = false) {
     return html`
       <section>
-        <h2>${title}</h2>
+        <h2>대여 중</h2>
         ${
           rows.length === 0
             ? html`<p class="empty">없어요</p>`
@@ -194,42 +175,25 @@ export class PageAdminDashboard extends LitElement {
                   ${rows.map(
                     (r) =>
                       html`<li>
-                        <span>${this.itemLabel(r)}</span
-                        >${this.rowMeta(r, r.end_date)}
+                        <span>${this.itemLabel(r)}</span>
+                        <span class="who"
+                          >${r.member_phone
+                            ? `${r.member_name} · ${r.member_phone}`
+                            : r.member_name}</span
+                        >
                       </li>`,
                   )}
                 </ul>
               `
         }
-        ${truncated ? html`<p class="trunc">상위 20건까지만 표시 — 나머지는 예약 목록에서 확인</p>` : ""}
-      </section>
-    `;
-  }
-
-  private renderOverdue(
-    rows: (DashboardRow & { days_late: number })[],
-    truncated = false,
-  ) {
-    return html`
-      <section>
-        <h2>연체</h2>
-        ${
-          rows.length === 0
-            ? html`<p class="empty">없어요</p>`
-            : html`
-                <ul>
-                  ${rows.map(
-                    (r) => html`
-                      <li>
-                        <span>${this.itemLabel(r)}</span>
-                        ${this.rowMeta(r, html`<span class="late">${r.days_late}일 지남</span>`)}
-                      </li>
-                    `,
-                  )}
-                </ul>
-              `
-        }
-        ${truncated ? html`<p class="trunc">상위 20건까지만 표시 — 나머지는 예약 목록에서 확인</p>` : ""}
+        ${truncated ? html`<p class="trunc">상위 50건까지만 표시 — 나머지는 대여 관리에서 확인</p>` : ""}
+        ${rows.length > 0
+          ? html`<p class="trunc">
+              <button class="go" @click=${() => this.goStatus("rented")}>
+                대여 관리에서 반납 처리하기 →
+              </button>
+            </p>`
+          : ""}
       </section>
     `;
   }

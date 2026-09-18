@@ -2,7 +2,8 @@
 export type Photo = { id: number; url: string };
 
 export type ItemStatus = "active" | "repair" | "retired";
-export type AvailabilityBadge = "available" | "reserved" | "rented" | "repair";
+// 날짜 개념이 없어져 '예약 있음'(reserved)이 사라졌다 — 대여 중이거나 아니거나 둘 중 하나다
+export type AvailabilityBadge = "available" | "rented" | "repair";
 
 // 대여품/소모품 (§8 v3.0) — 소모품은 재고가 줄기만 하고 대여 기간 개념이 없다
 export type ItemKind = "rental" | "consumable";
@@ -12,7 +13,6 @@ export type Item = {
   name: string;
   status: ItemStatus;
   total_qty: number;
-  max_days: number;
   // 대여가능 수량 = total_qty - qty_broken (서버가 계산해 내려줌)
   rentable_qty?: number;
   qty_broken?: number;
@@ -24,11 +24,9 @@ export type Item = {
   description?: string | null;
   photos: Photo[];
   availability_badge?: AvailabilityBadge;
+  // 현재 대여 중인 수량 합 — 가용성 판정의 유일한 근거
   active_now?: number;
 };
-
-// 물품 상세의 향후 90일 일별 점유 (§7.6)
-export type AvailabilityDay = { date: string; reserved: number };
 
 // 역할 2단계 (v3.2) — admin(관리자) > user(회원)
 export type Role = "user" | "admin";
@@ -44,28 +42,18 @@ export type AdminMember = {
   created_at: string;
 };
 
-// 대여 예약 (§3 상태 흐름 — 연체는 저장 상태가 아닌 계산값)
-export type ReservationStatus =
-  | "pending"
-  | "approved"
-  | "picked_up"
-  | "returned"
-  | "rejected"
-  | "cancelled";
+// 대여 (§3 상태 흐름) — 신청 즉시 rented, 관리자가 returned 처리, 본인이 cancelled
+export type ReservationStatus = "rented" | "returned" | "cancelled";
 
 export type MyReservation = {
   id: number;
   item_id: number;
   item_name: string;
   item_photo: string | null;
-  start_date: string;
-  end_date: string;
-  // 부분 대여 수량 (§8 P0) — 한 예약이 여러 개를 점유한다. 서버가 항상 내려준다
+  // 부분 대여 수량 — 한 대여가 여러 개를 점유한다. 서버가 항상 내려준다
   qty: number;
   status: ReservationStatus;
-  status_note: string | null;
   member_memo: string | null;
-  is_overdue: boolean;
   created_at: string;
 };
 
@@ -76,34 +64,30 @@ export type AdminReservation = MyReservation & {
   member_email: string;
   member_phone: string | null;
   admin_name: string | null;
-  conflict_count: number;
+  // 반납은 회원도 직접 할 수 있다 — true 면 회원이 스스로 반납한 건(자기 신고)
+  returned_by_member: boolean;
 };
 
 // 관리자 대시보드 (§4.4) — /api/admin/dashboard
+// 날짜가 없어져 '오늘 수령/반납 예정'과 '연체'가 사라졌다 — 지금 나가 있는 물품만 본다
 export type DashboardRow = {
   id: number;
   item_id: number;
   item_name: string;
   member_name: string;
   member_phone: string | null;
-  start_date: string;
-  end_date: string;
-  // 부분 대여 수량 (§3) — 수령·반납 시 실제로 챙길 개수
+  // 부분 대여 수량 — 반납 시 실제로 챙길 개수
   qty: number;
+  created_at: string;
 };
 
 export type Dashboard = {
-  pending_count: number;
-  pickups_count: number;
-  returns_count: number;
-  overdue_count: number;
-  pickups: DashboardRow[];
-  returns: DashboardRow[];
-  overdue: (DashboardRow & { days_late: number })[];
-  // 하드 리밋(수령/반납/연체 각 20건)으로 잘렸는지 — 잘렸으면 화면에 '상위 20건만' 안내 (§4.4, v3.1)
-  pickups_truncated: boolean;
-  returns_truncated: boolean;
-  overdue_truncated: boolean;
+  rented_count: number;
+  returned_count: number;
+  cancelled_count: number;
+  rented: DashboardRow[];
+  // 하드 리밋(50건)으로 잘렸는지 — 잘렸으면 화면에 '상위 50건만' 안내
+  rented_truncated: boolean;
 };
 
 // 과거 대여 이력 (§4.3) — 2025 청년페스타 '물품대여' 시트 스냅샷.

@@ -27,7 +27,7 @@ Apple 웹 디자인 언어를 이 서비스 규모에 맞게 절제해 적용한
 | `--color-primary`                          | `#0066cc` Action Blue                 | `#0071e3`                         | 링크·CTA fill                           |
 | `--color-primary-text`                     | `#ffffff`                             | `#ffffff`                         | CTA 위 글자                             |
 | `--color-primary-focus`                    | `#0071e3`                             | `#2997ff`                         | 포커스 링·선택 보더                     |
-| `--color-primary-tint`                     | `rgba(0,102,204,.12)`                 | `rgba(41,151,255,.25)`            | primary 은은한 배경 (캘린더 범위 띠 등) |
+| `--color-primary-tint`                     | `rgba(0,102,204,.12)`                 | `rgba(41,151,255,.25)`            | primary 은은한 배경 (선택 범위·강조 면) |
 | `--color-link-on-dark`                     | `#2997ff`                             | `#2997ff`                         | 다크 타일 위 인라인 링크                |
 | `--color-success` / `-warning` / `-danger` | `#16a34a` / `#d97706` / `#dc2626`     | `#22c55e` / `#f59e0b` / `#ef4444` | 강조선·아이콘 (배경 금지)               |
 | `--tone-*-bg` · `--tone-*-text`            | success·warning·danger·info·violet 쌍 | 어두운 쌍                         | 배지·알림 카드                          |

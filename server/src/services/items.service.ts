@@ -2,7 +2,6 @@
 // SPEC §4.2·§7.4·§7.6 — 검색 외 물품 조회·관리에 필요한 모든 쿼리
 import type { Sql } from "../db";
 import type { Bindings } from "../types";
-import { KST_TODAY } from "../dates";
 import { embedItem } from "../embedding";
 
 // ===== 행 타입 =====
@@ -21,7 +20,6 @@ export type ListItemRow = ItemAttrs & {
   description: string | null;
   total_qty: number;
   rentable_qty: number;
-  max_days: number;
   status: "active" | "repair" | "retired";
   photos: { id: number; url: string }[];
   active_now: number;
@@ -35,7 +33,6 @@ export type AdminItemRow = {
   status: string;
   total_qty: number;
   qty_broken: number;
-  max_days: number;
   kind: string;
   location: string | null;
   size: string | null;
@@ -45,13 +42,13 @@ export type AdminItemRow = {
 
 // ===== 공개 조회 (§7.4·§7.6) =====
 
-// 상세 페이지 — 설명·수량·규칙 + 오늘 점유(active_now)
+// 상세 페이지 — 설명·수량 + 현재 대여 중 수량(active_now)
 export async function getItemDetail(
   db: Sql,
   itemId: number,
 ): Promise<ListItemRow | null> {
   const rows = (await db.query(
-    `SELECT items.id, items.name, items.description, items.total_qty, items.max_days, items.status,
+    `SELECT items.id, items.name, items.description, items.total_qty, items.status,
       items.kind, items.location, items.size, items.color,
       items.qty_broken,
       (items.total_qty - items.qty_broken) AS rentable_qty,
@@ -59,33 +56,13 @@ export async function getItemDetail(
                         ORDER BY p.sort_order), '[]'::json)
        FROM item_photos p WHERE p.item_id = items.id) AS photos,
       (SELECT COALESCE(SUM(r.qty), 0)::int FROM reservations r
-        WHERE r.item_id = items.id
-          AND r.status IN ('pending', 'approved', 'picked_up')
-          AND ${KST_TODAY} < r.end_date AND r.start_date <= ${KST_TODAY}) AS active_now
+        WHERE r.item_id = items.id AND r.status = 'rented') AS active_now
      FROM items
     WHERE items.id = $1`,
     [itemId],
   )) as ListItemRow[];
 
   return rows.length === 0 ? null : rows[0];
-}
-
-// 상세 페이지 가용성 — 향후 90일 일별 점유 (§3, §7.6)
-export async function getItemAvailability(
-  db: Sql,
-  itemId: number,
-): Promise<{ date: string; reserved: number }[]> {
-  // SAFETY: SELECT 목록이 반환 타입과 일치한다 — tsc는 SELECT 문자열을 읽지 못해 단언이 필요하다
-  return (await db.query(
-    `SELECT d::date::text AS date, COALESCE(SUM(r.qty), 0)::int AS reserved
-     FROM generate_series(${KST_TODAY}, ${KST_TODAY} + INTERVAL '89 days', '1 day') d
-   LEFT JOIN reservations r
-     ON r.item_id = $1
-    AND r.status IN ('pending', 'approved', 'picked_up')
-    AND r.start_date <= d::date AND r.end_date > d::date
-   GROUP BY d ORDER BY d`,
-    [itemId],
-  )) as { date: string; reserved: number }[];
 }
 
 // ===== 관리자 CRUD (§7.4) =====
@@ -120,22 +97,14 @@ export async function createItem(
     name: string;
     status: string;
     total_qty: number;
-    max_days: number;
     attrs: Record<string, unknown>;
   },
 ): Promise<number> {
-  const cols = [
-    "name",
-    "status",
-    "total_qty",
-    "max_days",
-    ...Object.keys(input.attrs),
-  ];
+  const cols = ["name", "status", "total_qty", ...Object.keys(input.attrs)];
   const vals = [
     input.name,
     input.status,
     input.total_qty,
-    input.max_days,
     ...Object.values(input.attrs),
   ];
   const [row] = (await db.query(

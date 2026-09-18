@@ -3,11 +3,8 @@ import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../api/client";
 import { session, type SessionUser } from "../context/session";
 import "../components/ui/badge";
-import "../components/ui/availability-strip";
-import "../components/ui/x-calendar";
 import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../utils/photo";
 import {
-  type AvailabilityDay,
   type Item,
   type ItemKind,
   type ItemStatus,
@@ -15,7 +12,7 @@ import {
 } from "../types";
 import { reduceMotion } from "../styles/motion";
 
-// SPEC §5 — 물품 상세 + 대여 신청 폼 (§4.3, 원자적 INSERT는 서버 §8)
+// SPEC §5 — 물품 상세 + 대여 신청 폼 (§4.3, 원자적 INSERT는 서버)
 // 운영진(admin)은 이 화면에서 바로 편집·사진 관리 — 별도 관리 화면 없음 (DESIGN 통합안)
 @customElement("page-item-detail")
 export class PageItemDetail extends LitElement {
@@ -24,25 +21,18 @@ export class PageItemDetail extends LitElement {
   @state()
   private item: Item | null = null;
   @state()
-  private availability: AvailabilityDay[] = [];
-  @state()
   private photoIdx = 0;
   @state()
   private error = "";
 
-  // 신청 폼
+  // 신청 폼 — 날짜가 없어져 수량과 메모만 받는다
   @state()
   private user: SessionUser | null = null;
   @state()
   private userReady = false;
   @state()
-  private startDate = "";
-  @state()
-  private endDate = "";
-  @state()
   private memo = "";
-  // 부분 대여 수량 (§8 P0) — 한 예약이 여러 개를 점유한다. 기본 1개.
-  // 날짜가 바뀌면 기간 잔여가 달라지므로 날짜 선택 때마다 1로 되돌린다
+  // 부분 대여 수량 — 한 대여가 여러 개를 점유한다. 기본 1개.
   @state()
   private qty = 1;
   @state()
@@ -61,7 +51,6 @@ export class PageItemDetail extends LitElement {
     kind: "rental" as ItemKind,
     total_qty: 1,
     qty_broken: 0,
-    max_days: 7,
     status: "active" as ItemStatus,
     location: "",
     size: "",
@@ -166,11 +155,6 @@ export class PageItemDetail extends LitElement {
         margin: 0;
         white-space: pre-wrap;
       }
-      .strip-label {
-        font-size: var(--text-caption);
-        color: var(--color-muted);
-        margin-bottom: var(--space-2);
-      }
       .apply-form {
         margin-top: var(--space-4);
         padding: var(--space-5);
@@ -227,45 +211,6 @@ export class PageItemDetail extends LitElement {
       }
       .qty-hint {
         font-size: var(--text-fine);
-      }
-      .hint-row {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: var(--space-3);
-      }
-      .hint {
-        margin: 0;
-        font-size: var(--text-caption);
-        color: var(--color-muted);
-      }
-      /* '다시 선택' — 힌트 옆 텍스트 링크. 탭만으론 빈 선택으로 못 돌아가는 보완 */
-      .clear {
-        position: relative;
-        flex-shrink: 0;
-        background: none;
-        border: 0;
-        padding: 0;
-        color: var(--color-primary);
-        font: inherit;
-        font-size: var(--text-caption);
-        cursor: pointer;
-        transition: transform 0.15s ease;
-      }
-      /* DESIGN.md §1 — 시각은 텍스트 링크 그대로, 히트 영역만 상하로 넓혀 44px에 맞춤 */
-      .clear::after {
-        content: "";
-        position: absolute;
-        inset: -13px -6px;
-      }
-      .clear:active {
-        transform: scale(0.95);
-      }
-      /* DESIGN.md 버튼 문법 — UA 기본 링 대신 토큰 링 (.primary와 같은 규칙) */
-      .clear:focus-visible {
-        outline: 2px solid var(--color-primary-focus);
-        outline-offset: 2px;
-        border-radius: var(--radius-sm);
       }
       .warn {
         margin: 0;
@@ -484,11 +429,8 @@ export class PageItemDetail extends LitElement {
   // 전체 에러 화면은 초기 로드 실패뿐 (갱신 실패는 다음 신청 때 서버가 재검증)
   private async load(quiet = false) {
     try {
-      const res = await api<{ item: Item; availability: AvailabilityDay[] }>(
-        `/api/items/${this.itemId}`,
-      );
+      const res = await api<{ item: Item }>(`/api/items/${this.itemId}`);
       this.item = res.item;
-      this.availability = res.availability;
       this.editPhotos = res.item.photos;
     } catch (e) {
       if (!quiet) this.error = e instanceof Error ? e.message : "오류";
@@ -543,7 +485,6 @@ export class PageItemDetail extends LitElement {
       kind: it.kind ?? "rental",
       total_qty: it.total_qty ?? this.item.total_qty,
       qty_broken: it.qty_broken ?? 0,
-      max_days: it.max_days ?? this.item.max_days,
       status: it.status ?? this.item.status,
       location: it.location ?? "",
       size: it.size ?? "",
@@ -640,98 +581,29 @@ export class PageItemDetail extends LitElement {
     }
   }
 
-  // 로컬(브라우저) 기준 오늘 — 과거 날짜 차단의 1차 방어선 (서버는 UTC 기준 백스톱)
-  private get today(): string {
-    return this.fmt(new Date());
-  }
-
-  private fmt(d: Date): string {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-      d.getDate(),
-    ).padStart(2, "0")}`;
-  }
-
-  private get rentalDays(): number {
-    if (!this.startDate || !this.endDate) return 0;
-    return Math.round(
-      (Date.parse(this.endDate) - Date.parse(this.startDate)) / 86400000,
-    );
-  }
-
-  // 선택 기간에 실제로 빌릴 수 있는 수량 = 대여가능 − 기간 중 최대 일별 점유.
-  // 일별 점유는 그날의 합계이므로 기간 전체에서 가장 붐비는 날이 상한이 된다 — 서버 가드도
-  // 매 대여일마다 잔여를 보므로 어느 하루라도 넘치면 거부된다(§8). 같은 기준을 써야
-  // 폼이 통과시킨 신청이 서버에서 거부되는 일이 없다.
-  private get availableForRange(): number {
-    if (!this.startDate || !this.endDate) return this.rentableQty;
-    let max = 0;
-    for (const d of this.availability) {
-      // 반개구간 [start, end) — 반납일은 점유에서 제외 (§8 겹침 조건과 동일)
-      if (
-        d.date >= this.startDate &&
-        d.date < this.endDate &&
-        d.reserved > max
-      ) {
-        max = d.reserved;
-      }
-    }
-    return Math.max(0, this.rentableQty - max);
+  // 지금 빌릴 수 있는 수량 = 대여가능 − 현재 대여 중 수량.
+  // 날짜가 없어져 기간별 잔여를 계산할 필요가 없다 — 서버 가드도 같은 기준으로 본다.
+  private get availableNow(): number {
+    return Math.max(0, this.rentableQty - (this.item?.active_now ?? 0));
   }
 
   // 실시간 폼 검증 — 통과 시 빈 문자열
   private get formError(): string {
-    if (!this.item || !this.startDate || !this.endDate) return "";
-    if (this.rentalDays < 1) {
-      return "반납일은 시작일 다음 날부터 선택할 수 있어요";
-    }
-    if (this.rentalDays > this.item.max_days) {
-      return `최대 ${this.item.max_days}일까지 대여할 수 있어요`;
-    }
-    if (this.startDate < this.today) return "과거 날짜는 선택할 수 없어요";
+    if (!this.item) return "";
     if (!Number.isInteger(this.qty) || this.qty < 1) {
       return "수량은 1개 이상이어야 해요";
     }
-    if (this.qty > this.availableForRange) {
-      return this.availableForRange === 0
-        ? "선택한 기간에는 남은 수량이 없어요 — 다른 기간을 선택해 주세요"
-        : `선택한 기간에는 ${this.availableForRange}개까지 빌릴 수 있어요`;
+    if (this.qty > this.availableNow) {
+      return this.availableNow === 0
+        ? "지금은 남은 수량이 없어요 — 반납되면 다시 대여할 수 있어요"
+        : `지금은 ${this.availableNow}개까지 빌릴 수 있어요`;
     }
     return "";
   }
 
-  // x-calendar의 change — 선택값 소유는 부모가 (controlled 컴포넌트)
-  private onRange(e: Event) {
-    const d = (e as CustomEvent<{ start: string; end: string }>).detail;
-    this.startDate = d.start;
-    this.endDate = d.end;
-    this.formMsg = "";
-    this.qty = 1; // 기간이 바뀌면 잔여 상한도 바뀔다 — 이전 수량을 그대로 두면 상한 초과 상태가 된다
-  }
-
-  // 선택 초기화 — '다시 선택' (탭만으로는 빈 선택 상태에 도달할 수 없어 부모가 직접 클리어)
-  private clearRange() {
-    this.startDate = "";
-    this.endDate = "";
-    this.formMsg = "";
-    this.qty = 1;
-    // 이 버튼은 startDate가 비면 렌더에서 빠진다 — 포커스를 달력으로 되돌리지 않으면
-    // 키보드 사용자의 포커스가 body로 떨어져 Tab이 문서 처음부터 다시 시작한다
-    void this.updateComplete.then(() => {
-      const cal = this.renderRoot.querySelector("x-calendar") as
-        (HTMLElement & { focusCursor?: () => void }) | null;
-      cal?.focusCursor?.();
-    });
-  }
-
   private async submit(e: Event) {
     e.preventDefault();
-    if (
-      this.saving ||
-      this.formError ||
-      !this.item ||
-      !this.startDate ||
-      !this.endDate
-    ) {
+    if (this.saving || this.formError || !this.item) {
       return;
     }
     this.saving = true;
@@ -741,16 +613,12 @@ export class PageItemDetail extends LitElement {
         method: "POST",
         body: JSON.stringify({
           item_id: Number(this.itemId),
-          start_date: this.startDate,
-          end_date: this.endDate,
           qty: this.qty,
           memo: this.memo || undefined,
         }),
       });
       this.formOk = true;
-      this.formMsg = "신청했어요 — 마이페이지에서 확인할 수 있어요";
-      this.startDate = "";
-      this.endDate = "";
+      this.formMsg = "대여했어요 — 마이페이지에서 확인할 수 있어요";
       this.memo = "";
       this.qty = 1;
       await this.load(true); // 가용 현황 갱신 — 갱신 실패가 성공 메시지를 덮지 않게
@@ -758,8 +626,8 @@ export class PageItemDetail extends LitElement {
       const msg = err instanceof Error ? err.message : "";
       if (msg.includes("no_availability")) {
         this.formMsg =
-          "선택한 기간에 대여 가능 수량이 없어요. 다른 기간을 선택해 주세요";
-        void this.load(true); // 사이에 다른 신청이 들어왔을 수 있음 — 달력·스트립 최신화
+          "지금은 대여 가능한 수량이 없어요 — 반납되면 다시 시도해 주세요";
+        void this.load(true); // 사이에 다른 신청이 들어왔을 수 있음 — 현황 최신화
       } else if (msg.includes("too_many")) {
         this.formMsg =
           "요청한 수량이 대여 가능 수량보다 많아요 — 수량을 줄여 주세요";
@@ -767,15 +635,11 @@ export class PageItemDetail extends LitElement {
         this.formMsg = "지금은 대여할 수 없는 물품이에요";
       } else if (msg.includes("not_found")) {
         this.formMsg = "삭제되었거나 찾을 수 없는 물품이에요";
-      } else if (msg.includes("too_long")) {
-        this.formMsg = `최대 ${this.item.max_days}일까지 대여할 수 있어요`;
-      } else if (msg.includes("past_date")) {
-        this.formMsg = "과거 날짜는 선택할 수 없어요";
       } else if (msg.includes("phone_required")) {
         this.formMsg =
-          "연락처를 등록한 후 신청할 수 있어요 — 마이페이지에서 등록해 주세요";
+          "연락처를 등록한 후 대여할 수 있어요 — 마이페이지에서 등록해 주세요";
       } else {
-        this.formMsg = err instanceof Error ? err.message : "신청에 실패했어요";
+        this.formMsg = err instanceof Error ? err.message : "대여에 실패했어요";
       }
       this.formOk = false;
     } finally {
@@ -878,7 +742,7 @@ export class PageItemDetail extends LitElement {
         ${
           this.item.kind === "consumable"
             ? ""
-            : html`<span><b>대여 가능</b>${this.rentableQty}개</span>`
+            : html`<span><b>대여 가능</b>${this.availableNow}개</span>`
         }
         ${
           this.item.qty_broken
@@ -886,11 +750,6 @@ export class PageItemDetail extends LitElement {
             : ""
         }
         <span><b>전체 보유</b>${this.item.total_qty}개</span>
-        ${
-          this.item.kind === "consumable"
-            ? ""
-            : html`<span><b>최대 대여일</b>${this.item.max_days}일</span>`
-        }
       </div>
       ${
         this.attrPairs().length
@@ -907,17 +766,6 @@ export class PageItemDetail extends LitElement {
               </dl>
             `
           : ""
-      }
-      ${
-        this.item.kind === "consumable"
-          ? ""
-          : html`
-              <div class="strip-label">향후 90일 예약 현황</div>
-              <availability-strip
-                .days=${this.availability}
-                .totalQty=${this.rentableQty}
-              ></availability-strip>
-            `
       }
       ${this.renderApply()}
     `;
@@ -1012,26 +860,6 @@ export class PageItemDetail extends LitElement {
                 )}
             />
           </label>
-          ${
-            f.kind === "consumable"
-              ? ""
-              : html`
-                  <label
-                    >최대 대여일
-                    <input
-                      type="number"
-                      min="1"
-                      max="365"
-                      .value=${String(f.max_days)}
-                      @input=${(e: Event) =>
-                        this.setEdit(
-                          "max_days",
-                          Number((e.target as HTMLInputElement).value),
-                        )}
-                    />
-                  </label>
-                `
-          }
         </div>
         <div class="edit-row">
           <label
@@ -1143,7 +971,7 @@ export class PageItemDetail extends LitElement {
     }
     if (this.user.status !== "approved") {
       return html`<div class="notice">
-        승인 대기 중이에요 — 관리자 승인 후 신청할 수 있어요
+        승인 대기 중이에요 — 관리자 승인 후 대여할 수 있어요
       </div>`;
     }
     if (!this.user.phone) {
@@ -1170,40 +998,9 @@ export class PageItemDetail extends LitElement {
   }
 
   private renderForm() {
-    const item = this.item!;
     return html`
       <form class="apply-form" @submit=${this.submit}>
-        <h2>대여 신청</h2>
-        <x-calendar
-          .startDate=${this.startDate}
-          .endDate=${this.endDate}
-          .days=${this.availability}
-          .totalQty=${this.rentableQty}
-          .maxDays=${item.max_days}
-          @change=${this.onRange}
-        ></x-calendar>
-        <div class="hint-row">
-          <p class="hint" role="status">
-            ${
-              this.startDate && this.endDate
-                ? `${this.rentalDays}일 대여 (반납일 제외) · 최대 ${item.max_days}일 — 날짜를 다시 눌러 바꿀 수 있어요`
-                : this.startDate
-                  ? "반납일을 선택해 주세요 — 하루만 빌리려면 시작일 다음 날을 고르세요"
-                  : "시작일을 먼저 선택해 주세요 — 반납일은 물품을 돌려주는 날이에요"
-            }
-          </p>
-          ${
-            this.startDate
-              ? html`<button
-                  type="button"
-                  class="clear"
-                  @click=${this.clearRange}
-                >
-                  다시 선택
-                </button>`
-              : ""
-          }
-        </div>
+        <h2>대여하기</h2>
         ${
           this.formError
             ? html`<p class="warn" role="alert">${this.formError}</p>`
@@ -1213,20 +1010,20 @@ export class PageItemDetail extends LitElement {
           this.rentableQty > 1
             ? html`
                 <label class="qty">
-                  수량 (최대 ${this.availableForRange}개)
+                  수량 (최대 ${this.availableNow}개)
                   <input
                     type="number"
                     min="1"
-                    max=${Math.max(1, this.availableForRange)}
+                    max=${Math.max(1, this.availableNow)}
                     .value=${String(this.qty)}
                     @input=${(e: Event) =>
                       (this.qty = Number((e.target as HTMLInputElement).value))}
                   />
                   <span class="qty-hint">
                     ${
-                      this.startDate && this.endDate
-                        ? `선택한 기간에 ${this.availableForRange}개까지 신청할 수 있어요`
-                        : `이 물품은 모두 ${this.rentableQty}개까지 빌릴 수 있어요`
+                      this.availableNow > 0
+                        ? `지금 ${this.availableNow}개까지 빌릴 수 있어요`
+                        : "지금은 남은 수량이 없어요 — 반납되면 다시 대여할 수 있어요"
                     }
                   </span>
                 </label>
@@ -1246,11 +1043,9 @@ export class PageItemDetail extends LitElement {
         <button
           class="primary"
           type="submit"
-          ?disabled=${
-            this.saving || !!this.formError || !this.startDate || !this.endDate
-          }
+          ?disabled=${this.saving || !!this.formError}
         >
-          ${this.saving ? "신청 중…" : "신청하기"}
+          ${this.saving ? "대여 중…" : "대여하기"}
         </button>
         ${
           this.formMsg

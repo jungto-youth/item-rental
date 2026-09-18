@@ -2,27 +2,20 @@ import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import "../../components/ui/badge";
 import type { AdminReservation, ReservationStatus } from "../../types";
-import { api, ApiError } from "../../api/client";
-import { diffDays } from "../../utils/date";
+import { api } from "../../api/client";
 import { reduceMotion } from "../../styles/motion";
 
-// SPEC §4.3 — 대여 신청 관리: 승인/거절(사유 필수)/수령/반납 (admin 전용)
-// pending 예약은 가용 수량을 차지함 — conflict_count가 0이 아니면 겹침 경고 후 승인 가능 (§3)
+// SPEC §4.3 — 대여 관리: 반납 처리만 (admin 전용)
+// 승인·거절·수령이 없어졌다 — 회원이 신청하면 즉시 대여 중이고, 관리자는 돌려받았을 때 반납을 누른다
 @customElement("page-admin-reservations")
 export class PageAdminReservations extends LitElement {
   @state() private reservations: AdminReservation[] = [];
-  // 500건 하드 리밋으로 잘렸는지 — 잘렸으면 '500건까지만 표시' 안내 (§4.3, v3.1)
+  // 500건 하드 리밋으로 잘렸는지 — 잘렸으면 '500건까지만 표시' 안내
   @state() private truncated = false;
   @state() private filter: "" | ReservationStatus = "";
   @state() private loading = true; /* 초기 로드 전 — "없어요" 깜빡임 방지 */
   @state() private busy = false;
   @state() private message = "";
-  @state() private rejectingId: number | null = null;
-  @state() private rejectReason = "";
-  // 승인 시 수량 조정 (§3) — 재고가 모자랄 때 현장에서 줄인다. 신청 수량이 2개 이상일 때만
-  // 확인 단계를 열어, 1개짜리 승인에 클릭을 더하지 않는다
-  @state() private approvingId: number | null = null;
-  @state() private approveQty = 1;
 
   static styles = [
     reduceMotion,
@@ -53,7 +46,7 @@ export class PageAdminReservations extends LitElement {
         font-size: var(--text-caption);
         font-family: inherit;
       }
-      /* 표 대신 두 줄 로우 — 640px 본문에 테이블이 원래 안 맞아 좌우 스크롤로 처리 버튼이 가려짐 (§4.3) */
+      /* 표 대신 두 줄 로우 — 640px 본문에 테이블이 원래 안 맞아 좌우 스크롤로 처리 버튼이 가려짐 */
       .rows {
         display: grid;
       }
@@ -84,6 +77,11 @@ export class PageAdminReservations extends LitElement {
       .memo {
         color: var(--color-muted);
       }
+      /* 회원이 직접 반납한 건 — 자기 신고라 관리자가 물품을 확인해야 한다 */
+      .by {
+        color: var(--color-warning);
+        font-size: var(--text-fine);
+      }
       .link {
         background: none;
         border: 0;
@@ -93,9 +91,6 @@ export class PageAdminReservations extends LitElement {
         font-size: var(--text-caption);
         font-family: inherit;
       }
-      .link.danger {
-        color: var(--tone-danger-text);
-      }
       .link:disabled {
         opacity: 0.5;
         cursor: not-allowed;
@@ -103,33 +98,6 @@ export class PageAdminReservations extends LitElement {
       .head .link {
         flex-shrink: 0;
       } /* 액션 링크가 눌리지 않게 — 44px 터치 타깃 유지 */
-      .reject {
-        display: flex;
-        align-items: center;
-        gap: var(--space-1);
-        flex: 1;
-        min-width: 0;
-      }
-      .reject input {
-        font: inherit;
-        font-size: var(--text-caption);
-        height: 36px;
-        padding: 0 var(--space-2);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm);
-        background: var(--color-bg);
-        color: var(--color-text);
-        flex: 1;
-        min-width: 0;
-      }
-      .conflict {
-        color: var(--tone-warning-text);
-        font-size: var(--text-fine);
-      }
-      .reject input[type="number"] {
-        flex: 0 0 auto;
-        max-width: 6rem;
-      }
       .msg {
         color: var(--color-primary);
         font-size: var(--text-caption);
@@ -146,17 +114,7 @@ export class PageAdminReservations extends LitElement {
     super.connectedCallback();
     // 대시보드 카드 딥링크(?status=…) — 유효한 상태면 필터 미리 적용
     const qs = new URLSearchParams(location.search).get("status");
-    if (
-      qs &&
-      [
-        "pending",
-        "approved",
-        "picked_up",
-        "returned",
-        "rejected",
-        "cancelled",
-      ].includes(qs)
-    ) {
+    if (qs && ["rented", "returned", "cancelled"].includes(qs)) {
       this.filter = qs as ReservationStatus;
     }
     await this.reload();
@@ -178,180 +136,22 @@ export class PageAdminReservations extends LitElement {
     }
   }
 
-  private async transition(
-    r: AdminReservation,
-    action: string,
-    body?: Record<string, unknown>,
-    okMsg = "",
-  ) {
+  // 반납 처리 — 이 화면의 유일한 상태 전이
+  private async markReturned(r: AdminReservation) {
     if (this.busy) return;
+    const label = r.qty > 1 ? `'${r.item_name}' ${r.qty}개` : `'${r.item_name}'`;
+    if (!confirm(`${label}를 반납 처리할까요?`)) return;
     this.busy = true;
     try {
-      await api(`/api/admin/reservations/${r.id}/${action}`, {
-        method: "POST",
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      this.message = okMsg || "처리했어요";
-      this.rejectingId = null;
-      this.rejectReason = "";
-      this.approvingId = null;
+      await api(`/api/admin/reservations/${r.id}/return`, { method: "POST" });
+      this.message = "반납 처리했어요";
       await this.reload();
     } catch (e) {
-      const code = e instanceof ApiError ? e.code : undefined;
-      if (code === "bad_status") this.message = "이미 처리된 예약이에요";
-      else if (code === "qty_increase_not_allowed")
-        this.message =
-          "신청 수량보다 늘릴 수는 없어요 — 늘리려면 거절 후 재신청받아 주세요";
-      else if (code === "bad_qty") this.message = "수량은 1개 이상이어야 해요";
-      else this.message = e instanceof Error ? e.message : "처리에 실패했어요";
+      this.message = e instanceof Error ? e.message : "처리에 실패했어요";
       await this.reload();
     } finally {
       this.busy = false;
     }
-  }
-
-  private startApprove(r: AdminReservation) {
-    // 초과 경고 — 정상 흐름에선 0. 0이 아니면 확정 예약만으로 이미 정원인 날이 있다는 뜻이라
-    // (동시성 레이스·수량 인하) 관리자 판단이 필요하다 (§3). '겹침 건수' 경고가 아니다
-    if (r.conflict_count > 0) {
-      if (
-        !confirm(
-          `확정 예약만으로 이미 정원인 날이 ${r.conflict_count}일 있어요. 그래도 승인할까요?`,
-        )
-      )
-        return;
-    }
-    // 1개짜리는 조정할 것이 없다 — 확인 단계 없이 바로 승인
-    if (r.qty <= 1) {
-      void this.transition(r, "approve", undefined, "승인했어요");
-      return;
-    }
-    this.approvingId = r.id;
-    this.approveQty = r.qty;
-    this.message = "";
-  }
-
-  private async submitApprove(r: AdminReservation) {
-    // 빈 값·0·소수·상한 초과를 여기서 정리 — 서버 왕복 없이 바로 확인된다
-    const qty = Math.min(Math.max(Math.trunc(this.approveQty) || 1, 1), r.qty);
-    this.approveQty = qty;
-    const body = qty === r.qty ? undefined : { qty };
-    await this.transition(r, "approve", body, "승인했어요");
-  }
-
-  private startReject(r: AdminReservation) {
-    this.rejectingId = r.id;
-    this.rejectReason = "";
-    this.message = "";
-  }
-
-  private async submitReject(r: AdminReservation) {
-    if (!this.rejectReason.trim()) {
-      this.message = "거절 사유를 입력해 주세요";
-      return;
-    }
-    await this.transition(
-      r,
-      "reject",
-      { reason: this.rejectReason.trim() },
-      "거절했어요",
-    );
-  }
-
-  private renderActions(r: AdminReservation) {
-    if (r.status === "pending") {
-      if (this.rejectingId === r.id)
-        return html`
-          <span class="reject">
-            <input
-              placeholder="거절 사유 (필수)"
-              aria-label="거절 사유"
-              .value=${this.rejectReason}
-              @input=${(e: Event) => (this.rejectReason = (e.target as HTMLInputElement).value)}
-              @keydown=${(e: KeyboardEvent) => {
-                if (e.key === "Enter") void this.submitReject(r);
-              }}
-            />
-            <button
-              class="link"
-              ?disabled=${this.busy}
-              @click=${() => this.submitReject(r)}
-            >
-              확인
-            </button>
-            <button
-              class="link"
-              ?disabled=${this.busy}
-              @click=${() => (this.rejectingId = null)}
-            >
-              취소
-            </button>
-          </span>
-        `;
-      if (this.approvingId === r.id)
-        return html`
-          <span class="reject">
-            <input
-              type="number"
-              min="1"
-              max=${r.qty}
-              aria-label="승인 수량"
-              .value=${String(this.approveQty)}
-              @input=${(e: Event) => (this.approveQty = Number((e.target as HTMLInputElement).value))}
-              @keydown=${(e: KeyboardEvent) => {
-                if (e.key === "Enter") void this.submitApprove(r);
-              }}
-            />
-            <button
-              class="link"
-              ?disabled=${this.busy}
-              @click=${() => this.submitApprove(r)}
-            >
-              확인
-            </button>
-            <button
-              class="link"
-              ?disabled=${this.busy}
-              @click=${() => (this.approvingId = null)}
-            >
-              취소
-            </button>
-          </span>
-        `;
-      return html`
-        <button
-          class="link"
-          ?disabled=${this.busy}
-          @click=${() => this.startApprove(r)}
-        >
-          승인
-        </button>
-        <button
-          class="link danger"
-          ?disabled=${this.busy}
-          @click=${() => this.startReject(r)}
-        >
-          거절
-        </button>
-      `;
-    }
-    if (r.status === "approved")
-      return html`<button
-        class="link"
-        ?disabled=${this.busy}
-        @click=${() => this.transition(r, "pickup", undefined, "수령 처리했어요")}
-      >
-        수령
-      </button>`;
-    if (r.status === "picked_up")
-      return html`<button
-        class="link"
-        ?disabled=${this.busy}
-        @click=${() => this.transition(r, "return", undefined, "반납 처리했어요")}
-      >
-        반납
-      </button>`;
-    return "";
   }
 
   render() {
@@ -364,26 +164,17 @@ export class PageAdminReservations extends LitElement {
           .value=${this.filter}
           @change=${(e: Event) => {
             this.filter = (e.target as HTMLSelectElement).value as
-              "" | ReservationStatus;
-            this.rejectingId = null;
+              | ""
+              | ReservationStatus;
             void this.reload();
           }}
         >
           <option value="" ?selected=${this.filter === ""}>전체</option>
-          <option value="pending" ?selected=${this.filter === "pending"}>
-            승인 대기
-          </option>
-          <option value="approved" ?selected=${this.filter === "approved"}>
-            승인
-          </option>
-          <option value="picked_up" ?selected=${this.filter === "picked_up"}>
+          <option value="rented" ?selected=${this.filter === "rented"}>
             대여 중
           </option>
           <option value="returned" ?selected=${this.filter === "returned"}>
             반납 완료
-          </option>
-          <option value="rejected" ?selected=${this.filter === "rejected"}>
-            거절
           </option>
           <option value="cancelled" ?selected=${this.filter === "cancelled"}>
             취소
@@ -395,7 +186,7 @@ export class PageAdminReservations extends LitElement {
         this.loading
           ? html`<p class="empty">불러오는 중…</p>`
           : this.reservations.length === 0
-            ? html`<p class="empty">예약이 없어요</p>`
+            ? html`<p class="empty">대여가 없어요</p>`
             : html`${this.truncated ? html`<p class="empty">500건까지만 표시 — 오래된 건은 잘릴 수 있어요</p>` : ""}${this.renderCards()}`
       }
     `;
@@ -410,30 +201,39 @@ export class PageAdminReservations extends LitElement {
   }
 
   private renderCard(r: AdminReservation) {
-    const days = diffDays(r.start_date, r.end_date);
-    const acts = this.renderActions(r);
+    const acts =
+      r.status === "rented"
+        ? html`<button
+            class="link"
+            ?disabled=${this.busy}
+            @click=${() => this.markReturned(r)}
+          >
+            반납
+          </button>`
+        : "";
     return html`
       <div class="row">
         <span class="head">
           <span class="name"
             >${r.item_name}${r.qty > 1 ? ` · ${r.qty}개` : ""}</span
           >
-          <x-badge kind=${r.is_overdue ? "overdue" : r.status}></x-badge>
+          <x-badge kind=${r.status}></x-badge>
           ${acts}
         </span>
         <span class="who"
           >${r.member_name || "—"} · ${r.member_phone ?? r.member_email} ·
-          ${r.start_date}~${r.end_date} (${days}일)</span
+          ${r.created_at.slice(0, 10)}</span
         >
-        ${r.member_memo ? html`<span class="memo">메모 · ${r.member_memo}</span>` : ""}
-        ${r.status_note ? html`<span class="memo">사유 · ${r.status_note}</span>` : ""}
         ${
-          r.status === "pending" && r.conflict_count > 0
-            ? html`<span class="conflict"
-                >정원 초과 ${r.conflict_count}일 — 승인 시 확인 필요</span
+          r.returned_by_member
+            ? html`<span class="by"
+                >회원이 직접 반납했어요 — 물품 회수 여부를 확인해 주세요</span
               >`
-            : ""
+            : r.status === "returned" && r.admin_name
+              ? html`<span class="memo">${r.admin_name} 관리자가 반납 처리</span>`
+              : ""
         }
+        ${r.member_memo ? html`<span class="memo">메모 · ${r.member_memo}</span>` : ""}
       </div>
     `;
   }

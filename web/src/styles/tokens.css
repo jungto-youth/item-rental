@@ -19,7 +19,7 @@
         102,
         204,
         0.12
-    ); /* primary 은은한 배경 — 캘린더 범위 띠 등 */
+    ); /* primary 은은한 배경 — 선택 범위·강조 면 */
     --color-link-on-dark: #2997ff;
     --color-success: #16a34a;
     --color-warning: #d97706;

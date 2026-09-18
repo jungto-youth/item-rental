@@ -1,6 +1,6 @@
 # 청년지부 물품 대여 사이트
 
-정토회 청년지부의 물품(대여품·소모품) 대여 관리 사이트. 회원은 물품을 검색해 기간과 수량을 골라 신청하고, 관리자가 승인·수령·반납을 처리한다.
+정토회 청년지부의 물품(대여품·소모품) 대여 관리 사이트. 회원은 물품을 검색해 수량과 메모로 대여하고, 관리자가 반납을 처리한다.
 
 사양서는 [SPEC.md](SPEC.md), 디자인 규칙은 [DESIGN.md](DESIGN.md)를 본다.
 
@@ -24,10 +24,10 @@
 
 ## 역할
 
-| 역할             | 권한                                                                                                       |
-| ---------------- | ---------------------------------------------------------------------------------------------------------- |
-| 회원 (`user`)    | 물품 검색, 대여 신청, 내 예약 현황·이력 조회, 신청 취소                                                    |
-| 관리자 (`admin`) | 물품 등록/수정/삭제·사진 관리, 대여 승인/거절, 수령·반납 처리, 회원 승인, 전체 이력 조회, 관리자 지정/해제 |
+| 역할             | 권한                                                                                     |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| 회원 (`user`)    | 물품 검색, 대여, 내 대여 현황·이력 조회, 반납, 대여 취소                                 |
+| 관리자 (`admin`) | 물품 등록/수정/삭제·사진 관리, 대여 반납 처리, 회원 승인, 전체 이력 조회, 관리자 지정/해제 |
 
 - 로그인은 `@jungto.org` 계정만 허용하고, 예외는 `AUTH_ALLOWED_EMAILS` 시크릿에 콤마로 나열한다.
 - 관리자 지정/해제는 관리자 누구나 가능하다. **마지막 관리자는 본인 포함 해임·비활성화 불가**, 승인 대기·비활성 회원은 관리자로 임명 불가 (서버가 409로 강제).
@@ -40,7 +40,7 @@ server/src/
   index.ts                — Hono 앱 (라우트 마운트, /api/photos/* R2 서빙, SPA 폴백)
   types.ts / db.ts        — Bindings·SessionUser 타입 / Neon HTTP 드라이버 초기화
   auth.ts                 — Auth.js 설정 (구글 OAuth, 이메일 제한, JWT)
-  dates.ts / embedding.ts / image-size.ts — KST 날짜 계산 / 임베딩 / 이미지 검사
+  embedding.ts / image-size.ts — 임베딩 / 이미지 검사
   middleware/auth.ts      — requireAuth / requireApproved / requireAdmin
   routes/                 — items, me, reservations, admin/{items,members,reservations,dashboard,history}
   services/               — SQL·도메인 로직 (items, reservations, members, dashboard, history, search)
@@ -49,10 +49,10 @@ web/src/
   styles/tokens.css       — CSS 커스텀 프로퍼티 디자인 토큰 (+ 다크)
   context/session.ts      — /api/me 캐시
   api/client.ts           — fetch 래퍼 (401 처리, 에러 토스트)
-  components/ui/          — badge, availability-strip, x-calendar
+  components/ui/          — badge
   utils/photo.ts          — 사진 리사이즈·업로드 (1600px WebP)
   pages/                  — home, item-detail, mypage, login, signup-profile, policy, admin/*
-migrations/               — Neon 마이그레이션 SQL (0001~0014, 순차 실행·멱등)
+migrations/               — Neon 마이그레이션 SQL (0001~0015, 순차 실행·멱등)
 server/scripts/           — migrate, seed, reembed, import-items, import-rentals (Deno)
 ```
 
@@ -64,35 +64,35 @@ server/scripts/           — migrate, seed, reembed, import-items, import-renta
 | *                   | `/api/auth/*`                                                | Auth.js 표준 (signin/callback/signout)        | 전체     |
 | PUT                 | `/api/me/profile`                                            | 이름·연락처 입력                              | 로그인   |
 | GET                 | `/api/items?q=`                                              | 물품 목록 + 가용 배지 — `q` 생략 시 전체 목록 | 전체     |
-| GET                 | `/api/items/:id`                                             | 상세 + 사진 + 향후 90일 점유 일정             | 전체     |
-| POST                | `/api/reservations`                                          | 대여 신청 (advisory 락 트랜잭션, 원자적)      | approved |
-| GET                 | `/api/reservations/mine`                                     | 내 예약 현황·이력 (그룹 목록)                 | approved |
-| POST                | `/api/reservations/:id/cancel`                               | 신청 취소 (수령 전만)                         | 본인     |
+| GET                 | `/api/items/:id`                                             | 상세 + 사진                                   | 전체     |
+| POST                | `/api/reservations`                                          | 대여 (advisory 락 트랜잭션, 원자적)           | approved |
+| GET                 | `/api/reservations/mine`                                     | 내 대여 현황·이력 (그룹 목록)                 | approved |
+| POST                | `/api/reservations/:id/cancel`                               | 대여 취소 (대여 중만)                         | 본인     |
+| POST                | `/api/reservations/:id/return`                               | 반납 (회원 직접, 대여 중만)                   | 본인     |
 | GET                 | `/api/photos/*`                                              | R2 사진 서빙 (1년 캐시)                       | 전체     |
 | GET/POST/PUT/DELETE | `/api/admin/items`                                           | 물품 CRUD (등록/수정 시 임베딩 자동 생성)     | admin    |
 | POST/DELETE         | `/api/admin/items/:id/photos[/:photoId]`                     | 사진 업로드(1600px·2MB 검사)·삭제             | admin    |
-| GET                 | `/api/admin/reservations?status=`                            | 전체 예약 목록 (수량 합계·겹침 배지)          | admin    |
-| POST                | `/api/admin/reservations/:id/{approve,reject,pickup,return}` | 상태 처리 (거절은 사유 필수)                  | admin    |
+| GET                 | `/api/admin/reservations?status=`                            | 전체 대여 목록 (대여 중 우선 정렬)            | admin    |
+| POST                | `/api/admin/reservations/:id/return`                         | 반납 처리 (관리자)                            | admin    |
 | GET/POST            | `/api/admin/members`, `/:id/{approve,reject,deactivate}`     | 회원 목록·승인/거절/비활성화                  | admin    |
 | PUT                 | `/api/admin/members/:id/role`                                | 역할 지정/해제 (마지막 관리자 보호)           | admin    |
-| GET                 | `/api/admin/dashboard`                                       | 오늘 수령/반납, 승인 대기, 연체 건수          | admin    |
+| GET                 | `/api/admin/dashboard`                                       | 대여 중 건수·목록, 반납/취소 건수             | admin    |
 | GET                 | `/api/admin/history?q=&scope=&page=&limit=`                  | 과거 대여 이력 (시트 스냅샷, 참고용)          | admin    |
 
 ## 대여 상태 흐름
 
 ```
-[물품 상세] 기간·수량 선택 → 신청(pending)
-   → 관리자 승인(approved) ── 거절(rejected, 사유 필수)
-   → 수령(picked_up)
-   → 반납(returned)          ── 수령 전 취소(cancelled)
-   → 반납일 경과 시 연체(overdue) 배지
+[물품 상세] 수량·메모 입력 → 대여(rented)
+   → 반납(returned)   ← 회원이 직접 누르거나 관리자가 처리
+   → 취소(cancelled)  ← 빌리지 않기로 함
 ```
 
+- **기간 개념이 없다** — 날짜·최대 대여일·승인 단계를 두지 않는다 (migration 0015)
+- **반납은 회원도 직접 한다** — 마이페이지 [반납] 버튼. 관리자 경로와 달리 `admin_id` 를 기록하지 않아 관리자 목록이 "회원이 직접 반납"을 구분해 보여준다 (자기 신고라 확인 대상)
 - **대여 가능 수량** `rentable_qty = total_qty - qty_broken` (수리중 수량은 재고에서 제외)
-- 신청 기간의 **매 대여일**마다 `pending/approved/picked_up` 예약의 `SUM(qty)` + 신청 수량 ≤ `rentable_qty` 이면 신청 가능
-- 반개구간 `[start, end)` — 반납일은 대여일에서 제외. 당일 반납 불가, 붙어 있는 예약은 충돌이 아니다
-- 물품별 `pg_advisory_xact_lock` 트랜잭션이 동시 신청을 직렬화해 이중 예약을 막는다 (HTTP 드라이버는 요청마다 별도 세션)
-- 이메일 알림은 없다. 연체는 목록·마이페이지의 계산 배지로만 표시한다
+- **현재 대여 중(`rented`)인 수량의 합** + 신청 수량 ≤ `rentable_qty` 이면 대여 가능. 반납·취소된 수량은 점유에서 빠진다
+- 물품별 `pg_advisory_xact_lock` 트랜잭션이 동시 신청을 직렬화해 이중 대여를 막는다 (HTTP 드라이버는 요청마다 별도 세션)
+- 이메일 알림은 없다. 반납 기한이 없어 연체 개념도 없다 — 관리자는 대시보드의 '대여 중' 목록으로 미반납 건을 본다
 
 ## 검색
 
@@ -110,9 +110,9 @@ server/scripts/           — migrate, seed, reembed, import-items, import-renta
 | 경로                                               | 화면                                                 | 접근               |
 | -------------------------------------------------- | ---------------------------------------------------- | ------------------ |
 | `/`                                                | 물품 목록 (검색·가용 배지) — 관리자 등록 버튼 포함   | 전체               |
-| `/items/:id`                                       | 물품 상세 + 대여 신청 (관리자는 편집·사진 관리)      | 전체 (신청은 회원) |
+| `/items/:id`                                       | 물품 상세 + 대여 (관리자는 편집·사진 관리)           | 전체 (대여는 회원) |
 | `/login`, `/signup/profile`                        | 로그인 / 프로필 입력                                 | 전체               |
-| `/mypage`                                          | 내 예약 그룹 목록 (대여 중/승인 대기/대여 예정/이력) | 회원               |
+| `/mypage`                                          | 내 대여 그룹 목록 (대여 중/대여 이력)                | 회원               |
 | `/policy/privacy`, `/policy/terms`                 | 개인정보 처리방침·이용약관                           | 전체               |
 | `/admin` · `/admin/{reservations,history,members}` | 대시보드 · 대여 관리 · 이력 · 회원 관리              | admin              |
 | `(.*)`                                             | 404 화면                                             | 전체               |

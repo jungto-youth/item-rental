@@ -4,17 +4,15 @@ import type { Sql } from "../db";
 import type { Bindings } from "../types";
 import type { ListItemRow } from "./items.service";
 import { embed } from "../embedding";
-import { KST_TODAY } from "../dates";
 
 // 배지까지 계산된 목록 행 — 화면(web/src/types.ts Item)과 같은 모양
 export type ListItemWithBadge = ListItemRow & {
-  availability_badge: "available" | "reserved" | "rented" | "repair" | null;
+  availability_badge: "available" | "rented" | "repair" | null;
 };
 
 // 목록 SELECT 공용 — 키워드/의미 두 단계가 where 절만 다르게 재사용
-// KST 자정 기준 '오늘' 판정 (v3.1)
 function buildListSql(where: string): string {
-  return `SELECT items.id, items.name, items.description, items.total_qty, items.max_days, items.status,
+  return `SELECT items.id, items.name, items.description, items.total_qty, items.status,
             items.kind, items.location, items.size, items.color,
             items.qty_broken,
             (items.total_qty - items.qty_broken) AS rentable_qty,
@@ -22,9 +20,7 @@ function buildListSql(where: string): string {
                               ORDER BY p.sort_order), '[]'::json)
              FROM item_photos p WHERE p.item_id = items.id) AS photos,
             (SELECT COALESCE(SUM(r.qty), 0)::int FROM reservations r
-             WHERE r.item_id = items.id
-               AND r.status IN ('pending', 'approved', 'picked_up')
-               AND ${KST_TODAY} < r.end_date AND r.start_date <= ${KST_TODAY}) AS active_now
+             WHERE r.item_id = items.id AND r.status = 'rented') AS active_now
      FROM items
      WHERE items.status <> 'retired' ${where}
      ORDER BY items.id DESC`;
@@ -118,6 +114,7 @@ export async function searchSemanticItems(
 
 // ===== 전체 목록 (검색어 없음) =====
 // 가용 배지 계산 — 키워드·의미·전체 목록이 같은 라벨을 쓴다 (상세도 같은 규칙: routes/items.ts)
+// 날짜 개념이 없어져 '예약 있음'(reserved)은 사라졌다 — 대여 중이거나 아니거나 둘 중 하나다
 function withAvailabilityBadge(r: ListItemRow): ListItemWithBadge {
   return {
     ...r,
@@ -128,9 +125,7 @@ function withAvailabilityBadge(r: ListItemRow): ListItemWithBadge {
           ? "repair"
           : r.active_now >= r.rentable_qty
             ? "rented"
-            : r.active_now > 0
-              ? "reserved"
-              : "available",
+            : "available",
   };
 }
 

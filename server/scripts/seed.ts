@@ -24,21 +24,21 @@ const sql = neon(url)
 
 // --- 예시 물품 (v2.5 — 카테고리 없음, 탐색은 검색으로) ---
 const ITEMS = [
-  { name: '원터치 텐트 (3~4인)', description: '페그·폴대 포함. 반납 전 흙을 털어 주세요.', total_qty: 2, max_days: 3 },
-  { name: '취사용품 세트 (코펠)', description: '2~3인용 코펠 + 버너. 가스는 지부에서 제공하지 않아요.', total_qty: 3, max_days: 3 },
-  { name: 'LED 랜턴', description: '건전지는 미포함이에요.', total_qty: 5, max_days: 7 },
-  { name: '침낭 (봄·가을용)', description: '내용물은 세탁하지 말고 통풍 건조 후 반납해 주세요.', total_qty: 4, max_days: 3 },
-  { name: '접이식 테이블', description: '4~6인용 접이식 테이블.', total_qty: 2, max_days: 3 },
-  { name: '블루투스 스피커', description: '충전기 포함. 충전 상태로 반납해 주세요.', total_qty: 2, max_days: 3 },
-  { name: '캐노피 (3x3m)', description: '가방·페그 포함. 강풍 시 사용을 피해 주세요.', total_qty: 1, max_days: 2 },
-  { name: '대형 돗자리 (10인용)', description: '행사·피크닉용 대형 돗자리.', total_qty: 2, max_days: 2 },
-  { name: '확성기 (마이크 포함)', description: '충전식. 사용 후 충전해 반납해 주세요.', total_qty: 1, max_days: 2 },
-  { name: '멀티탭 (5구)', description: '야외 행사용 멀티탭.', total_qty: 3, max_days: 7 },
-  { name: '배드민턴 세트', description: '라켓 4개 + 셔틀콕. 네트는 미포함이에요.', total_qty: 2, max_days: 5 },
-  { name: '족구공·풋살공', description: '공기가 빠졌으면 펌프는 지부 비품실에 있어요.', total_qty: 3, max_days: 7 },
-  { name: '줄넘기', description: '개인 운동용.', total_qty: 4, max_days: 7 },
-  { name: '대용량 전기포트', description: '정기 모임 차 준비용.', total_qty: 1, max_days: 2 },
-  { name: '접이식 운반 카트', description: '물품 나를 때 사용하는 접이식 카트.', total_qty: 2, max_days: 2 },
+  { name: '원터치 텐트 (3~4인)', description: '페그·폴대 포함. 반납 전 흙을 털어 주세요.', total_qty: 2 },
+  { name: '취사용품 세트 (코펠)', description: '2~3인용 코펠 + 버너. 가스는 지부에서 제공하지 않아요.', total_qty: 3 },
+  { name: 'LED 랜턴', description: '건전지는 미포함이에요.', total_qty: 5 },
+  { name: '침낭 (봄·가을용)', description: '내용물은 세탁하지 말고 통풍 건조 후 반납해 주세요.', total_qty: 4 },
+  { name: '접이식 테이블', description: '4~6인용 접이식 테이블.', total_qty: 2 },
+  { name: '블루투스 스피커', description: '충전기 포함. 충전 상태로 반납해 주세요.', total_qty: 2 },
+  { name: '캐노피 (3x3m)', description: '가방·페그 포함. 강풍 시 사용을 피해 주세요.', total_qty: 1 },
+  { name: '대형 돗자리 (10인용)', description: '행사·피크닉용 대형 돗자리.', total_qty: 2 },
+  { name: '확성기 (마이크 포함)', description: '충전식. 사용 후 충전해 반납해 주세요.', total_qty: 1 },
+  { name: '멀티탭 (5구)', description: '야외 행사용 멀티탭.', total_qty: 3 },
+  { name: '배드민턴 세트', description: '라켓 4개 + 셔틀콕. 네트는 미포함이에요.', total_qty: 2 },
+  { name: '족구공·풋살공', description: '공기가 빠졌으면 펌프는 지부 비품실에 있어요.', total_qty: 3 },
+  { name: '줄넘기', description: '개인 운동용.', total_qty: 4 },
+  { name: '대용량 전기포트', description: '정기 모임 차 준비용.', total_qty: 1 },
+  { name: '접이식 운반 카트', description: '물품 나를 때 사용하는 접이식 카트.', total_qty: 2 },
 ]
 
 // 멱등 — 이미 있는 물품은 건너뜀
@@ -52,8 +52,8 @@ for (const it of ITEMS) {
     continue
   }
   await sql.query(
-    `INSERT INTO items (name, description, total_qty, max_days) VALUES ($1, $2, $3, $4)`,
-    [it.name, it.description, it.total_qty, it.max_days],
+    `INSERT INTO items (name, description, total_qty) VALUES ($1, $2, $3)`,
+    [it.name, it.description, it.total_qty],
   )
   added++
   console.log(`✓ ${it.name}`)
