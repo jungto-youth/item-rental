@@ -113,8 +113,7 @@ export class PageLogin extends LitElement {
       <div>
         <h1>로그인</h1>
         <p>
-          정토회 구글 계정으로 로그인하고, 관리자 승인 후 물품을 대여할 수
-          있어요
+          정토회 구글 계정으로 로그인하면 바로 물품을 대여할 수 있어요
         </p>
         <button @click=${this.signIn} ?disabled=${this.busy}>
           ${this.busy ? "이동 중…" : "구글로 로그인"}

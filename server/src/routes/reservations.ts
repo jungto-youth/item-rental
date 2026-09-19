@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
 import { getDb, type Sql } from "../db";
-import { requireApproved } from "../middleware/auth";
 import {
   createReservation,
   getMyReservations,
@@ -11,15 +10,13 @@ import {
 } from "../services/reservations.service";
 
 // ===== 대여 라우트 =====
-// SPEC §3·§7.4 — 대여/내 대여/취소/반납 (approved 회원 전용)
+// SPEC §3·§7.4 — 대여/내 대여/취소/반납 (로그인 회원 전용 — 승인 단계 없음)
 // 관리자 전용 /api/admin/reservations 에는 반납만 있다 — 회원도 같은 일을 할 수 있으므로
 // 여기에도 반납을 둔다. 두 경로의 차이는 admin_id 기록 여부뿐이다 (service 주석 참고)
 export const reservationsRoute = new Hono<{
   Bindings: Bindings;
   Variables: Variables;
 }>();
-
-reservationsRoute.use("*", requireApproved);
 
 // 신청 — 가용 검사는 reservations.service.createReservation에 위임
 // 동시 신청에도 이중 대여 불가 (advisory 락 + 대여 중 수량 검사)

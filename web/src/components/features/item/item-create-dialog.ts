@@ -5,6 +5,7 @@ import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
 import { type ItemKind, type ItemStatus } from "../../../types";
 import "../../ui/modal";
 import "../../ui/button";
+import "./photo-uploader";
 
 const EMPTY_FORM = {
   name: "",
@@ -77,67 +78,20 @@ export class ItemCreateDialog extends LitElement {
       gap: 12px;
     }
 
-    .pics {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .pic {
-      position: relative;
-      width: 64px;
-      height: 64px;
-      border-radius: var(--radius-sm, 6px);
-      overflow: hidden;
-      border: 1px solid var(--color-border);
-    }
-
-    .pic img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .pic-del {
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      width: 20px;
-      height: 20px;
-      background: rgba(0, 0, 0, 0.65);
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      line-height: 1;
-    }
-
     .error-msg {
       color: var(--color-danger);
       font-size: var(--text-caption, 13px);
       margin: 0;
     }
 
-    .file-input-wrapper input[type="file"] {
-      height: auto;
-      padding: 8px 0;
-      background: transparent;
-      border: none;
-      font-size: var(--text-caption, 13px);
-    }
-  `;
+    `;
 
   private set<K extends keyof typeof this.form>(k: K, v: (typeof this.form)[K]) {
     this.form = { ...this.form, [k]: v };
   }
 
-  private async pickStaged(e: Event) {
-    const input = e.target as HTMLInputElement;
-    for (const f of Array.from(input.files ?? [])) {
+  private async pickStaged(files: File[]) {
+    for (const f of files) {
       if (this.staged.length >= 3) {
         this.error = "사진은 최대 3장까지 등록할 수 있어요";
         break;
@@ -154,7 +108,6 @@ export class ItemCreateDialog extends LitElement {
         this.error = err instanceof Error ? err.message : "이미지 처리 실패";
       }
     }
-    input.value = "";
   }
 
   private removeStaged(i: number) {
@@ -167,6 +120,14 @@ export class ItemCreateDialog extends LitElement {
     for (const u of this.stagedUrls) URL.revokeObjectURL(u);
     this.staged = [];
     this.stagedUrls = [];
+  }
+
+  private onPhotoUpload(e: CustomEvent<{ files: File[] }>) {
+    void this.pickStaged(e.detail.files);
+  }
+
+  private onPhotoRemove(e: CustomEvent<{ key: string | number }>) {
+    this.removeStaged(Number(e.detail.key));
   }
 
   private handleClose = () => {
@@ -313,39 +274,12 @@ export class ItemCreateDialog extends LitElement {
             ></textarea>
           </label>
 
-          <div class="file-input-wrapper">
-            <label>
-              사진 등록 (최대 3장)
-              <input
-                type="file"
-                multiple
-                accept="image/jpeg,image/png,image/webp"
-                @change=${this.pickStaged}
-              />
-            </label>
-          </div>
-
-          ${this.stagedUrls.length > 0
-            ? html`
-                <div class="pics">
-                  ${this.stagedUrls.map(
-                    (u, i) => html`
-                      <div class="pic">
-                        <img src=${u} alt="" />
-                        <button
-                          type="button"
-                          class="pic-del"
-                          title="삭제"
-                          @click=${() => this.removeStaged(i)}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    `,
-                  )}
-                </div>
-              `
-            : ""}
+          <photo-uploader
+            multiple
+            .entries=${this.stagedUrls.map((u, i) => ({ url: u, key: i }))}
+            @upload=${this.onPhotoUpload}
+            @remove=${this.onPhotoRemove}
+          ></photo-uploader>
         </form>
 
         <div slot="footer">

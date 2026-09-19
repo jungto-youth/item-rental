@@ -5,6 +5,7 @@ import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
 import { type Item, type ItemKind, type ItemStatus, type Photo } from "../../../types";
 import "../../ui/modal";
 import "../../ui/button";
+import "./photo-uploader";
 
 @customElement("item-edit-dialog")
 export class ItemEditDialog extends LitElement {
@@ -74,51 +75,6 @@ export class ItemEditDialog extends LitElement {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
-    }
-
-    .photos-box {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .pics {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .pic {
-      position: relative;
-      width: 64px;
-      height: 64px;
-      border-radius: var(--radius-sm, 6px);
-      overflow: hidden;
-      border: 1px solid var(--color-border);
-    }
-
-    .pic img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .pic-del {
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      width: 20px;
-      height: 20px;
-      background: rgba(0, 0, 0, 0.65);
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      line-height: 1;
     }
 
     .error-msg {
@@ -217,20 +173,17 @@ export class ItemEditDialog extends LitElement {
     }
   }
 
-  private async handleUploadPhoto(e: Event) {
+  private async onPhotoUpload(e: CustomEvent<{ files: File[] }>) {
     if (!this.item) return;
-    const input = e.target as HTMLInputElement;
-    const file = input.files?.[0];
+    const file = e.detail.files[0];
     if (!file) return;
 
     if (!PHOTO_OK.includes(file.type) || file.size > MAX_PHOTO_BYTES) {
       this.error = "JPEG/PNG/WebP, 5MB 이하만 가능합니다.";
-      input.value = "";
       return;
     }
     if (this.photos.length >= 3) {
       this.error = "사진은 최대 3장까지 등록할 수 있습니다.";
-      input.value = "";
       return;
     }
 
@@ -249,9 +202,12 @@ export class ItemEditDialog extends LitElement {
       this.dispatchEvent(new CustomEvent("photo-changed", { bubbles: true, composed: true }));
     } catch (err) {
       this.error = err instanceof Error ? err.message : "사진 업로드 실패";
-    } finally {
-      input.value = "";
     }
+  }
+
+  private async onPhotoRemove(e: CustomEvent<{ key: string | number }>) {
+    const p = this.photos.find((x) => x.id === e.detail.key);
+    if (p) await this.handleDeletePhoto(p);
   }
 
   private async handleDeletePhoto(p: Photo) {
@@ -356,37 +312,11 @@ export class ItemEditDialog extends LitElement {
             ></textarea>
           </label>
 
-          <div class="photos-box">
-            <label>
-              사진 관리 (${this.photos.length}/3)
-              ${this.photos.length < 3
-                ? html`
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      @change=${this.handleUploadPhoto}
-                    />
-                  `
-                : ""}
-            </label>
-            <div class="pics">
-              ${this.photos.map(
-                (p) => html`
-                  <div class="pic">
-                    <img src=${p.url} alt="" />
-                    <button
-                      type="button"
-                      class="pic-del"
-                      title="삭제"
-                      @click=${() => this.handleDeletePhoto(p)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                `,
-              )}
-            </div>
-          </div>
+          <photo-uploader
+            .entries=${this.photos.map((p) => ({ url: p.url, key: p.id }))}
+            @upload=${this.onPhotoUpload}
+            @remove=${this.onPhotoRemove}
+          ></photo-uploader>
         </form>
 
         <div slot="footer" class="footer-actions">

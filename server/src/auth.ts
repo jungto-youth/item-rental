@@ -32,7 +32,7 @@ export function authConfig(env: Bindings): AuthConfig {
       }),
     ],
     callbacks: {
-      // 최초 로그인 시 members 생성 (§4.1 — 승인 대기 상태로 시작)
+      // 최초 로그인 시 members 자동 가입 (§4.1 — 로그인이 곧 가입, 대기/승인 단계 없음)
       // 정토회 계정이 아니면 여기서 차단 — members 생성 자체를 하지 않음
       async signIn({ user }) {
         if (!user.email || !isAllowed(user.email)) {

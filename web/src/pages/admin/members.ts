@@ -6,8 +6,8 @@ import type { AdminMember, Role } from "../../types";
 import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-nav";
 
-// SPEC §4.4 — 회원 관리: 승인/거절·역할 지정/해제 모두 admin 전용
-// 역할 변경 보호장치는 서버가 강제: 마지막 관리자 해임 불가, 미승인 회원 임명 불가
+// SPEC §4.4 — 회원 관리: 목록·비활성화·역할 지정/해제 모두 admin 전용
+// 역할 변경 보호장치는 서버가 강제: 마지막 관리자 해임 불가
 @customElement("page-admin-members")
 export class PageAdminMembers extends LitElement {
   @state() private members: AdminMember[] = [];
@@ -108,35 +108,6 @@ export class PageAdminMembers extends LitElement {
     }
   }
 
-  private async approve(m: AdminMember) {
-    if (this.busy) return;
-    this.busy = true;
-    try {
-      await api(`/api/admin/members/${m.id}/approve`, { method: "POST" });
-      this.message = `${m.name || m.email}님을 승인했어요`;
-      await this.reload();
-    } catch (e) {
-      this.message = e instanceof Error ? e.message : "승인 실패";
-    } finally {
-      this.busy = false;
-    }
-  }
-
-  private async reject(m: AdminMember) {
-    if (!confirm(`'${m.name || m.email}'님의 가입을 거절할까요?`)) return;
-    if (this.busy) return;
-    this.busy = true;
-    try {
-      await api(`/api/admin/members/${m.id}/reject`, { method: "POST" });
-      this.message = "거절했어요";
-      await this.reload();
-    } catch (e) {
-      this.message = e instanceof Error ? e.message : "거절 실패";
-    } finally {
-      this.busy = false;
-    }
-  }
-
   // 탈퇴(비활성화) — 활성 회원을 비활성화한다. 약관이 '탈퇴는 관리자에게 요청'이라 안내하는데
   // 처리 수단이 없어 신설했다(§4.1, v3.1). 마지막 관리자 보호는 서버가 409 로 거부한다.
   private async deactivate(m: AdminMember) {
@@ -193,9 +164,6 @@ export class PageAdminMembers extends LitElement {
       const code = e instanceof ApiError ? e.code : undefined;
       if (code === "last_admin")
         this.message = "마지막 관리자는 해임할 수 없어요";
-      else if (code === "member_not_approved")
-        this.message =
-          "승인 대기 회원이에요 — 먼저 승인한 후 역할을 바꿀 수 있어요";
       else if (e instanceof ApiError) this.message = e.message;
       else this.message = "역할 변경 실패";
       await this.reload();
@@ -226,31 +194,12 @@ export class PageAdminMembers extends LitElement {
   }
 
   private renderCard(m: AdminMember) {
-    const acts =
-      m.status === "pending"
-        ? html`
-            <button
-              class="link"
-              ?disabled=${this.busy}
-              @click=${() => this.approve(m)}
-            >
-              승인
-            </button>
-            <button
-              class="link danger"
-              ?disabled=${this.busy}
-              @click=${() => this.reject(m)}
-            >
-              거절
-            </button>
-          `
-        : "";
     return html`
       <div class="row">
         <span class="head">
           <span class="name">${m.name || "—"}</span>
           ${
-            m.status === "approved"
+            m.status !== "inactive"
               ? html`<select
                   ?disabled=${this.busy}
                   aria-label="역할 지정"
@@ -268,7 +217,7 @@ export class PageAdminMembers extends LitElement {
           }
           <x-badge kind=${m.status}></x-badge>
           ${
-            m.status === "approved"
+            m.status === "active"
               ? html`<button
                   class="link danger"
                   ?disabled=${this.busy}
@@ -278,8 +227,7 @@ export class PageAdminMembers extends LitElement {
                 </button>`
               : ""
           }
-          ${acts}
-        </span>
+          </span>
         <span class="who">${m.email} · ${m.phone ?? "연락처 미등록"}</span>
       </div>
     `;

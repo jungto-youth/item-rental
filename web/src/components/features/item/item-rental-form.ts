@@ -248,7 +248,7 @@ export class ItemRentalForm extends LitElement {
       } else if (msg.includes("too_many")) {
         this.message = "요청 수량이 대여 가능 수량보다 많습니다.";
       } else if (msg.includes("phone_required")) {
-        this.message = "마이페이지에서 연락처를 먼저 등록해주세요.";
+        this.message = "내 정보에서 연락처를 먼저 등록해주세요.";
       } else {
         this.message = err instanceof Error ? err.message : "대여 신청에 실패했습니다.";
       }
@@ -265,11 +265,11 @@ export class ItemRentalForm extends LitElement {
         <div class="box">
           <h3 class="title" style="color: var(--color-success)">🎉 대여 완료</h3>
           <p class="msg">
-            <b>${this.item.name}</b> 대여가 접수되었어요. 사용 후 마이페이지에서 반납해 주세요.
+            <b>${this.item.name}</b> 대여가 접수되었어요. 사용 후 대여 내역에서 반납해 주세요.
           </p>
           <div class="success-actions">
-            <x-button variant="primary" size="md" @click=${() => navigate("/mypage")}>
-              내 대여 확인 / 반납하기
+            <x-button variant="primary" size="md" @click=${() => navigate("/my/rentals")}>
+              대여 내역 확인 / 반납하기
             </x-button>
             <x-button variant="secondary" size="md" @click=${() => navigate("/")}>
               다른 물품 둘러보기
@@ -305,14 +305,6 @@ export class ItemRentalForm extends LitElement {
           <x-button variant="secondary" size="sm" @click=${() => navigate("/login")}>
             로그인
           </x-button>
-        </div>
-      `;
-    }
-
-    if (this.user.status === "pending") {
-      return html`
-        <div class="notice warn">
-          <p class="msg">관리자 승인 대기 중이에요 — 승인 후 대여할 수 있어요.</p>
         </div>
       `;
     }

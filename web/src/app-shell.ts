@@ -344,8 +344,26 @@ export class AppShell extends LitElement {
                                 href="/mypage"
                                 @click=${() => (this.menuOpen = false)}
                               >
-                                내 대여
+                                내 정보
                               </a>
+                              <a
+                                role="menuitem"
+                                href="/my/rentals"
+                                @click=${() => (this.menuOpen = false)}
+                              >
+                                대여 내역
+                              </a>
+                              ${this.user.role === "admin"
+                                ? html`
+                                    <a
+                                      role="menuitem"
+                                      href="/admin"
+                                      @click=${() => (this.menuOpen = false)}
+                                    >
+                                      관리자
+                                    </a>
+                                  `
+                                : ""}
                               <button
                                 role="menuitem"
                                 class="menu-logout"

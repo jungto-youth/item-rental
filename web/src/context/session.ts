@@ -7,7 +7,7 @@ export type SessionUser = {
   name: string;
   phone: string | null;
   role: Role;
-  status: "pending" | "approved" | "inactive";
+  status: "active" | "inactive";
 };
 
 class SessionStore {

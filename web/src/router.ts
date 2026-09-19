@@ -5,6 +5,7 @@ import "./pages/home";
 import "./pages/item-detail";
 import "./pages/login";
 import "./pages/mypage";
+import "./pages/my-rentals";
 import "./pages/signup-profile";
 import "./pages/not-found";
 import "./pages/admin/members";
@@ -52,6 +53,11 @@ const routes: RouteConfig[] = [
   {
     path: "/mypage",
     render: () => html`<page-mypage></page-mypage>`,
+    enter: requireSession,
+  },
+  {
+    path: "/my/rentals",
+    render: () => html`<page-my-rentals></page-my-rentals>`,
     enter: requireSession,
   },
   {

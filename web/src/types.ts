@@ -27,7 +27,7 @@ export type Item = {
 
 // 역할 2단계 (v3.2) — admin(관리자) > user(회원)
 export type Role = "user" | "admin";
-export type MemberStatus = "pending" | "approved" | "inactive";
+export type MemberStatus = "active" | "inactive";
 
 export type AdminMember = {
   id: string;
@@ -66,25 +66,34 @@ export type AdminReservation = MyReservation & {
 };
 
 // 관리자 대시보드 (§4.4) — /api/admin/dashboard
-// 날짜가 없어져 '오늘 수령/반납 예정'과 '연체'가 사라졌다 — 지금 나가 있는 물품만 본다
-export type DashboardRow = {
-  id: number;
-  item_id: number;
-  item_name: string;
+// 날짜 개념이 없어져 '오늘 수령/반납 예정'과 '연체'가 사라졌다. 대신 전체 물품(폐기 포함)을
+// 내려줘서 화면이 물품별 현재 상태를 그룹으로 나눠 보여준다.
+export type DashboardRenter = {
   member_name: string;
   member_phone: string | null;
   // 부분 대여 수량 — 반납 시 실제로 챙길 개수
   qty: number;
-  created_at: string;
+};
+
+export type DashboardItem = {
+  id: number;
+  name: string;
+  kind: ItemKind;
+  status: ItemStatus;
+  total_qty: number;
+  qty_broken: number;
+  // 대여가능 수량 = total_qty - qty_broken (서버가 계산해 내려줌)
+  rentable_qty: number;
+  // 현재 대여 중인 수량 합 — 가용성 판정의 유일한 근거
+  active_now: number;
+  // 대표 사진 URL (첫번째 사진). 없으면 null
+  photo: string | null;
+  // 현재 이 물품을 대여 중인 회원 목록
+  current_renters: DashboardRenter[];
 };
 
 export type Dashboard = {
-  rented_count: number;
-  returned_count: number;
-  cancelled_count: number;
-  rented: DashboardRow[];
-  // 하드 리밋(50건)으로 잘렸는지 — 잘렸으면 화면에 '상위 50건만' 안내
-  rented_truncated: boolean;
+  items: DashboardItem[];
 };
 
 // 과거 대여 이력 (§4.3) — 2025 청년페스타 '물품대여' 시트 스냅샷.

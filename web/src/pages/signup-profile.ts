@@ -122,7 +122,7 @@ export class PageSignupProfile extends LitElement {
   render() {
     return html`
       <form @submit=${this.submit}>
-        <h2>프로필 입력</h2>
+        <h2>계정 정보</h2>
         <p class="hint">대여 연락 목적으로만 사용돼요</p>
         <label
           >이름

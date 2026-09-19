@@ -24,7 +24,7 @@ export type SessionUser = {
   name: string;
   phone: string | null; // nullable — 최초 로그인 후 프로필 입력에서 채움
   role: Role;
-  status: "pending" | "approved" | "inactive";
+  status: "active" | "inactive";
 };
 
 export type Variables = {
