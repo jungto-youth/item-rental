@@ -48,6 +48,7 @@ export async function getDashboard(db: Sql) {
   // SAFETY: 각 raw 쿼리의 SELECT 목록이 아래 타입과 일치한다. neon HTTP 드라이버의
   // 반환형이 유니온이라 단언이 필요한데, tsc는 SELECT 문자열을 읽지 못해 이 일치를 검사할 수 없다.
   const items = itemsRaw as unknown as Omit<DashboardItem, "current_renters">[];
+  // SAFETY: rentersRaw 도 같은 이유 — Q2 SELECT(member_name·member_phone·qty·item_id)와 타입 일치
   const renters = rentersRaw as unknown as (DashboardRenter & { item_id: number })[];
 
   // 현재 대여자를 물품별로 묶는다

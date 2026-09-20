@@ -48,5 +48,12 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   // 204·빈 본문은 파싱할 JSON이 없다 — res.json()이 던지면 성공한 작업이 실패로 표시된다
   if (res.status === 204) return undefined as T;
   const text = await res.text();
-  return (text ? JSON.parse(text) : undefined) as T;
+  // 성공 응답도 프록시 에러 페이지 등 HTML 이 올 수 있다 — JSON.parse를 그대로 던지면
+  // 호출부가 SyntaxError 를 받으므로 ApiError 로 감싼다
+  if (!text) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError(res.status, "서버 응답이 올바른 JSON이 아닙니다");
+  }
 }
