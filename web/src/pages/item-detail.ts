@@ -7,6 +7,7 @@ import { reduceMotion } from "../styles/motion";
 import { navigate } from "../router";
 import "../components/ui/badge";
 import "../components/ui/button";
+import "../components/ui/empty";
 import "../components/features/item/item-gallery";
 import "../components/features/item/item-rental-form";
 import "../components/features/item/item-edit-dialog";
@@ -187,18 +188,6 @@ export class PageItemDetail extends LitElement {
         color: var(--color-text);
       }
 
-      .error-box {
-        text-align: center;
-        padding: 48px 16px;
-        color: var(--color-danger);
-      }
-
-      .loading-box {
-        text-align: center;
-        padding: 48px 16px;
-        color: var(--color-muted);
-      }
-
       .mobile-cta-bar {
         display: none;
       }
@@ -305,7 +294,7 @@ export class PageItemDetail extends LitElement {
         <div class="top-nav">
           <button class="back-btn" @click=${() => history.back()}>← 목록으로</button>
         </div>
-        <div class="error-box">${this.error}</div>
+        <x-empty state="error" text=${this.error}></x-empty>
       `;
     }
 
@@ -314,7 +303,7 @@ export class PageItemDetail extends LitElement {
         <div class="top-nav">
           <button class="back-btn" @click=${() => history.back()}>← 목록으로</button>
         </div>
-        <div class="loading-box">불러오는 중…</div>
+        <x-empty state="loading"></x-empty>
       `;
     }
 

@@ -1,6 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { reduceMotion } from "../styles/motion";
+import "../components/ui/button";
 
 // SPEC §7.2 — 소셜 로그인 (구글 전용)
 // @auth/core 0.41은 GET signin/:provider를 지원하지 않으므로(UnknownAction),
@@ -38,32 +39,10 @@ export class PageLogin extends LitElement {
         font-size: var(--text-caption);
         line-height: 1.47;
       }
-      button {
-        display: block;
+      .btn-wrap {
         margin: var(--space-4) auto 0;
         max-width: 260px;
         width: 100%;
-        height: 44px;
-        border-radius: var(--radius-pill); /* DESIGN.md §5 — 주 CTA 풀필 */
-        background: var(--color-primary);
-        border: none;
-        color: var(--color-primary-text);
-        font-weight: 400; /* Apple 버튼 문법 — 400 */
-        font-size: 1rem;
-        font-family: inherit;
-        cursor: pointer;
-        transition: transform 0.15s ease;
-      }
-      button:active:not(:disabled) {
-        transform: scale(0.95);
-      }
-      button:focus-visible {
-        outline: 2px solid var(--color-primary-focus);
-        outline-offset: 2px;
-      }
-      button:disabled {
-        opacity: 0.6;
-        cursor: default;
       }
       .msg {
         color: var(--tone-danger-text);
@@ -115,9 +94,11 @@ export class PageLogin extends LitElement {
         <p>
           정토회 구글 계정으로 로그인하면 바로 물품을 대여할 수 있어요
         </p>
-        <button @click=${this.signIn} ?disabled=${this.busy}>
-          ${this.busy ? "이동 중…" : "구글로 로그인"}
-        </button>
+        <div class="btn-wrap">
+          <x-button variant="primary" size="md" ?loading=${this.busy} @click=${this.signIn}>
+            ${this.busy ? "이동 중…" : "구글로 로그인"}
+          </x-button>
+        </div>
         <p class="msg">${this.message}</p>
         <p class="links">
           <a href="/policy/privacy">개인정보처리방침</a>·<a href="/policy/terms"

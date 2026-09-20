@@ -5,6 +5,8 @@ import { navigate } from "../../router";
 import type { RentalHistoryRow } from "../../types";
 import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-nav";
+import "../../components/ui/empty";
+import "../../components/ui/page-header";
 
 // SPEC §4.3 — 과거 대여 이력 (2025 청년페스타 '물품대여' 시트 스냅샷, 관리자 전용)
 // 살아 있는 운영 큐(/admin/reservations)와 다른 자료다 — 수정·상태 전이가 없고 조회만 한다.
@@ -41,12 +43,6 @@ export class PageAdminHistory extends LitElement {
   static styles = [
     reduceMotion,
     css`
-      h1 {
-        font-size: 1.375rem;
-        font-weight: 600;
-        letter-spacing: var(--tracking-tight);
-        line-height: 1.1;
-      }
       /* 표 대신 두 줄 로우 — 대여 관리와 같은 이유: 표는 좌우 스크롤로 내용을 가림 (§4.4) */
       .bar {
         display: flex;
@@ -115,10 +111,6 @@ export class PageAdminHistory extends LitElement {
         color: var(--tone-danger-text);
         font-size: var(--text-caption);
         min-height: 1.2em;
-      }
-      .empty {
-        color: var(--color-muted);
-        font-size: var(--text-caption);
       }
       .more {
         display: block;
@@ -202,11 +194,10 @@ export class PageAdminHistory extends LitElement {
   render() {
     return html`
       <admin-nav active="history"></admin-nav>
-      <h1>대여 이력</h1>
-      <p class="count">
-        2025 청년페스타 시트 기록이에요 — 지난 대여를 찾아볼 때 쓰는 참고
-        자료이고, 예약 처리에는 관여하지 않아요.
-      </p>
+      <x-page-header
+        title="대여 이력"
+        subtitle="2025 청년페스타 시트 기록이에요 — 지난 대여를 찾아볼 때 쓰는 참고 자료이고, 예약 처리에는 관여하지 않아요."
+      ></x-page-header>
       <div class="bar">
         <input
           type="search"
@@ -231,9 +222,9 @@ export class PageAdminHistory extends LitElement {
       <p class="msg" aria-live="polite">${this.message}</p>
       ${
         this.loading
-          ? html`<p class="empty">불러오는 중…</p>`
+          ? html`<x-empty compact state="loading"></x-empty>`
           : this.rows.length === 0
-            ? html`<p class="empty">조건에 맞는 이력이 없어요</p>`
+            ? html`<x-empty compact state="empty" text="조건에 맞는 이력이 없어요"></x-empty>`
             : this.renderRows()
       }
     `;

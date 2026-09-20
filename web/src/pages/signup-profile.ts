@@ -4,6 +4,8 @@ import { api } from "../api/client";
 import { session } from "../context/session";
 import { navigate } from "../router";
 import { reduceMotion } from "../styles/motion";
+import "../components/ui/button";
+import "../components/ui/input";
 
 // SPEC §4.1 — 최초 로그인 후 이름·연락처 입력 (1회)
 @customElement("page-signup-profile")
@@ -31,54 +33,6 @@ export class PageSignupProfile extends LitElement {
         font-weight: 600;
         letter-spacing: var(--tracking-tight);
         margin: 0;
-      }
-      label {
-        font-size: var(--text-caption);
-        color: var(--color-muted);
-        display: grid;
-        gap: 4px;
-      }
-      input {
-        height: 44px;
-        padding: 0 var(--space-3);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm);
-        background: var(--color-bg); /* 화이트 카드 위 파치먼트 fill */
-        color: var(--color-text);
-        font-size: 1rem; /* iOS 줌 방지 */
-        font-family: inherit;
-        box-sizing: border-box;
-        width: 100%;
-      }
-      input:focus {
-        border-color: var(--color-primary);
-      }
-      input:focus-visible {
-        outline: 2px solid var(--color-primary-focus);
-        outline-offset: 1px;
-      }
-      button:focus-visible {
-        outline: 2px solid var(--color-primary-focus);
-        outline-offset: 2px;
-      }
-      button {
-        background: var(--color-primary);
-        color: var(--color-primary-text);
-        border: 0;
-        border-radius: var(--radius-pill); /* 주 CTA 풀필 */
-        height: 44px;
-        cursor: pointer;
-        font-size: 1rem;
-        font-weight: 400;
-        font-family: inherit;
-        transition: transform 0.15s ease;
-      }
-      button:active:not(:disabled) {
-        transform: scale(0.95);
-      }
-      button:disabled {
-        opacity: 0.6;
-        cursor: default;
       }
       .msg {
         color: var(--tone-danger-text);
@@ -124,26 +78,24 @@ export class PageSignupProfile extends LitElement {
       <form @submit=${this.submit}>
         <h2>계정 정보</h2>
         <p class="hint">대여 연락 목적으로만 사용돼요</p>
-        <label
-          >이름
-          <input
-            required
-            .value=${this.name}
-            @input=${(e: Event) => (this.name = (e.target as HTMLInputElement).value)}
-          />
-        </label>
-        <label
-          >휴대폰 번호
-          <input
-            required
-            type="tel"
-            placeholder="010-1234-5678"
-            .value=${this.phone}
-            @input=${(e: Event) => (this.phone = (e.target as HTMLInputElement).value)}
-          />
-        </label>
+        <x-input
+          label="이름"
+          required
+          .value=${this.name}
+          @input=${(e: Event) => (this.name = (e.target as HTMLInputElement).value)}
+        ></x-input>
+        <x-input
+          label="휴대폰 번호"
+          type="tel"
+          placeholder="010-1234-5678"
+          required
+          .value=${this.phone}
+          @input=${(e: Event) => (this.phone = (e.target as HTMLInputElement).value)}
+        ></x-input>
         <p class="msg">${this.message}</p>
-        <button type="submit" ?disabled=${this.busy}>저장</button>
+        <x-button variant="primary" size="md" type="submit" ?loading=${this.busy}>
+          저장
+        </x-button>
       </form>
     `;
   }

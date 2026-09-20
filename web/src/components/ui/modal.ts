@@ -1,5 +1,6 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import "./icon-btn";
 
 @customElement("x-modal")
 export class XModal extends LitElement {
@@ -57,28 +58,6 @@ export class XModal extends LitElement {
       font-weight: 600;
       margin: 0;
       line-height: 1.3;
-    }
-
-    .close-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      padding: 0;
-      border: none;
-      border-radius: var(--radius-sm, 6px);
-      background: transparent;
-      color: var(--color-muted);
-      cursor: pointer;
-      font-size: 20px;
-      line-height: 1;
-      transition: background-color 0.12s, color 0.12s;
-    }
-
-    .close-btn:hover {
-      background: var(--color-surface);
-      color: var(--color-text);
     }
 
     .body {
@@ -153,7 +132,7 @@ export class XModal extends LitElement {
         <div class="dialog" style="max-width: ${this.maxWidth}" role="dialog" aria-modal="true">
           <div class="header">
             <h3 class="title">${this.title}</h3>
-            <button class="close-btn" @click=${this.close} aria-label="닫기">×</button>
+            <x-icon-btn label="닫기" @click=${this.close}>×</x-icon-btn>
           </div>
           <div class="body">
             <slot></slot>

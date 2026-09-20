@@ -5,6 +5,8 @@ import "../../components/ui/badge";
 import type { AdminMember, Role } from "../../types";
 import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-nav";
+import "../../components/ui/empty";
+import "../../components/ui/page-header";
 
 // SPEC §4.4 — 회원 관리: 목록·탈퇴·역할 지정/해제 모두 admin 전용
 // 역할 변경 보호장치는 서버가 강제: 마지막 관리자 해임 불가
@@ -18,12 +20,6 @@ export class PageAdminMembers extends LitElement {
   static styles = [
     reduceMotion,
     css`
-      h1 {
-        font-size: 1.375rem;
-        font-weight: 600;
-        letter-spacing: var(--tracking-tight);
-        line-height: 1.1;
-      }
       /* 표 대신 두 줄 로우 — 대여 관리와 같은 이유: 표는 좌우 스크롤로 처리 버튼을 가림 (§4.4) */
       .rows {
         display: grid;
@@ -84,10 +80,6 @@ export class PageAdminMembers extends LitElement {
         color: var(--color-primary);
         font-size: var(--text-caption);
         min-height: 1.2em;
-      }
-      .empty {
-        color: var(--color-muted);
-        font-size: var(--text-caption);
       }
     `,
   ];
@@ -176,13 +168,13 @@ export class PageAdminMembers extends LitElement {
   render() {
     return html`
       <admin-nav active="members"></admin-nav>
-      <h1>회원 관리</h1>
+      <x-page-header title="회원 관리"></x-page-header>
       <p class="msg">${this.message}</p>
       ${
         this.loading
-          ? html`<p class="empty">불러오는 중…</p>`
+          ? html`<x-empty compact state="loading"></x-empty>`
           : this.members.length === 0
-            ? html`<p class="empty">아직 회원이 없어요</p>`
+            ? html`<x-empty compact state="empty" text="아직 회원이 없어요"></x-empty>`
             : this.renderCards()
       }
     `;

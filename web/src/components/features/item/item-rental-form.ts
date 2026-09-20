@@ -5,6 +5,8 @@ import { type Item } from "../../../types";
 import { type SessionUser } from "../../../context/session";
 import { navigate } from "../../../router";
 import "../../ui/button";
+import "../../ui/input";
+import "../../ui/notice";
 
 @customElement("item-rental-form")
 export class ItemRentalForm extends LitElement {
@@ -110,25 +112,6 @@ export class ItemRentalForm extends LitElement {
       margin-top: 6px;
     }
 
-    .memo-input {
-      width: 100%;
-      height: 42px;
-      padding: 0 14px;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md, 8px);
-      background: var(--color-bg);
-      color: var(--color-text);
-      font-family: inherit;
-      font-size: var(--text-body, 15px);
-      box-sizing: border-box;
-      transition: border-color 0.15s ease;
-    }
-
-    .memo-input:focus {
-      outline: none;
-      border-color: var(--color-primary);
-    }
-
     .msg {
       font-size: var(--text-caption, 13px);
       margin: 0;
@@ -141,32 +124,6 @@ export class ItemRentalForm extends LitElement {
 
     .msg.success {
       color: var(--color-success);
-    }
-
-    /* 대여 불가 상태 — 박스 대신 한 줄 안내 (단순화) */
-    .notice {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 16px;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg, 12px);
-      background: var(--color-surface);
-      font-size: var(--text-caption, 13px);
-      color: var(--color-text);
-      box-sizing: border-box;
-    }
-
-    .notice .msg {
-      margin: 0;
-      line-height: 1.4;
-    }
-
-    .notice.warn {
-      border-color: var(--color-warning);
-      background: var(--tone-warning-bg);
-      color: var(--tone-warning-text);
     }
 
     /* 메모는 접이식 — 기본 화면은 수량 + 버튼만 */
@@ -189,7 +146,7 @@ export class ItemRentalForm extends LitElement {
       content: "▴";
     }
 
-    .memo-box .memo-input {
+    .memo-box x-input {
       margin-top: 8px;
     }
   `;
@@ -284,44 +241,41 @@ export class ItemRentalForm extends LitElement {
     // 대여 불가 상태 — 각각 한 줄 안내로만 (박스 대신)
     if (this.item.kind === "consumable") {
       return html`
-        <div class="notice">
-          <p class="msg">소모품이에요 — 별도 대여 신청 없이 관리자에게 문의해 주세요.</p>
-        </div>
+        <x-notice>소모품이에요 — 별도 대여 신청 없이 관리자에게 문의해 주세요.</x-notice>
       `;
     }
 
     if (!this.userReady) {
       return html`
-        <div class="notice">
-          <p class="msg">사용자 확인 중…</p>
-        </div>
+        <x-notice>사용자 확인 중…</x-notice>
       `;
     }
 
     if (!this.user) {
       return html`
-        <div class="notice">
-          <p class="msg">대여하려면 로그인이 필요해요.</p>
-          <x-button variant="secondary" size="sm" @click=${() => navigate("/login")}>
+        <x-notice
+          >대여하려면 로그인이 필요해요.
+          <x-button
+            slot="action"
+            variant="secondary"
+            size="sm"
+            @click=${() => navigate("/login")}
+          >
             로그인
           </x-button>
-        </div>
+        </x-notice>
       `;
     }
 
     if (this.item.status !== "active") {
       return html`
-        <div class="notice warn">
-          <p class="msg">현재 점검 또는 수리 중인 물품이에요.</p>
-        </div>
+        <x-notice tone="warning">현재 점검 또는 수리 중인 물품이에요.</x-notice>
       `;
     }
 
     if (max === 0) {
       return html`
-        <div class="notice warn">
-          <p class="msg">지금은 재고가 없어요 — 반납 후 다시 시도해 주세요.</p>
-        </div>
+        <x-notice tone="warning">지금은 재고가 없어요 — 반납 후 다시 시도해 주세요.</x-notice>
       `;
     }
 
@@ -360,12 +314,11 @@ export class ItemRentalForm extends LitElement {
 
         <details class="memo-box">
           <summary>메모 추가 (선택)</summary>
-          <input
-            class="memo-input"
+          <x-input
             placeholder="용도, 수령처 등"
             .value=${this.memo}
             @input=${(e: Event) => (this.memo = (e.target as HTMLInputElement).value)}
-          />
+          ></x-input>
         </details>
 
         ${this.message

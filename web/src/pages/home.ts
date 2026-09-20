@@ -6,6 +6,8 @@ import { navigate } from "../router";
 import { type Item } from "../types";
 import { reduceMotion } from "../styles/motion";
 import "../components/ui/button";
+import "../components/ui/empty";
+import "../components/ui/notice";
 import "../components/features/item/item-card";
 import "../components/features/item/item-create-dialog";
 
@@ -140,38 +142,15 @@ export class PageHome extends LitElement {
         opacity: 0.85;
       }
 
-      .notice {
-        padding: 10px 14px;
-        border-radius: var(--radius-md, 8px);
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
-        font-size: var(--text-caption, 13px);
-        color: var(--color-text);
+      x-notice {
+        display: block;
         margin-bottom: var(--space-4, 16px);
-      }
-
-      .notice.alert {
-        border-color: var(--color-danger);
-        color: var(--color-danger);
       }
 
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         gap: var(--space-4, 16px);
-      }
-
-      .empty {
-        text-align: center;
-        padding: 48px 16px;
-        color: var(--color-muted);
-        font-size: var(--text-body, 15px);
-      }
-
-      .error {
-        color: var(--color-danger);
-        text-align: center;
-        padding: 32px 16px;
       }
     `,
   ];
@@ -296,21 +275,21 @@ export class PageHome extends LitElement {
         </button>
       </div>
 
-      ${this.noticeMsg ? html`<div class="notice">${this.noticeMsg}</div>` : ""}
+      ${this.noticeMsg ? html`<x-notice>${this.noticeMsg}</x-notice>` : ""}
       ${this.denied
         ? html`
-            <div class="notice alert" role="alert">
+            <x-notice tone="danger" alert>
               관리자 권한이 필요해요 — 일반 회원 계정으로는 관리자 화면에 접근할 수 없어요.
-            </div>
+            </x-notice>
           `
         : ""}
 
       ${this.error
-        ? html`<p class="error">${this.error}</p>`
+        ? html`<x-empty state="error" text=${this.error}></x-empty>`
         : this.loading
-          ? html`<p class="empty">물품 목록을 불러오는 중…</p>`
+          ? html`<x-empty state="loading"></x-empty>`
           : visibleItems.length === 0
-            ? html`<p class="empty">${this.availableOnly ? "대여 가능한 물품이 없어요" : "검색 결과가 없어요"}</p>`
+            ? html`<x-empty state="empty" text=${this.availableOnly ? "대여 가능한 물품이 없어요" : "검색 결과가 없어요"}></x-empty>`
             : html`
                 <div class="grid">
                   ${visibleItems.map((it) => html`<item-card .item=${it}></item-card>`)}

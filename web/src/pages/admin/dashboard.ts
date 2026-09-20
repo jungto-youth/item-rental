@@ -5,6 +5,8 @@ import type { Dashboard, DashboardItem, DashboardRenter } from "../../types";
 import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-nav";
 import "../../components/ui/badge";
+import "../../components/ui/empty";
+import "../../components/ui/page-header";
 
 // 관리자 물품 현황 — 물품별 현재 상태.
 // 예약 건수 카드·처리 목록 대신, 전체 물품(폐기 포함)을 상태 그룹으로 나눠 보여준다.
@@ -27,22 +29,6 @@ export class PageAdminDashboard extends LitElement {
   static styles = [
     reduceMotion,
     css`
-      h1 {
-        font-size: 1.375rem;
-        font-weight: 600;
-        letter-spacing: var(--tracking-tight);
-        line-height: 1.1;
-        margin: 0;
-      }
-      .summary {
-        margin: var(--space-1) 0 var(--space-4);
-        font-size: var(--text-caption);
-        color: var(--color-muted);
-      }
-      .error {
-        color: var(--tone-danger-text);
-        font-size: var(--text-caption);
-      }
       section {
         margin-bottom: var(--space-5);
       }
@@ -51,11 +37,6 @@ export class PageAdminDashboard extends LitElement {
         font-weight: 600;
         letter-spacing: var(--tracking-tight);
         margin: 0 0 var(--space-2);
-      }
-      .empty {
-        color: var(--color-muted);
-        font-size: var(--text-caption);
-        margin: 0;
       }
       ul {
         list-style: none;
@@ -225,10 +206,16 @@ export class PageAdminDashboard extends LitElement {
 
   render() {
     if (this.error) {
-      return html`<h1>물품 현황</h1><p class="error">${this.error}</p>`;
+      return html`
+        <x-page-header title="물품 현황"></x-page-header>
+        <x-empty state="error" text=${this.error}></x-empty>
+      `;
     }
     if (!this.data) {
-      return html`<h1>물품 현황</h1><p class="empty">불러오는 중…</p>`;
+      return html`
+        <x-page-header title="물품 현황"></x-page-header>
+        <x-empty state="loading"></x-empty>
+      `;
     }
     const items = this.data.items;
     const g = this.groupItems(items);
@@ -237,9 +224,8 @@ export class PageAdminDashboard extends LitElement {
       ` · 소모품 ${g.consumable.length} · 폐기 ${g.retired.length}`;
     return html`
       <admin-nav active="dashboard"></admin-nav>
-      <h1>물품 현황</h1>
-      <p class="summary">${summary}</p>
-      ${items.length === 0 ? html`<p class="empty">등록된 물품이 없어요</p>` : ""}
+      <x-page-header title="물품 현황" subtitle=${summary}></x-page-header>
+      ${items.length === 0 ? html`<x-empty compact state="empty" text="등록된 물품이 없어요"></x-empty>` : ""}
       ${SECTIONS.map((s) => this.renderSection(s.title, g[s.key]))}
     `;
   }

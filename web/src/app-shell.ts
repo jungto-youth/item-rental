@@ -3,6 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import { createRouter, navigate } from "./router";
 import { session, type SessionUser } from "./context/session";
 import { reduceMotion } from "./styles/motion";
+import "./components/ui/icon-btn";
 
 // 테마 2단계(라이트/다크) — tokens.css의 data-theme 셀렉터와 짝을 이룸.
 // 저장값 없으면 시스템 설정을 최초 1회 따르고, 이후 토글 버튼으로 전환한다.
@@ -174,30 +175,6 @@ export class AppShell extends LitElement {
         font-size: var(--text-caption);
         font-weight: 500;
         letter-spacing: var(--tracking-tight);
-      }
-      .icon-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        flex-shrink: 0;
-        padding: 0;
-        background: none;
-        border: 1px solid transparent;
-        border-radius: var(--radius-md, 8px);
-        cursor: pointer;
-        color: var(--color-muted);
-        transition: color 0.15s ease, background-color 0.15s ease;
-      }
-      .icon-btn:hover {
-        color: var(--color-text);
-        background: var(--color-surface);
-      }
-      .icon-btn svg {
-        width: 16px;
-        height: 16px;
-        display: block;
       }
       @media (max-width: 560px) {
         .chip-name {
@@ -379,15 +356,12 @@ export class AppShell extends LitElement {
                 : html`<a class="btn-login" href="/login">로그인</a>`
             }
 
-            <button
-              type="button"
-              class="icon-btn"
-              aria-label="테마 전환: 현재 ${this.themeLabel}"
-              title="테마 전환: 현재 ${this.themeLabel}"
+            <x-icon-btn
+              label="테마 전환: 현재 ${this.themeLabel}"
               @click=${this.cycleTheme}
             >
               ${this.themeIcon(this.theme)}
-            </button>
+            </x-icon-btn>
           </div>
         </div>
       </header>

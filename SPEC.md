@@ -2,7 +2,7 @@
 
 지부 회원(계정제)이 보유 물품을 검색해 수량과 메모로 대여하고, 관리자가 반납을 처리하는 소규모 서비스(물품 97개). Cloudflare(호스팅·저장소) + Neon(PostgreSQL) 위에서 동작한다.
 
-현재 구현 상태는 [README.md](README.md), 화면 규칙은 [DESIGN.md](DESIGN.md)를 본다.
+현재 구현 상태는 [README.md](README.md)를 본다.
 
 ## 1. 프로젝트 개요
 

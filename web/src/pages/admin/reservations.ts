@@ -5,6 +5,8 @@ import type { AdminReservation, ReservationStatus } from "../../types";
 import { api } from "../../api/client";
 import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-nav";
+import "../../components/ui/empty";
+import "../../components/ui/page-header";
 
 // SPEC §4.3 — 대여 관리: 반납 처리만 (admin 전용)
 // 승인·거절·수령이 없어졌다 — 회원이 신청하면 즉시 대여 중이고, 관리자는 돌려받았을 때 반납을 누른다
@@ -21,12 +23,6 @@ export class PageAdminReservations extends LitElement {
   static styles = [
     reduceMotion,
     css`
-      h1 {
-        font-size: 1.375rem;
-        font-weight: 600;
-        letter-spacing: var(--tracking-tight);
-        line-height: 1.1;
-      }
       .bar {
         display: flex;
         align-items: center;
@@ -104,10 +100,6 @@ export class PageAdminReservations extends LitElement {
         font-size: var(--text-caption);
         min-height: 1.2em;
       }
-      .empty {
-        color: var(--color-muted);
-        font-size: var(--text-caption);
-      }
     `,
   ];
 
@@ -158,7 +150,7 @@ export class PageAdminReservations extends LitElement {
   render() {
     return html`
       <admin-nav active="reservations"></admin-nav>
-      <h1>대여 관리</h1>
+      <x-page-header title="대여 관리"></x-page-header>
       <div class="bar">
         <label for="filter-status">상태</label>
         <select
@@ -186,10 +178,10 @@ export class PageAdminReservations extends LitElement {
       <p class="msg" aria-live="polite">${this.message}</p>
       ${
         this.loading
-          ? html`<p class="empty">불러오는 중…</p>`
+          ? html`<x-empty compact state="loading"></x-empty>`
           : this.reservations.length === 0
-            ? html`<p class="empty">대여가 없어요</p>`
-            : html`${this.truncated ? html`<p class="empty">500건까지만 표시 — 오래된 건은 잘릴 수 있어요</p>` : ""}${this.renderCards()}`
+            ? html`<x-empty compact state="empty" text="대여가 없어요"></x-empty>`
+            : html`${this.truncated ? html`<x-empty compact state="empty" text="500건까지만 표시 — 오래된 건은 잘릴 수 있어요"></x-empty>` : ""}${this.renderCards()}`
       }
     `;
   }

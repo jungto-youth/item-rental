@@ -3,6 +3,8 @@ import { customElement, state } from "lit/decorators.js";
 import { api } from "../api/client";
 import { session } from "../context/session";
 import "../components/ui/badge";
+import "../components/ui/empty";
+import "../components/ui/page-header";
 import type { MyReservation } from "../types";
 import { reduceMotion } from "../styles/motion";
 
@@ -21,13 +23,6 @@ export class PageMyRentals extends LitElement {
     css`
       :host {
         display: block;
-      }
-      h1 {
-        font-size: 1.375rem;
-        font-weight: 600;
-        letter-spacing: var(--tracking-tight);
-        line-height: 1.2;
-        margin: 0 0 var(--space-4);
       }
       h2 {
         font-size: 1.0625rem;
@@ -320,8 +315,8 @@ export class PageMyRentals extends LitElement {
   }
 
   render() {
-    if (this.loading) return html`<p>불러오는 중…</p>`;
-    if (!session.user) return html`<p>로그인이 필요해요</p>`;
+    if (this.loading) return html`<x-empty state="loading"></x-empty>`;
+    if (!session.user) return html`<x-empty state="empty" text="로그인이 필요해요"></x-empty>`;
 
     const rentedList = this.reservations.filter((r) => r.status === "rented");
     const historyList = this.reservations.filter(
@@ -329,7 +324,7 @@ export class PageMyRentals extends LitElement {
     );
 
     return html`
-      <h1>대여 내역</h1>
+      <x-page-header title="대여 내역"></x-page-header>
 
       ${this.message ? html`<p class="msg" aria-live="polite">${this.message}</p>` : ""}
 

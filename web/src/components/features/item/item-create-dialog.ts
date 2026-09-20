@@ -49,7 +49,7 @@ export class ItemCreateDialog extends LitElement {
 
     input, select, textarea {
       padding: 0 12px;
-      height: 42px;
+      height: 44px;
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md, 8px);
       background: var(--color-surface);
