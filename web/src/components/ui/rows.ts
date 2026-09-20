@@ -17,7 +17,7 @@ export const rowsCss = css`
   }
   .row {
     border-bottom: 1px solid var(--color-border);
-    padding: var(--space-4);
+    padding: var(--space-3-5);
     display: grid;
     gap: var(--space-1);
   }
