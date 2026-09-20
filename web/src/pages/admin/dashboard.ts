@@ -7,6 +7,7 @@ import "../../components/admin/admin-nav";
 import "../../components/ui/badge";
 import "../../components/ui/empty";
 import "../../components/ui/page-header";
+import { rowsCss } from "../../components/ui/rows";
 
 // 관리자 물품 현황 — 물품별 현재 상태.
 // 예약 건수 카드·처리 목록 대신, 전체 물품(폐기 포함)을 상태 그룹으로 나눠 보여준다.
@@ -28,6 +29,7 @@ export class PageAdminDashboard extends LitElement {
 
   static styles = [
     reduceMotion,
+    rowsCss,
     css`
       section {
         margin-bottom: var(--space-5);
@@ -38,24 +40,11 @@ export class PageAdminDashboard extends LitElement {
         letter-spacing: var(--tracking-tight);
         margin: 0 0 var(--space-2);
       }
-      ul {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md, 8px);
-        overflow: hidden;
-        background: var(--color-surface);
-      }
-      li {
+      /* 공용 .rows/.row 조형 위에 썸네일 배치 덮어쓰기 */
+      .row {
         display: flex;
         align-items: center;
         gap: var(--space-3);
-        padding: var(--space-3);
-        border-bottom: 1px solid var(--color-border);
-      }
-      li:last-child {
-        border-bottom: 0;
       }
       .thumb-link {
         flex-shrink: 0;
@@ -92,25 +81,11 @@ export class PageAdminDashboard extends LitElement {
         min-width: 0;
       }
       .name {
-        font-size: var(--text-body, 15px);
-        font-weight: 600;
-        letter-spacing: var(--tracking-tight);
         color: var(--color-text);
         text-decoration: none;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
       }
       .name:hover {
         color: var(--color-primary);
-      }
-      .meta {
-        font-size: var(--text-fine, 12px);
-        color: var(--color-muted);
-      }
-      .renters {
-        font-size: var(--text-fine, 12px);
-        color: var(--color-muted);
       }
     `,
   ];
@@ -169,7 +144,7 @@ export class PageAdminDashboard extends LitElement {
           </div>
           <div class="meta">${this.qtyLine(it)}</div>
           ${it.current_renters.length > 0
-            ? html`<div class="renters">${it.current_renters.map((r) => this.renterLabel(r)).join(", ")}</div>`
+            ? html`<div class="meta">${it.current_renters.map((r) => this.renterLabel(r)).join(", ")}</div>`
             : ""}
         </div>
       </li>
@@ -181,7 +156,7 @@ export class PageAdminDashboard extends LitElement {
     return html`
       <section>
         <h2>${title}</h2>
-        <ul>${rows.map((it) => this.row(it))}</ul>
+        <ul class="rows">${rows.map((it) => this.row(it))}</ul>
       </section>
     `;
   }
@@ -207,14 +182,16 @@ export class PageAdminDashboard extends LitElement {
   render() {
     if (this.error) {
       return html`
+        <admin-nav active="dashboard"></admin-nav>
         <x-page-header title="물품 현황"></x-page-header>
-        <x-empty state="error" text=${this.error}></x-empty>
+        <x-empty compact state="error" text=${this.error}></x-empty>
       `;
     }
     if (!this.data) {
       return html`
+        <admin-nav active="dashboard"></admin-nav>
         <x-page-header title="물품 현황"></x-page-header>
-        <x-empty state="loading"></x-empty>
+        <x-empty compact state="loading"></x-empty>
       `;
     }
     const items = this.data.items;

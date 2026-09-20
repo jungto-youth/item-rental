@@ -7,6 +7,7 @@ import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-nav";
 import "../../components/ui/empty";
 import "../../components/ui/page-header";
+import { rowsCss } from "../../components/ui/rows";
 
 // SPEC §4.4 — 회원 관리: 목록·탈퇴·역할 지정/해제 모두 admin 전용
 // 역할 변경 보호장치는 서버가 강제: 마지막 관리자 해임 불가
@@ -19,67 +20,11 @@ export class PageAdminMembers extends LitElement {
 
   static styles = [
     reduceMotion,
+    rowsCss,
     css`
-      /* 표 대신 두 줄 로우 — 대여 관리와 같은 이유: 표는 좌우 스크롤로 처리 버튼을 가림 (§4.4) */
-      .rows {
-        display: grid;
-      }
-      .row {
-        border-bottom: 1px solid var(--color-border);
-        padding: var(--space-2) 0;
-        display: grid;
-        gap: var(--space-1);
-        font-size: var(--text-caption);
-      }
-      .head {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        min-height: 44px;
-      }
-      .name {
-        font-weight: 600;
-        font-size: var(--text-body);
-        letter-spacing: var(--tracking-tight);
-        flex: 1;
-        min-width: 0;
-      }
-      .head x-badge {
-        flex-shrink: 0;
-      }
-      .who {
-        color: var(--color-muted);
+      /* 이메일이 길 수 있어 줄바꿈 허용 */
+      .meta {
         word-break: break-all;
-      }
-      .link {
-        background: none;
-        border: 0;
-        color: var(--color-primary);
-        cursor: pointer;
-        padding: var(--space-2);
-        font-size: var(--text-caption);
-        font-family: inherit;
-      }
-      .link.danger {
-        color: var(--tone-danger-text);
-      }
-      .head .link {
-        flex-shrink: 0;
-      } /* 액션 링크가 눌리지 않게 — 44px 터치 타깃 유지 */
-      select {
-        height: 36px;
-        padding: 0 var(--space-2);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm);
-        background: var(--color-bg);
-        color: var(--color-text);
-        font-size: var(--text-caption);
-        font-family: inherit;
-      }
-      .msg {
-        color: var(--color-primary);
-        font-size: var(--text-caption);
-        min-height: 1.2em;
       }
     `,
   ];
@@ -221,7 +166,7 @@ export class PageAdminMembers extends LitElement {
               : ""
           }
           </span>
-        <span class="who">${m.email} · ${m.phone ?? "연락처 미등록"}</span>
+        <span class="meta">${m.email} · ${m.phone ?? "연락처 미등록"}</span>
       </div>
     `;
   }

@@ -7,6 +7,7 @@ import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-nav";
 import "../../components/ui/empty";
 import "../../components/ui/page-header";
+import { rowsCss } from "../../components/ui/rows";
 
 // SPEC §4.3 — 대여 관리: 반납 처리만 (admin 전용)
 // 승인·거절·수령이 없어졌다 — 회원이 신청하면 즉시 대여 중이고, 관리자는 돌려받았을 때 반납을 누른다
@@ -22,83 +23,22 @@ export class PageAdminReservations extends LitElement {
 
   static styles = [
     reduceMotion,
+    rowsCss,
     css`
       .bar {
         display: flex;
         align-items: center;
         gap: var(--space-2);
-        margin-bottom: var(--space-3);
+        margin-bottom: var(--space-4);
       }
       .bar label {
         font-size: var(--text-caption);
-        color: var(--color-muted);
-      }
-      select {
-        height: 36px;
-        padding: 0 var(--space-2);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm);
-        background: var(--color-surface);
-        color: var(--color-text);
-        font-size: var(--text-caption);
-        font-family: inherit;
-      }
-      /* 표 대신 두 줄 로우 — 640px 본문에 테이블이 원래 안 맞아 좌우 스크롤로 처리 버튼이 가려짐 */
-      .rows {
-        display: grid;
-      }
-      .row {
-        border-bottom: 1px solid var(--color-border);
-        padding: var(--space-2) 0;
-        display: grid;
-        gap: var(--space-1);
-        font-size: var(--text-caption);
-      }
-      .head {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        min-height: 44px;
-      }
-      .name {
-        font-weight: 600;
-        font-size: var(--text-body);
-        letter-spacing: var(--tracking-tight);
-        flex: 1;
-        min-width: 0;
-      }
-      .head x-badge {
-        flex-shrink: 0;
-      }
-      .who,
-      .memo {
         color: var(--color-muted);
       }
       /* 회원이 직접 반납한 건 — 자기 신고라 관리자가 물품을 확인해야 한다 */
       .by {
         color: var(--color-warning);
         font-size: var(--text-fine);
-      }
-      .link {
-        background: none;
-        border: 0;
-        color: var(--color-primary);
-        cursor: pointer;
-        padding: var(--space-2);
-        font-size: var(--text-caption);
-        font-family: inherit;
-      }
-      .link:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .head .link {
-        flex-shrink: 0;
-      } /* 액션 링크가 눌리지 않게 — 44px 터치 타깃 유지 */
-      .msg {
-        color: var(--color-primary);
-        font-size: var(--text-caption);
-        min-height: 1.2em;
       }
     `,
   ];
@@ -214,7 +154,7 @@ export class PageAdminReservations extends LitElement {
           <x-badge kind=${r.status}></x-badge>
           ${acts}
         </span>
-        <span class="who"
+        <span class="meta"
           >${r.member_name || "—"} · ${r.member_phone ?? r.member_email} ·
           ${r.created_at.slice(0, 10)}</span
         >
@@ -224,10 +164,10 @@ export class PageAdminReservations extends LitElement {
                 >회원이 직접 반납했어요 — 물품 회수 여부를 확인해 주세요</span
               >`
             : r.status === "returned" && r.admin_name
-              ? html`<span class="memo">${r.admin_name} 관리자가 반납 처리</span>`
+              ? html`<span class="meta">${r.admin_name} 관리자가 반납 처리</span>`
               : ""
         }
-        ${r.member_memo ? html`<span class="memo">메모 · ${r.member_memo}</span>` : ""}
+        ${r.member_memo ? html`<span class="meta">메모 · ${r.member_memo}</span>` : ""}
       </div>
     `;
   }
