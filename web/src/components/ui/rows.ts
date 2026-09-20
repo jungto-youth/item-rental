@@ -72,11 +72,15 @@ export const rowsCss = css`
     min-height: 1.2em;
   }
   select {
+    appearance: none; /* 네이티브 화살표는 패딩이 안 먹어 커스텀 체브런으로 대체 */
     height: 36px;
-    padding: 0 var(--space-2);
+    padding: 0 28px 0 var(--space-2); /* 오른쪽 여백 = 화살표 자리 + 거리 확보 */
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    background: var(--color-surface);
+    background:
+      var(--color-surface)
+      url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 4 L8 10 M12 4 L8 10' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+      right 9px center no-repeat;
     color: var(--color-text);
     font-size: var(--text-caption);
     font-family: inherit;

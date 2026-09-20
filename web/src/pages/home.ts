@@ -47,18 +47,10 @@ export class PageHome extends LitElement {
         align-items: center;
       }
 
-      .search-icon {
-        position: absolute;
-        left: 14px;
-        color: var(--color-muted);
-        pointer-events: none;
-        font-size: 14px;
-      }
-
       .search {
         width: 100%;
         height: 44px;
-        padding: 0 36px 0 38px;
+        padding: 0 36px 0 14px;
         border: 1px solid var(--color-border);
         border-radius: var(--radius-md, 8px);
         background: var(--color-surface);
@@ -159,6 +151,7 @@ export class PageHome extends LitElement {
     super.connectedCallback();
     this.user = await session.ensure();
     const p = new URLSearchParams(location.search);
+    this.q = p.get("q") ?? ""; // 목록 복귀 시 검색 상태 보존(?q=)
     if (p.get("role") === "denied") {
       this.denied = true;
       history.replaceState(null, "", "/");
@@ -192,14 +185,29 @@ export class PageHome extends LitElement {
 
   private onSearch(e: Event) {
     this.q = (e.target as HTMLInputElement).value;
+    this.syncSearchUrl();
     clearTimeout(this.searchTimer);
     this.searchTimer = window.setTimeout(() => this.fetchItems(), 250);
   }
 
   private clearSearch() {
     this.q = "";
+    this.syncSearchUrl();
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.fetchItems();
+  }
+
+  // 검색어를 URL(?q=)에 반영 — 뒤로가기/새로고침/링크 공유 시 검색 상태 복원
+  // 입력 중엔 히스토리를 늘리지 않도록 replaceState 사용
+  private syncSearchUrl() {
+    const p = new URLSearchParams(location.search);
+    if (this.q) p.set("q", this.q);
+    else p.delete("q");
+    const qs = p.toString();
+    const target = qs ? `${location.pathname}?${qs}` : location.pathname;
+    if (target !== location.pathname + location.search) {
+      history.replaceState(null, "", target);
+    }
   }
 
   private isItemAvailable(it: Item): boolean {
@@ -228,7 +236,6 @@ export class PageHome extends LitElement {
     return html`
       <div class="top-bar">
         <div class="search-box">
-          <span class="search-icon">🔍</span>
           <input
             class="search"
             placeholder="물품명, 위치, 설명 검색…"

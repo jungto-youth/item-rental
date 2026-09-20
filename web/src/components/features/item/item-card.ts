@@ -4,7 +4,7 @@ import { type Item } from "../../../types";
 import { navigate } from "../../../router";
 import "../../ui/badge";
 
-// DESIGN.md §4.3 — 미니멀 물품 카드
+// 미니멀 물품 카드
 @customElement("item-card")
 export class ItemCard extends LitElement {
   @property({ type: Object }) item!: Item;
@@ -95,7 +95,8 @@ export class ItemCard extends LitElement {
       return;
     }
     e.preventDefault();
-    navigate(`/items/${this.item.id}`);
+    // location.search(?q=)를 이어서 상세 진입 — 뒤로가기 시 목록 검색 상태 유지
+    navigate(`/items/${this.item.id}${location.search}`);
   }
 
   private handleImgError(e: Event) {
