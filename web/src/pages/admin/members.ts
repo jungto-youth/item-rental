@@ -7,6 +7,7 @@ import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-nav";
 import "../../components/ui/empty";
 import "../../components/ui/page-header";
+import "../../components/ui/button";
 import { rowsCss } from "../../components/ui/rows";
 
 // SPEC §4.4 — 회원 관리: 목록·탈퇴·역할 지정/해제 모두 admin 전용
@@ -156,13 +157,14 @@ export class PageAdminMembers extends LitElement {
           ${m.deactivated_at ? html`<x-badge kind="withdrawn"></x-badge>` : ""}
           ${
             !m.deactivated_at
-              ? html`<button
-                  class="link danger"
+              ? html`<x-button
+                  variant="danger"
+                  size="sm"
                   ?disabled=${this.busy}
                   @click=${() => this.withdraw(m)}
                 >
                   탈퇴
-                </button>`
+                </x-button>`
               : ""
           }
           </span>
