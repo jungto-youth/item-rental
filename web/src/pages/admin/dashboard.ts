@@ -131,7 +131,7 @@ export class PageAdminDashboard extends LitElement {
 
   private row(it: DashboardItem) {
     return html`
-      <li>
+      <li class="row">
         <a class="thumb-link" href="/items/${it.id}" aria-label=${it.name}>
           ${it.photo
             ? html`<div class="thumb"><img src=${it.photo} alt="" loading="lazy" @error=${this.handleImgError} /></div>`
