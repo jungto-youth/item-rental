@@ -3,7 +3,7 @@ import { customElement, property } from "lit/decorators.js";
 
 // 라벨 + 입력 필드 — 페이지마다 흩어져 있던 input 스타일(높이·라운드·포커스)을 통일한다.
 // Form-Associated Custom Element: required 검증이 내부 input의 shadow에 묻히지 않도록
-// elementInternals로 폼 제출에 직접 참여한다 (DESIGN.md §4.2 — 44px 터치 타깃).
+// elementInternals로 폼 제출에 직접 참여한다 (44px 터치 타깃).
 @customElement("x-input")
 export class XInput extends LitElement {
   static formAssociated = true;

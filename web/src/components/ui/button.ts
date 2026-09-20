@@ -44,7 +44,7 @@ export class XButton extends LitElement {
       font-size: var(--text-caption, 13px);
     }
 
-    /* Primary: Action Blue 솔리드 풀필 (DESIGN.md §4.1) */
+    /* Primary: Action Blue 솔리드 풀필 */
     .variant-primary {
       background: var(--color-primary);
       color: var(--color-primary-text, #ffffff);
@@ -87,7 +87,7 @@ export class XButton extends LitElement {
       border-color: var(--color-danger);
     }
 
-    /* 클릭 시 축소 (DESIGN.md §1.7) */
+    /* 클릭 시 축소 */
     button:active:not(:disabled) {
       transform: scale(0.97);
     }

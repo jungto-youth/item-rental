@@ -13,7 +13,7 @@ const LABELS: Record<string, string> = {
   cancelled: "취소",
 };
 
-// DESIGN.md §2 — 미니멀 상태 배지: 무채색 칩 + 상태 점(Status Dot)
+// 미니멀 상태 배지: 무채색 칩 + 상태 점(Status Dot)
 @customElement("x-badge")
 export class XBadge extends LitElement {
   @property() kind = "neutral";
