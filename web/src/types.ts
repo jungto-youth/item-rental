@@ -28,6 +28,8 @@ export type Item = {
   availability_badge?: AvailabilityBadge;
   // 현재 대여 중인 수량 합 — 가용성 판정의 유일한 근거
   active_now?: number;
+  // 태그(카테고리) — 목록에서는 안 내리고 상세에서만 (SPEC §4.2 회원 노출 정책)
+  categories?: { id: number; name: string }[];
 };
 
 // 역할 2단계 (v3.2) — admin(관리자) > user(회원)

@@ -21,6 +21,7 @@ export type ListItemRow = ItemAttrs & {
   status: "active" | "repair" | "retired";
   photos: { id: number; url: string }[];
   active_now: number;
+  categories: { id: number; name: string }[];
 };
 
 // 관리자용 Item 행
@@ -54,7 +55,10 @@ export async function getItemDetail(
                         ORDER BY p.sort_order), '[]'::json)
        FROM item_photos p WHERE p.item_id = items.id) AS photos,
       (SELECT COALESCE(SUM(r.qty), 0)::int FROM reservations r
-        WHERE r.item_id = items.id AND r.status = 'rented') AS active_now
+        WHERE r.item_id = items.id AND r.status = 'rented') AS active_now,
+      (SELECT COALESCE(json_agg(json_build_object('id', c.id, 'name', c.name) ORDER BY c.name), '[]'::json)
+       FROM item_categories ic JOIN categories c ON c.id = ic.category_id
+       WHERE ic.item_id = items.id) AS categories
      FROM items
     WHERE items.id = $1`,
     [itemId],

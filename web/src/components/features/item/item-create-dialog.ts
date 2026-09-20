@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
 import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
-import { type ItemKind, type ItemStatus } from "../../../types";
+import { type Category, type ItemKind, type ItemStatus } from "../../../types";
 import { resolveCategoryIds } from "../../../utils/category";
 import { selectCss } from "../../../styles/controls";
 import "../../ui/modal";
@@ -31,6 +31,8 @@ export class ItemCreateDialog extends LitElement {
   @state() private error = "";
   // 태그(카테고리) — 이름 배열을 직접 다룬다. id 변환은 저장 시점에 (resolveCategoryIds)
   @state() private tagNames: string[] = [];
+  // 칩 에디터의 자동완성 후보 — 다이얼로그가 /api/categories 로 채워서 넘긴다
+  @state() private categoryOptions: string[] = [];
 
   static styles = [
     selectCss,
@@ -98,8 +100,21 @@ export class ItemCreateDialog extends LitElement {
   ];
 
   willUpdate(changed: Map<string, unknown>) {
-    // 열 때마다 초기화 — 태그 후보(datalist)는 칩 에디터가 options 로 받는다
-    if (changed.has("open") && this.open) this.tagNames = [];
+    // 열 때마다 초기화 — 태그 후보(datalist)는 이 아래에서 /api/categories 로 채운다
+    if (changed.has("open") && this.open) {
+      this.tagNames = [];
+      void this.loadCategoryOptions();
+    }
+  }
+
+  // 칩 에디터 자동완성 후보 — 기존 카테고리 이름 목록 (없는 경우도 허용)
+  private async loadCategoryOptions() {
+    try {
+      const res = await api<{ categories: Category[] }>("/api/categories");
+      this.categoryOptions = res.categories.map((c) => c.name);
+    } catch {
+      this.categoryOptions = [];
+    }
   }
 
   private set<K extends keyof typeof this.form>(k: K, v: (typeof this.form)[K]) {
@@ -224,6 +239,7 @@ export class ItemCreateDialog extends LitElement {
             카테고리
             <category-tags-input
               .value=${this.tagNames}
+              .options=${this.categoryOptions}
               placeholder="태그 입력 후 엔터 (예: 캠핑, 취미)"
               @change=${(e: CustomEvent<{ value: string[] }>) =>
                 (this.tagNames = e.detail.value)}

@@ -87,6 +87,21 @@ export class PageItemDetail extends LitElement {
         white-space: pre-wrap;
       }
 
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .tag {
+        font-size: var(--text-caption, 13px);
+        color: var(--color-text);
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+        border-radius: 999px;
+        padding: 2px 10px;
+      }
+
       .attrs {
         display: grid;
         grid-template-columns: 100px 1fr;
@@ -262,6 +277,15 @@ export class PageItemDetail extends LitElement {
                 : ""}
             </div>
             ${it.description ? html`<p class="desc">${it.description}</p>` : ""}
+            ${it.categories?.length
+              ? html`
+                  <div class="tags">
+                    ${it.categories.map(
+                      (c) => html`<span class="tag">#${c.name}</span>`,
+                    )}
+                  </div>
+                `
+              : ""}
           </div>
 
           ${attrs.length > 0

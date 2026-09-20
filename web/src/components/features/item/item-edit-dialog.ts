@@ -41,6 +41,8 @@ export class ItemEditDialog extends LitElement {
   @state() private photos: Photo[] = [];
   // 태그(카테고리) — 이름 배열을 직접 다룬다. id 변환은 저장 시점에 (resolveCategoryIds)
   @state() private tagNames: string[] = [];
+  // 칩 에디터의 자동완성 후보 — initForm 이 단건 조회(태그)로 채운다
+  @state() private categoryOptions: string[] = [];
   @state() private saving = false;
   @state() private error = "";
 
@@ -143,6 +145,7 @@ export class ItemEditDialog extends LitElement {
         description: it.description ?? this.item.description ?? "",
       };
       this.tagNames = (it.categories ?? []).map((c) => c.name);
+      this.categoryOptions = it.categories?.map((c) => c.name) ?? [];
     } catch {
       // 실패 시 기존 객체로 폴백 — 태그 이름은 목록 재조회로 채운다
       this.editForm = {
@@ -166,6 +169,7 @@ export class ItemEditDialog extends LitElement {
     }
     try {
       const res = await api<{ categories: Category[] }>("/api/categories");
+      this.categoryOptions = res.categories.map((c) => c.name);
       this.tagNames = categoryIds
         .map((id) => res.categories.find((c) => c.id === id))
         .flatMap((c) => (c ? [c.name] : []));
@@ -286,6 +290,7 @@ export class ItemEditDialog extends LitElement {
             카테고리
             <category-tags-input
               .value=${this.tagNames}
+              .options=${this.categoryOptions}
               placeholder="태그 입력 후 엔터 (예: 캠핑, 취미)"
               @change=${(e: CustomEvent<{ value: string[] }>) =>
                 (this.tagNames = e.detail.value)}
