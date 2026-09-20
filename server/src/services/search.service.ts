@@ -51,15 +51,17 @@ export async function searchItems(
   if (tokens.length === 0) return [];
 
   // 각 토큰에 대해 (items.name ILIKE ? OR items.description ILIKE ? OR items.location ILIKE ?
-  //   OR 카테고리 이름 매치 — 0020 카테고리 재도입)
+  //   OR 태그 이름 중 하나라도 매치 — 0021 태그 조인)
   const searchConds = tokens
     .map(
       (_, i) =>
         `(items.name ILIKE '%' || $${i + 1} || '%'
         OR items.description ILIKE '%' || $${i + 1} || '%'
         OR items.location ILIKE '%' || $${i + 1} || '%'
-        OR EXISTS (SELECT 1 FROM categories c WHERE c.id = items.category_id
-                   AND c.name ILIKE '%' || $${i + 1} || '%'))`,
+        OR EXISTS (SELECT 1 FROM item_categories ic
+                   JOIN categories c ON c.id = ic.category_id
+                   WHERE ic.item_id = items.id
+                     AND c.name ILIKE '%' || $${i + 1} || '%'))`,
     )
     .join(" AND ");
 

@@ -22,8 +22,8 @@ export type Item = {
   kind?: ItemKind;
   location?: string | null;
   description?: string | null;
-  // 카테고리 (관리자가 지정, null = 미지정)
-  category_id?: number | null;
+  // 태그 id 목록 — 관리자 단건 조회(/api/admin/items/:id)가 채운다. 공개 상세에는 없다
+  category_ids?: number[];
   photos: Photo[];
   availability_badge?: AvailabilityBadge;
   // 현재 대여 중인 수량 합 — 가용성 판정의 유일한 근거

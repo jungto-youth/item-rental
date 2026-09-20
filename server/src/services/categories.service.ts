@@ -1,16 +1,16 @@
 // 카테고리 도메인 서비스 — 목록/생성/이름변경/삭제 SQL 소유 (SPEC §4.2)
 // 카테고리는 관리자가 물품 등록·수정 중에 만드는 가벼운 분류로,
-// 별도 정렬 컬럼 없이 이름순으로 보여준다. 삭제 시 연결된 물품들은
-// items.category_id FK(ON DELETE SET NULL)를 따라 '미지정'이 된다.
+// 별도 정렬 컬럼 없이 이름순으로 보여준다. 삭제 시 연결은 조인 행이
+// (ON DELETE CASCADE) 함께 사라져 물품은 그대로 남는다 — 태그만 없어진다.
 import type { Sql } from "../db";
 
 export type CategoryRow = { id: number; name: string; item_count: number };
 
 export async function listCategories(db: Sql): Promise<CategoryRow[]> {
   const rows = (await db.query(
-    `SELECT c.id, c.name, COUNT(i.id)::int AS item_count
+    `SELECT c.id, c.name, COUNT(ic.item_id)::int AS item_count
      FROM categories c
-     LEFT JOIN items i ON i.category_id = c.id
+     LEFT JOIN item_categories ic ON ic.category_id = c.id
      GROUP BY c.id, c.name
      ORDER BY c.name`,
   )) as CategoryRow[];

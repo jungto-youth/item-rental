@@ -21,11 +21,10 @@ export type ListItemRow = ItemAttrs & {
   status: "active" | "repair" | "retired";
   photos: { id: number; url: string }[];
   active_now: number;
-  category_id: number | null;
 };
 
 // 관리자용 Item 행
-// category_name·thumb_key 는 목록 SQL (=0020 카테고리 재도입)이 채운다.
+// categories·thumb_key 는 목록/단건 SQL (=0021 태그 조인)이 채운다.
 export type AdminItemRow = {
   id: number;
   name: string;
@@ -35,8 +34,7 @@ export type AdminItemRow = {
   qty_broken: number;
   kind: string;
   location: string | null;
-  category_id: number | null;
-  category_name: string | null;
+  categories: { id: number; name: string }[];
   thumb_key: string | null;
 };
 
@@ -49,7 +47,7 @@ export async function getItemDetail(
 ): Promise<ListItemRow | null> {
   const rows = (await db.query(
     `SELECT items.id, items.name, items.description, items.total_qty, items.status,
-      items.kind, items.location, items.category_id,
+      items.kind, items.location,
       items.qty_broken,
       (items.total_qty - items.qty_broken) AS rentable_qty,
       (SELECT COALESCE(json_agg(json_build_object('id', p.id, 'url', '/api/photos/' || p.r2_key)
@@ -71,29 +69,38 @@ export async function getItemDetail(
 export async function listAdminItems(db: Sql) {
   return db.query(
     `SELECT items.*,
-            categories.name AS category_name,
+            (SELECT COALESCE(json_agg(json_build_object('id', c.id, 'name', c.name)
+                              ORDER BY c.name), '[]'::json)
+             FROM item_categories ic JOIN categories c ON c.id = ic.category_id
+             WHERE ic.item_id = items.id) AS categories,
             (SELECT p.r2_key FROM item_photos p WHERE p.item_id = items.id
               ORDER BY p.sort_order LIMIT 1) AS thumb_key,
             (SELECT COUNT(*)::int FROM item_photos p WHERE p.item_id = items.id) AS photo_count,
             (SELECT COUNT(*)::int FROM reservations r WHERE r.item_id = items.id) AS reservation_count
      FROM items
-     LEFT JOIN categories ON categories.id = items.category_id
      ORDER BY items.id DESC`,
   );
 }
 
-// 편집용 단건 — 공개 상세(§7.4)와 동일한 컬럼 집합 (SELECT * — 관리자 화면용)
+// 편집용 단건 — 공개 상세(§7.4)와 달리 태그까지 내려준다 (SELECT * + 태그 조인 — 관리자 화면용)
 export async function getAdminItem(
   db: Sql,
   itemId: number,
 ): Promise<AdminItemRow | null> {
-  const rows = (await db.query(`SELECT * FROM items WHERE id = $1`, [
-    itemId,
-  ])) as AdminItemRow[];
+  const rows = (await db.query(
+    `SELECT items.*,
+            (SELECT COALESCE(json_agg(json_build_object('id', c.id, 'name', c.name)
+                              ORDER BY c.name), '[]'::json)
+             FROM item_categories ic JOIN categories c ON c.id = ic.category_id
+             WHERE ic.item_id = items.id) AS categories
+     FROM items WHERE items.id = $1`,
+    [itemId],
+  )) as AdminItemRow[];
   return rows.length === 0 ? null : rows[0];
 }
 
 // 등록 — 입력 검증은 라우트, SQL·임베딩은 서비스
+// attrs.category_ids (배열, 0개 허용)는 items 컬럼이 아니라 조인 테이블에 넣는다.
 export async function createItem(
   db: Sql,
   env: Bindings,
@@ -104,21 +111,36 @@ export async function createItem(
     attrs: Record<string, unknown>;
   },
 ): Promise<number> {
-  const cols = ["name", "status", "total_qty", ...Object.keys(input.attrs)];
+  const { category_ids, ...itemAttrs } = input.attrs;
+  const categoryIds = (category_ids as number[] | undefined) ?? [];
+  const cols = ["name", "status", "total_qty", ...Object.keys(itemAttrs)];
   const vals = [
     input.name,
     input.status,
     input.total_qty,
-    ...Object.values(input.attrs),
+    ...Object.values(itemAttrs),
   ];
   const [row] = (await db.query(
     `INSERT INTO items (${cols.join(", ")})
      VALUES (${cols.map((_, i) => `$${i + 1}`).join(", ")}) RETURNING id`,
     vals,
   )) as { id: number }[];
+  await replaceItemCategories(db, row.id, categoryIds);
   // 등록 즉시 의미 검색용 임베딩 생성 (실패해도 등록은 성공 — 키워드 검색은 계속 동작)
   await embedItem(env, db, row.id);
   return row.id;
+}
+
+// 태그 전체 교체 — 배열이 비면 연결만 제거된다 (만든 중복 id 는 라우트가 이미 제거)
+async function replaceItemCategories(db: Sql, itemId: number, categoryIds: number[]) {
+  await db.query(`DELETE FROM item_categories WHERE item_id = $1`, [itemId]);
+  for (const cid of categoryIds) {
+    await db.query(
+      `INSERT INTO item_categories (item_id, category_id) VALUES ($1, $2)
+       ON CONFLICT DO NOTHING`,
+      [itemId, cid],
+    );
+  }
 }
 
 // 수정 결과 — qty_constraint: 수량 조합이 제약(qty_broken ≤ total_qty) 위반 (라우트가 400 응답)
@@ -133,6 +155,9 @@ export async function updateItem(
   itemId: number,
   fields: Record<string, unknown>,
 ): Promise<UpdateItemResult> {
+  // 태그는 items 컬럼이 아니므로 SET 절에서 빼 조인 테이블을 교체한다 (매개변수는 교체 의미론)
+  const categoryIds = fields.category_ids as number[] | undefined;
+  const { category_ids: _tags, ...itemFields } = fields;
   // 수량 관련 필드가 바뀌면 결과 조합이 제약(qty_broken ≤ total_qty)을 지키는지 본다.
   // 한쪽만 보내는 경우가 흔하므로 현재 값을 읽어 합쳐서 판정한다.
   if ("qty_broken" in fields || "total_qty" in fields) {
@@ -146,14 +171,17 @@ export async function updateItem(
       (fields.qty_broken as number | undefined) ?? cur.qty_broken;
     if (nextBroken > nextTotal) return { error: "qty_constraint" };
   }
-  const keys = Object.keys(fields);
+  const keys = Object.keys(itemFields);
   const setSql = keys.map((k, i) => `${k} = $${i + 2}`).join(", ");
   const rows = (await db.query(
     `UPDATE items SET ${setSql} WHERE id = $1 RETURNING id`,
-    [itemId, ...keys.map((k) => fields[k])],
+    [itemId, ...keys.map((k) => itemFields[k])],
   )) as { id: number }[];
   if (rows.length === 0) return { error: "not_found" };
-  // 이름·설명이 바뀌면 임베딩도 갱신 (무조건 재생성 — 소규모라 비용 무시)
+      if (categoryIds !== undefined) {
+        await replaceItemCategories(db, itemId, categoryIds);
+      }
+  // 이름·설명·태그가 바뀌면 임베딩도 갱신 (무조건 재생성 — 소규모라 비용 무시)
   await embedItem(env, db, itemId);
   return { ok: true };
 }

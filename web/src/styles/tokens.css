@@ -46,6 +46,9 @@
   --radius: 12px;
   --radius-pill: 8px;
 
+  /* 셀렉트 커스텀 체브런 — 사용처에서 background-image: var(--arrow-chevron) */
+  --arrow-chevron: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 4 L8 10 M12 4 L8 10' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+
   /* 간격 스케일 (4px 그리드) */
   --space-1: 4px;
   --space-2: 8px;
@@ -101,6 +104,8 @@
     --tone-info-text: #e4e4e7;
     --tone-violet-bg: #3b0764;
     --tone-violet-text: #e9d5ff;
+
+    --arrow-chevron: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 4 L8 10 M12 4 L8 10' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
 }
 
@@ -135,6 +140,8 @@
   --tone-info-text: #e4e4e7;
   --tone-violet-bg: #3b0764;
   --tone-violet-text: #e9d5ff;
+
+  --arrow-chevron: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 4 L8 10 M12 4 L8 10' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 body {

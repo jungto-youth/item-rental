@@ -5,9 +5,9 @@ import { getDb, type Sql } from './db'
 
 const MODEL = '@cf/baai/bge-m3'
 
-// 임베딩 입력 텍스트 — 이름·설명 (카테고리 제거와 함께 v2.5부터)
-export function itemEmbedText(name: string, description: string | null): string {
-  return [name, description ?? ''].filter(Boolean).join(' | ')
+// 임베딩 입력 텍스트 — 이름·설명·태그 (0021부터 태그 포함 — 뿓뿓 분류 키워드 의미 검색)
+export function itemEmbedText(name: string, description: string | null, tags = ''): string {
+  return [name, description ?? '', tags].filter(Boolean).join(' | ')
 }
 
 // bge-m3로 임베딩 생성 → pgvector 문자열 '[0.1,0.2,...]' 반환
@@ -21,15 +21,19 @@ export async function embed(env: Bindings, text: string): Promise<string> {
   return `[${vec.join(',')}]`
 }
 
-// 물품 1건 임베딩 갱신 — 카테고리명 조인 후 UPDATE. 실패해도 호출부를 죽이지 않음(키워드 검색은 계속 동작)
+// 물품 1건 임베딩 갱신 — 태그명 조인 후 UPDATE. 실패해도 호출부를 죽이지 않음(키워드 검색은 계속 동작)
 export async function embedItem(env: Bindings, db: Sql, itemId: number): Promise<void> {
   try {
     const rows = (await db.query(
-      'SELECT name, description FROM items WHERE id = $1',
+      `SELECT i.name, i.description,
+              (SELECT COALESCE(string_agg(c.name, ' ' ORDER BY c.name), '')
+               FROM item_categories ic JOIN categories c ON c.id = ic.category_id
+               WHERE ic.item_id = i.id) AS tags
+       FROM items i WHERE i.id = $1`,
       [itemId],
-    )) as { name: string; description: string | null }[]
+    )) as { name: string; description: string | null; tags: string }[]
     if (rows.length === 0) return
-    const text = itemEmbedText(rows[0].name, rows[0].description)
+    const text = itemEmbedText(rows[0].name, rows[0].description, rows[0].tags)
     const vec = await embed(env, text)
     await db.query('UPDATE items SET embedding = $1::vector WHERE id = $2', [vec, itemId])
   } catch (err) {

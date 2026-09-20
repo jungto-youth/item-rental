@@ -21,8 +21,7 @@ type AdminItem = {
   qty_broken: number;
   kind: ItemKind;
   location: string | null;
-  category_id: number | null;
-  category_name: string | null;
+  categories: { id: number; name: string }[];
   thumb_key: string | null;
   photo_count: number;
   reservation_count: number;
@@ -78,8 +77,9 @@ export class PageAdminItems extends LitElement {
         gap: var(--space-2, 8px);
         margin-bottom: var(--space-3, 12px);
       }
-      .toolbar input,
-      .toolbar select {
+      .toolbar input {
+        flex: 1;
+        min-width: 0;
         height: 40px;
         padding: 0 12px;
         border: 1px solid var(--color-border);
@@ -90,12 +90,14 @@ export class PageAdminItems extends LitElement {
         font-size: var(--text-body, 15px);
         box-sizing: border-box;
       }
-      .toolbar input {
-        flex: 1;
-        min-width: 0;
+      /* 셀렉트는 selectCss(rowsCss 경유)가 담당 — 높이만 맞춘다. background shorthand는 체브런을 지우므로 금지 */
+      .toolbar select {
+        height: 40px;
+        padding: 0 32px 0 12px;
+        border-radius: var(--radius-md, 8px);
+        font-size: var(--text-body, 15px); /* 툴바 = 기본 사이즈 — 검색 인풋과 맞춤 */
       }
-      .toolbar input:focus,
-      .toolbar select:focus {
+      .toolbar input:focus {
         outline: none;
         border-color: var(--color-primary);
       }
@@ -184,7 +186,7 @@ export class PageAdminItems extends LitElement {
       kind: it.kind,
       location: it.location,
       description: it.description,
-      category_id: it.category_id,
+      category_ids: it.categories.map((c) => c.id),
       photos: [],
     };
     this.editOpen = true;
@@ -194,16 +196,13 @@ export class PageAdminItems extends LitElement {
     const q = this.q.trim().toLowerCase();
     return this.items.filter((it) => {
       if (this.categoryFilter === "none") {
-        if (it.category_id !== null) return false;
+        if (it.categories.length > 0) return false;
       } else if (this.categoryFilter !== "all") {
-        if (String(it.category_id) !== this.categoryFilter) return false;
+        if (!it.categories.some((c) => String(c.id) === this.categoryFilter)) return false;
       }
       if (!q) return true;
-      return (
-        it.name.toLowerCase().includes(q) ||
-        (it.location ?? "").toLowerCase().includes(q) ||
-        (it.category_name ?? "").toLowerCase().includes(q)
-      );
+      const names = `${it.name} ${it.location ?? ""} ${it.categories.map((c) => c.name).join(" ")}`;
+      return names.toLowerCase().includes(q);
     });
   }
 
@@ -294,8 +293,8 @@ export class PageAdminItems extends LitElement {
         <div class="info">
           <div class="name">${it.name}</div>
           <div class="meta">
-            ${it.category_name
-              ? html`<span class="cat">${it.category_name}</span>`
+            ${it.categories.length > 0
+              ? it.categories.map((c) => html`<span class="cat">${c.name}</span>`)
               : html`<span class="cat none">미지정</span>`}
             ${it.location ? html`<span>${it.location}</span>` : ""}
             <span>

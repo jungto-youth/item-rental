@@ -2,10 +2,12 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
 import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
-import { type Category, type ItemKind, type ItemStatus } from "../../../types";
-import { resolveCategoryId } from "../../../utils/category";
+import { type ItemKind, type ItemStatus } from "../../../types";
+import { resolveCategoryIds } from "../../../utils/category";
+import { selectCss } from "../../../styles/controls";
 import "../../ui/modal";
 import "../../ui/button";
+import "../category/category-tags-input";
 import "./photo-uploader";
 
 const EMPTY_FORM = {
@@ -27,10 +29,12 @@ export class ItemCreateDialog extends LitElement {
   @state() private stagedUrls: string[] = [];
   @state() private saving = false;
   @state() private error = "";
-  @state() private categories: Category[] = [];
-  @state() private categoryName = "";
+  // 태그(카테고리) — 이름 배열을 직접 다룬다. id 변환은 저장 시점에 (resolveCategoryIds)
+  @state() private tagNames: string[] = [];
 
-  static styles = css`
+  static styles = [
+    selectCss,
+    css`
     :host {
       display: contents;
     }
@@ -50,7 +54,7 @@ export class ItemCreateDialog extends LitElement {
       color: var(--color-muted);
     }
 
-    input, select, textarea {
+    input, textarea {
       padding: 0 12px;
       height: 44px;
       border: 1px solid var(--color-border);
@@ -63,13 +67,17 @@ export class ItemCreateDialog extends LitElement {
       transition: border-color 0.15s ease;
     }
 
+    select {
+      height: 44px; /* 폼 입력과 높이 맞춤 — 나머지는 selectCss가 담당 */
+    }
+
     textarea {
       height: auto;
       padding: 10px 12px;
       resize: vertical;
     }
 
-    input:focus, select:focus, textarea:focus {
+    input:focus, textarea:focus {
       outline: none;
       border-color: var(--color-primary);
       background: var(--color-bg);
@@ -86,22 +94,12 @@ export class ItemCreateDialog extends LitElement {
       font-size: var(--text-caption, 13px);
       margin: 0;
     }
+    `,
+  ];
 
-    `;
-
-  async willUpdate(changed: Map<string, unknown>) {
-    // 열릴 때마다 목록을 새로 받는다 — 관리 화면에서 카테고리를 고쳐도 바로 반영
-    if (changed.has("open") && this.open) await this.loadCategories();
-  }
-
-  private async loadCategories() {
-    try {
-      const res = await api<{ categories: Category[] }>("/api/categories");
-      this.categories = res.categories;
-    } catch {
-      // 목록을 못 받아도 새 이름 입력→생성 경로는 그대로 동작한다
-      this.categories = [];
-    }
+  willUpdate(changed: Map<string, unknown>) {
+    // 열 때마다 초기화 — 태그 후보(datalist)는 칩 에디터가 options 로 받는다
+    if (changed.has("open") && this.open) this.tagNames = [];
   }
 
   private set<K extends keyof typeof this.form>(k: K, v: (typeof this.form)[K]) {
@@ -151,7 +149,7 @@ export class ItemCreateDialog extends LitElement {
   private handleClose = () => {
     this.clearStaged();
     this.form = { ...EMPTY_FORM };
-    this.categoryName = "";
+    this.tagNames = [];
     this.error = "";
     this.dispatchEvent(new CustomEvent("close", { bubbles: true, composed: true }));
   };
@@ -163,11 +161,11 @@ export class ItemCreateDialog extends LitElement {
     this.error = "";
 
     try {
-      // 새 카테고리명이면 서버에 먼저 만들고 id 를 붙인다(빈 값 = 미지정)
-      const category_id = await resolveCategoryId(this.categories, this.categoryName);
+      // 새 이름은 서버에 먼저 만들고 id 를 붙인다 (없으면 빈 배열 = 태그 없음)
+      const category_ids = await resolveCategoryIds(this.tagNames);
       const res = await api<{ id: number }>("/api/admin/items", {
         method: "POST",
-        body: JSON.stringify({ ...this.form, category_id }),
+        body: JSON.stringify({ ...this.form, category_ids }),
       });
 
       const failed: string[] = [];
@@ -186,7 +184,7 @@ export class ItemCreateDialog extends LitElement {
 
       this.clearStaged();
       this.form = { ...EMPTY_FORM };
-      this.categoryName = "";
+      this.tagNames = [];
       this.dispatchEvent(
         new CustomEvent("created", {
           detail: { id: res.id, failedPhotos: failed },
@@ -224,16 +222,13 @@ export class ItemCreateDialog extends LitElement {
 
           <label>
             카테고리
-            <input
-              list="create-category-options"
-              .value=${this.categoryName}
-              placeholder="기존 것을 고르거나 새 이름 입력"
-              @input=${(e: Event) => (this.categoryName = (e.target as HTMLInputElement).value)}
-            />
+            <category-tags-input
+              .value=${this.tagNames}
+              placeholder="태그 입력 후 엔터 (예: 캠핑, 취미)"
+              @change=${(e: CustomEvent<{ value: string[] }>) =>
+                (this.tagNames = e.detail.value)}
+            ></category-tags-input>
           </label>
-          <datalist id="create-category-options">
-            ${this.categories.map((c) => html`<option value=${c.name}></option>`)}
-          </datalist>
 
           <div class="row">
             <label>

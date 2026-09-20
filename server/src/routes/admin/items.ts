@@ -57,17 +57,16 @@ function readAttrs(
     }
     attrs.qty_broken = n;
   }
-  if ("category_id" in body) {
-    const v = body.category_id;
-    if (v === null || v === undefined) {
-      attrs.category_id = null; // 미지정
-    } else {
-      const n = Number(v);
-      if (!Number.isInteger(n) || n < 1) {
-        return { error: "category_id 오류" };
-      }
-      attrs.category_id = n;
+  if ("category_ids" in body) {
+    const v = body.category_ids;
+    if (!Array.isArray(v)) {
+      return { error: "category_ids는 배열이어야 합니다" };
     }
+    const ids = [...new Set(v.map(Number))]; // 숫자화 + 중복 제거
+    if (ids.some((n) => !Number.isInteger(n) || n < 1)) {
+      return { error: "category_ids는 1 이상 정수 배열" };
+    }
+    attrs.category_ids = ids; // 빈 배열 = 태그 없음(미지정)
   }
   return { attrs };
 }

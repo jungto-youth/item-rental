@@ -2,11 +2,26 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
 import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
-import { type Item, type ItemKind, type ItemStatus, type Photo, type Category } from "../../../types";
-import { resolveCategoryId } from "../../../utils/category";
+import { type Category, type Item, type ItemKind, type ItemStatus, type Photo } from "../../../types";
+import { resolveCategoryIds } from "../../../utils/category";
+import { selectCss } from "../../../styles/controls";
 import "../../ui/modal";
 import "../../ui/button";
+import "../category/category-tags-input";
 import "./photo-uploader";
+
+// 관리자 단건 조회 응답 — 공개 Item 과 달리 태그 이름 배열이 함께 온다 (server items.service)
+type AdminItemDetail = {
+  id: number;
+  name: string;
+  kind?: ItemKind;
+  total_qty?: number;
+  qty_broken?: number;
+  status?: ItemStatus;
+  location?: string | null;
+  description?: string | null;
+  categories?: { id: number; name: string }[];
+};
 
 @customElement("item-edit-dialog")
 export class ItemEditDialog extends LitElement {
@@ -24,12 +39,14 @@ export class ItemEditDialog extends LitElement {
   };
 
   @state() private photos: Photo[] = [];
-  @state() private categories: Category[] = [];
-  @state() private categoryName = "";
+  // 태그(카테고리) — 이름 배열을 직접 다룬다. id 변환은 저장 시점에 (resolveCategoryIds)
+  @state() private tagNames: string[] = [];
   @state() private saving = false;
   @state() private error = "";
 
-  static styles = css`
+  static styles = [
+    selectCss,
+    css`
     :host {
       display: contents;
     }
@@ -49,7 +66,7 @@ export class ItemEditDialog extends LitElement {
       color: var(--color-muted);
     }
 
-    input, select, textarea {
+    input, textarea {
       padding: 0 12px;
       height: 44px;
       border: 1px solid var(--color-border);
@@ -62,13 +79,17 @@ export class ItemEditDialog extends LitElement {
       transition: border-color 0.15s ease;
     }
 
+    select {
+      height: 44px; /* 폼 입력과 높이 맞춤 — 나머지는 selectCss가 담당 */
+    }
+
     textarea {
       height: auto;
       padding: 10px 12px;
       resize: vertical;
     }
 
-    input:focus, select:focus, textarea:focus {
+    input:focus, textarea:focus {
       outline: none;
       border-color: var(--color-primary);
       background: var(--color-bg);
@@ -97,31 +118,20 @@ export class ItemEditDialog extends LitElement {
       display: flex;
       gap: 8px;
     }
-  `;
+    `,
+  ];
 
-  async willUpdate(changed: Map<string, unknown>) {
-    if (changed.has("open") && this.open && this.item) {
-      // 카테고리 목록을 먼저 받아 initForm 이 이름을 채울 수 있게 한다
-      await this.loadCategories();
-      this.initForm();
-    }
-  }
-
-  private async loadCategories() {
-    try {
-      const res = await api<{ categories: Category[] }>("/api/categories");
-      this.categories = res.categories;
-    } catch {
-      this.categories = [];
-    }
+  willUpdate(changed: Map<string, unknown>) {
+    if (changed.has("open") && this.open && this.item) this.initForm();
   }
 
   private async initForm() {
     this.photos = this.item.photos ?? [];
     this.error = "";
+    this.tagNames = [];
     // note 조회를 위해 단건 조회
     try {
-      const res = await api<{ item: Partial<Item> }>(`/api/admin/items/${this.item.id}`);
+      const res = await api<{ item: AdminItemDetail }>(`/api/admin/items/${this.item.id}`);
       const it = res.item;
       this.editForm = {
         name: it.name ?? this.item.name,
@@ -132,10 +142,9 @@ export class ItemEditDialog extends LitElement {
         location: it.location ?? this.item.location ?? "",
         description: it.description ?? this.item.description ?? "",
       };
-      this.categoryName =
-        this.categories.find((c) => c.id === it.category_id)?.name ?? "";
+      this.tagNames = (it.categories ?? []).map((c) => c.name);
     } catch {
-      // 실패 시 기존 객체로 폴백
+      // 실패 시 기존 객체로 폴백 — 태그 이름은 목록 재조회로 채운다
       this.editForm = {
         name: this.item.name,
         kind: this.item.kind ?? "rental",
@@ -145,8 +154,23 @@ export class ItemEditDialog extends LitElement {
         location: this.item.location ?? "",
         description: this.item.description ?? "",
       };
-      this.categoryName =
-        this.categories.find((c) => c.id === this.item.category_id)?.name ?? "";
+      void this.resolveTagNames(this.item.category_ids ?? []);
+    }
+  }
+
+  // id 목록 → 이름 목록 — 실패 시 태그가 사라지는 것보다 목록 재조회가 낫다(+결과 없으면 빈 값)
+  private async resolveTagNames(categoryIds: number[]) {
+    if (categoryIds.length === 0) {
+      this.tagNames = [];
+      return;
+    }
+    try {
+      const res = await api<{ categories: Category[] }>("/api/categories");
+      this.tagNames = categoryIds
+        .map((id) => res.categories.find((c) => c.id === id))
+        .flatMap((c) => (c ? [c.name] : []));
+    } catch {
+      this.tagNames = [];
     }
   }
 
@@ -165,11 +189,11 @@ export class ItemEditDialog extends LitElement {
     this.error = "";
 
     try {
-      // 새 카테고리명이면 서버에 먼저 만들고 id 를 붙인다(빈 값 = 미지정)
-      const category_id = await resolveCategoryId(this.categories, this.categoryName);
+      // 새 이름은 서버에 먼저 만들고 id 를 붙인다 (없으면 빈 배열 = 태그 없음)
+      const category_ids = await resolveCategoryIds(this.tagNames);
       await api(`/api/admin/items/${this.item.id}`, {
         method: "PUT",
-        body: JSON.stringify({ ...this.editForm, category_id }),
+        body: JSON.stringify({ ...this.editForm, category_ids }),
       });
 
       this.dispatchEvent(new CustomEvent("saved", { bubbles: true, composed: true }));
@@ -260,16 +284,13 @@ export class ItemEditDialog extends LitElement {
 
           <label>
             카테고리
-            <input
-              list="edit-category-options"
-              .value=${this.categoryName}
-              placeholder="기존 것을 고르거나 새 이름 입력"
-              @input=${(e: Event) => (this.categoryName = (e.target as HTMLInputElement).value)}
-            />
+            <category-tags-input
+              .value=${this.tagNames}
+              placeholder="태그 입력 후 엔터 (예: 캠핑, 취미)"
+              @change=${(e: CustomEvent<{ value: string[] }>) =>
+                (this.tagNames = e.detail.value)}
+            ></category-tags-input>
           </label>
-          <datalist id="edit-category-options">
-            ${this.categories.map((c) => html`<option value=${c.name}></option>`)}
-          </datalist>
 
           <div class="row">
             <label>
