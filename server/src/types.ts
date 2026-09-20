@@ -24,7 +24,7 @@ export type SessionUser = {
   name: string;
   phone: string | null; // nullable — 최초 로그인 후 프로필 입력에서 채움
   role: Role;
-  status: "active" | "inactive";
+  deactivated_at: string | null; // null = 활성, 값 있으면 탈퇴(소프트 삭제) 시각
 };
 
 export type Variables = {

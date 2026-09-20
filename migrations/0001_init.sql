@@ -1,10 +1,13 @@
--- SPEC §8 — Neon (PostgreSQL) 초기 스키마
--- 이 파일은 "매번 전체를 재실행"하는 migrate.ts 의 일부다. 실행되지 않는
--- CREATE TABLE IF NOT EXISTS 리터럴이므로 이 파일에 남긴 컬럼이 실제 스키마를 만들지
--- 않는다(기존 테이블 변경은 0003~0016 이 담당). 아래는 0016 시점의 최종 상태로 정리했다:
--- categories(0005 삭제)·settings(0014 삭제)과 category_id(0011)·max_days(0015)·
--- start_date/end_date/status_note(0015)는 죽었거나 치명 오류(INSERT INTO settings)를
--- 일으키므로 제거했다.
+-- SPEC §8 — Neon (PostgreSQL) 초기 스키마 = "베이스 스냅샷"
+-- migrate.ts 는 _migrations 에 적용 이력을 남기고 각 파일을 딱 한 번만 실행한다. 이 파일은 그 첫 번째라
+-- 새 DB 는 여기서 스키마가 시작되지만, 이미 적용된 DB 에서는 다시 실행되지 않는다 — 본문을 고쳐도
+-- 실제 스키마는 바뀌지 않는다(스키마 변경은 항상 새 번호 파일로 **추가**한다).
+-- 여기 없는 것(= 이후 파일이 만들거나 지운 것): categories(0005 삭제)·settings(0014 삭제),
+-- items.category_id(0011)·max_days(0015 — 기간 개념 제거)·size/color/note(0016),
+-- reservations.start_date/end_date/status_note(0015), members.status(0018 — deactivated_at 대체),
+-- members.phone 의 NOT NULL(0003 에서 해제).
+-- 최종 스키마 = 이 파일 + 0002~0018 순차 적용. 신규 DB 경로는 2026-09-20 임시 스키마에 18개를 순서대로
+-- replay 해 public 과 구조가 같은 것을 확인했다(Neon dev 브랜치를 새로 만들면 같은 검증이 자동으로 된다).
 CREATE TABLE IF NOT EXISTS members (
   id         TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
   email      TEXT NOT NULL UNIQUE,

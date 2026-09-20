@@ -6,7 +6,7 @@ import type { AdminMember, Role } from "../../types";
 import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-nav";
 
-// SPEC §4.4 — 회원 관리: 목록·비활성화·역할 지정/해제 모두 admin 전용
+// SPEC §4.4 — 회원 관리: 목록·탈퇴·역할 지정/해제 모두 admin 전용
 // 역할 변경 보호장치는 서버가 강제: 마지막 관리자 해임 불가
 @customElement("page-admin-members")
 export class PageAdminMembers extends LitElement {
@@ -108,28 +108,29 @@ export class PageAdminMembers extends LitElement {
     }
   }
 
-  // 탈퇴(비활성화) — 활성 회원을 비활성화한다. 약관이 '탈퇴는 관리자에게 요청'이라 안내하는데
-  // 처리 수단이 없어 신설했다(§4.1, v3.1). 마지막 관리자 보호는 서버가 409 로 거부한다.
-  private async deactivate(m: AdminMember) {
+  // 탈퇴 처리 — 활성 회원을 탈퇴시킨다. 약관이 '탈퇴는 관리자에게 요청'이라 안내하는데
+  // 처리 수단이 없어 신설했다(§4.1, v3.1). 소프트 삭제 — 대여 이력은 남고, 복구 경로는 없다.
+  // 마지막 관리자 보호는 서버가 409 로 거부한다.
+  private async withdraw(m: AdminMember) {
     const who = m.name || m.email || "이 회원";
     if (
       !confirm(
-        `'${who}'님을 비활성화(탈퇴 처리)할까요?\n이후 다시 로그인할 수 없습니다.`,
+        `'${who}'님을 탈퇴 처리할까요?\n이후 다시 로그인할 수 없습니다.\n대여 중인 물품은 본인이 반납할 수 없어 관리자가 대신 처리해야 합니다.`,
       )
     )
       return;
     if (this.busy) return;
     this.busy = true;
     try {
-      await api(`/api/admin/members/${m.id}/deactivate`, { method: "POST" });
-      this.message = `${who}님을 비활성화했어요`;
+      await api(`/api/admin/members/${m.id}/withdraw`, { method: "POST" });
+      this.message = `${who}님을 탈퇴 처리했어요`;
       await this.reload();
     } catch (e) {
       const code = e instanceof ApiError ? e.code : undefined;
       if (code === "last_admin")
-        this.message = "마지막 관리자는 비활성화할 수 없어요";
+        this.message = "마지막 관리자는 탈퇴 처리할 수 없어요";
       else if (e instanceof ApiError) this.message = e.message;
-      else this.message = "비활성화 실패";
+      else this.message = "탈퇴 처리 실패";
       await this.reload();
     } finally {
       this.busy = false;
@@ -199,7 +200,7 @@ export class PageAdminMembers extends LitElement {
         <span class="head">
           <span class="name">${m.name || "—"}</span>
           ${
-            m.status !== "inactive"
+            !m.deactivated_at
               ? html`<select
                   ?disabled=${this.busy}
                   aria-label="역할 지정"
@@ -215,15 +216,15 @@ export class PageAdminMembers extends LitElement {
                 </select>`
               : html`<x-badge kind=${m.role}></x-badge>`
           }
-          <x-badge kind=${m.status}></x-badge>
+          ${m.deactivated_at ? html`<x-badge kind="withdrawn"></x-badge>` : ""}
           ${
-            m.status === "active"
+            !m.deactivated_at
               ? html`<button
                   class="link danger"
                   ?disabled=${this.busy}
-                  @click=${() => this.deactivate(m)}
+                  @click=${() => this.withdraw(m)}
                 >
-                  비활성화
+                  탈퇴
                 </button>`
               : ""
           }

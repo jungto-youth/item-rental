@@ -7,7 +7,7 @@ export type SessionUser = {
   name: string;
   phone: string | null;
   role: Role;
-  status: "active" | "inactive";
+  deactivated_at: string | null; // null = 활성, 값 있으면 탈퇴(소프트 삭제) 시각
 };
 
 class SessionStore {

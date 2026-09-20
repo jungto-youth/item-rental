@@ -9,7 +9,7 @@
 | 항목             | 내용                                                                |
 | ---------------- | ------------------------------------------------------------------- |
 | 목적             | 지부 보유 물품(캠핑용품, 행사장비 등)의 대여 예약을 온라인으로 관리 |
-| 이용자           | 지부 회원(승인제) · 관리자(운영진)                                  |
+| 이용자           | 지부 회원 · 관리자(운영진)                                  |
 | 물품 규모        | 97개 (대여품 93 · 소모품 4) — 카테고리 없이 검색으로 탐색           |
 | 예상 동시 이용자 | 수 명 수준 (지부 단위 소규모)                                       |
 | 운영 비용        | 월 0원 (Cloudflare·Neon 무료 티어)                                  |
@@ -21,14 +21,13 @@
 | 역할                    | 권한                                                                             |
 | ----------------------- | -------------------------------------------------------------------------------- |
 | 미인증 방문자           | 물품 목록·상세 열람, 로그인                                                      |
-| 승인 대기 회원          | 마이페이지(승인 대기 상태 확인)만 접근                                           |
-| 회원 (`user`, approved) | 물품 검색, 대여, 내 대여 현황·이력 조회, 대여 취소                               |
-| 관리자 (`admin`)        | 물품 CRUD, 대여 반납 처리, 회원 승인, 전체 이력 조회, 관리자 지정/해제           |
+| 회원 (`user`)           | 물품 검색, 대여, 내 대여 현황·이력 조회, 대여 취소                               |
+| 관리자 (`admin`)        | 물품 CRUD, 대여 반납 처리, 회원 탈퇴 처리, 전체 이력 조회, 관리자 지정/해제           |
 
-- 가입: 구글 소셜 로그인 → 최초 로그인 시 `members` 자동 생성(pending) → 프로필(이름·연락처) 입력 → 관리자 승인 후 이용
+- 가입: 구글 소셜 로그인 = 가입. 최초 로그인 시 `members` 자동 생성 → 프로필(이름·연락처) 입력 → 바로 이용. **승인 단계가 없다** — 로그인이 곧 회원이고 `@jungto.org` 도메인 게이트가 회원 심사를 대신한다
 - 로그인 허용: `@jungto.org` 계정만. 예외는 `AUTH_ALLOWED_EMAILS` 시크릿에 콤마 구분으로 나열하고, 비허용 계정은 로그인 단계에서 거부한다
-- 세션: JWT 무상태 — 서명 검증 후 `members` 1회 조회로 최신 role/status 반영
-- 역할 지정/해제: 관리자만 가능. 마지막 관리자는 본인 포함 해임 불가, 미승인 회원은 임명 불가. 첫 관리자는 DB 수동 지정 1회
+- 세션: JWT 무상태 — 서명 검증 후 `members` 1회 조회로 최신 role/deactivated_at 반영
+- 역할 지정/해제: 관리자만 가능. 마지막 관리자는 본인 포함 해임·탈퇴 불가. 첫 관리자는 DB 수동 지정 1회
 
 ## 3. 대여 상태 흐름 (핵심 플로우)
 
@@ -51,7 +50,7 @@
 - 마이페이지: 대여 중 / 대여 이력 목록, **반납**, 대여 취소
 - **반납은 회원이 직접 한다**: 물품을 돌려준 사람이 마이페이지에서 [반납]을 누르면 바로 `returned`가 되고 재고가 복구된다. 관리자에게 요청할 필요가 없다. 관리자도 같은 일을 할 수 있다(§4.3) — 두 경로의 차이는 `admin_id` 기록 여부뿐이고, 회원이 반납한 건은 `admin_id`가 비어 관리자 목록에 "회원이 직접 반납했어요 — 물품 회수 여부를 확인해 주세요"로 뜬다
 - **취소와 반납은 다르다**: 취소(`cancelled`)는 "빌리지 않기로 함", 반납(`returned`)은 "돌려줬음". 둘 다 재고를 즉시 되돌리지만 이력 화면에서 구분되고, 회원 반납은 자기 신고이므로 관리자가 확인할 대상이 된다
-- 탈퇴: 소프트 삭제 (대여 이력 보존을 위해 비활성화 처리)
+- 탈퇴: 회원이 관리자에게 요청하면 `/admin/members` 에서 처리한다. 소프트 삭제 — `members.deactivated_at` 에 시각만 남기고 대여 이력·이름은 보존하며, 세션이 즉시 무효화되어 다시 로그인할 수 없다. **대여 중인 건 본인이 반납할 수 없으므로 관리자가 `/admin/reservations` 에서 반납 처리해야 한다** (복구 경로는 없다)
 
 ### 4.2 물품
 
@@ -76,7 +75,7 @@
 ### 4.4 관리자
 
 - 대시보드: 대여 중 건수와 대여 중 목록 (반납 대상 확인용), 반납 완료·취소 건수
-- 회원 관리: 승인 대기 목록 → 승인/거절, 역할 지정/해제 (역할 변경은 관리자만 — §2)
+- 회원 관리: 역할 지정/해제(관리자만 — §2), 탈퇴 처리(소프트 삭제 — §4.1). 마지막 관리자는 서버가 409(`last_admin`)로 거부한다
 - 이력: `/admin/history` — 2025 청년페스타 시트 스냅샷(`rental_history`)을 보는 조회 전용 화면. 물품명·신청자·소속을 한 검색어로 훑고(ILIKE `%q%` — 검색어의 `%`·`_`는 와일드카드로 남긴다) 청년/회관물품 필터와 50건씩 '더 보기'를 제공한다. 상태 전이·수정이 없는 참고 자료이며 가용성 판정에는 관여하지 않는다
 
 ## 5. 아키텍처
@@ -96,7 +95,7 @@ server/src/
   index.ts            — Hono 앱 (라우트 마운트)
   routes/             — items, reservations, admin, auth
   services/           — SQL·도메인 로직
-  middleware/         — requireAuth, requireApproved, requireAdmin
+  middleware/         — requireAuth(getSessionUser), requireAdmin
 ```
 
 ### 5.2 인증 플로우
@@ -105,7 +104,7 @@ server/src/
 2. 로그인은 `POST /api/auth/signin/:provider`(CSRF 토큰 + `X-Auth-Return-Redirect` 헤더)로 OAuth URL을 받아 **full-page redirect** → 콜백 후 SPA 복귀 (@auth/core 0.41은 `GET /signin/:provider`를 지원하지 않는다)
 3. JWT는 **HttpOnly + Secure + SameSite=Lax 쿠키** — 클라이언트 JS가 토큰에 접근할 수 없다
 4. API가 401을 반환하면 fetch 래퍼가 세션을 `null`로 갱신하고 라우트 가드가 `/login`으로 보낸다
-5. 승인 대기(pending) 회원은 `/mypage`만 허용
+5. 탈퇴(`deactivated_at` 값 존재) 회원은 `getSessionUser` 조회에서 제외된다 — 남아 있던 쿠키로도 모든 API 가 401 이 되어 세션이 즉시 무효화된다 (§4.4)
 
 ### 5.3 라우트 가드
 
@@ -122,15 +121,15 @@ server/src/
 | PUT                 | `/api/me/profile`                                            | 이름·연락처 입력                                   | 로그인   |
 | GET                 | `/api/items?q=`                                              | 물품 목록 + 가용 배지 — `q` 생략 시 전체 목록      | 전체     |
 | GET                 | `/api/items/:id`                                             | 상세 + 사진 (회원 정보 제외)                       | 전체     |
-| POST                | `/api/reservations`                                          | 대여 (advisory 락 트랜잭션 — §6.2)                 | approved |
-| GET                 | `/api/reservations/mine`                                     | 내 대여 현황·이력                                  | approved |
+| POST                | `/api/reservations`                                          | 대여 (advisory 락 트랜잭션 — §6.2)                 | 로그인   |
+| GET                 | `/api/reservations/mine`                                     | 내 대여 현황·이력                                  | 로그인   |
 | POST                | `/api/reservations/:id/cancel`                               | 대여 취소                                          | 본인     |
 | POST                | `/api/reservations/:id/return`                               | 반납 (회원 직접)                                   | 본인     |
 | GET/POST/PUT/DELETE | `/api/admin/items`                                           | 물품 CRUD (등록/수정 시 임베딩 자동 생성)          | admin    |
 | POST/DELETE         | `/api/admin/items/:id/photos[/:photoId]`                     | 사진 업로드·삭제 (R2)                              | admin    |
 | GET                 | `/api/admin/reservations?status=`                            | 전체 대여 목록                                     | admin    |
 | POST                | `/api/admin/reservations/:id/return`                         | 반납 처리 (관리자)                                 | admin    |
-| GET/POST            | `/api/admin/members`, `/:id/{approve,reject,deactivate}`     | 회원 목록·승인/거절/비활성화                       | admin    |
+| GET/POST            | `/api/admin/members`, `/:id/withdraw`     | 회원 목록·탈퇴 처리                       | admin    |
 | PUT                 | `/api/admin/members/:id/role`                                | 역할 지정/해제 (마지막 관리자 보호)                | admin    |
 | GET                 | `/api/admin/dashboard`                                       | 대여 중 건수·목록, 반납/취소 건수                  | admin    |
 | GET                 | `/api/admin/history?q=&scope=&page=&limit=`                  | 과거 대여 이력                                     | admin    |
@@ -166,7 +165,7 @@ CREATE TABLE IF NOT EXISTS members (
   name       TEXT NOT NULL,
   phone      TEXT,                              -- nullable — 최초 로그인 시 미수집, 프로필 입력에서 채움
   role       TEXT NOT NULL DEFAULT 'user',      -- user | admin
-  status     TEXT NOT NULL DEFAULT 'pending',   -- pending | approved | inactive
+  deactivated_at TIMESTAMPTZ,                   -- NULL = 활성, 값 있음 = 탈퇴(소프트 삭제 — 0018). 승인 상태 컬럼은 없다
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -295,7 +294,7 @@ RETURNING id;
 Hono 미들웨어에서 통일 강제한다.
 
 - `requireAuth`: 세션 JWT 검증
-- `requireApproved`: `status = 'approved'` 회원만 대여 API 접근
+- 로그인 회원이면 대여 API 접근 가능 — 승인 개념이 없어졌으므로 통과 조건은 `getSessionUser`(탈퇴 회원 제외)뿐이다
 - `requireAdmin`: `role = 'admin'`만 `/api/admin/*` 운영 라우트 접근
 - 모든 예약 쿼리에 `WHERE member_id = :session_user` 조건 필수 (관리자 제외)
 - 클라이언트 라우트 가드(§5.3)는 UX일 뿐 — 실제 권한은 전부 서버에서 검사한다

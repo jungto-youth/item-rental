@@ -27,7 +27,6 @@ export type Item = {
 
 // 역할 2단계 (v3.2) — admin(관리자) > user(회원)
 export type Role = "user" | "admin";
-export type MemberStatus = "active" | "inactive";
 
 export type AdminMember = {
   id: string;
@@ -35,7 +34,7 @@ export type AdminMember = {
   name: string;
   phone: string | null;
   role: Role;
-  status: MemberStatus;
+  deactivated_at: string | null; // null = 활성, 값 있으면 탈퇴(소프트 삭제) 시각
   created_at: string;
 };
 

@@ -6,8 +6,7 @@ const LABELS: Record<string, string> = {
   rented: "대여 중",
   repair: "수리중",
   retired: "폐기",
-  active: "활성",
-  inactive: "비활성",
+  withdrawn: "탈퇴",
   user: "회원",
   admin: "관리자",
   returned: "반납 완료",
@@ -65,7 +64,7 @@ export class XBadge extends LitElement {
       background: var(--color-primary);
     }
     .retired .dot,
-    .inactive .dot,
+    .withdrawn .dot,
     .cancelled .dot,
     .neutral .dot {
       background: var(--color-muted);

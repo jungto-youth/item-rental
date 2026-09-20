@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
 import { getDb, type Sql } from "../db";
+import { requireAuth } from "../middleware/auth";
 import {
   createReservation,
   getMyReservations,
@@ -17,6 +18,10 @@ export const reservationsRoute = new Hono<{
   Bindings: Bindings;
   Variables: Variables;
 }>();
+
+// 로그인 필수 — requireAuth가 세션 사용자를 조회해 c.set("user") (§8)
+// 1e622e3이 requireApproved 삭제 시 함께 지워 /api/reservations/* 가 500 을 냈던 줄 복원
+reservationsRoute.use("*", requireAuth);
 
 // 신청 — 가용 검사는 reservations.service.createReservation에 위임
 // 동시 신청에도 이중 대여 불가 (advisory 락 + 대여 중 수량 검사)

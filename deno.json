@@ -4,9 +4,7 @@
   },
   "tasks": {
     "dev": "deno task dev:api & deno task dev:web; wait",
-    // dev:web — wrangler(8787)가 서빙하는 web/dist 를 소스 변경 시 자동 재빌드. 브라우저 새로고침으로 반영(HMR 아님)
     "dev:web": "vite build --watch",
-    // HMR 개발 서버 — port 5173, /api 프록시. 쓰려면 구글 OAuth 콜백(localhost:5173) 등록 필요
     "dev:web:hmr": "vite",
     "dev:api": "wrangler dev",
     "build": "vite build",

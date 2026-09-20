@@ -65,6 +65,26 @@ export async function searchItems(
 }
 
 // ===== 의미 검색 =====
+// 쿼리 임베딩 캐시 — 워커 isolate 메모리에 검색어 정규화 키로 100개까지.
+// 검색은 공개 엔드포인트라 같은 검색어 반복이 흔한데, 매번 Workers AI 를 부르면 무료 한도를 쓰고
+// 검색마다 수백 ms 가 붙는다. isolate 가 살아 있는 동안만 유효하다(ponytail: 삽입순 FIFO 이고
+// 기기 간 공유가 필요해지면 캐시 API/KV 로 승격).
+const QUERY_VEC_CACHE = new Map<string, string>();
+const QUERY_VEC_CACHE_MAX = 100;
+
+async function embedQuery(env: Bindings, q: string): Promise<string> {
+  const key = q.trim().toLowerCase().replace(/\s+/g, " ");
+  const hit = QUERY_VEC_CACHE.get(key);
+  if (hit !== undefined) return hit;
+  const vec = await embed(env, q);
+  if (QUERY_VEC_CACHE.size >= QUERY_VEC_CACHE_MAX) {
+    const oldest = QUERY_VEC_CACHE.keys().next();
+    if (!oldest.done) QUERY_VEC_CACHE.delete(oldest.value);
+  }
+  QUERY_VEC_CACHE.set(key, vec);
+  return vec;
+}
+
 /**
  * 의미 검색 — 임베딩을 사용하여 관련성 높은 항목 검색
  * bge-m3 거리는 0.4~0.65에 뭉쳐 절대 임계로 관련/무관 구분이 안 되므로 → 상대 랭킹으로만 사용
@@ -81,7 +101,7 @@ export async function searchSemanticItems(
   excludeIds: Set<number> = new Set(),
 ): Promise<ListItemRow[]> {
   try {
-    const vec = await embed(env, q);
+    const vec = await embedQuery(env, q);
     const rows = (await db.query(semanticSearchSql(), [vec])) as {
       id: number;
     }[];

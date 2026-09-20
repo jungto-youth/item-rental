@@ -58,7 +58,7 @@ export class PageMypage extends LitElement {
         justify-content: space-between;
         gap: 12px;
       }
-      /* 상단 안내 — 최대 1개만 노출 (우선순위: 비활성화 > 연락처 등록) */
+      /* 상단 안내 — 연락처 미등록일 때만 노출 (탈퇴 회원은 이 페이지에 도달할 수 없다) */
       .banner {
         margin-bottom: var(--space-4);
       }
@@ -189,16 +189,10 @@ export class PageMypage extends LitElement {
     }
   }
 
-  // 상단 안내는 최대 1개만 — 우선순위: 비활성화 > 연락처 등록
+  // 상단 안내 — 연락처 미등록일 때만 노출
   private get bannerCard(): { tone: string; text: TemplateResult } | null {
     const u = this.user;
     if (!u) return null;
-    if (u.status === "inactive") {
-      return {
-        tone: "danger",
-        text: html`비활성화된 계정이에요 — 재대여를 원하시면 관리자에게 문의해주세요.`,
-      };
-    }
     if (!u.phone) {
       return {
         tone: "info",
@@ -270,11 +264,6 @@ export class PageMypage extends LitElement {
                     <div style="color: var(--color-muted); font-size: var(--text-fine, 12px);">
                       ${this.user.email} ${this.user.phone ? `· ${this.user.phone}` : ""}
                     </div>
-                  </div>
-                  <div>
-                    ${this.user.status === "inactive"
-                      ? html`<x-badge kind=${this.user.status}></x-badge>`
-                      : ""}
                   </div>
                 </div>
                 <div class="profile-actions">

@@ -27,10 +27,10 @@
 | 역할             | 권한                                                                                     |
 | ---------------- | ---------------------------------------------------------------------------------------- |
 | 회원 (`user`)    | 물품 검색, 대여, 내 대여 현황·이력 조회, 반납, 대여 취소                                 |
-| 관리자 (`admin`) | 물품 등록/수정/삭제·사진 관리, 대여 반납 처리, 회원 승인, 전체 이력 조회, 관리자 지정/해제 |
+| 관리자 (`admin`) | 물품 등록/수정/삭제·사진 관리, 대여 반납 처리, 회원 탈퇴 처리, 전체 이력 조회, 관리자 지정/해제 |
 
 - 로그인은 `@jungto.org` 계정만 허용하고, 예외는 `AUTH_ALLOWED_EMAILS` 시크릿에 콤마로 나열한다.
-- 관리자 지정/해제는 관리자 누구나 가능하다. **마지막 관리자는 본인 포함 해임·비활성화 불가**, 승인 대기·비활성 회원은 관리자로 임명 불가 (서버가 409로 강제).
+- 관리자 지정/해제는 관리자 누구나 가능하다. **마지막 관리자는 본인 포함 해임·탈퇴 불가** (서버가 409로 강제). 탈퇴는 소프트 삭제 — `members.deactivated_at` 에 시각만 남기고 대여 이력은 보존하며, 세션이 즉시 무효화된다.
 - 첫 관리자는 DB에서 수동 지정한다: `UPDATE members SET role = 'admin' WHERE email = '...'`
 
 ## 프로젝트 구조
@@ -41,7 +41,7 @@ server/src/
   types.ts / db.ts        — Bindings·SessionUser 타입 / Neon HTTP 드라이버 초기화
   auth.ts                 — Auth.js 설정 (구글 OAuth, 이메일 제한, JWT)
   embedding.ts / image-size.ts — 임베딩 / 이미지 검사
-  middleware/auth.ts      — requireAuth / requireApproved / requireAdmin
+  middleware/auth.ts      — requireAuth(getSessionUser) / requireAdmin
   routes/                 — items, me, reservations, admin/{items,members,reservations,dashboard,history}
   services/               — SQL·도메인 로직 (items, reservations, members, dashboard, history, search)
 web/src/
@@ -52,8 +52,8 @@ web/src/
   components/ui/          — badge
   utils/photo.ts          — 사진 리사이즈·업로드 (1600px WebP)
   pages/                  — home, item-detail, mypage, login, signup-profile, policy, admin/*
-migrations/               — Neon 마이그레이션 SQL (0001~0015, 순차 실행·멱등)
-server/scripts/           — migrate, seed, reembed, import-items, import-rentals (Deno)
+migrations/               — Neon 마이그레이션 SQL (0001~0018). `_migrations` 이력 기준 파일당 1회 실행 — 적용된 파일은 수정하지 않는다(추가 전용)
+server/scripts/           — migrate, seed, reembed, import-items, import-rentals, backfill-remove-item-attrs (Deno)
 ```
 
 ## 주요 API
@@ -65,8 +65,8 @@ server/scripts/           — migrate, seed, reembed, import-items, import-renta
 | PUT                 | `/api/me/profile`                                            | 이름·연락처 입력                              | 로그인   |
 | GET                 | `/api/items?q=`                                              | 물품 목록 + 가용 배지 — `q` 생략 시 전체 목록 | 전체     |
 | GET                 | `/api/items/:id`                                             | 상세 + 사진                                   | 전체     |
-| POST                | `/api/reservations`                                          | 대여 (advisory 락 트랜잭션, 원자적)           | approved |
-| GET                 | `/api/reservations/mine`                                     | 내 대여 현황·이력 (그룹 목록)                 | approved |
+| POST                | `/api/reservations`                                          | 대여 (advisory 락 트랜잭션, 원자적)           | 로그인   |
+| GET                 | `/api/reservations/mine`                                     | 내 대여 현황·이력 (그룹 목록)                 | 로그인   |
 | POST                | `/api/reservations/:id/cancel`                               | 대여 취소 (대여 중만)                         | 본인     |
 | POST                | `/api/reservations/:id/return`                               | 반납 (회원 직접, 대여 중만)                   | 본인     |
 | GET                 | `/api/photos/*`                                              | R2 사진 서빙 (1년 캐시)                       | 전체     |
@@ -74,7 +74,7 @@ server/scripts/           — migrate, seed, reembed, import-items, import-renta
 | POST/DELETE         | `/api/admin/items/:id/photos[/:photoId]`                     | 사진 업로드(1600px·2MB 검사)·삭제             | admin    |
 | GET                 | `/api/admin/reservations?status=`                            | 전체 대여 목록 (대여 중 우선 정렬)            | admin    |
 | POST                | `/api/admin/reservations/:id/return`                         | 반납 처리 (관리자)                            | admin    |
-| GET/POST            | `/api/admin/members`, `/:id/{approve,reject,deactivate}`     | 회원 목록·승인/거절/비활성화                  | admin    |
+| GET/POST            | `/api/admin/members`, `/:id/withdraw`     | 회원 목록·탈퇴 처리                  | admin    |
 | PUT                 | `/api/admin/members/:id/role`                                | 역할 지정/해제 (마지막 관리자 보호)           | admin    |
 | GET                 | `/api/admin/dashboard`                                       | 대여 중 건수·목록, 반납/취소 건수             | admin    |
 | GET                 | `/api/admin/history?q=&scope=&page=&limit=`                  | 과거 대여 이력 (시트 스냅샷, 참고용)          | admin    |
@@ -99,6 +99,7 @@ server/scripts/           — migrate, seed, reembed, import-items, import-renta
 - **키워드**: 공백 구분 단어 AND — 이름·설명·보관 위치 ILIKE
 - **의미**: 쿼리 임베딩 → pgvector 코사인 거리 상위 8개(거리 < 0.75)를 키워드 결과 뒤에 추가
 - 임베딩은 물품 등록/수정 시 자동 생성, 실패하면 키워드 검색만으로 폴백
+- 쿼리 임베딩은 워커 isolate 메모리에 100개까지 캐시한다(검색어 정규화 키) — 같은 검색어를 반복해도 Workers AI 를 다시 부르지 않는다
 - 검색어가 없으면 폐기(`retired`) 물품을 뺀 전체 목록을 보여준다
 
 ## DB 스키마 (요약)
@@ -132,8 +133,9 @@ server/scripts/           — migrate, seed, reembed, import-items, import-renta
 deno install          # 의존성 설치 (package.json 기준 → node_modules)
 
 # 개발 (터미널 2개)
-deno task dev:api     # wrangler dev → localhost:8787
-deno task dev:web     # vite        → localhost:5173 (/api 는 8787 로 프록시)
+deno task dev:api     # wrangler dev → localhost:8787 (web/dist 를 서빙)
+deno task dev:web     # vite build --watch → web/dist 자동 재빌드 (브라우저 새로고침으로 반영)
+deno task dev:web:hmr # vite → localhost:5173 (/api 는 8787 로 프록시) — 구글 콜백 등록 필요
 
 deno task check       # 타입 검사 (web + server)
 deno task test        # 단위 테스트 (server/tests — DB 불필요, Sql 스텁)
@@ -141,7 +143,7 @@ deno task build       # vite build → web/dist
 deno task deploy      # vite build && wrangler deploy
 
 # DB (server/scripts/*.ts)
-deno task db:migrate         # migrations/*.sql 순차 적용 (멱등)
+deno task db:migrate         # migrations/*.sql 순차 적용 — `_migrations` 이력 기준 파일당 1회
 deno task db:seed            # 더미 데이터
 deno task db:reembed         # 임베딩 백필 — DB 직접 INSERT 뒤 필수
 deno task db:import-items    # 실물 시트 물품 일괄 반영
@@ -150,7 +152,14 @@ deno task db:import-rentals  # 과거 대여 이력(rental_history) 적재
 
 `deno task` 목록은 `deno task`(인자 없이)로 확인한다. 작업 디렉터리는 `deno.json`이 있는 루트다.
 
-주의: DB 스크립트는 **`.env`** 를, `wrangler dev`는 **`.dev.vars`** 를 읽는다. 둘 다 `DATABASE_URL`이 필요하니 같은 DB를 가리키게 맞춰 둔다 (두 파일 모두 git 추적 제외).
+주의: DB 스크립트는 **`.env`** 를, `wrangler dev`는 **`.dev.vars`** 를 읽는다. 둘 다 `DATABASE_URL`이 필요하다 (두 파일 모두 git 추적 제외).
+
+기본값은 **로컬·프로덕션이 같은 Neon DB** 를 가리킨다 — 배포 없이 실데이터를 볼 수 있는 대신, `db:seed`·`db:import-*` 실수가 곧 실데이터 변경이고 배포 전 코드가 실 DB 를 만진다. 분리하려면:
+
+1. Neon 콘솔에서 현재 브랜치로 **dev 브랜치 생성**
+2. `.env` 와 `.dev.vars` 의 `DATABASE_URL` 만 브랜치 URL 로 교체 (프로덕션 시크릿은 그대로 둔다)
+3. `deno task db:migrate` — 신규 DB 경로 검증을 겸한다 (0001~0018 이 순서대로 전부 적용되는지)
+4. 필요하면 `deno task db:seed`
 
 ### 환경 변수 (`.dev.vars` / `wrangler secret put`)
 

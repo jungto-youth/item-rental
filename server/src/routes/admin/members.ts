@@ -4,12 +4,12 @@ import { getDb, type Sql } from "../../db";
 import { requireAdmin } from "../../middleware/auth";
 import {
   listMembers,
-  deactivateMember,
+  withdrawMember,
   setMemberRole,
 } from "../../services/members.service";
 
 // SPEC §4.4 — 회원 관리 (admin 전용)
-// 목록·비활성화·역할 지정/해제 모두 admin만 사용
+// 목록·탈퇴·역할 지정/해제 모두 admin만 사용
 export const adminMembersRoute = new Hono<{ Bindings: Bindings }>();
 
 adminMembersRoute.use("*", requireAdmin);
@@ -21,10 +21,10 @@ adminMembersRoute.get("/", async (c) => {
   return c.json({ members });
 });
 
-// 탈퇴(비활성화) — 관리자가 활성 회원을 비활성화한다. 소프트 삭제 — 대여 이력 보존(§4.1, v3.1)
-adminMembersRoute.post("/:id/deactivate", async (c) => {
+// 탈퇴 처리 — 관리자가 활성 회원을 탈퇴시킨다. 소프트 삭제 — 대여 이력 보존(§4.1, v3.1)
+adminMembersRoute.post("/:id/withdraw", async (c) => {
   const db: Sql = getDb(c.env);
-  const result = await deactivateMember(db, c.req.param("id"));
+  const result = await withdrawMember(db, c.req.param("id"));
   if ("ok" in result) return c.json({ ok: true });
   if (result.error === "last_admin")
     return c.json({ error: "last_admin" }, 409);
