@@ -88,11 +88,22 @@ export class ItemRentalForm extends LitElement {
       cursor: not-allowed;
     }
 
-    .qty-display {
-      min-width: 44px;
+    .qty-input {
+      width: 52px;
+      border: none;
       text-align: center;
       font-weight: 600;
       font-size: var(--text-body, 15px);
+      background: transparent;
+      color: var(--color-text);
+      font-family: inherit;
+      -moz-appearance: textfield; /* 네이티브 스피너 숨김 — −/+ 버튼이 대체 */
+    }
+
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
 
     .qty-single {
@@ -126,28 +137,17 @@ export class ItemRentalForm extends LitElement {
       color: var(--color-success);
     }
 
-    /* 메모는 접이식 — 기본 화면은 수량 + 버튼만 */
-    .memo-box summary {
-      cursor: pointer;
+    /* 메모는 항상 노출 — 접이식은 손이 많이 감 */
+    .memo-title {
       font-size: var(--text-caption, 13px);
       color: var(--color-muted);
       font-weight: 500;
-      user-select: none;
-      padding: 4px 0;
     }
 
-    .memo-box summary::after {
-      content: "▾";
-      float: right;
-      opacity: 0.7;
-    }
-
-    .memo-box[open] summary::after {
-      content: "▴";
-    }
-
-    .memo-box x-input {
-      margin-top: 8px;
+    .memo-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
   `;
 
@@ -166,6 +166,20 @@ export class ItemRentalForm extends LitElement {
 
   private handleInc() {
     if (this.qty < this.availableNow) this.qty++;
+  }
+
+  // 직접 입력 — 숫자만 반영 (빈 값은 유지), blur 시 1~최대 범위로 맞춤
+  private handleQtyInput(e: Event) {
+    const v = parseInt((e.target as HTMLInputElement).value, 10);
+    if (Number.isFinite(v)) this.qty = v;
+  }
+
+  private handleQtyBlur(e: Event) {
+    const el = e.target as HTMLInputElement;
+    const v = parseInt(el.value, 10);
+    const clamped = Number.isFinite(v) ? Math.min(Math.max(v, 1), this.availableNow) : 1;
+    this.qty = clamped;
+    el.value = String(clamped);
   }
 
   private async handleSubmit(e: Event) {
@@ -297,7 +311,17 @@ export class ItemRentalForm extends LitElement {
                   >
                     −
                   </button>
-                  <span class="qty-display">${this.qty}</span>
+                  <input
+                    class="qty-input"
+                    type="number"
+                    inputmode="numeric"
+                    min="1"
+                    .max=${this.availableNow}
+                    .value=${this.qty}
+                    @input=${this.handleQtyInput}
+                    @blur=${this.handleQtyBlur}
+                    aria-label="대여 수량 직접 입력"
+                  />
                   <button
                     type="button"
                     class="step-btn"
@@ -312,14 +336,14 @@ export class ItemRentalForm extends LitElement {
             : html`<span class="qty-single">1개</span>`}
         </div>
 
-        <details class="memo-box">
-          <summary>메모 추가 (선택)</summary>
+        <div class="memo-field">
+          <span class="memo-title">메모 (선택)</span>
           <x-input
             placeholder="용도, 수령처 등"
             .value=${this.memo}
             @input=${(e: Event) => (this.memo = (e.target as HTMLInputElement).value)}
           ></x-input>
-        </details>
+        </div>
 
         ${this.message
           ? html`<p class="msg ${this.isSuccess ? "success" : "error"}">${this.message}</p>`

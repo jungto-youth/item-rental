@@ -34,26 +34,9 @@ export class PageItemDetail extends LitElement {
       .top-nav {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-end; /* 액션은 오른쪽에 모은다 — 다이얼로그 푸터(취소→확인)와 동일 순서 */
+        gap: var(--space-2, 8px);
         margin-bottom: var(--space-4, 16px);
-      }
-
-      .back-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        color: var(--color-muted);
-        text-decoration: none;
-        font-size: var(--text-caption, 13px);
-        font-weight: 500;
-        cursor: pointer;
-        background: none;
-        border: none;
-        padding: 6px 0;
-      }
-
-      .back-btn:hover {
-        color: var(--color-text);
       }
 
       .content-grid {
@@ -102,71 +85,6 @@ export class PageItemDetail extends LitElement {
         color: var(--color-muted);
         margin: 0;
         white-space: pre-wrap;
-      }
-
-      .specs {
-        display: flex;
-        gap: 16px;
-        padding: 12px 16px;
-        border-radius: var(--radius-md, 8px);
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
-        font-size: var(--text-caption, 13px);
-      }
-
-      /* 재고 상세(전체 보유·수리중)는 기본 접힘 — 회원이 알아야 할 핵심 숫자는 하나뿐 */
-      .stock-detail {
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md, 8px);
-        background: var(--color-surface);
-        font-size: var(--text-caption, 13px);
-      }
-
-      .stock-detail summary {
-        cursor: pointer;
-        padding: 10px 16px;
-        color: var(--color-muted);
-        font-weight: 500;
-        user-select: none;
-        list-style: none;
-      }
-
-      .stock-detail summary::-webkit-details-marker {
-        display: none;
-      }
-
-      .stock-detail summary::after {
-        content: "▾";
-        float: right;
-        color: var(--color-muted);
-        opacity: 0.7;
-      }
-
-      .stock-detail[open] summary::after {
-        content: "▴";
-      }
-
-      .stock-detail .stock-grid {
-        display: flex;
-        gap: 16px;
-        padding: 0 16px 12px;
-        flex-wrap: wrap;
-      }
-
-      .spec-item {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-
-      .spec-label {
-        color: var(--color-muted);
-        font-size: var(--text-fine, 12px);
-      }
-
-      .spec-val {
-        font-weight: 600;
-        color: var(--color-text);
       }
 
       .attrs {
@@ -279,11 +197,19 @@ export class PageItemDetail extends LitElement {
     return Math.max(0, this.rentableQty - (this.item?.active_now ?? 0));
   }
 
+  // 정보 행 — 재고/구분/위치를 하나의 dl 그리드로 통일
   private attrPairs(): [string, string][] {
     const it = this.item;
     if (!it) return [];
     const pairs: [string, string][] = [];
-    if (it.kind === "consumable") pairs.push(["구분", "소모품"]);
+    if (it.kind === "consumable") {
+      pairs.push(["보유 수량", `${it.total_qty}개`]);
+      pairs.push(["구분", "소모품"]);
+    } else {
+      pairs.push(["대여 가능", `${this.availableNow}개`]);
+      pairs.push(["전체 보유", `${it.total_qty}개`]);
+      if ((it.qty_broken ?? 0) > 0) pairs.push(["수리중", `${it.qty_broken}개`]);
+    }
     if (it.location) pairs.push(["보관 위치", it.location]);
     return pairs;
   }
@@ -292,7 +218,7 @@ export class PageItemDetail extends LitElement {
     if (this.error) {
       return html`
         <div class="top-nav">
-          <button class="back-btn" @click=${() => history.back()}>← 목록으로</button>
+          <x-button variant="secondary" size="sm" @click=${() => history.back()}>취소</x-button>
         </div>
         <x-empty state="error" text=${this.error}></x-empty>
       `;
@@ -301,7 +227,7 @@ export class PageItemDetail extends LitElement {
     if (this.loading || !this.item) {
       return html`
         <div class="top-nav">
-          <button class="back-btn" @click=${() => history.back()}>← 목록으로</button>
+          <x-button variant="secondary" size="sm" @click=${() => history.back()}>취소</x-button>
         </div>
         <x-empty state="loading"></x-empty>
       `;
@@ -312,10 +238,10 @@ export class PageItemDetail extends LitElement {
 
     return html`
       <div class="top-nav">
-        <button class="back-btn" @click=${() => history.back()}>← 목록으로</button>
+        <x-button variant="secondary" size="sm" @click=${() => history.back()}>취소</x-button>
         ${this.isAdmin
           ? html`
-              <x-button variant="secondary" size="sm" @click=${() => (this.editOpen = true)}>
+              <x-button variant="primary" size="sm" @click=${() => (this.editOpen = true)}>
                 수정
               </x-button>
             `
@@ -337,37 +263,6 @@ export class PageItemDetail extends LitElement {
             </div>
             ${it.description ? html`<p class="desc">${it.description}</p>` : ""}
           </div>
-
-          <div class="specs">
-            <div class="spec-item">
-              <span class="spec-label">${it.kind === "consumable" ? "보유 수량" : "대여 가능"}</span>
-              <span class="spec-val"
-                >${it.kind === "consumable" ? `${it.total_qty}개` : `${this.availableNow}개`}</span
-              >
-            </div>
-          </div>
-
-          ${it.kind !== "consumable"
-            ? html`
-                <details class="stock-detail">
-                  <summary>재고 상세</summary>
-                  <div class="stock-grid">
-                    <div class="spec-item">
-                      <span class="spec-label">전체 보유</span>
-                      <span class="spec-val">${it.total_qty}개</span>
-                    </div>
-                    ${(it.qty_broken ?? 0) > 0
-                      ? html`
-                          <div class="spec-item">
-                            <span class="spec-label">수리중</span>
-                            <span class="spec-val">${it.qty_broken}개</span>
-                          </div>
-                        `
-                      : ""}
-                  </div>
-                </details>
-              `
-            : ""}
 
           ${attrs.length > 0
             ? html`

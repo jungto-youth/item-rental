@@ -76,15 +76,14 @@ export class XButton extends LitElement {
       color: var(--color-text);
     }
 
-    /* Danger: 파괴적 액션 */
+    /* Danger: 파괴적 액션 — 취소와 같은 아웃라인 구조, 색만 위험색 */
     .variant-danger {
       background: transparent;
       color: var(--color-danger);
-      border: 1px solid var(--color-border);
+      border: 1px solid var(--color-danger);
     }
     .variant-danger:hover:not(:disabled) {
       background: var(--tone-danger-bg, #fff1f2);
-      border-color: var(--color-danger);
     }
 
     /* 클릭 시 축소 */
