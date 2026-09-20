@@ -22,7 +22,7 @@
 | ----------------------- | -------------------------------------------------------------------------------- |
 | 미인증 방문자           | 물품 목록·상세 열람, 로그인                                                      |
 | 회원 (`user`)           | 물품 검색, 대여, 내 대여 현황·이력 조회, 대여 취소                               |
-| 관리자 (`admin`)        | 물품 CRUD, 대여 반납 처리, 회원 탈퇴 처리, 전체 이력 조회, 관리자 지정/해제           |
+| 관리자 (`admin`)        | 물품 CRUD, 대여 반납 처리, 회원 탈퇴 처리, 관리자 지정/해제           |
 
 - 가입: 구글 소셜 로그인 = 가입. 최초 로그인 시 `members` 자동 생성 → 프로필(이름·연락처) 입력 → 바로 이용. **승인 단계가 없다** — 로그인이 곧 회원이고 `@jungto.org` 도메인 게이트가 회원 심사를 대신한다
 - 로그인 허용: `@jungto.org` 계정만. 예외는 `AUTH_ALLOWED_EMAILS` 시크릿에 콤마 구분으로 나열하고, 비허용 계정은 로그인 단계에서 거부한다
@@ -76,7 +76,6 @@
 
 - 대시보드: 대여 중 건수와 대여 중 목록 (반납 대상 확인용), 반납 완료·취소 건수
 - 회원 관리: 역할 지정/해제(관리자만 — §2), 탈퇴 처리(소프트 삭제 — §4.1). 마지막 관리자는 서버가 409(`last_admin`)로 거부한다
-- 이력: `/admin/history` — 2025 청년페스타 시트 스냅샷(`rental_history`)을 보는 조회 전용 화면. 물품명·신청자·소속을 한 검색어로 훑고(ILIKE `%q%` — 검색어의 `%`·`_`는 와일드카드로 남긴다) 청년/회관물품 필터와 50건씩 '더 보기'를 제공한다. 상태 전이·수정이 없는 참고 자료이며 가용성 판정에는 관여하지 않는다
 
 ## 5. 아키텍처
 
@@ -132,7 +131,6 @@ server/src/
 | GET/POST            | `/api/admin/members`, `/:id/withdraw`     | 회원 목록·탈퇴 처리                       | admin    |
 | PUT                 | `/api/admin/members/:id/role`                                | 역할 지정/해제 (마지막 관리자 보호)                | admin    |
 | GET                 | `/api/admin/dashboard`                                       | 대여 중 건수·목록, 반납/취소 건수                  | admin    |
-| GET                 | `/api/admin/history?q=&scope=&page=&limit=`                  | 과거 대여 이력                                     | admin    |
 
 ### 5.5 Wrangler 설정 (SPA 폴백 + API 분기)
 
@@ -219,42 +217,6 @@ CREATE INDEX IF NOT EXISTS idx_reservations_item_status_qty
   ON reservations (item_id, status, qty);
 CREATE INDEX IF NOT EXISTS idx_reservations_member
   ON reservations (member_id, status);
-
--- 2025 청년페스타 '물품대여' 시트의 과거 대여 이력 스냅샷 — reservations 에 합치지 않는 이유:
--- ① 청년/회관물품 구분이 자유 텍스트라 items FK 를 강제할 수 없고(연결된 item_id 는 216건 중 10건),
--- ② 신청자가 members 에 없으며(source_key 로 재수입), ③ 반납 여부·출고 상태 같은 옛 운영 컬럼을
--- 예약 상태 머신에 끼워 넣으면 §3 이 오염된다. 이력 '조회(참고)'용이며 가용성 판정에는 관여하지 않는다.
-CREATE TABLE IF NOT EXISTS rental_history (
-  id              serial PRIMARY KEY,
-  source_key      TEXT NOT NULL,               -- 원본 행 식별자 (재수입 멱등 키)
-  source_row      INTEGER,
-  item_name       TEXT NOT NULL,               -- 시트의 자유 텍스트 물품명
-  item_id         INTEGER REFERENCES items (id) ON DELETE SET NULL,  -- 이름 매칭된 경우만
-  item_scope      TEXT,                        -- '청년물품' | '회관물품'
-  member_name     TEXT NOT NULL,               -- members 미등록 신청자 (이름만)
-  org             TEXT,
-  qty             INTEGER,
-  requested_on    DATE,
-  start_at        TIMESTAMP,
-  end_at          TIMESTAMP,
-  use_location    TEXT,
-  procurement     TEXT,
-  checkout_state  TEXT,
-  return_state    TEXT,
-  return_location TEXT,
-  note            TEXT,
-  internal_note   TEXT,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_rental_history_source_key
-  ON rental_history (source_key);
-CREATE INDEX IF NOT EXISTS idx_rental_history_item_id
-  ON rental_history (item_id);
-CREATE INDEX IF NOT EXISTS idx_rental_history_item_name
-  ON rental_history (item_name);
-CREATE INDEX IF NOT EXISTS idx_rental_history_requested_on
-  ON rental_history (requested_on);
 ```
 
 ### 6.2 가용성 판정 쿼리 (이중 대여 방지)

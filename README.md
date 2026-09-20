@@ -27,7 +27,7 @@
 | 역할             | 권한                                                                                     |
 | ---------------- | ---------------------------------------------------------------------------------------- |
 | 회원 (`user`)    | 물품 검색, 대여, 내 대여 현황·이력 조회, 반납, 대여 취소                                 |
-| 관리자 (`admin`) | 물품 등록/수정/삭제·사진 관리, 대여 반납 처리, 회원 탈퇴 처리, 전체 이력 조회, 관리자 지정/해제 |
+| 관리자 (`admin`) | 물품 등록/수정/삭제·사진 관리, 대여 반납 처리, 회원 탈퇴 처리, 관리자 지정/해제 |
 
 - 로그인은 `@jungto.org` 계정만 허용하고, 예외는 `AUTH_ALLOWED_EMAILS` 시크릿에 콤마로 나열한다.
 - 관리자 지정/해제는 관리자 누구나 가능하다. **마지막 관리자는 본인 포함 해임·탈퇴 불가** (서버가 409로 강제). 탈퇴는 소프트 삭제 — `members.deactivated_at` 에 시각만 남기고 대여 이력은 보존하며, 세션이 즉시 무효화된다.
@@ -42,8 +42,8 @@ server/src/
   auth.ts                 — Auth.js 설정 (구글 OAuth, 이메일 제한, JWT)
   embedding.ts / image-size.ts — 임베딩 / 이미지 검사
   middleware/auth.ts      — requireAuth(getSessionUser) / requireAdmin
-  routes/                 — items, me, reservations, admin/{items,members,reservations,dashboard,history}
-  services/               — SQL·도메인 로직 (items, reservations, members, dashboard, history, search)
+  routes/                 — items, me, reservations, admin/{items,members,reservations,dashboard}
+  services/               — SQL·도메인 로직 (items, reservations, members, dashboard, search)
 web/src/
   main.ts / app-shell.ts / router.ts — 부트스트랩 / 헤더·네비 셸 / 라우트 정의·가드
   styles/tokens.css       — CSS 커스텀 프로퍼티 디자인 토큰 (+ 다크)
@@ -52,8 +52,8 @@ web/src/
   components/ui/          — badge
   utils/photo.ts          — 사진 리사이즈·업로드 (1600px WebP)
   pages/                  — home, item-detail, mypage, login, signup-profile, policy, admin/*
-migrations/               — Neon 마이그레이션 SQL (0001~0018). `_migrations` 이력 기준 파일당 1회 실행 — 적용된 파일은 수정하지 않는다(추가 전용)
-server/scripts/           — migrate, seed, reembed, import-items, import-rentals, backfill-remove-item-attrs (Deno)
+migrations/               — Neon 마이그레이션 SQL (0001~0019). `_migrations` 이력 기준 파일당 1회 실행 — 적용된 파일은 수정하지 않는다(추가 전용)
+server/scripts/           — migrate, seed, reembed, import-items, backfill-remove-item-attrs (Deno)
 ```
 
 ## 주요 API
@@ -77,7 +77,6 @@ server/scripts/           — migrate, seed, reembed, import-items, import-renta
 | GET/POST            | `/api/admin/members`, `/:id/withdraw`     | 회원 목록·탈퇴 처리                  | admin    |
 | PUT                 | `/api/admin/members/:id/role`                                | 역할 지정/해제 (마지막 관리자 보호)           | admin    |
 | GET                 | `/api/admin/dashboard`                                       | 대여 중 건수·목록, 반납/취소 건수             | admin    |
-| GET                 | `/api/admin/history?q=&scope=&page=&limit=`                  | 과거 대여 이력 (시트 스냅샷, 참고용)          | admin    |
 
 ## 대여 상태 흐름
 
@@ -104,7 +103,7 @@ server/scripts/           — migrate, seed, reembed, import-items, import-renta
 
 ## DB 스키마 (요약)
 
-`members` · `items` · `item_photos` · `reservations` · `rental_history` — 전체 DDL과 가용성 쿼리는 [SPEC.md](SPEC.md) §6.
+`members` · `items` · `item_photos` · `reservations` — 전체 DDL과 가용성 쿼리는 [SPEC.md](SPEC.md) §6.
 
 ## SPA 라우트
 
@@ -115,7 +114,7 @@ server/scripts/           — migrate, seed, reembed, import-items, import-renta
 | `/login`, `/signup/profile`                        | 로그인 / 프로필 입력                                 | 전체               |
 | `/mypage`                                          | 내 대여 그룹 목록 (대여 중/대여 이력)                | 회원               |
 | `/policy/privacy`, `/policy/terms`                 | 개인정보 처리방침·이용약관                           | 전체               |
-| `/admin` · `/admin/{reservations,history,members}` | 대시보드 · 대여 관리 · 이력 · 회원 관리              | admin              |
+| `/admin` · `/admin/{reservations,members}` | 대시보드 · 대여 관리 · 회원 관리              | admin              |
 | `(.*)`                                             | 404 화면                                             | 전체               |
 
 ## 무료 티어 한계
@@ -147,7 +146,6 @@ deno task db:migrate         # migrations/*.sql 순차 적용 — `_migrations` 
 deno task db:seed            # 더미 데이터
 deno task db:reembed         # 임베딩 백필 — DB 직접 INSERT 뒤 필수
 deno task db:import-items    # 실물 시트 물품 일괄 반영
-deno task db:import-rentals  # 과거 대여 이력(rental_history) 적재
 ```
 
 `deno task` 목록은 `deno task`(인자 없이)로 확인한다. 작업 디렉터리는 `deno.json`이 있는 루트다.

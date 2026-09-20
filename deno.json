@@ -14,7 +14,6 @@
     "db:migrate": "deno run -A server/scripts/migrate.ts",
     "db:seed": "deno run -A server/scripts/seed.ts",
     "db:reembed": "deno run -A --sloppy-imports server/scripts/reembed.ts",
-    "db:import-items": "deno run -A server/scripts/import-items.ts",
-    "db:import-rentals": "deno run -A server/scripts/import-rentals.ts"
+    "db:import-items": "deno run -A server/scripts/import-items.ts"
   }
 }

@@ -8,13 +8,9 @@ dist/
 # pi 에이전트 작업 로그·태스크 출력 (로컬 스크래치)
 .pi/
 
-# 시트 반영 파이프라인 — 스크립트(build.py·build-rentals.py·review.py)와 물품 원장
+# claude 에이전트 git worktree (로컬 스크래치)
+.claude/
+
+# 시트 반영 파이프라인 — 스크립트(build.py·review.py)와 물품 원장
 # (items.csv·review.csv·xa-review.csv)은 커밋한다. 공개 repo 에서 "어떻게 옮겼는지"가
 # 남아야 하고, 재실행 없이도 원본을 대조할 수 있다.
-# 아래 3개 파일에는 2025 대여 이력 신청자 실명 27명이 들어 있어 제외한다:
-#   raw_festa.json     xlsx 8탭 원본 덤프 (모든 시트를 통째로)
-#   review-rentals.csv import 입력 (신청자 이름 포함)
-#   report-rentals.md  위 CSV 요약 (실명 5건 노출)
-data/sheet-import/raw_festa.json
-data/sheet-import/review-rentals.csv
-data/sheet-import/report-rentals.md
