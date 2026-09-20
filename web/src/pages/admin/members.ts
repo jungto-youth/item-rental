@@ -8,6 +8,7 @@ import "../../components/admin/admin-nav";
 import "../../components/ui/empty";
 import "../../components/ui/page-header";
 import "../../components/ui/button";
+import "../../components/ui/select";
 import { rowsCss } from "../../components/ui/rows";
 
 // SPEC §4.4 — 회원 관리: 목록·탈퇴·역할 지정/해제 모두 admin 전용
@@ -116,12 +117,11 @@ export class PageAdminMembers extends LitElement {
       <admin-nav active="members"></admin-nav>
       <x-page-header title="회원 관리"></x-page-header>
       <p class="msg">${this.message}</p>
-      ${
-        this.loading
-          ? html`<x-empty compact state="loading"></x-empty>`
-          : this.members.length === 0
-            ? html`<x-empty compact state="empty" text="아직 회원이 없어요"></x-empty>`
-            : this.renderCards()
+      ${this.loading
+        ? html`<x-empty compact state="loading"></x-empty>`
+        : this.members.length === 0
+          ? html`<x-empty compact state="empty" text="아직 회원이 없어요"></x-empty>`
+          : this.renderCards()
       }
     `;
   }
@@ -137,27 +137,23 @@ export class PageAdminMembers extends LitElement {
       <div class="row">
         <span class="head">
           <span class="name">${m.name || "—"}</span>
-          ${
-            !m.deactivated_at
-              ? html`<select
+          ${!m.deactivated_at
+        ? html`<x-select
                   ?disabled=${this.busy}
                   aria-label="역할 지정"
                   .value=${m.role}
-                  @change=${(e: Event) => this.setRole(m, (e.target as HTMLSelectElement).value as Role)}
-                >
-                  <option value="user" ?selected=${m.role === "user"}>
-                    회원
-                  </option>
-                  <option value="admin" ?selected=${m.role === "admin"}>
-                    관리자
-                  </option>
-                </select>`
-              : html`<x-badge kind=${m.role}></x-badge>`
-          }
+                  .options=${[
+            { value: "user", label: "회원" },
+            { value: "admin", label: "관리자" },
+          ]}
+                  @change=${(e: CustomEvent<{ value: string }>) =>
+            this.setRole(m, e.detail.value as Role)}
+                ></x-select>`
+        : html`<x-badge kind=${m.role}></x-badge>`
+      }
           ${m.deactivated_at ? html`<x-badge kind="withdrawn"></x-badge>` : ""}
-          ${
-            !m.deactivated_at
-              ? html`<x-button
+          ${!m.deactivated_at
+        ? html`<x-button
                   variant="danger"
                   size="sm"
                   ?disabled=${this.busy}
@@ -165,8 +161,8 @@ export class PageAdminMembers extends LitElement {
                 >
                   탈퇴
                 </x-button>`
-              : ""
-          }
+        : ""
+      }
           </span>
         <span class="meta">${m.email} · ${m.phone ?? "연락처 미등록"}</span>
       </div>

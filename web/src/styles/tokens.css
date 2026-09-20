@@ -7,12 +7,18 @@
 :root {
   color-scheme: light;
 
-  --color-bg: #ffffff; /* 순백 캔버스 */
-  --color-surface: #f8f8fa; /* 은은한 서피스/호버/필 */
-  --color-border: #e5e5ea; /* 1px 미세 헤어라인 */
-  --color-text: #111113; /* 선명한 블랙 본문 */
-  --color-muted: #71717a; /* 차분한 그레이 보조 텍스트 */
-  --color-primary: #0066cc; /* Action Blue — 단일 액센트 */
+  --color-bg: #ffffff;
+  /* 순백 캔버스 */
+  --color-surface: #f8f8fa;
+  /* 은은한 서피스/호버/필 */
+  --color-border: #e5e5ea;
+  /* 1px 미세 헤어라인 */
+  --color-text: #111113;
+  /* 선명한 블랙 본문 */
+  --color-muted: #71717a;
+  /* 차분한 그레이 보조 텍스트 */
+  --color-primary: #0066cc;
+  /* Action Blue — 단일 액센트 */
   --color-primary-text: #ffffff;
   --color-primary-focus: #0071e3;
   --color-primary-tint: rgba(0, 102, 204, 0.08);
@@ -53,17 +59,23 @@
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
-  --space-3-5: 14px; /* 반 단계 — 로우 리스트 여백 */
+  --space-3-5: 14px;
+  /* 반 단계 — 로우 리스트 여백 */
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
 
   /* 타이포그래피 */
-  --text-title: 1.25rem;   /* 20px */
-  --text-heading: 1.0625rem; /* 17px */
-  --text-body: 0.9375rem;  /* 15px */
-  --text-caption: 0.8125rem; /* 13px */
-  --text-fine: 0.75rem;    /* 12px */
+  --text-title: 1.25rem;
+  /* 20px */
+  --text-heading: 1.0625rem;
+  /* 17px */
+  --text-body: 0.9375rem;
+  /* 15px */
+  --text-caption: 0.8125rem;
+  /* 13px */
+  --text-fine: 0.75rem;
+  /* 12px */
   --tracking-tight: -0.015em;
 
   --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
@@ -76,12 +88,18 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    --color-bg: #0c0c0e; /* 딥블랙 캔버스 */
-    --color-surface: #161618; /* 다크 서피스/호버 */
-    --color-border: #262628; /* 다크 1px 헤어라인 */
-    --color-text: #f2f2f5; /* 밝은 텍스트 */
-    --color-muted: #8e8e93; /* 다크 보조 텍스트 */
-    --color-primary: #2997ff; /* 다크 액센트 블루 */
+    --color-bg: #0c0c0e;
+    /* 딥블랙 캔버스 */
+    --color-surface: #161618;
+    /* 다크 서피스/호버 */
+    --color-border: #262628;
+    /* 다크 1px 헤어라인 */
+    --color-text: #f2f2f5;
+    /* 밝은 텍스트 */
+    --color-muted: #8e8e93;
+    /* 다크 보조 텍스트 */
+    --color-primary: #2997ff;
+    /* 다크 액센트 블루 */
     --color-primary-text: #ffffff;
     --color-primary-focus: #388bfd;
     --color-primary-tint: rgba(41, 151, 255, 0.15);

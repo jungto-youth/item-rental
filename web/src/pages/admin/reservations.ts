@@ -7,6 +7,7 @@ import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-nav";
 import "../../components/ui/empty";
 import "../../components/ui/page-header";
+import "../../components/ui/select";
 import { rowsCss } from "../../components/ui/rows";
 
 // SPEC §4.3 — 대여 관리: 반납 처리만 (admin 전용)
@@ -93,35 +94,27 @@ export class PageAdminReservations extends LitElement {
       <x-page-header title="대여 관리"></x-page-header>
       <div class="bar">
         <label for="filter-status">상태</label>
-        <select
+        <x-select
           id="filter-status"
           .value=${this.filter}
-          @change=${(e: Event) => {
-            this.filter = (e.target as HTMLSelectElement).value as
-              | ""
-              | ReservationStatus;
-            void this.reload();
-          }}
-        >
-          <option value="" ?selected=${this.filter === ""}>전체</option>
-          <option value="rented" ?selected=${this.filter === "rented"}>
-            대여 중
-          </option>
-          <option value="returned" ?selected=${this.filter === "returned"}>
-            반납 완료
-          </option>
-          <option value="cancelled" ?selected=${this.filter === "cancelled"}>
-            취소
-          </option>
-        </select>
+          .options=${[
+        { value: "", label: "전체" },
+        { value: "rented", label: "대여 중" },
+        { value: "returned", label: "반납 완료" },
+        { value: "cancelled", label: "취소" },
+      ]}
+          @change=${(e: CustomEvent<{ value: string }>) => {
+        this.filter = e.detail.value as "" | ReservationStatus;
+        void this.reload();
+      }}
+        ></x-select>
       </div>
       <p class="msg" aria-live="polite">${this.message}</p>
-      ${
-        this.loading
-          ? html`<x-empty compact state="loading"></x-empty>`
-          : this.reservations.length === 0
-            ? html`<x-empty compact state="empty" text="대여가 없어요"></x-empty>`
-            : html`${this.truncated ? html`<x-empty compact state="empty" text="500건까지만 표시 — 오래된 건은 잘릴 수 있어요"></x-empty>` : ""}${this.renderCards()}`
+      ${this.loading
+        ? html`<x-empty compact state="loading"></x-empty>`
+        : this.reservations.length === 0
+          ? html`<x-empty compact state="empty" text="대여가 없어요"></x-empty>`
+          : html`${this.truncated ? html`<x-empty compact state="empty" text="500건까지만 표시 — 오래된 건은 잘릴 수 있어요"></x-empty>` : ""}${this.renderCards()}`
       }
     `;
   }
@@ -158,15 +151,14 @@ export class PageAdminReservations extends LitElement {
           >${r.member_name || "—"} · ${r.member_phone ?? r.member_email} ·
           ${r.created_at.slice(0, 10)}</span
         >
-        ${
-          r.returned_by_member
-            ? html`<span class="by"
+        ${r.returned_by_member
+        ? html`<span class="by"
                 >회원이 직접 반납했어요 — 물품 회수 여부를 확인해 주세요</span
               >`
-            : r.status === "returned" && r.admin_name
-              ? html`<span class="meta">${r.admin_name} 관리자가 반납 처리</span>`
-              : ""
-        }
+        : r.status === "returned" && r.admin_name
+          ? html`<span class="meta">${r.admin_name} 관리자가 반납 처리</span>`
+          : ""
+      }
         ${r.member_memo ? html`<span class="meta">메모 · ${r.member_memo}</span>` : ""}
       </div>
     `;

@@ -6,6 +6,7 @@ import { rowsCss } from "../../components/ui/rows";
 import "../../components/admin/admin-nav";
 import "../../components/ui/empty";
 import "../../components/ui/button";
+import "../../components/ui/select";
 import "../../components/features/item/item-create-dialog";
 import "../../components/features/item/item-edit-dialog";
 import "../../components/features/category/category-manage-dialog";
@@ -90,12 +91,10 @@ export class PageAdminItems extends LitElement {
         font-size: var(--text-body, 15px);
         box-sizing: border-box;
       }
-      /* 셀렉트는 selectCss(rowsCss 경유)가 담당 — 높이만 맞춘다. background shorthand는 체브런을 지우므로 금지 */
-      .toolbar select {
-        height: 40px;
-        padding: 0 32px 0 12px;
-        border-radius: var(--radius-md, 8px);
-        font-size: var(--text-body, 15px); /* 툴바 = 기본 사이즈 — 검색 인풋과 맞춤 */
+      /* x-select는 자체 스타일 담당 — 툴바에서는 검색 인풋과 높이만 맞춘다 */
+      .toolbar x-select {
+        width: 200px;
+        flex-shrink: 0;
       }
       .toolbar input:focus {
         outline: none;
@@ -237,18 +236,20 @@ export class PageAdminItems extends LitElement {
           .value=${this.q}
           @input=${(e: Event) => (this.q = (e.target as HTMLInputElement).value)}
         />
-        <select
+        <x-select
+          size="md"
           .value=${this.categoryFilter}
-          @change=${(e: Event) => (this.categoryFilter = (e.target as HTMLSelectElement).value)}
-        >
-          <option value="all">카테고리 전체</option>
-          ${this.categories.map(
-            (c) => html`<option value=${String(c.id)} ?selected=${this.categoryFilter === String(c.id)}>
-              ${c.name} (${c.item_count})
-            </option>`,
-          )}
-          <option value="none" ?selected=${this.categoryFilter === "none"}>미지정</option>
-        </select>
+          .options=${[
+        { value: "all", label: "카테고리 전체" },
+        ...this.categories.map((c) => ({
+          value: String(c.id),
+          label: `${c.name} (${c.item_count})`,
+        })),
+        { value: "none", label: "미지정" },
+      ]}
+          @change=${(e: CustomEvent<{ value: string }>) =>
+        (this.categoryFilter = e.detail.value)}
+        ></x-select>
       </div>
 
       ${list.length === 0
@@ -263,9 +264,9 @@ export class PageAdminItems extends LitElement {
         ?open=${this.createOpen}
         @close=${() => (this.createOpen = false)}
         @created=${() => {
-          this.createOpen = false;
-          void this.reload();
-        }}
+        this.createOpen = false;
+        void this.reload();
+      }}
       ></item-create-dialog>
 
       <item-edit-dialog
@@ -294,8 +295,8 @@ export class PageAdminItems extends LitElement {
           <div class="name">${it.name}</div>
           <div class="meta">
             ${it.categories.length > 0
-              ? it.categories.map((c) => html`<span class="cat">${c.name}</span>`)
-              : html`<span class="cat none">미지정</span>`}
+        ? it.categories.map((c) => html`<span class="cat">${c.name}</span>`)
+        : html`<span class="cat none">미지정</span>`}
             ${it.location ? html`<span>${it.location}</span>` : ""}
             <span>
               보유 ${it.total_qty}${it.qty_broken > 0 ? ` · 수리중 ${it.qty_broken}` : ""}
@@ -304,10 +305,10 @@ export class PageAdminItems extends LitElement {
           </div>
         </div>
         ${it.status === "repair"
-          ? html`<span class="tag repair">점검·수리</span>`
-          : it.status === "retired"
-            ? html`<span class="tag retired">폐기</span>`
-            : ""}
+        ? html`<span class="tag repair">점검·수리</span>`
+        : it.status === "retired"
+          ? html`<span class="tag retired">폐기</span>`
+          : ""}
         <x-button variant="secondary" size="sm" @click=${() => this.openEdit(it)}>수정</x-button>
       </li>
     `;

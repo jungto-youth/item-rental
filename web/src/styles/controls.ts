@@ -22,6 +22,10 @@ export const selectCss = css`
     transition: border-color 0.15s ease;
   }
 
+  select:hover:not(:disabled) {
+    border-color: var(--color-muted);
+  }
+
   select:focus {
     outline: none;
     border-color: var(--color-primary);
@@ -31,5 +35,20 @@ export const selectCss = css`
   select:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+`;
+
+// number input — 브라우저 기본 스피너(▲▼) 숨김.
+// shadow DOM 안의 input에는 전역 CSS(tokens.css)가 침투하지 않으므로,
+// number input을 쓰는 컴포넌트에서 이 조각을 import 해야 한다.
+export const numberInputCss = css`
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
   }
 `;

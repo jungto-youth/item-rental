@@ -20,7 +20,8 @@ app.get("/api/health", (c) => c.json({ ok: true }));
 
 // --- 인증 (Auth.js — §7.2) ---
 // signin/callback/signout 전부 Auth.js가 처리 (full-page redirect 방식)
-app.all("/api/auth/*", (c) => Auth(c.req.raw, authConfig(c.env)));
+// req를 넘겨 127.0.0.1 → localhost 정규화 (Google OAuth redirect_uri 등록 문제)
+app.all("/api/auth/*", (c) => Auth(c.req.raw, authConfig(c.env, c.req.raw)));
 
 // --- 세션 ---
 // 401 대신 {user:null} 반환 — SPA가 로그인 상태를 판단

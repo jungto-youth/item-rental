@@ -4,6 +4,7 @@ import { api } from "../../../api/client";
 import { type Item } from "../../../types";
 import { type SessionUser } from "../../../context/session";
 import { navigate } from "../../../router";
+import { numberInputCss } from "../../../styles/controls";
 import "../../ui/button";
 import "../../ui/input";
 import "../../ui/notice";
@@ -20,7 +21,9 @@ export class ItemRentalForm extends LitElement {
   @state() private message = "";
   @state() private isSuccess = false;
 
-  static styles = css`
+  static styles = [
+    numberInputCss,
+    css`
     :host {
       display: block;
     }
@@ -97,13 +100,7 @@ export class ItemRentalForm extends LitElement {
       background: transparent;
       color: var(--color-text);
       font-family: inherit;
-      -moz-appearance: textfield; /* 네이티브 스피너 숨김 — −/+ 버튼이 대체 */
-    }
-
-    .qty-input::-webkit-outer-spin-button,
-    .qty-input::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
+      /* 스피너 숨김은 tokens.css 전역 규칙이 담당 */
     }
 
     .qty-single {
@@ -149,7 +146,8 @@ export class ItemRentalForm extends LitElement {
       flex-direction: column;
       gap: 8px;
     }
-  `;
+  `,
+  ];
 
   private get rentableQty(): number {
     if (!this.item) return 0;
@@ -300,7 +298,7 @@ export class ItemRentalForm extends LitElement {
         <div class="row">
           <span class="label">대여 수량</span>
           ${max > 1
-            ? html`
+        ? html`
                 <div class="stepper">
                   <button
                     type="button"
@@ -333,7 +331,7 @@ export class ItemRentalForm extends LitElement {
                   </button>
                 </div>
               `
-            : html`<span class="qty-single">1개</span>`}
+        : html`<span class="qty-single">1개</span>`}
         </div>
 
         <div class="memo-field">
@@ -346,8 +344,8 @@ export class ItemRentalForm extends LitElement {
         </div>
 
         ${this.message
-          ? html`<p class="msg ${this.isSuccess ? "success" : "error"}">${this.message}</p>`
-          : ""}
+        ? html`<p class="msg ${this.isSuccess ? "success" : "error"}">${this.message}</p>`
+        : ""}
 
         <x-button variant="primary" size="md" type="submit" ?loading=${this.saving}>
           대여하기

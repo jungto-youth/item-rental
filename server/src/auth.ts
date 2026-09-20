@@ -5,8 +5,22 @@ import { getDb, type Sql } from './db'
 
 // SPEC §7.2 — Auth.js (@auth/core) 구글 OAuth + JWT 세션
 // Workers에서 process.env가 없으므로 바인딩 값을 직접 주입한다.
-export function authConfig(env: Bindings): AuthConfig {
+export function authConfig(env: Bindings, req?: Request): AuthConfig {
   const db = () => getDb(env)
+
+  // 127.0.0.1 → localhost 정규화 — Google OAuth redirect_uri 등록 문제.
+  // Auth.js는 trustHost:true 일 때 Host 헤더를 그대로 redirect_uri로 쓰는데,
+  // Google Cloud Console에는 http://localhost:8787/... 만 등록되어 있고
+  // http://127.0.0.1:8787/... 은 등록되어 있지 않아 redirect_uri_mismatch 가 난다.
+  // (localhost 와 127.0.0.1 은 다른 origin) — redirectProxyUrl 로 Google에 보낼
+  // redirect_uri 를 강제한다. 로컬 개발에서만 치환되고 운영은 영향 없음.
+  let redirectProxyUrl: string | undefined
+  if (req) {
+    const url = new URL(req.url)
+    if (url.hostname === '127.0.0.1') {
+      redirectProxyUrl = `http://localhost:${url.port || '80'}/api/auth`
+    }
+  }
 
   // 로그인 허용 범위 — 정토회 계정(@jungto.org) + 예외 이메일(AUTH_ALLOWED_EMAILS, 콤마 구분).
   // 예외는 운영진이 개인 계정으로 접속할 때 쓴다 (wrangler secret / .dev.vars로 관리).
@@ -21,6 +35,7 @@ export function authConfig(env: Bindings): AuthConfig {
     secret: env.AUTH_SECRET,
     trustHost: true,
     basePath: '/api/auth',
+    ...(redirectProxyUrl ? { redirectProxyUrl } : {}), // 127.0.0.1 → localhost 정규화 (로컬 개발 전용)
     session: { strategy: 'jwt' },
     pages: { error: '/login' }, // 로그인 거부 시 SPA 로그인 화면으로 ?error=와 함께 복귀
     providers: [

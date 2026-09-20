@@ -1,12 +1,10 @@
 import { css } from "lit";
-import { selectCss } from "../../styles/controls";
 
 // 관리자 로우 목록 공통 조형 — 대시보드·대여 관리·회원 관리가 같은 카드 리스트를 쓴다.
 // 컨테이너: 1px 헤어라인 + radius-md + surface 배경, 로우는 하이라인으로 구분.
 // 로우 1번째 줄 .head = 이름(.name, 말줄임) + 배지 + 액션 .link, 2번째 줄 .meta = 부가 정보.
 // 페이지별 추가 스타일은 각 페이지가 뒤에 덧붙인다 (같은 선택자는 뒤가 이긴다).
 export const rowsCss = css`
-  ${selectCss}
   .rows {
     display: grid;
     margin: 0;
@@ -72,11 +70,5 @@ export const rowsCss = css`
     color: var(--color-primary);
     font-size: var(--text-caption);
     min-height: 1.2em;
-  }
-  select {
-    height: 36px;
-    padding: 0 28px 0 var(--space-2); /* 오른쪽 여백 = 체브런 자리 + 거리 확보 */
-    border-radius: var(--radius-sm);
-    font-size: var(--text-caption); /* 인라인 컴팩트 — 나머지는 selectCss가 담당 */
   }
 `;

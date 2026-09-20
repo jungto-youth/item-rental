@@ -4,9 +4,10 @@ import { api } from "../../../api/client";
 import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
 import { type Category, type ItemKind, type ItemStatus } from "../../../types";
 import { resolveCategoryIds } from "../../../utils/category";
-import { selectCss } from "../../../styles/controls";
+import { numberInputCss } from "../../../styles/controls";
 import "../../ui/modal";
 import "../../ui/button";
+import "../../ui/select";
 import "../category/category-tags-input";
 import "./photo-uploader";
 
@@ -35,7 +36,7 @@ export class ItemCreateDialog extends LitElement {
   @state() private categoryOptions: string[] = [];
 
   static styles = [
-    selectCss,
+    numberInputCss,
     css`
     :host {
       display: contents;
@@ -67,10 +68,6 @@ export class ItemCreateDialog extends LitElement {
       font-size: var(--text-body, 15px);
       box-sizing: border-box;
       transition: border-color 0.15s ease;
-    }
-
-    select {
-      height: 44px; /* 폼 입력과 높이 맞춤 — 나머지는 selectCss가 담당 */
     }
 
     textarea {
@@ -242,33 +239,37 @@ export class ItemCreateDialog extends LitElement {
               .options=${this.categoryOptions}
               placeholder="태그 입력 후 엔터 (예: 캠핑, 취미)"
               @change=${(e: CustomEvent<{ value: string[] }>) =>
-                (this.tagNames = e.detail.value)}
+        (this.tagNames = e.detail.value)}
             ></category-tags-input>
           </label>
 
           <div class="row">
             <label>
               구분
-              <select
+              <x-select
+                size="lg"
                 .value=${f.kind}
-                @change=${(e: Event) =>
-                  this.set("kind", (e.target as HTMLSelectElement).value as ItemKind)}
-              >
-                <option value="rental" ?selected=${f.kind === "rental"}>대여품</option>
-                <option value="consumable" ?selected=${f.kind === "consumable"}>소모품</option>
-              </select>
+                .options=${[
+        { value: "rental", label: "대여품" },
+        { value: "consumable", label: "소모품" },
+      ]}
+                @change=${(e: CustomEvent<{ value: string }>) =>
+        this.set("kind", e.detail.value as ItemKind)}
+              ></x-select>
             </label>
             <label>
               상태
-              <select
+              <x-select
+                size="lg"
                 .value=${f.status}
-                @change=${(e: Event) =>
-                  this.set("status", (e.target as HTMLSelectElement).value as ItemStatus)}
-              >
-                <option value="active" ?selected=${f.status === "active"}>정상</option>
-                <option value="repair" ?selected=${f.status === "repair"}>수리중</option>
-                <option value="retired" ?selected=${f.status === "retired"}>폐기</option>
-              </select>
+                .options=${[
+        { value: "active", label: "정상" },
+        { value: "repair", label: "수리중" },
+        { value: "retired", label: "폐기" },
+      ]}
+                @change=${(e: CustomEvent<{ value: string }>) =>
+        this.set("status", e.detail.value as ItemStatus)}
+              ></x-select>
             </label>
           </div>
 
@@ -277,27 +278,29 @@ export class ItemCreateDialog extends LitElement {
               보유 수량 *
               <input
                 type="number"
+                inputmode="numeric"
                 min="1"
                 required
                 .value=${String(f.total_qty)}
                 @input=${(e: Event) =>
-                  this.set("total_qty", Number((e.target as HTMLInputElement).value))}
+        this.set("total_qty", Number((e.target as HTMLInputElement).value))}
               />
             </label>
             ${f.kind === "rental"
-              ? html`
+        ? html`
                   <label>
                     수리중 수량
                     <input
                       type="number"
+                      inputmode="numeric"
                       min="0"
                       .value=${String(f.qty_broken)}
                       @input=${(e: Event) =>
-                        this.set("qty_broken", Number((e.target as HTMLInputElement).value))}
+            this.set("qty_broken", Number((e.target as HTMLInputElement).value))}
                     />
                   </label>
                 `
-              : ""}
+        : ""}
           </div>
 
           <label>
@@ -316,7 +319,7 @@ export class ItemCreateDialog extends LitElement {
               .value=${f.description}
               placeholder="물품 설명이나 주의사항을 적어주세요"
               @input=${(e: Event) =>
-                this.set("description", (e.target as HTMLTextAreaElement).value)}
+        this.set("description", (e.target as HTMLTextAreaElement).value)}
             ></textarea>
           </label>
 
@@ -336,9 +339,9 @@ export class ItemCreateDialog extends LitElement {
             type="submit"
             ?loading=${this.saving}
             @click=${() => {
-              const form = this.shadowRoot?.querySelector("#create-item-form") as HTMLFormElement;
-              form?.requestSubmit();
-            }}
+        const form = this.shadowRoot?.querySelector("#create-item-form") as HTMLFormElement;
+        form?.requestSubmit();
+      }}
           >
             저장
           </x-button>
