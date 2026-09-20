@@ -11,6 +11,7 @@ import "./pages/not-found";
 import "./pages/admin/members";
 import "./pages/admin/reservations";
 import "./pages/admin/dashboard";
+import "./pages/admin/items";
 import "./pages/policy";
 import { setUnauthorizedHandler } from "./api/client";
 
@@ -67,6 +68,11 @@ const routes: RouteConfig[] = [
   {
     path: "/admin",
     render: () => html`<page-admin-dashboard></page-admin-dashboard>`,
+    enter: requireAdmin,
+  },
+  {
+    path: "/admin/items",
+    render: () => html`<page-admin-items></page-admin-items>`,
     enter: requireAdmin,
   },
   {

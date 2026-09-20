@@ -238,7 +238,7 @@ export class PageHome extends LitElement {
         <div class="search-box">
           <input
             class="search"
-            placeholder="물품명, 위치, 설명 검색…"
+            placeholder="물품명, 위치, 설명, 카테고리 검색…"
             .value=${this.q}
             @input=${this.onSearch}
           />

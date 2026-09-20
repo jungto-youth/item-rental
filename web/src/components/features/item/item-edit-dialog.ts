@@ -2,7 +2,8 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
 import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
-import { type Item, type ItemKind, type ItemStatus, type Photo } from "../../../types";
+import { type Item, type ItemKind, type ItemStatus, type Photo, type Category } from "../../../types";
+import { resolveCategoryId } from "../../../utils/category";
 import "../../ui/modal";
 import "../../ui/button";
 import "./photo-uploader";
@@ -23,6 +24,8 @@ export class ItemEditDialog extends LitElement {
   };
 
   @state() private photos: Photo[] = [];
+  @state() private categories: Category[] = [];
+  @state() private categoryName = "";
   @state() private saving = false;
   @state() private error = "";
 
@@ -98,7 +101,18 @@ export class ItemEditDialog extends LitElement {
 
   async willUpdate(changed: Map<string, unknown>) {
     if (changed.has("open") && this.open && this.item) {
+      // 카테고리 목록을 먼저 받아 initForm 이 이름을 채울 수 있게 한다
+      await this.loadCategories();
       this.initForm();
+    }
+  }
+
+  private async loadCategories() {
+    try {
+      const res = await api<{ categories: Category[] }>("/api/categories");
+      this.categories = res.categories;
+    } catch {
+      this.categories = [];
     }
   }
 
@@ -118,6 +132,8 @@ export class ItemEditDialog extends LitElement {
         location: it.location ?? this.item.location ?? "",
         description: it.description ?? this.item.description ?? "",
       };
+      this.categoryName =
+        this.categories.find((c) => c.id === it.category_id)?.name ?? "";
     } catch {
       // 실패 시 기존 객체로 폴백
       this.editForm = {
@@ -129,6 +145,8 @@ export class ItemEditDialog extends LitElement {
         location: this.item.location ?? "",
         description: this.item.description ?? "",
       };
+      this.categoryName =
+        this.categories.find((c) => c.id === this.item.category_id)?.name ?? "";
     }
   }
 
@@ -147,9 +165,11 @@ export class ItemEditDialog extends LitElement {
     this.error = "";
 
     try {
+      // 새 카테고리명이면 서버에 먼저 만들고 id 를 붙인다(빈 값 = 미지정)
+      const category_id = await resolveCategoryId(this.categories, this.categoryName);
       await api(`/api/admin/items/${this.item.id}`, {
         method: "PUT",
-        body: JSON.stringify(this.editForm),
+        body: JSON.stringify({ ...this.editForm, category_id }),
       });
 
       this.dispatchEvent(new CustomEvent("saved", { bubbles: true, composed: true }));
@@ -237,6 +257,19 @@ export class ItemEditDialog extends LitElement {
               @input=${(e: Event) => this.set("name", (e.target as HTMLInputElement).value)}
             />
           </label>
+
+          <label>
+            카테고리
+            <input
+              list="edit-category-options"
+              .value=${this.categoryName}
+              placeholder="기존 것을 고르거나 새 이름 입력"
+              @input=${(e: Event) => (this.categoryName = (e.target as HTMLInputElement).value)}
+            />
+          </label>
+          <datalist id="edit-category-options">
+            ${this.categories.map((c) => html`<option value=${c.name}></option>`)}
+          </datalist>
 
           <div class="row">
             <label>

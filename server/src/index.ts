@@ -4,9 +4,11 @@ import type { Bindings, Variables } from "./types";
 import { authConfig } from "./auth";
 import { getSessionUser } from "./middleware/auth";
 import { itemsRoute } from "./routes/items";
+import { categoriesRoute } from "./routes/categories";
 import { meRoute } from "./routes/me";
 import { reservationsRoute } from "./routes/reservations";
 import { adminItemsRoute } from "./routes/admin/items";
+import { adminCategoriesRoute } from "./routes/admin/categories";
 import { adminMembersRoute } from "./routes/admin/members";
 import { adminReservationsRoute } from "./routes/admin/reservations";
 import { adminDashboardRoute } from "./routes/admin/dashboard";
@@ -43,9 +45,11 @@ app.get("/api/photos/*", async (c) => {
 
 // --- 도메인 라우트 ---
 app.route("/api/items", itemsRoute);
+app.route("/api/categories", categoriesRoute);
 app.route("/api/me/profile", meRoute);
 app.route("/api/reservations", reservationsRoute);
 app.route("/api/admin/items", adminItemsRoute);
+app.route("/api/admin/categories", adminCategoriesRoute);
 app.route("/api/admin/members", adminMembersRoute);
 app.route("/api/admin/reservations", adminReservationsRoute);
 app.route("/api/admin/dashboard", adminDashboardRoute);

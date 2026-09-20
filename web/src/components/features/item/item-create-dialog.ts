@@ -2,7 +2,8 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
 import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
-import { type ItemKind, type ItemStatus } from "../../../types";
+import { type Category, type ItemKind, type ItemStatus } from "../../../types";
+import { resolveCategoryId } from "../../../utils/category";
 import "../../ui/modal";
 import "../../ui/button";
 import "./photo-uploader";
@@ -26,6 +27,8 @@ export class ItemCreateDialog extends LitElement {
   @state() private stagedUrls: string[] = [];
   @state() private saving = false;
   @state() private error = "";
+  @state() private categories: Category[] = [];
+  @state() private categoryName = "";
 
   static styles = css`
     :host {
@@ -86,6 +89,21 @@ export class ItemCreateDialog extends LitElement {
 
     `;
 
+  async willUpdate(changed: Map<string, unknown>) {
+    // 열릴 때마다 목록을 새로 받는다 — 관리 화면에서 카테고리를 고쳐도 바로 반영
+    if (changed.has("open") && this.open) await this.loadCategories();
+  }
+
+  private async loadCategories() {
+    try {
+      const res = await api<{ categories: Category[] }>("/api/categories");
+      this.categories = res.categories;
+    } catch {
+      // 목록을 못 받아도 새 이름 입력→생성 경로는 그대로 동작한다
+      this.categories = [];
+    }
+  }
+
   private set<K extends keyof typeof this.form>(k: K, v: (typeof this.form)[K]) {
     this.form = { ...this.form, [k]: v };
   }
@@ -133,6 +151,7 @@ export class ItemCreateDialog extends LitElement {
   private handleClose = () => {
     this.clearStaged();
     this.form = { ...EMPTY_FORM };
+    this.categoryName = "";
     this.error = "";
     this.dispatchEvent(new CustomEvent("close", { bubbles: true, composed: true }));
   };
@@ -144,9 +163,11 @@ export class ItemCreateDialog extends LitElement {
     this.error = "";
 
     try {
+      // 새 카테고리명이면 서버에 먼저 만들고 id 를 붙인다(빈 값 = 미지정)
+      const category_id = await resolveCategoryId(this.categories, this.categoryName);
       const res = await api<{ id: number }>("/api/admin/items", {
         method: "POST",
-        body: JSON.stringify(this.form),
+        body: JSON.stringify({ ...this.form, category_id }),
       });
 
       const failed: string[] = [];
@@ -165,6 +186,7 @@ export class ItemCreateDialog extends LitElement {
 
       this.clearStaged();
       this.form = { ...EMPTY_FORM };
+      this.categoryName = "";
       this.dispatchEvent(
         new CustomEvent("created", {
           detail: { id: res.id, failedPhotos: failed },
@@ -199,6 +221,19 @@ export class ItemCreateDialog extends LitElement {
               @input=${(e: Event) => this.set("name", (e.target as HTMLInputElement).value)}
             />
           </label>
+
+          <label>
+            카테고리
+            <input
+              list="create-category-options"
+              .value=${this.categoryName}
+              placeholder="기존 것을 고르거나 새 이름 입력"
+              @input=${(e: Event) => (this.categoryName = (e.target as HTMLInputElement).value)}
+            />
+          </label>
+          <datalist id="create-category-options">
+            ${this.categories.map((c) => html`<option value=${c.name}></option>`)}
+          </datalist>
 
           <div class="row">
             <label>

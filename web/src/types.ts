@@ -8,6 +8,9 @@ export type AvailabilityBadge = "available" | "rented" | "repair";
 // 대여품/소모품 (§8 v3.0) — 소모품은 재고가 줄기만 하고 대여 기간 개념이 없다
 export type ItemKind = "rental" | "consumable";
 
+// 카테고리 — 관리자가 물품 등록·수정 중에 만들고 고치는 가벼운 분류 (§4.2 재도입)
+export type Category = { id: number; name: string; item_count: number };
+
 export type Item = {
   id: number;
   name: string;
@@ -19,6 +22,8 @@ export type Item = {
   kind?: ItemKind;
   location?: string | null;
   description?: string | null;
+  // 카테고리 (관리자가 지정, null = 미지정)
+  category_id?: number | null;
   photos: Photo[];
   availability_badge?: AvailabilityBadge;
   // 현재 대여 중인 수량 합 — 가용성 판정의 유일한 근거

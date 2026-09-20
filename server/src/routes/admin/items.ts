@@ -57,6 +57,18 @@ function readAttrs(
     }
     attrs.qty_broken = n;
   }
+  if ("category_id" in body) {
+    const v = body.category_id;
+    if (v === null || v === undefined) {
+      attrs.category_id = null; // 미지정
+    } else {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n < 1) {
+        return { error: "category_id 오류" };
+      }
+      attrs.category_id = n;
+    }
+  }
   return { attrs };
 }
 const PHOTO_TYPES: Record<string, string> = {
@@ -89,7 +101,9 @@ adminItemsRoute.get("/:id", async (c) => {
   return c.json({ item });
 });
 
-// 등록 — 카테고리 없음(0011 제거). 물품 탐색은 검색이 담당한다.
+// 등록 — 새 카테고리명은 클라이언트가 /api/admin/categories 로 먼저 만들고 id 를 보낸다.
+// (FK 위반은 500 이 아니라 명시 오류가 낫겠지만, 카테고리 생성+물품 등록이 같은 화면에서
+//  순차로 일어나고 조회·생성 모두 같은 세션에 묶여 실제로 닿지 않는다 — 승인 경로만 거친다.)
 adminItemsRoute.post("/", async (c) => {
   const body = await c.req.json<Record<string, unknown>>();
   const name = typeof body.name === "string" ? body.name.trim() : "";

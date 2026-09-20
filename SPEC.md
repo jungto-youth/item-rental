@@ -10,7 +10,7 @@
 | ---------------- | ------------------------------------------------------------------- |
 | 목적             | 지부 보유 물품(캠핑용품, 행사장비 등)의 대여 예약을 온라인으로 관리 |
 | 이용자           | 지부 회원 · 관리자(운영진)                                  |
-| 물품 규모        | 97개 (대여품 93 · 소모품 4) — 카테고리 없이 검색으로 탐색           |
+| 물품 규모        | 97개 (대여품 93 · 소모품 4) — 카테고리(관리자 분류) + 검색으로 탐색           |
 | 예상 동시 이용자 | 수 명 수준 (지부 단위 소규모)                                       |
 | 운영 비용        | 월 0원 (Cloudflare·Neon 무료 티어)                                  |
 | 운영 환경        | Cloudflare 대시보드(호스팅·저장소·도메인) + Neon 콘솔(DB) — 2곳     |
@@ -54,7 +54,8 @@
 
 ### 4.2 물품
 
-- 목록: 검색 + 가용 배지 3종 — `available`(대여 가능) / `rented`(대여 중) / `repair`(수리중 — 상태가 `repair`이거나 `rentable_qty ≤ 0`). 카테고리는 없다
+- 목록: 검색 + 가용 배지 3종 — `available`(대여 가능) / `rented`(대여 중) / `repair`(수리중 — 상태가 `repair`이거나 `rentable_qty ≤ 0`). 검색 대상은 이름·설명·위치·카테고리 이름 (§4.2)
+- **카테고리 (0020 재도입)** — 0005·0011에서 두 번 제거했던 카테고리를 '관리자가 물품 등록·수정 중에 직접 만들고 고치는 가벼운 분류'로 복원했다. `categories(id, name UNIQUE)` + `items.category_id`(nullable FK, ON DELETE SET NULL). 회원 화면에는 필터로 노출하지 않고 ①검색 ②상세 화면에만 보인다. 등록·수정 다이얼로그는 이름 입력+datalist 자동완성 — 새 이름이면 저장 시점에 `POST /api/admin/categories` 로 먼저 만들고 id 를 보낸다. 관리(추가·이름변경·삭제)는 `/admin/items` 물품 관리 페이지의 '카테고리 관리' 모달에서 하고, 삭제 시 연결 물품은 '미지정'이 된다
   - 검색어가 없으면 폐기(`retired`)를 뺀 전체 목록을 최근 등록 순으로 보여준다
   - **키워드 매치**(이름·설명·보관 위치 ILIKE)를 먼저, **의미 매치**(pgvector)를 그 뒤에 배치한다
   - 의미 검색: Workers AI `@cf/baai/bge-m3`로 쿼리 임베딩 → 코사인 거리 상위 8개(거리 < 0.75) 중 키워드에 없는 물품만 추가. bge-m3 거리는 0.4~0.65에 뭉쳐 절대 임계로는 관련/무관을 가르지 못하므로 상대 랭킹으로만 쓴다. 임베딩은 등록/수정 시 자동 생성하고, 실패하면 키워드 검색만 동작한다(폴백)
@@ -126,6 +127,8 @@ server/src/
 | POST                | `/api/reservations/:id/return`                               | 반납 (회원 직접)                                   | 본인     |
 | GET/POST/PUT/DELETE | `/api/admin/items`                                           | 물품 CRUD (등록/수정 시 임베딩 자동 생성)          | admin    |
 | POST/DELETE         | `/api/admin/items/:id/photos[/:photoId]`                     | 사진 업로드·삭제 (R2)                              | admin    |
+| GET                 | `/api/categories`                                            | 카테고리 목록(이름·물품 수) — 전체 열람             | 전체     |
+| POST/PATCH/DELETE   | `/api/admin/categories[/:id]`                                | 카테고리 생성·이름변경·삭제 (삭제 시 물품은 미지정) | admin    |
 | GET                 | `/api/admin/reservations?status=`                            | 전체 대여 목록                                     | admin    |
 | POST                | `/api/admin/reservations/:id/return`                         | 반납 처리 (관리자)                                 | admin    |
 | GET/POST            | `/api/admin/members`, `/:id/withdraw`     | 회원 목록·탈퇴 처리                       | admin    |

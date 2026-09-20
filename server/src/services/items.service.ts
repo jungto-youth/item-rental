@@ -21,9 +21,11 @@ export type ListItemRow = ItemAttrs & {
   status: "active" | "repair" | "retired";
   photos: { id: number; url: string }[];
   active_now: number;
+  category_id: number | null;
 };
 
 // 관리자용 Item 행
+// category_name·thumb_key 는 목록 SQL (=0020 카테고리 재도입)이 채운다.
 export type AdminItemRow = {
   id: number;
   name: string;
@@ -33,6 +35,9 @@ export type AdminItemRow = {
   qty_broken: number;
   kind: string;
   location: string | null;
+  category_id: number | null;
+  category_name: string | null;
+  thumb_key: string | null;
 };
 
 // ===== 공개 조회 (§7.4·§7.6) =====
@@ -44,7 +49,7 @@ export async function getItemDetail(
 ): Promise<ListItemRow | null> {
   const rows = (await db.query(
     `SELECT items.id, items.name, items.description, items.total_qty, items.status,
-      items.kind, items.location,
+      items.kind, items.location, items.category_id,
       items.qty_broken,
       (items.total_qty - items.qty_broken) AS rentable_qty,
       (SELECT COALESCE(json_agg(json_build_object('id', p.id, 'url', '/api/photos/' || p.r2_key)
@@ -66,9 +71,13 @@ export async function getItemDetail(
 export async function listAdminItems(db: Sql) {
   return db.query(
     `SELECT items.*,
+            categories.name AS category_name,
+            (SELECT p.r2_key FROM item_photos p WHERE p.item_id = items.id
+              ORDER BY p.sort_order LIMIT 1) AS thumb_key,
             (SELECT COUNT(*)::int FROM item_photos p WHERE p.item_id = items.id) AS photo_count,
             (SELECT COUNT(*)::int FROM reservations r WHERE r.item_id = items.id) AS reservation_count
      FROM items
+     LEFT JOIN categories ON categories.id = items.category_id
      ORDER BY items.id DESC`,
   );
 }
