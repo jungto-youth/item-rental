@@ -1,4 +1,5 @@
 import { LitElement, html, css } from "lit";
+import { confirmDialog } from "../../utils/confirm";
 import { customElement, state } from "lit/decorators.js";
 import { api, ApiError } from "../../api/client";
 import "../../components/ui/badge";
@@ -53,9 +54,10 @@ export class PageAdminMembers extends LitElement {
   private async withdraw(m: AdminMember) {
     const who = m.name || m.email || "이 회원";
     if (
-      !confirm(
+      !(await confirmDialog(
         `'${who}'님을 탈퇴 처리할까요?\n이후 다시 로그인할 수 없습니다.\n대여 중인 물품은 본인이 반납할 수 없어 관리자가 대신 처리해야 합니다.`,
-      )
+        { confirmLabel: "탈퇴 처리" },
+      ))
     )
       return;
     if (this.busy) return;
@@ -84,9 +86,10 @@ export class PageAdminMembers extends LitElement {
       admin: "관리자",
     };
     if (
-      !confirm(
+      !(await confirmDialog(
         `'${m.name || m.email}'님의 역할을 '${label[role]}'(으)로 바꿀까요?`,
-      )
+        { confirmLabel: "변경", danger: false },
+      ))
     ) {
       await this.reload(); // 취소 — select 원복
       return;
@@ -116,7 +119,7 @@ export class PageAdminMembers extends LitElement {
     return html`
       <admin-nav active="members"></admin-nav>
       <x-page-header title="회원 관리"></x-page-header>
-      <p class="msg">${this.message}</p>
+      <p class="msg" aria-live="polite">${this.message}</p>
       ${this.loading
         ? html`<x-empty compact state="loading"></x-empty>`
         : this.members.length === 0
@@ -140,7 +143,7 @@ export class PageAdminMembers extends LitElement {
           ${!m.deactivated_at
         ? html`<x-select
                   ?disabled=${this.busy}
-                  aria-label="역할 지정"
+                  ariaLabel="역할 지정"
                   .value=${m.role}
                   .options=${[
             { value: "user", label: "회원" },

@@ -1,6 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { api } from "../api/client";
+import { fmtKstDate } from "../utils/date";
 import { session } from "../context/session";
 import "../components/ui/badge";
 import "../components/ui/empty";
@@ -185,7 +186,7 @@ export class PageMyRentals extends LitElement {
   }
 
   private fmtDate(iso: string): string {
-    return iso.slice(0, 10);
+    return fmtKstDate(iso);
   }
 
   private async doCancel(r: MyReservation) {

@@ -135,7 +135,7 @@ export class ItemCard extends LitElement {
           ${it.photos && it.photos[0]
             ? html`<img
                 src=${it.photos[0].url}
-                alt=${it.name}
+                alt=""
                 loading="lazy"
                 @error=${this.handleImgError}
               />`

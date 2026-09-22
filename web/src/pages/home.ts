@@ -238,6 +238,7 @@ export class PageHome extends LitElement {
         <div class="search-box">
           <input
             class="search"
+            aria-label="물품 검색"
             placeholder="물품명, 위치, 설명, 카테고리 검색…"
             .value=${this.q}
             @input=${this.onSearch}
@@ -269,6 +270,7 @@ export class PageHome extends LitElement {
         <button
           type="button"
           class="filter-chip ${!this.availableOnly ? "active" : ""}"
+          aria-pressed=${!this.availableOnly}
           @click=${() => (this.availableOnly = false)}
         >
           전체 <span class="count">${this.items.length}</span>
@@ -276,6 +278,7 @@ export class PageHome extends LitElement {
         <button
           type="button"
           class="filter-chip ${this.availableOnly ? "active" : ""}"
+          aria-pressed=${this.availableOnly}
           @click=${() => (this.availableOnly = true)}
         >
           대여 가능만 <span class="count">${availableCount}</span>

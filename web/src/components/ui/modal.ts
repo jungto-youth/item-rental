@@ -1,5 +1,5 @@
 import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import "./icon-btn";
 
 @customElement("x-modal")
@@ -7,6 +7,51 @@ export class XModal extends LitElement {
   @property({ type: Boolean, reflect: true }) open = false;
   @property() title = "";
   @property() maxWidth = "500px";
+
+  // 접근성 — 열릴 때 첫 포커스로 이동하고 Tab이 대화상자 안을 돌게 하며,
+  // 닫힐 때 열었던 요소로 포커스를 되돌린다. 이름은 title에서 붙인다.
+  @state() private titleId = `x-modal-title-${Math.random().toString(36).slice(2)}`;
+  private lastFocused: HTMLElement | null = null;
+
+  private get focusables(): HTMLElement[] {
+    const sel =
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    // 슬롯된 본문은 라이트 DOM, 닫기 버튼은 섀도 DOM — 둘 다 모은다
+    const light = Array.from(this.querySelectorAll<HTMLElement>(sel));
+    const shadow = Array.from(
+      this.shadowRoot?.querySelectorAll<HTMLElement>(sel) ?? [],
+    );
+    return [...light, ...shadow];
+  }
+
+  private handleOpenChange() {
+    if (this.open) {
+      this.lastFocused = document.activeElement as HTMLElement | null;
+      requestAnimationFrame(() => {
+        const dialog = this.shadowRoot?.querySelector<HTMLElement>(".dialog");
+        (this.focusables[0] ?? dialog)?.focus();
+      });
+    } else {
+      // 외부에서 open을 내린 경우에도 트리거로 포커스를 돌려준다
+      this.lastFocused?.focus();
+      this.lastFocused = null;
+    }
+  }
+
+  private handleTab(e: KeyboardEvent) {
+    const items = this.focusables;
+    if (items.length === 0) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const current = this.shadowRoot?.activeElement ?? document.activeElement;
+    if (e.shiftKey && (current === first || current === this)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && current === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
 
   static styles = css`
     :host {
@@ -109,10 +154,18 @@ export class XModal extends LitElement {
   }
 
   private handleKeyDown = (e: KeyboardEvent) => {
-    if (this.open && e.key === "Escape") {
+    if (!this.open) return;
+    if (e.key === "Escape") {
       this.close();
+    } else if (e.key === "Tab") {
+      this.handleTab(e);
     }
   };
+
+  protected updated(changed: Map<string | number | symbol, unknown>) {
+    super.updated(changed);
+    if (changed.has("open")) this.handleOpenChange();
+  }
 
   private handleBackdropClick(e: MouseEvent) {
     if (e.target === e.currentTarget) {
@@ -129,9 +182,15 @@ export class XModal extends LitElement {
 
     return html`
       <div class="backdrop" @click=${this.handleBackdropClick}>
-        <div class="dialog" style="max-width: ${this.maxWidth}" role="dialog" aria-modal="true">
+        <div
+          class="dialog"
+          style="max-width: ${this.maxWidth}"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby=${this.titleId}
+        >
           <div class="header">
-            <h3 class="title">${this.title}</h3>
+            <h3 class="title" id=${this.titleId}>${this.title}</h3>
             <x-icon-btn label="닫기" @click=${this.close}>×</x-icon-btn>
           </div>
           <div class="body">

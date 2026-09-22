@@ -99,7 +99,7 @@ export class PageLogin extends LitElement {
             ${this.busy ? "이동 중…" : "구글로 로그인"}
           </x-button>
         </div>
-        <p class="msg">${this.message}</p>
+        <p class="msg" aria-live="polite">${this.message}</p>
         <p class="links">
           <a href="/policy/privacy">개인정보처리방침</a>·<a href="/policy/terms"
             >이용약관</a

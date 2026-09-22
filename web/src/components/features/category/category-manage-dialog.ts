@@ -1,4 +1,6 @@
+import { getCategories, invalidateCategories } from "../../../utils/categories";
 import { LitElement, html, css } from "lit";
+import { confirmDialog } from "../../../utils/confirm";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
 import type { Category } from "../../../types";
@@ -27,8 +29,7 @@ export class CategoryManageDialog extends LitElement {
 
   private async reload() {
     try {
-      const res = await api<{ categories: Category[] }>("/api/categories");
-      this.categories = res.categories;
+      this.categories = await getCategories();
       this.error = "";
     } catch {
       this.error = "카테고리를 불러오지 못했어요";
@@ -58,6 +59,7 @@ export class CategoryManageDialog extends LitElement {
         body: JSON.stringify({ name }),
       });
       this.newName = "";
+      invalidateCategories();
       await this.reload();
       this.notifyChanged();
     } catch {
@@ -78,6 +80,7 @@ export class CategoryManageDialog extends LitElement {
         body: JSON.stringify({ name }),
       });
       this.editingId = null;
+      invalidateCategories();
       await this.reload();
       this.notifyChanged();
     } catch {
@@ -93,11 +96,12 @@ export class CategoryManageDialog extends LitElement {
       c.item_count > 0
         ? `\n연결된 물품 ${c.item_count}개는 '미지정'이 됩니다.`
         : "";
-    if (!confirm(`'${c.name}' 카테고리를 삭제할까요?${extra}`)) return;
+    if (!(await confirmDialog(`'${c.name}' 카테고리를 삭제할까요?${extra}`, { confirmLabel: "삭제" }))) return;
     this.busy = true;
     this.error = "";
     try {
       await api(`/api/admin/categories/${c.id}`, { method: "DELETE" });
+      invalidateCategories();
       await this.reload();
       this.notifyChanged();
     } catch {

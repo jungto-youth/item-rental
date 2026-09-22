@@ -194,7 +194,7 @@ export class PageMypage extends LitElement {
                   .value=${this.formPhone}
                   @input=${(e: Event) => (this.formPhone = (e.target as HTMLInputElement).value)}
                 ></x-input>
-                <p class="form-msg">${this.formMessage}</p>
+                <p class="form-msg" aria-live="polite">${this.formMessage}</p>
                 <div class="edit-actions">
                   <x-button
                     variant="secondary"

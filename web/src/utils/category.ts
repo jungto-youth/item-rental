@@ -1,4 +1,5 @@
 import { api } from "../api/client";
+import { invalidateCategories } from "./categories";
 
 // 태그(카테고리) 이름 배열 → id 배열. 기존 목록에 정확히 같은 이름이 있으면 그 id 를,
 // 새 이름이면 서버에 먼저 만들고 받은 id 를 돌려준다. 빈 배열·공백 이름은 무시한다.
@@ -25,6 +26,7 @@ export async function resolveCategoryIds(names: string[]): Promise<number[]> {
       });
       known.set(name, created.id);
       ids.push(created.id);
+      invalidateCategories();
     }
   }
   return ids;

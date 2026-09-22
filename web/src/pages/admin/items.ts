@@ -3,6 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import { api } from "../../api/client";
 import type { Category, Item, ItemKind, ItemStatus } from "../../types";
 import { rowsCss } from "../../components/ui/rows";
+import { getCategories } from "../../utils/categories";
 import "../../components/admin/admin-nav";
 import "../../components/ui/empty";
 import "../../components/ui/button";
@@ -147,7 +148,7 @@ export class PageAdminItems extends LitElement {
         color: var(--color-muted);
       }
       .tag.repair {
-        color: var(--color-warning, #b45309);
+        color: var(--tone-warning-text);
       }
       .tag.retired {
         color: var(--color-danger);
@@ -162,12 +163,12 @@ export class PageAdminItems extends LitElement {
 
   private async reload() {
     try {
-      const [itemsRes, catRes] = await Promise.all([
+      const [itemsRes, cats] = await Promise.all([
         api<{ items: AdminItem[] }>("/api/admin/items"),
-        api<{ categories: Category[] }>("/api/categories"),
+        getCategories(),
       ]);
       this.items = itemsRes.items;
-      this.categories = catRes.categories;
+      this.categories = cats;
     } catch {
       this.items = [];
     } finally {
@@ -232,12 +233,14 @@ export class PageAdminItems extends LitElement {
       <div class="toolbar">
         <input
           type="search"
+          aria-label="물품 검색"
           placeholder="물품명, 위치, 카테고리"
           .value=${this.q}
           @input=${(e: Event) => (this.q = (e.target as HTMLInputElement).value)}
         />
         <x-select
           size="md"
+          ariaLabel="카테고리 필터"
           .value=${this.categoryFilter}
           .options=${[
         { value: "all", label: "카테고리 전체" },
@@ -275,6 +278,7 @@ export class PageAdminItems extends LitElement {
         @close=${() => (this.editOpen = false)}
         @saved=${() => void this.reload()}
         @deleted=${() => void this.reload()}
+        @photo-changed=${() => void this.reload()}
       ></item-edit-dialog>
 
       <category-manage-dialog

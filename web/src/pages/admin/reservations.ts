@@ -1,4 +1,6 @@
 import { LitElement, html, css } from "lit";
+import { confirmDialog } from "../../utils/confirm";
+import { fmtKstDate } from "../../utils/date";
 import { customElement, state } from "lit/decorators.js";
 import "../../components/ui/badge";
 import type { AdminReservation, ReservationStatus } from "../../types";
@@ -38,7 +40,7 @@ export class PageAdminReservations extends LitElement {
       }
       /* 회원이 직접 반납한 건 — 자기 신고라 관리자가 물품을 확인해야 한다 */
       .by {
-        color: var(--color-warning);
+        color: var(--tone-warning-text);
         font-size: var(--text-fine);
       }
     `,
@@ -74,7 +76,7 @@ export class PageAdminReservations extends LitElement {
   private async markReturned(r: AdminReservation) {
     if (this.busy) return;
     const label = r.qty > 1 ? `'${r.item_name}' ${r.qty}개` : `'${r.item_name}'`;
-    if (!confirm(`${label}를 반납 처리할까요?`)) return;
+    if (!(await confirmDialog(`${label}를 반납 처리할까요?`, { confirmLabel: "반납 처리", danger: false }))) return;
     this.busy = true;
     try {
       await api(`/api/admin/reservations/${r.id}/return`, { method: "POST" });
@@ -149,7 +151,7 @@ export class PageAdminReservations extends LitElement {
         </span>
         <span class="meta"
           >${r.member_name || "—"} · ${r.member_phone ?? r.member_email} ·
-          ${r.created_at.slice(0, 10)}</span
+          ${fmtKstDate(r.created_at)}</span
         >
         ${r.returned_by_member
         ? html`<span class="by"
