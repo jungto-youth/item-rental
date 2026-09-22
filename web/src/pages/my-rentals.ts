@@ -8,7 +8,7 @@ import "../components/ui/page-header";
 import type { MyReservation } from "../types";
 import { reduceMotion } from "../styles/motion";
 
-// SPEC §4.1 — 대여 내역 페이지: 현재 대여 중 + 대여 이력 + 반납·취소
+// 대여 내역 페이지: 현재 대여 중 + 대여 이력 + 반납·취소
 @customElement("page-my-rentals")
 export class PageMyRentals extends LitElement {
   @state() private loading = true;

@@ -11,7 +11,7 @@ import {
 } from "../services/reservations.service";
 
 // ===== 대여 라우트 =====
-// SPEC §3·§7.4 — 대여/내 대여/취소/반납 (로그인 회원 전용 — 승인 단계 없음)
+// 대여/내 대여/취소/반납 (로그인 회원 전용 — 승인 단계 없음)
 // 관리자 전용 /api/admin/reservations 에는 반납만 있다 — 회원도 같은 일을 할 수 있으므로
 // 여기에도 반납을 둔다. 두 경로의 차이는 admin_id 기록 여부뿐이다 (service 주석 참고)
 export const reservationsRoute = new Hono<{
@@ -19,7 +19,7 @@ export const reservationsRoute = new Hono<{
   Variables: Variables;
 }>();
 
-// 로그인 필수 — requireAuth가 세션 사용자를 조회해 c.set("user") (§8)
+// 로그인 필수 — requireAuth가 세션 사용자를 조회해 c.set("user") ()
 // 1e622e3이 requireApproved 삭제 시 함께 지워 /api/reservations/* 가 500 을 냈던 줄 복원
 reservationsRoute.use("*", requireAuth);
 
@@ -28,7 +28,7 @@ reservationsRoute.use("*", requireAuth);
 reservationsRoute.post("/", async (c) => {
   const user = c.get("user")!;
 
-  // 수령·반납 연락용 — 미등록 회원은 프로필 입력으로 유도 (§4.1)
+  // 수령·반납 연락용 — 미등록 회원은 프로필 입력으로 유도 ()
   if (!user.phone) return c.json({ error: "phone_required" }, 400);
 
   const body = (await c.req.json().catch(() => ({}))) as Record<
@@ -78,7 +78,7 @@ reservationsRoute.post("/", async (c) => {
   return c.json({ error: "internal" }, 500);
 });
 
-// 내 대여 현황·이력 (§4.1, member_id = 세션 사용자 필수)
+// 내 대여 현황·이력  — member_id = 세션 사용자 필수
 reservationsRoute.get("/mine", async (c) => {
   const user = c.get("user")!;
   const db: Sql = getDb(c.env);
@@ -86,7 +86,7 @@ reservationsRoute.get("/mine", async (c) => {
   return c.json({ reservations: rows });
 });
 
-// 대여 취소 — 본인 + 대여 중(rented)만 (§3)
+// 대여 취소 — 본인 + 대여 중(rented)만 ()
 // 취소는 "빌리지 않기로 함", 반납은 "돌려줬음" — 둘 다 재고를 즉시 되돌린다
 reservationsRoute.post("/:id/cancel", async (c) => {
   const user = c.get("user")!;
@@ -103,7 +103,7 @@ reservationsRoute.post("/:id/cancel", async (c) => {
   return c.json({ error: "not_found" }, 404);
 });
 
-// 반납 — 회원이 물품을 돌려주고 직접 처리한다 (§4.1). 본인 + 대여 중(rented)만.
+// 반납 — 회원이 물품을 돌려주고 직접 처리한다 (). 본인 + 대여 중(rented)만.
 // 관리자에게 물어보지 않아도 되게 하되, admin_id 는 비워 두어 관리자 목록이
 // '회원이 직접 반납'을 구분해 볼 수 있게 한다
 reservationsRoute.post("/:id/return", async (c) => {

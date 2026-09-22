@@ -3,7 +3,7 @@ import { decode } from "@auth/core/jwt";
 import type { Bindings, SessionUser, Variables } from "../types";
 import { getDb, type Sql } from "../db";
 
-// SPEC §8 — requireAuth / requireAdmin
+// requireAuth / requireAdmin
 // JWT 서명 검증 후 members를 1회 조회해 최신 role/탈퇴 여부를 반영한다.
 // 탈퇴한 회원(deactivated_at IS NOT NULL)은 세션을 버려 즉시 접근 차단한다.
 // (무상태 JWT + 권한 변경 즉시 반영 — 재로그인 불필요)

@@ -11,7 +11,7 @@ import "../../components/ui/button";
 import "../../components/ui/select";
 import { rowsCss } from "../../components/ui/rows";
 
-// SPEC §4.4 — 회원 관리: 목록·탈퇴·역할 지정/해제 모두 admin 전용
+// 회원 관리: 목록·탈퇴·역할 지정/해제 모두 admin 전용
 // 역할 변경 보호장치는 서버가 강제: 마지막 관리자 해임 불가
 @customElement("page-admin-members")
 export class PageAdminMembers extends LitElement {
@@ -48,7 +48,7 @@ export class PageAdminMembers extends LitElement {
   }
 
   // 탈퇴 처리 — 활성 회원을 탈퇴시킨다. 약관이 '탈퇴는 관리자에게 요청'이라 안내하는데
-  // 처리 수단이 없어 신설했다(§4.1, v3.1). 소프트 삭제 — 대여 이력은 남고, 복구 경로는 없다.
+  // 처리 수단이 없어 신설했다. 소프트 삭제 — 대여 이력은 남고, 복구 경로는 없다.
   // 마지막 관리자 보호는 서버가 409 로 거부한다.
   private async withdraw(m: AdminMember) {
     const who = m.name || m.email || "이 회원";

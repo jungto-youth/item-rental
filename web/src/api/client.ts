@@ -1,4 +1,4 @@
-// SPEC §7.2 — fetch 래퍼 (401 처리는 1주차 인증 플로우에서 확장)
+// fetch 래퍼 (401 처리는 1주차 인증 플로우에서 확장)
 export class ApiError extends Error {
   constructor(
     readonly status: number,

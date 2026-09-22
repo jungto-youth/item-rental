@@ -11,7 +11,7 @@ import "../../components/features/item/item-create-dialog";
 import "../../components/features/item/item-edit-dialog";
 import "../../components/features/category/category-manage-dialog";
 
-// SPEC §4.4 — 물품 관리: 전체 물품(폐기 포함) 목록 + 카테고리 필터 + 등록·수정·카테고리 관리.
+// 물품 관리: 전체 물품(폐기 포함) 목록 + 카테고리 필터 + 등록·수정·카테고리 관리.
 // 회원용 탐색은 홈(검색)이 담당하고, 이 화면이 관리자가 물품과 카테고리를 함께 관리하는 창구다.
 type AdminItem = {
   id: number;

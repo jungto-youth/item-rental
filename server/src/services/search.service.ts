@@ -1,5 +1,5 @@
 // 검색 서비스 — 키워드 + 의미 검색을 조합하여 검색 로직 통합
-// SPEC §4.2 — 2단계 검색 (키워드 ILIKE + semanticItemIds pgvector)
+// 2단계 검색 (키워드 ILIKE + semanticItemIds pgvector)
 import type { Sql } from "../db";
 import type { Bindings } from "../types";
 import type { ListItemRow } from "./items.service";
@@ -26,7 +26,7 @@ function buildListSql(where: string): string {
      ORDER BY items.id DESC`;
 }
 
-// 의미 후보 — pgvector cosine distance 상위 8개 (§4.2)
+// 의미 후보 — pgvector cosine distance 상위 8개 ()
 function semanticSearchSql(): string {
   return `SELECT id FROM items
    WHERE status <> 'retired' AND embedding IS NOT NULL
@@ -155,7 +155,7 @@ function withAvailabilityBadge(r: ListItemRow): ListItemWithBadge {
 }
 
 /**
- * 전체 목록 — 검색어가 없을 때 홈이 부르는 경로 (§4.2)
+ * 전체 목록 — 검색어가 없을 때 홈이 부르는 경로 ()
  * 정렬·필터는 buildListSql 그대로 (id DESC = 최근 등록 우선, retired 는 SQL 이 제외)
  */
 export async function listItems(db: Sql): Promise<ListItemWithBadge[]> {

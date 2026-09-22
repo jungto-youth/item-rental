@@ -15,7 +15,7 @@ import "./pages/admin/items";
 import "./pages/policy";
 import { setUnauthorizedHandler } from "./api/client";
 
-// SPEC §7.3 — 라우트 가드 (실제 권한은 서버 미들웨어가 이중 강제 — §8)
+// 라우트 가드 (실제 권한은 서버 미들웨어가 이중 강제)
 // lit-labs/router의 enter()는 false로 취소만 할 뿐 리다이렉트를 지원하지 않는다.
 // 그래서 목적지로 먼저 이동시킨 뒤 false를 반환해 원래 내비게이션을 취소한다.
 const requireSession: RouteConfig["enter"] = async () => {
@@ -35,7 +35,7 @@ const requireAdmin: RouteConfig["enter"] = async () => {
     return false;
   }
   if (user.role !== "admin") {
-    redirect("/?role=denied"); // 안내는 home(denied 배너)이 표시 — 냉무 리다이렉트 회피(§6)
+    redirect("/?role=denied"); // 안내는 home(denied 배너)이 표시 — 냉무 리다이렉트 회피()
     return false;
   }
   return true;

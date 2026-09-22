@@ -1,5 +1,5 @@
 // 의미 검색용 임베딩 헬퍼 — Workers AI @cf/baai/bge-m3 (다국어, 1024차원)
-// 생성은 물품 등록/수정 시 1회, 검색 시 쿼리 텍스트만 즉시 임베딩 (§4.2)
+// 생성은 물품 등록/수정 시 1회, 검색 시 쿼리 텍스트만 즉시 임베딩 ()
 import type { Bindings } from './types'
 import { getDb, type Sql } from './db'
 

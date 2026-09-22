@@ -1,5 +1,5 @@
 // 대여(Rental) 도메인 서비스 — 신청/취소/내역/관리자 전이의 SQL 을 직접 소유
-// SPEC §3·§4.3 — 가용성 검사 + advisory 락 동시성, 조건부 상태 전이
+// 가용성 검사 + advisory 락 동시성, 조건부 상태 전이
 //
 // 날짜·기간·최대 대여일이 없는 단순 모델이다. 회원이 수량+메모로 신청하면 즉시
 // '대여 중'(rented)이 되고, 관리자는 반납(returned)만 처리한다. 가용성은
@@ -58,7 +58,7 @@ export function validateReservation(
   | { error: "consumable" }
   | { error: "too_many"; rentable: number } {
   if (item.status !== "active") return { error: "item_not_active" };
-  // 소모품은 대여 대상이 아니다 (§4.2)
+  // 소모품은 대여 대상이 아니다 ()
   if (item.kind === "consumable") return { error: "consumable" };
   const rentable = item.total_qty - item.qty_broken;
   if (params.qty > rentable) return { error: "too_many", rentable };
@@ -129,7 +129,7 @@ export async function createReservation(
   return { error: "no_availability" };
 }
 
-// ===== 내 대여 조회 (§4.1) =====
+// ===== 내 대여 조회 () =====
 export async function getMyReservations(db: Sql, memberId: string) {
   return db.query(
     `SELECT r.id, r.item_id, items.name AS item_name,
@@ -144,14 +144,14 @@ export async function getMyReservations(db: Sql, memberId: string) {
   );
 }
 
-// ===== 본인 조작: 취소·반납 (§3·§4.1) =====
+// ===== 본인 조작: 취소·반납 () =====
 // 결과 — bad_status: 본인 건이지만 이미 반납·취소되어 더 손댈 수 없음
 export type OwnActionResult =
   { ok: true } | { error: "not_found" } | { error: "bad_status" };
 
 // 본인 조작 공용 처리 — "본인 + 대여 중(rented)" 조건이 아니면 빈 결과가 돌아온다.
 // 빈 결과의 원인을 재조회로 가려 404(없음·타인 건)와 409(이미 종료)를 구분한다.
-// WHERE 절에 member_id 를 반드시 넣는다 — 남의 대여를 조작할 수 없어야 한다 (§6.5)
+// WHERE 절에 member_id 를 반드시 넣는다 — 남의 대여를 조작할 수 없어야 한다 ()
 async function ownAction(
   db: Sql,
   reservationId: number,
@@ -207,7 +207,7 @@ export async function returnReservationByMember(
   );
 }
 
-// ===== 관리자: 목록·상태 전이 (§4.3) =====
+// ===== 관리자: 목록·상태 전이 () =====
 
 export const RESERVATION_STATUSES = ["rented", "returned", "cancelled"];
 

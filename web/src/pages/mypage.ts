@@ -10,7 +10,7 @@ import "../components/ui/page-header";
 import "../components/ui/input";
 import { reduceMotion } from "../styles/motion";
 
-// SPEC §4.1 — 내 정보 페이지: 계정 정보 (상단 배너 + 계정 정보 카드)
+// 내 정보 페이지: 계정 정보 (상단 배너 + 계정 정보 카드)
 @customElement("page-mypage")
 export class PageMypage extends LitElement {
   @state() private user: SessionUser | null = null;
@@ -156,7 +156,7 @@ export class PageMypage extends LitElement {
     const u = this.user;
     if (!u) return null;
     if (!u.phone) {
-      return html`물품을 대여하려면 연락처를 등록해야 해요 —
+      return html`물품을 대여하려면 연락처를 등록해야 해요
         <a href="/signup/profile">연락처 등록하기</a>`;
     }
     return null;

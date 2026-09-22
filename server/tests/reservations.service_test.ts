@@ -245,7 +245,7 @@ Deno.test("returnReservationByMember: SQL 이 본인·대여 중 조건을 모�
   await returnReservationByMember(db, 5, "member-1");
 
   const update = calls[0].text;
-  // member_id 조건이 빠지면 남의 대여를 반납 처리할 수 있다 (§6.5)
+  // member_id 조건이 빠지면 남의 대여를 반납 처리할 수 있다 ()
   assertEquals(/member_id = \$2/.test(update), true);
   assertEquals(/status = 'rented'/.test(update), true);
 });

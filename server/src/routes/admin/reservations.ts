@@ -9,7 +9,7 @@ import {
   type TransitionResult,
 } from "../../services/reservations.service";
 
-// SPEC §4.3 — 대여 반납 처리 (admin 전용)
+// 대여 반납 처리 (admin 전용)
 // 승인·거절·수령은 없다: 신청 즉시 대여 중이 되고 관리자는 반납만 누른다.
 // 조건부 전이의 존재/상태 구분은 reservations.service 가 한다
 export const adminReservationsRoute = new Hono<{

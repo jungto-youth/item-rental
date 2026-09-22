@@ -17,7 +17,7 @@ export type Bindings = {
 // 역할 2단계 (v3.2) — admin(관리자) > user(회원)
 export type Role = "user" | "admin";
 
-// 미들웨어가 세팅하는 세션 사용자 (SPEC §8 권한 처리)
+// 미들웨어가 세팅하는 세션 사용자
 export type SessionUser = {
   id: string;
   email: string;

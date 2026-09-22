@@ -1,7 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
-// SPEC §9.1 — 개인정보 처리방침 · 서비스 이용약관 (구글 OAuth 게시 요건)
+// 개인정보 처리방침 · 서비스 이용약관 (구글 OAuth 게시 요건)
 // /policy/privacy · /policy/terms 두 경로가 이 컴포넌트 하나로 처리됨
 @customElement("page-policy")
 export class PagePolicy extends LitElement {

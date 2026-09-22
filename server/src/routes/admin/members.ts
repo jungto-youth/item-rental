@@ -8,7 +8,7 @@ import {
   setMemberRole,
 } from "../../services/members.service";
 
-// SPEC §4.4 — 회원 관리 (admin 전용)
+// 회원 관리 (admin 전용)
 // 목록·탈퇴·역할 지정/해제 모두 admin만 사용
 export const adminMembersRoute = new Hono<{ Bindings: Bindings }>();
 
@@ -21,7 +21,7 @@ adminMembersRoute.get("/", async (c) => {
   return c.json({ members });
 });
 
-// 탈퇴 처리 — 관리자가 활성 회원을 탈퇴시킨다. 소프트 삭제 — 대여 이력 보존(§4.1, v3.1)
+// 탈퇴 처리 — 관리자가 활성 회원을 탈퇴시킨다. 소프트 삭제 — 대여 이력 보존
 adminMembersRoute.post("/:id/withdraw", async (c) => {
   const db: Sql = getDb(c.env);
   const result = await withdrawMember(db, c.req.param("id"));

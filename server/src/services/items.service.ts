@@ -1,5 +1,5 @@
 // 물품(Item) 도메인 서비스 — 목록/상세/가용성/CRUD/사진의 SQL 을 직접 소유
-// SPEC §4.2·§7.4·§7.6 — 검색 외 물품 조회·관리에 필요한 모든 쿼리
+// 검색 외 물품 조회·관리에 필요한 모든 쿼리
 import type { Sql } from "../db";
 import type { Bindings } from "../types";
 import { embedItem } from "../embedding";
@@ -39,7 +39,7 @@ export type AdminItemRow = {
   thumb_key: string | null;
 };
 
-// ===== 공개 조회 (§7.4·§7.6) =====
+// ===== 공개 조회 () =====
 
 // 상세 페이지 — 설명·수량 + 현재 대여 중 수량(active_now)
 export async function getItemDetail(
@@ -67,7 +67,7 @@ export async function getItemDetail(
   return rows.length === 0 ? null : rows[0];
 }
 
-// ===== 관리자 CRUD (§7.4) =====
+// ===== 관리자 CRUD () =====
 
 // 목록 — 폐기 포함 전체 (관리자)
 export async function listAdminItems(db: Sql) {
@@ -86,7 +86,7 @@ export async function listAdminItems(db: Sql) {
   );
 }
 
-// 편집용 단건 — 공개 상세(§7.4)와 달리 태그까지 내려준다 (SELECT * + 태그 조인 — 관리자 화면용)
+// 편집용 단건 — 공개 상세()와 달리 태그까지 내려준다 (SELECT * + 태그 조인 — 관리자 화면용)
 export async function getAdminItem(
   db: Sql,
   itemId: number,
@@ -227,9 +227,9 @@ export async function deleteItem(
   return { ok: true };
 }
 
-// ===== 사진 관리 (§4.2) =====
+// ===== 사진 관리 () =====
 
-export const MAX_PHOTOS = 3; // §4.2 사진 최대 3장
+export const MAX_PHOTOS = 3; //  사진 최대 3장
 
 // 사진 추가 결과 — too_many: 최대 장수 초과 (라우트가 409 응답)
 export type AddPhotoResult =
@@ -263,7 +263,7 @@ export async function addPhoto(
   });
   // 등록순 확정 — 기존 최대 sort_order + 1 을 할당한다. 대표 사진(목록 photos[0]·상세 대표)이
   // 첫 사진으로 결정되는 근거가 된다. 전부 0 이면 ORDER BY p.sort_order 가 동점이라 순서·대표가
-  // 임의로 바뀌었다 (§4.2, v3.1).
+  // 임의로 바뀌었다 .
   const [mx] = (await db.query(
     `SELECT COALESCE(MAX(sort_order), 0) AS m FROM item_photos WHERE item_id = $1`,
     [itemId],

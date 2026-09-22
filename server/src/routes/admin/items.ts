@@ -14,7 +14,7 @@ import {
   MAX_PHOTOS,
 } from "../../services/items.service";
 
-// SPEC §7.4 — /api/admin/items (물품 CRUD + 사진 관리, admin 전용)
+// /api/admin/items (물품 CRUD + 사진 관리, admin 전용)
 // 입력 검증은 여기, SQL·임베딩·R2 관리는 items.service 에 위임
 export const adminItemsRoute = new Hono<{
   Bindings: Bindings;
@@ -75,7 +75,7 @@ const PHOTO_TYPES: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
-// 바이트(비용)와 픽셀(브라우저 부하)은 막는 대상이 다르다 — 둘 다 검사한다(§4.2).
+// 바이트(비용)와 픽셀(브라우저 부하)은 막는 대상이 다르다 — 둘 다 검사한다().
 // 클라이언트가 1600px·q80 WebP로 줄여 보내므로 정상 업로드는 150KB 안쪽이다.
 // 2MB는 그 경로를 거치지 않은 업로드를 거르는 상한이고, MAX_PHOTO_EDGE는
 // 용량이 작아도 픽셀이 큰 경우(예: 4000×3000 JPEG q25 ≈ 700KB)를 잡는다.
@@ -89,7 +89,7 @@ adminItemsRoute.get("/", async (c) => {
   return c.json({ items });
 });
 
-// 편집용 단건 — 공개 상세(§7.4)와 달리 note(내부 메모)까지 내려준다.
+// 편집용 단건 — 공개 상세()와 달리 note(내부 메모)까지 내려준다.
 // 편집 폼이 공개 상세를 씨드로 쓰면 note가 undefined → ''로 저장되어 메모가 날아간다.
 adminItemsRoute.get("/:id", async (c) => {
   const db: Sql = getDb(c.env);
@@ -187,7 +187,7 @@ adminItemsRoute.delete("/:id", async (c) => {
   return c.json({ error: "not_found" }, 404);
 });
 
-// 사진 업로드 — multipart/form-data "file" 필드 → R2 직접 저장 (§4.2)
+// 사진 업로드 — multipart/form-data "file" 필드 → R2 직접 저장 ()
 adminItemsRoute.post("/:id/photos", async (c) => {
   const itemId = Number(c.req.param("id"));
   const form = await c.req.formData();
@@ -201,7 +201,7 @@ adminItemsRoute.post("/:id/photos", async (c) => {
       400,
     );
   }
-  // 픽셀 검사 — 용량만 보면 재압축한 큰 이미지가 통과한다(§4.2)
+  // 픽셀 검사 — 용량만 보면 재압축한 큰 이미지가 통과한다()
   const dim = imageSize(new Uint8Array(await file.arrayBuffer()));
   if (!dim) return c.json({ error: "이미지 크기를 읽을 수 없습니다" }, 400);
   if (dim.width > MAX_PHOTO_EDGE || dim.height > MAX_PHOTO_EDGE) {

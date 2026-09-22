@@ -8,7 +8,7 @@ import {
   deleteCategory,
 } from "../../services/categories.service";
 
-// SPEC §7.4 — /api/admin/categories (카테고리 생성·이름변경·삭제, admin 전용)
+// /api/admin/categories (카테고리 생성·이름변경·삭제, admin 전용)
 // 물품 등록 다이얼로그에서 새 이름을 쓰면 생성이 자동으로 호출되고,
 // 이름 변경은 id 기준이라 물품 전체에 반영된다. 삭제된 카테고리의 물품은 미지정이 된다.
 export const adminCategoriesRoute = new Hono<{

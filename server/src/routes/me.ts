@@ -3,7 +3,7 @@ import type { Bindings, Variables } from '../types'
 import { getDb, type Sql } from '../db'
 import { requireAuth } from '../middleware/auth'
 
-// SPEC §4.1 — 프로필 입력(최초 1회) + 내 정보
+// 프로필 입력(최초 1회) + 내 정보
 export const meRoute = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
 // 이름·연락처 저장 — 승인 대기 상태에서도 호출 가능 (requireAuth)

@@ -103,7 +103,7 @@ server/scripts/           — migrate, seed, reembed, import-items, backfill-rem
 
 ## DB 스키마 (요약)
 
-`members` · `items` · `item_photos` · `reservations` — 전체 DDL과 가용성 쿼리는 [SPEC.md](SPEC.md) §6.
+`members` · `items` · `item_photos` · `reservations` — 전체 DDL과 가용성 쿼리는 [SPEC.md](SPEC.md)
 
 ## SPA 라우트
 

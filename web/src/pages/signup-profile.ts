@@ -7,7 +7,7 @@ import { reduceMotion } from "../styles/motion";
 import "../components/ui/button";
 import "../components/ui/input";
 
-// SPEC §4.1 — 최초 로그인 후 이름·연락처 입력 (1회)
+// 최초 로그인 후 이름·연락처 입력 (1회)
 @customElement("page-signup-profile")
 export class PageSignupProfile extends LitElement {
   @state() private name = "";

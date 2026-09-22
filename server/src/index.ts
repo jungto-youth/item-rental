@@ -18,7 +18,7 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 // --- 헬스체크 ---
 app.get("/api/health", (c) => c.json({ ok: true }));
 
-// --- 인증 (Auth.js — §7.2) ---
+// --- 인증 (Auth.js) ---
 // signin/callback/signout 전부 Auth.js가 처리 (full-page redirect 방식)
 // req를 넘겨 127.0.0.1 → localhost 정규화 (Google OAuth redirect_uri 등록 문제)
 app.all("/api/auth/*", (c) => Auth(c.req.raw, authConfig(c.env, c.req.raw)));
@@ -31,7 +31,7 @@ app.get("/api/me", async (c) => {
 });
 
 // --- 사진 서빙 (R2) ---
-// 키에 UUID가 포함되어 불변 → 1년 캐시. /api/*는 run_worker_first로 워커가 처리 (§7.5)
+// 키에 UUID가 포함되어 불변 → 1년 캐시. /api/*는 run_worker_first로 워커가 처리 ()
 app.get("/api/photos/*", async (c) => {
   const key = c.req.path.slice("/api/photos/".length);
   if (!key || key.includes("..")) return c.json({ error: "bad_key" }, 400);

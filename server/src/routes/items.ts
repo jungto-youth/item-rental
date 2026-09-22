@@ -4,13 +4,13 @@ import { getDb, type Sql } from "../db";
 import { searchItemsCombined, listItems } from "../services/search.service";
 import { getItemDetail } from "../services/items.service";
 
-// SPEC §7.4 — GET /api/items, /api/items/:id (전체 열람 가능)
+// GET /api/items, /api/items/:id (전체 열람 가능)
 export const itemsRoute = new Hono<{
   Bindings: Bindings;
   Variables: Variables;
 }>();
 
-// 목록 — 검색(키워드 → 의미 순) + 가용 배지 (§4.2)
+// 목록 — 검색(키워드 → 의미 순) + 가용 배지 ()
 // (v3.0 — `location` 컬럼이 실데이터로 채워졌다. 검색창 문구가 '이름·설명·위치'라고
 //  안내하는데 서버가 위치를 안 봐서 안내가 거짓이었음)
 itemsRoute.get("/", async (c) => {
@@ -33,7 +33,7 @@ itemsRoute.get("/:id", async (c) => {
   if (!item) return c.json({ error: "not_found" }, 404);
 
   // 목록과 같은 기준의 가용 배지 — 상세도 같은 라벨을 쓴다. 소모품은 대여 대상이 아니라 null 을 내려
-  // 화면이 '대여 가능/대여 중' 배지를 아예 안 그리게 한다 (§4.2).
+  // 화면이 '대여 가능/대여 중' 배지를 아예 안 그리게 한다 ().
   // 날짜 개념이 없어져 '예약 있음'(reserved)은 사라졌다 — 대여 중이거나 아니거나 둘 중 하나다.
   const availabilityBadge =
     item.kind === "consumable"
