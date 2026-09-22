@@ -45,6 +45,15 @@ export type AdminMember = {
   created_at: string;
 };
 
+// 로그인 허용 예외 이메일 — @jungto.org 외 계정의 로그인을 어드민이 관리 (§7.2)
+export type AllowedEmail = {
+  id: string;
+  email: string;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
 // 대여 (§3 상태 흐름) — 신청 즉시 rented, 관리자가 returned 처리, 본인이 cancelled
 export type ReservationStatus = "rented" | "returned" | "cancelled";
 

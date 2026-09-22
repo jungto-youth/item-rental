@@ -29,7 +29,7 @@
 | 회원 (`user`)    | 물품 검색, 대여, 내 대여 현황·이력 조회, 반납, 대여 취소                                 |
 | 관리자 (`admin`) | 물품 등록/수정/삭제·사진 관리, 대여 반납 처리, 회원 탈퇴 처리, 관리자 지정/해제 |
 
-- 로그인은 `@jungto.org` 계정만 허용하고, 예외는 `AUTH_ALLOWED_EMAILS` 시크릿에 콤마로 나열한다.
+- 로그인은 `@jungto.org` 계정만 허용한다. 그 외 계정의 예외는 어드민 **허용 이메일** 페이지(`/admin/allowed-emails`, DB `allowed_emails` 테이블)에서 추가/제거하고, `AUTH_ALLOWED_EMAILS` 시크릿은 DB 장애 시 관리자 접속용 비상 폴백으로 병행한다.
 - 관리자 지정/해제는 관리자 누구나 가능하다. **마지막 관리자는 본인 포함 해임·탈퇴 불가** (서버가 409로 강제). 탈퇴는 소프트 삭제 — `members.deactivated_at` 에 시각만 남기고 대여 이력은 보존하며, 세션이 즉시 무효화된다.
 - 첫 관리자는 DB에서 수동 지정한다: `UPDATE members SET role = 'admin' WHERE email = '...'`
 
@@ -166,7 +166,7 @@ deno task db:import-items    # 실물 시트 물품 일괄 반영
 | `DATABASE_URL`                          | Neon 연결 문자열 (`postgresql://...`)                 |
 | `AUTH_SECRET`                           | Auth.js JWT 서명 시크릿                               |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | 구글 OAuth 클라이언트                                 |
-| `AUTH_ALLOWED_EMAILS`                   | 로그인 허용 예외 이메일 (콤마 구분, `@jungto.org` 외) |
+| `AUTH_ALLOWED_EMAILS`                   | 로그인 허용 예외 이메일 (콤마 구분) — 비상용 폴백. 정식 관리는 어드민 허용 이메일 페이지 |
 
 ## 라이선스
 

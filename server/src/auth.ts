@@ -22,13 +22,15 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
     }
   }
 
-  // 로그인 허용 범위 — 정토회 계정(@jungto.org) + 예외 이메일(AUTH_ALLOWED_EMAILS, 콤마 구분).
-  // 예외는 운영진이 개인 계정으로 접속할 때 쓴다 (wrangler secret / .dev.vars로 관리).
+  // 로그인 허용 범위 — 정토회 계정(@jungto.org) + 예외 이메일.
+  // 예외는 두 곳에서 온다: 어드민 화면에서 관리하는 DB 테이블 allowed_emails (정식 경로),
+  // env AUTH_ALLOWED_EMAILS (콤마 구분 — DB 장애 시에도 관리자가 접속할 비상용 폴백).
   const allowedEmails = (env.AUTH_ALLOWED_EMAILS ?? '')
     .split(',')
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean)
-  const isAllowed = (email: string) =>
+  // env 만으로 판정 — DB 조회 없이 통과시켜도 되는 경우 걸러내는 1차 관문
+  const isEnvAllowed = (email: string) =>
     email.toLowerCase().endsWith('@jungto.org') || allowedEmails.includes(email.toLowerCase())
 
   return {
@@ -48,12 +50,29 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
     ],
     callbacks: {
       // 최초 로그인 시 members 자동 가입 (§4.1 — 로그인이 곧 가입, 대기/승인 단계 없음)
-      // 정토회 계정이 아니면 여기서 차단 — members 생성 자체를 하지 않음
+      // 정토회 계정이 아니면 허용목록(DB → 없으면 env 폴백)을 확인한다
       async signIn({ user }) {
-        if (!user.email || !isAllowed(user.email)) {
-          // 진단용 — 실제 OAuth로 들어온 이메일 확인 (wrangler tail에서 확인 후 제거 예정)
-          console.log('로그인 거부 — 허용되지 않는 계정:', user.email ?? '(이메일 없음)')
+        if (!user.email) {
+          console.log('로그인 거부 — 이메일 없음')
           return false
+        }
+        if (!isEnvAllowed(user.email)) {
+          const allowed = await db()
+            .query('SELECT 1 FROM allowed_emails WHERE email = $1', [
+              user.email.trim().toLowerCase(),
+            ])
+            .then((rows) => (rows as unknown[]).length > 0)
+            .catch((err) => {
+              // 여기서 throw 하지 않는다 — members upsert·jwt 콜백이 어차피 DB를 요구하므로
+              // DB 장애 시 예외 이메일 로그인은 불가하다. throw 는 같은 결과에 로그만 두 겹으로
+              // 남길 뿐. @jungto.org·env 계정은 이 catch 에 걸리지 않아 DB 없이도 로그인된다.
+              console.error('allowed_emails 조회 실패 — 폴백 목록만 적용:', err)
+              return false
+            })
+          if (!allowed) {
+            console.log('로그인 거부 — 허용되지 않는 계정:', user.email)
+            return false
+          }
         }
         try {
           const sql: Sql = db()

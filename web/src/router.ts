@@ -9,6 +9,7 @@ import "./pages/my-rentals";
 import "./pages/signup-profile";
 import "./pages/not-found";
 import "./pages/admin/members";
+import "./pages/admin/allowed-emails";
 import "./pages/admin/reservations";
 import "./pages/admin/dashboard";
 import "./pages/admin/items";
@@ -83,6 +84,11 @@ const routes: RouteConfig[] = [
   {
     path: "/admin/members",
     render: () => html`<page-admin-members></page-admin-members>`,
+    enter: requireAdmin,
+  },
+  {
+    path: "/admin/allowed-emails",
+    render: () => html`<page-admin-allowed-emails></page-admin-allowed-emails>`,
     enter: requireAdmin,
   },
   {

@@ -10,6 +10,7 @@ import { reservationsRoute } from "./routes/reservations";
 import { adminItemsRoute } from "./routes/admin/items";
 import { adminCategoriesRoute } from "./routes/admin/categories";
 import { adminMembersRoute } from "./routes/admin/members";
+import { adminAllowedEmailsRoute } from "./routes/admin/allowed-emails";
 import { adminReservationsRoute } from "./routes/admin/reservations";
 import { adminDashboardRoute } from "./routes/admin/dashboard";
 
@@ -52,6 +53,7 @@ app.route("/api/reservations", reservationsRoute);
 app.route("/api/admin/items", adminItemsRoute);
 app.route("/api/admin/categories", adminCategoriesRoute);
 app.route("/api/admin/members", adminMembersRoute);
+app.route("/api/admin/allowed-emails", adminAllowedEmailsRoute);
 app.route("/api/admin/reservations", adminReservationsRoute);
 app.route("/api/admin/dashboard", adminDashboardRoute);
 
