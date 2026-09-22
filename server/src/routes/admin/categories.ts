@@ -23,7 +23,7 @@ function readName(body: Record<string, unknown>): string | null {
 }
 
 adminCategoriesRoute.post("/", async (c) => {
-  const body = await c.req.json<Record<string, unknown>>();
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
   const name = readName(body);
   if (!name) return c.json({ error: "name 필수" }, 400);
 
@@ -36,7 +36,7 @@ adminCategoriesRoute.post("/", async (c) => {
 adminCategoriesRoute.patch("/:id", async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
-  const body = await c.req.json<Record<string, unknown>>();
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
   const name = readName(body);
   if (!name) return c.json({ error: "name 필수" }, 400);
 

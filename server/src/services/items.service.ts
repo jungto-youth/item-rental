@@ -175,16 +175,25 @@ export async function updateItem(
       (fields.qty_broken as number | undefined) ?? cur.qty_broken;
     if (nextBroken > nextTotal) return { error: "qty_constraint" };
   }
+  // 태그만 보낸 요청(keys 비움)에서 UPDATE 문이 문법 오류가 되므로 컬럼 갱신을
+  // 건너뛴다 — 이 경우 존재 여부는 조인 테이블 작업 전 가드 SELECT 로 확인한다.
   const keys = Object.keys(itemFields);
-  const setSql = keys.map((k, i) => `${k} = $${i + 2}`).join(", ");
-  const rows = (await db.query(
-    `UPDATE items SET ${setSql} WHERE id = $1 RETURNING id`,
-    [itemId, ...keys.map((k) => itemFields[k])],
-  )) as { id: number }[];
-  if (rows.length === 0) return { error: "not_found" };
-      if (categoryIds !== undefined) {
-        await replaceItemCategories(db, itemId, categoryIds);
-      }
+  if (keys.length > 0) {
+    const setSql = keys.map((k, i) => `${k} = $${i + 2}`).join(", ");
+    const rows = (await db.query(
+      `UPDATE items SET ${setSql} WHERE id = $1 RETURNING id`,
+      [itemId, ...keys.map((k) => itemFields[k])],
+    )) as { id: number }[];
+    if (rows.length === 0) return { error: "not_found" };
+  } else if (categoryIds !== undefined) {
+    const [row] = (await db.query(`SELECT id FROM items WHERE id = $1`, [
+      itemId,
+    ])) as { id: number }[];
+    if (!row) return { error: "not_found" };
+  }
+  if (categoryIds !== undefined) {
+    await replaceItemCategories(db, itemId, categoryIds);
+  }
   // 이름·설명·태그가 바뀌면 임베딩도 갱신 (무조건 재생성 — 소규모라 비용 무시)
   await embedItem(env, db, itemId);
   return { ok: true };

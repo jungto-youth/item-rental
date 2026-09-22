@@ -9,8 +9,8 @@ export const meRoute = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 // 이름·연락처 저장 — 승인 대기 상태에서도 호출 가능 (requireAuth)
 meRoute.put('/', requireAuth, async (c) => {
   const user = c.get('user')!
-  const body = await c.req.json<Record<string, unknown>>()
-  const name = typeof body.name === 'string' ? body.name.trim() : ''
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>
+  const name = typeof body.name === 'string' ? body.name.trim().slice(0, 50) : ''
   const phone = typeof body.phone === 'string' ? body.phone.replace(/[^0-9-]/g, '').trim() : ''
   if (!name) return c.json({ error: 'name 필수' }, 400)
   if (!phone || phone.replace(/[^0-9]/g, '').length < 9)

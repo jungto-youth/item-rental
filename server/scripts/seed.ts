@@ -20,6 +20,20 @@ if (!url) {
   console.error('DATABASE_URL 미설정 — .env 파일(또는 환경변수)을 확인하세요')
   Deno.exit(1)
 }
+// 기본값은 로컬·프로덕션이 같은 DB 를 가리킨다 — 시드는 데이터를 바꾸므로
+// 대상 호스트를 먼저 보여주고 --confirm 플래그로 명시적 승인을 받는다
+let targetHost = 'unknown'
+try {
+  targetHost = new URL(url).host
+} catch {
+  // 파싱 실패 시 그대로 진행 — neon() 이 오류를 낸다
+}
+if (!Deno.args.includes('--confirm')) {
+  console.error(`이 스크립트는 DB 에 데이터를 씁니다. 대상: ${targetHost}`)
+  console.error('진행하려면 --confirm 플래그를 붙여 실행하세요: deno task db:seed -- --confirm')
+  Deno.exit(1)
+}
+console.log(`DB 대상: ${targetHost}`)
 const sql = neon(url)
 
 // --- 예시 물품 (v2.5 — 카테고리 없음, 탐색은 검색으로) ---

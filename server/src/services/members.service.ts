@@ -69,7 +69,10 @@ export async function setMemberRole(
   // 마지막 관리자 보호 — 해임하면 관리 기능 사용 불가 (본인 포함)
   if (target.role === "admin" && role !== "admin") {
     const cnt = (await db.query(
-      `SELECT COUNT(*)::int AS n FROM members WHERE role = 'admin'`,
+      // 탈퇴(deactivated)된 관리자는 관리 기능을 못 쓰므로 개수에서 빼야 한다 —
+      // withdrawMember 와 같은 기준. 누락하면 탈퇴 관리자가 재적돼 활성 관리자가 0이 될 수 있다
+      `SELECT COUNT(*)::int AS n FROM members
+        WHERE role = 'admin' AND deactivated_at IS NULL`,
     )) as {
       n: number;
     }[];

@@ -51,8 +51,8 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
       // 정토회 계정이 아니면 여기서 차단 — members 생성 자체를 하지 않음
       async signIn({ user }) {
         if (!user.email || !isAllowed(user.email)) {
-          // 진단용 — 실제 OAuth로 들어온 이메일 확인 (wrangler tail에서 확인 후 제거 예정)
-          console.log('로그인 거부 — 허용되지 않는 계정:', user.email ?? '(이메일 없음)')
+          // 이메일은 PII라 로그에 남기지 않는다 — 거부 원인 파악에 도메인 여부만으로 충분
+          console.log('로그인 거부 — 허용되지 않는 계정 (email 로깅 생략)')
           return false
         }
         try {
