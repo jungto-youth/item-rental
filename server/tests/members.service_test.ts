@@ -12,7 +12,8 @@ function memberDb(members: Member[]) {
   const activeAdmins = members.filter(
     (m) => m.role === "admin" && m.deactivated_at === null,
   ).length;
-  return stubSql({
+  // stubSql은 {db, calls}를 돌려준다 — 서비스에는 Sql 자체를 넘긴다
+  const { db } = stubSql({
     query: (text, values) => {
       if (/SELECT id, role FROM members WHERE id = \$1/.test(text)) {
         return members.filter((m) => m.id === values[0]);
@@ -39,6 +40,7 @@ function memberDb(members: Member[]) {
     },
     transaction: () => [],
   });
+  return db;
 }
 
 Deno.test("withdrawMember: 마지막 활성 관리자 탈퇴는 last_admin으로 거부된다", async () => {
@@ -62,7 +64,7 @@ Deno.test("withdrawMember: 관리자 2명이면 탈퇴를 허용한다", async (
 });
 
 Deno.test("withdrawMember: 일반 회원은 개수 검사 없이 탈퇴된다", async () => {
-  const { db } = memberDb([
+  const db = memberDb([
     { id: "u", role: "user", deactivated_at: null },
   ]);
 

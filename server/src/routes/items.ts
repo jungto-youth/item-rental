@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
 import { getDb, type Sql } from "../db";
-import { searchItemsCombined, listItems } from "../services/search.service";
+import { searchHybrid, listItems } from "../services/search.service";
 import { getItemDetail } from "../services/items.service";
 
 // GET /api/items, /api/items/:id (전체 열람 가능)
@@ -9,6 +9,18 @@ export const itemsRoute = new Hono<{
   Bindings: Bindings;
   Variables: Variables;
 }>();
+
+// 쿼리 파라미터 클램프 — LIMIT/OFFSET 을 SQL 에 그대로 넣기 전에 정수로 한정한다
+function clampInt(
+  raw: string | undefined,
+  dflt: number,
+  min: number,
+  max: number,
+): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return dflt;
+  return Math.min(Math.max(Math.trunc(n), min), max);
+}
 
 // 검색 레이트 리밋 — 의미 검색은 공개 엔드포인트에서 Workers AI 를 부르므로 로테이션
 // 쿼리로 무료 한도를 태우는 걸 막는다. isolate 로컬 고정창(분당)이라 정확한 계정당
@@ -30,20 +42,38 @@ function searchThrottled(ip: string): boolean {
   return hit.n > SEARCH_MAX_PER_WINDOW;
 }
 
-// 목록 — 검색(키워드 → 의미 순) + 가용 배지
+// 목록 — 탐색(전체 목록 무한스크롤)과 검색(랭킹된 짧은 리스트)을 분리
 // (`location` 컬럼이 실데이터로 채워졌다. 검색창 문구가 '이름·설명·위치'라고
 //  안내하는데 서버가 위치를 안 봐서 안내가 거짓이었음)
 itemsRoute.get("/", async (c) => {
   const db: Sql = getDb(c.env);
   const q = (c.req.query("q") ?? "").trim();
-  if (q && searchThrottled(c.req.header("cf-connecting-ip") ?? "unknown")) {
-    return c.json({ error: "too_many_requests" }, 429);
+
+  // 검색 — 키워드+의미를 RRF 로 융합한 상위 30개. 검색에는 페이지네이션이 없다:
+  // 퍼지 매치의 꼬리는 노이즈라 "페이지 2"를 보여줘도 아무도 안 본다
+  if (q) {
+    if (searchThrottled(c.req.header("cf-connecting-ip") ?? "unknown")) {
+      return c.json({ error: "too_many_requests" }, 429);
+    }
+    const items = await searchHybrid(c.env, db, q);
+    return c.json({ items });
   }
-  // 검색어가 없으면 전체 목록 - 이전에는 빈 배열을 내려 홈이 늘 "물품이 없어요" 였다
-  const items = q
-    ? await searchItemsCombined(c.env, db, q)
-    : await listItems(db);
-  return c.json({ items });
+
+  // 탐색 — 전체 목록을 OFFSET/LIMIT 으로 나눠 내린다 (홈 무한스크롤)
+  const limit = clampInt(c.req.query("limit"), 24, 1, 60);
+  const offset = clampInt(c.req.query("offset"), 0, 0, 100_000);
+  const available = c.req.query("available") === "1";
+  const { items, total, available_total } = await listItems(db, {
+    limit,
+    offset,
+    available,
+  });
+  return c.json({
+    items,
+    total,
+    available_total,
+    hasMore: offset + items.length < total,
+  });
 });
 
 // 상세 — 설명·수량 + 현재 대여 중 수량 (회원 정보 제외)

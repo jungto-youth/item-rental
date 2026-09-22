@@ -16,7 +16,7 @@ import {
   type CreateReservationParams,
   type ReserveItem,
 } from "../src/services/reservations.service.ts";
-import { stubSql } from "./_stub.ts";
+import { stubSql, type Query } from "./_stub.ts";
 
 // 대여 가능한 물품 (재고 2, 수리중 0)
 const RENTAL_ITEM: ReserveItem = {
