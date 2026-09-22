@@ -1,8 +1,10 @@
 {
-  //  — SPA 폴백 + API 분기
+  // SPA 폴백 + API 분기
   "name": "item-rental",
   "main": "server/src/index.ts",
   "compatibility_date": "2026-09-01",
+  // Workers 로그 영속화 (무료) — 500·임베딩 실패를 대시보드에서 확인할 수 있게
+  "observability": { "enabled": true },
   "assets": {
     "directory": "./web/dist",
     "binding": "ASSETS",
