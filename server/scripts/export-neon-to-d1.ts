@@ -167,13 +167,17 @@ stmts.push(
     "DELETE FROM members;\nDELETE FROM allowed_emails;",
 );
 
-const ins = (table: string, cols: string, values: string[]) =>
-  stmts.push(
-    values.length
-      ? `INSERT INTO ${table} (${cols}) VALUES\n  ` +
-        values.join(",\n  ") + ";"
-      : `-- ${table}: 데이터 없음`,
-  );
+// 행 단위 INSERT — items 행은 임베딩 hex(≈4KB)가 들어 multi-row로 묶으면 D1 의
+// 문장 크기 한계(SQLITE_TOOBIG)에 걸린다
+const ins = (table: string, cols: string, values: string[]) => {
+  if (values.length === 0) {
+    stmts.push(`-- ${table}: 데이터 없음`);
+    return;
+  }
+  for (const v of values) {
+    stmts.push(`INSERT INTO ${table} (${cols}) VALUES ${v};`);
+  }
+};
 
 ins(
   "members",

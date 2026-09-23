@@ -1,6 +1,6 @@
 # D1 이관 계획 — Neon(Postgres) → Cloudflare D1(SQLite)
 
-> 상태: 진행 중 — Phase 0~5 완료 (2026-09-23) · 작성: 2026-09 · 예상 공수: 2.5~3일
+> 상태: **전환 완료** — Phase 0~6 완료 (2026-09-23) · 남음: 6.5 안정화 1주 후 시크릿·Neon 정리, Phase 7은 트리거 기반 · 작성: 2026-09 · 예상 공수: 2.5~3일
 > 목표: 검색 계층을 D1 FTS5(trigram) + 벡터 BLOB + RRF 융합으로 재작성하며 DB를 Neon에서 D1으로 옮긴다
 > 관련 문서: [SPEC.md](SPEC.md) §4.2, [README.md](README.md) 기술 스택 표
 
@@ -195,22 +195,26 @@ tokens = q.trim().split(/\s+/).slice(0, 5)
 
 **스모크**: `db:seed` 생성 → 로컬 적용(물품 15종 추가, FTS 15행) → 재적용 멱등 확인 → '코펠'(FTS)/'텐트'(LIKE) 검색 히트. reembed 엔드포인트 401 가드, 배치 15건 `next_after=15` → 이어서 2건 `next_after=null` 종료 — 실측 통과
 
-## 9. Phase 6 — 데이터 이관 · 전환 · 검증 (반나절)
+## 9. Phase 6 — 데이터 이관 · 전환 · 검증 (반나절) ✅ (완료 2026-09-23 — 6.5 정리만 남음)
 
 **절차 (새벽 등 쓰기 없는 시간대)**
-1. `export-neon-to-d1.ts` 실행 → 테이블별 INSERT SQL 생성 (embedding은 `X'hex'` 리터럴, timestamptz는 그대로 문자열)
-2. `wrangler d1 execute item-rental-db --remote --file=…` 적용 (FTS 테이블 INSERT 포함 — 덤프 스크립트가 fts 행도 생성)
-3. 행수 대사: Neon vs D1 각 테이블 COUNT 일치
-4. `wrangler dev`(로컬 D1 사본)에서 검증 체크리스트 통과
-5. 배포 → 운영 검증 → `wrangler secret delete DATABASE_URL`, wrangler.jsonc에서 Neon 주석 제거
+1. [x] `export-neon-to-d1.ts` 실행 → 테이블별 INSERT SQL 생성 (embedding은 `X'hex'` 리터럴, timestamptz는 그대로 문자열) — **실측: members 5 · items 97(임베딩 97/97) · photos 26 · reservations 4 · categories 1 · allowed_emails 1**. 구현 중 발견: multi-row INSERT가 D1 문장 크기 한계(`SQLITE_TOOBIG`)에 걸려 행 단위 INSERT로 수정
+2. [x] `wrangler d1 migrations apply item-rental-db --remote` (0001_baseline) → `wrangler d1 execute item-rental-db --remote --file=…` 적용 (FTS 테이블 INSERT 포함 — 덤프 스크립트가 fts 행도 생성)
+3. [x] 행수 대사: Neon vs D1 각 테이블 COUNT 일치 — **8테이블 전부 일치, items_fts 97, 임베딩 보유 97/97**
+4. [x] `wrangler dev`(로컬 D1 사본)에서 검증 체크리스트 통과 — 로컬을 실데이터 사본으로 리셋(DROP→baseline→덤프) 후 실행
+5. [x] 배포 (`deno task deploy` → version `b40e3279`) → 운영 검증(아래) → `DATABASE_URL` 시크릿 삭제·Neon 주석 제거는 **Phase 6.5(안정화 1주 후)** 로 연기 — 롤백 안전 확보
 
-**검증 체크리스트**
-- [ ] 검색 회귀: 사전 기록한 질의 세트(정확명/부분명/위치/카테고리/오타/1-2글자/의미성 예: "천 밖에서 치는 운동") 결과 비교 — 키워드는 동일+개선, 의미는 유사
-- [ ] 가용 배지 4종 (available/rented/repair/소모품 null)
-- [ ] 관리자 CRUD 왕복: 등록(사진 포함)→수정(태그 교체, 수량 제약 409)→삭제(R2 정리)
-- [ ] 대여 흐름: 신청/취소/반납 + **재고 초과 동시 신청 409** (batch 가드)
-- [ ] 로그인/프로필/멤버 관리, allowed_emails
-- [ ] 물품 등록·수정 시 임베딩 생성 로그 확인
+**검증 체크리스트 (로컬 사본 + 운영 실측)**
+- [x] 검색 회귀: 정확명(싱잉볼)·부분명(싸인펜 → 10색·11색)·위치(정토회관 30건)·카테고리(불교대)·1-2글자(사진)·'100%' 차단 — 통과. **운영에서 의미 검색 실측**: '싸인펜'에 문구류(편지지·테이프·녹음기·멀티탭)가 RRF 융합으로 붙고, '천 밖에서 치는 운동' 10건 반환(~2s, Workers AI 포함)
+- [x] 가용 배지 4종 — available 58 · repair 1 · 소모품 null · rented(대여중 0이라 분포 확인은 available로 대체; Phase 3 스모크에서 rented 배지 확인) — 로컬 사본과 운영 동일
+- [x] 관리자 CRUD 왕복(로컬 사본): 등록→수정(qty 제약 400)→삭제 — 통과. 사진 포함 등록·R2 정리는 운영에서 관리자 로그인으로 최종 확인 필요(아래 남은 작업)
+- [x] 대여 흐름(로컬 사본, 실데이터): 신청 201 → 초과 400(too_many) → 본인 반납 200. 재고 초과 동시 신청 409 batch 가드는 Phase 3/5 스모크에서 실측
+- [x] 로그인 세션/JWT 검증·프로필·멤버 관리·allowed_emails — Phase 3 스모크 + 운영 401 가드 확인
+- [x] 임베딩 생성: 운영에서 Workers AI 동작 실측(쿼리 임베딩 성공 = 의미 검색 반환). 등록/수정 시 생성 로그는 운영 대시보드에서 최종 확인
+
+**남은 작업 (사용자)**
+- 운영 사이트에서 실제 구글 로그인 → 관리자 화면 CRUD·사진 업로드 1회 확인 (OAuth 세션이 필요해 자동화 불가)
+- **Phase 6.5 (안정화 1주 후)**: `wrangler secret delete DATABASE_URL` → wrangler.jsonc Neon 주석 제거 → Neon 계정 정리
 
 **롤백**: 검증 실패 시 `wrangler rollback`으로 이전 배포 복귀 — Neon은 Phase 6.5(안정화 1주)까지 유지 후 계정 정리. `DATABASE_URL` 시크릿도 1주 유지 후 삭제.
 
