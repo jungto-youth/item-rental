@@ -1,6 +1,6 @@
 # D1 이관 계획 — Neon(Postgres) → Cloudflare D1(SQLite)
 
-> 상태: **전환 완료** — Phase 0~6 완료 (2026-09-23) · 남음: 6.5 안정화 1주 후 시크릿·Neon 정리, Phase 7은 트리거 기반 · 작성: 2026-09 · 예상 공수: 2.5~3일
+> 상태: **완전 완료** — Phase 0~6 + 6.5 정리 완료 (2026-09-23) · Phase 7은 물품 1만+ 시점의 트리거 기반 과제 · 작성: 2026-09 · 실제 공수: 약 1일
 > 목표: 검색 계층을 D1 FTS5(trigram) + 벡터 BLOB + RRF 융합으로 재작성하며 DB를 Neon에서 D1으로 옮긴다
 > 관련 문서: [SPEC.md](SPEC.md) §4.2, [README.md](README.md) 기술 스택 표
 
@@ -214,7 +214,12 @@ tokens = q.trim().split(/\s+/).slice(0, 5)
 
 **남은 작업 (사용자)**
 - 운영 사이트에서 실제 구글 로그인 → 관리자 화면 CRUD·사진 업로드 1회 확인 (OAuth 세션이 필요해 자동화 불가)
-- **Phase 6.5 (안정화 1주 후)**: `wrangler secret delete DATABASE_URL` → wrangler.jsonc Neon 주석 제거 → Neon 계정 정리
+
+**Phase 6.5 정리** ✅ (2026-09-23 — 1주 안정화를 기다리지 않고 즉시 진행, 사용자 요청)
+- [x] `wrangler secret delete DATABASE_URL` — 삭제 후 운영 헬스체크·목록 API 재확인 정상
+- [x] wrangler.jsonc의 Neon 주석 제거 (DATABASE_URL 관리 안내 삭제, D1 코멘트로 대체)
+- ⚠ 롤백 참고: 옛 Neon 코드로 `wrangler rollback` 시 `DATABASE_URL`이 없어 기동 실패 — 롤백이 필요하면 먼저 `wrangler secret put DATABASE_URL` (URL은 `.env`에 보존) 후 진행
+- [ ] Neon 콘솔에서 프로젝트 삭제 — Neon 대시보드는 사용자만 접근 가능하므로 직접 수행 (`.env`의 DATABASE_URL도 함께 무효화됨)
 
 **롤백**: 검증 실패 시 `wrangler rollback`으로 이전 배포 복귀 — Neon은 Phase 6.5(안정화 1주)까지 유지 후 계정 정리. `DATABASE_URL` 시크릿도 1주 유지 후 삭제.
 

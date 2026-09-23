@@ -11,10 +11,8 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
-  // DATABASE_URL (Neon 연결 문자열)은 바인딩이 아닌 시크릿으로 관리:
-  //   로컬: .dev.vars 파일 → `DATABASE_URL=postgresql://...`
-  //   배포: `wrangler secret put DATABASE_URL`
-  // D1 — Neon 이관 대상 (PLAN_D1_이관.md). 전환 완료(Phase 6) 전까지 Neon 시크릿과 병행 유지
+  // D1 — 앱의 메인 데이터베이스 (PLAN/PLAN_D1_이관.md — Neon에서 이관 완료, Phase 6.5 정리까지
+  //   구 시크릿 DATABASE_URL은 2026-09-23 삭제됨. 로컬 개발은 .dev.vars가 아니라 로컬 D1 SQLite를 쓴다)
   "d1_databases": [
     {
       "binding": "DB",
