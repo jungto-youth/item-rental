@@ -3,7 +3,7 @@ import type { AuthConfig } from '@auth/core'
 import type { Bindings } from './types'
 import { getDb, type Sql } from './db'
 
-// SPEC §7.2 — Auth.js (@auth/core) 구글 OAuth + JWT 세션
+// Auth.js (@auth/core) 구글 OAuth + JWT 세션
 // Workers에서 process.env가 없으므로 바인딩 값을 직접 주입한다.
 export function authConfig(env: Bindings, req?: Request): AuthConfig {
   const db = () => getDb(env)
@@ -49,7 +49,7 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
       }),
     ],
     callbacks: {
-      // 최초 로그인 시 members 자동 가입 (§4.1 — 로그인이 곧 가입, 대기/승인 단계 없음)
+      // 최초 로그인 시 members 자동 가입 (로그인이 곧 가입, 대기/승인 단계 없음)
       // 정토회 계정이 아니면 허용목록(DB → 없으면 env 폴백)을 확인한다
       async signIn({ user }) {
         if (!user.email) {
@@ -70,7 +70,8 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
               return false
             })
           if (!allowed) {
-            console.log('로그인 거부 — 허용되지 않는 계정:', user.email)
+            // 이메일은 PII라 로그에 남기지 않는다 — 거부 원인 파악에 도메인 여부만으로 충분
+            console.log('로그인 거부 — 허용되지 않는 계정 (email 로깅 생략)')
             return false
           }
         }
@@ -87,7 +88,7 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
         }
         return true
       },
-      // JWT sub를 members.id로 교체 — 이후 모든 쿼리가 이 값으로 권한 판단 (§8)
+      // JWT sub를 members.id로 교체 — 이후 모든 쿼리가 이 값으로 권한 판단 ()
       async jwt({ token, user }) {
         if (user?.email) {
           const rows = (await db().query('SELECT id FROM members WHERE email = $1', [

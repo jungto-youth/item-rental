@@ -1,8 +1,10 @@
 {
-  // SPEC §7.5 — SPA 폴백 + API 분기
+  // SPA 폴백 + API 분기
   "name": "item-rental",
   "main": "server/src/index.ts",
   "compatibility_date": "2026-09-01",
+  // Workers 로그 영속화 (무료) — 500·임베딩 실패를 대시보드에서 확인할 수 있게
+  "observability": { "enabled": true },
   "assets": {
     "directory": "./web/dist",
     "binding": "ASSETS",
@@ -17,7 +19,7 @@
   ],
   // 의미 검색 임베딩 — Workers AI @cf/baai/bge-m3 (무료 플랜 포함, API 키 불필요)
   "ai": { "binding": "AI" }
-  // v3.0 — 이메일 알림(§4.5)을 뺐으니 `triggers.crons` 도 삭제.
+  // v3.0 — 이메일 알림()을 뺐으니 `triggers.crons` 도 삭제.
   // `scheduled` 핸들러가 `server/src/` 에 없어 트리거만 남아 있으면 매일 01:00 KST 에
-  // 아무 일도 하지 않는 자원 소모만 생긴다. 연체는 조회 시 계산 배지로만 표시한다 (§3·§4.3).
+  // 아무 일도 하지 않는 자원 소모만 생긴다. 연체는 조회 시 계산 배지로만 표시한다 ().
 }

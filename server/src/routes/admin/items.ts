@@ -14,7 +14,7 @@ import {
   MAX_PHOTOS,
 } from "../../services/items.service";
 
-// SPEC §7.4 — /api/admin/items (물품 CRUD + 사진 관리, admin 전용)
+// /api/admin/items (물품 CRUD + 사진 관리, admin 전용)
 // 입력 검증은 여기, SQL·임베딩·R2 관리는 items.service 에 위임
 export const adminItemsRoute = new Hono<{
   Bindings: Bindings;
@@ -32,8 +32,11 @@ const TEXT_ATTRS = [
   "location",
 ] as const;
 
+// 자유 텍스트 상한 — name/description/location 에 비정상적으로 긴 값이 들어오는 걸 막는다
+const MAX_TEXT_LEN = 2000;
+
 function normText(v: unknown): string | null {
-  return typeof v === "string" && v.trim() ? v.trim() : null;
+  return typeof v === "string" && v.trim() ? v.trim().slice(0, MAX_TEXT_LEN) : null;
 }
 
 // 본문에 실제로 전달된 속성만 골라 검증한다 — 전달하지 않은 필드는 기존 값(등록 시엔
@@ -75,7 +78,7 @@ const PHOTO_TYPES: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
-// 바이트(비용)와 픽셀(브라우저 부하)은 막는 대상이 다르다 — 둘 다 검사한다(§4.2).
+// 바이트(비용)와 픽셀(브라우저 부하)은 막는 대상이 다르다 — 둘 다 검사한다().
 // 클라이언트가 1600px·q80 WebP로 줄여 보내므로 정상 업로드는 150KB 안쪽이다.
 // 2MB는 그 경로를 거치지 않은 업로드를 거르는 상한이고, MAX_PHOTO_EDGE는
 // 용량이 작아도 픽셀이 큰 경우(예: 4000×3000 JPEG q25 ≈ 700KB)를 잡는다.
@@ -89,7 +92,7 @@ adminItemsRoute.get("/", async (c) => {
   return c.json({ items });
 });
 
-// 편집용 단건 — 공개 상세(§7.4)와 달리 note(내부 메모)까지 내려준다.
+// 편집용 단건 — 공개 상세()와 달리 note(내부 메모)까지 내려준다.
 // 편집 폼이 공개 상세를 씨드로 쓰면 note가 undefined → ''로 저장되어 메모가 날아간다.
 adminItemsRoute.get("/:id", async (c) => {
   const db: Sql = getDb(c.env);
@@ -104,14 +107,14 @@ adminItemsRoute.get("/:id", async (c) => {
 // (FK 위반은 500 이 아니라 명시 오류가 낫겠지만, 카테고리 생성+물품 등록이 같은 화면에서
 //  순차로 일어나고 조회·생성 모두 같은 세션에 묶여 실제로 닿지 않는다 — 승인 경로만 거친다.)
 adminItemsRoute.post("/", async (c) => {
-  const body = await c.req.json<Record<string, unknown>>();
-  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const name = typeof body.name === "string" ? body.name.trim().slice(0, 200) : "";
   if (!name) return c.json({ error: "name 필수" }, 400);
   const total_qty = Number(body.total_qty ?? 1);
   const status = ITEM_STATUS.includes(body.status as never)
     ? (body.status as string)
     : "active";
-  if (!Number.isInteger(total_qty) || total_qty < 1) {
+  if (!Number.isInteger(total_qty) || total_qty < 1 || total_qty > 100000) {
     return c.json({ error: "total_qty는 1 이상" }, 400);
   }
 
@@ -136,7 +139,8 @@ adminItemsRoute.post("/", async (c) => {
 // 수정 — 전달된 필드만 갱신
 adminItemsRoute.put("/:id", async (c) => {
   const id = Number(c.req.param("id"));
-  const body = await c.req.json<Record<string, unknown>>();
+  if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
 
   // 속성 필드(description/location/size/color/note/kind/qty_broken)를 먼저 수집
   const parsed = readAttrs(body);
@@ -149,7 +153,7 @@ adminItemsRoute.put("/:id", async (c) => {
   }
   if ("total_qty" in body) {
     const total_qty = Number(body.total_qty);
-    if (!Number.isInteger(total_qty) || total_qty < 1) {
+    if (!Number.isInteger(total_qty) || total_qty < 1 || total_qty > 100000) {
       return c.json({ error: "total_qty는 1 이상" }, 400);
     }
     fields.total_qty = total_qty;
@@ -175,6 +179,7 @@ adminItemsRoute.put("/:id", async (c) => {
 // 삭제 — 대여 이력이 있으면 거부 (폐기 상태로 전환 권장)
 adminItemsRoute.delete("/:id", async (c) => {
   const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
   const db: Sql = getDb(c.env);
   const result = await deleteItem(db, c.env, id);
   if ("ok" in result) return c.json({ ok: true });
@@ -187,9 +192,10 @@ adminItemsRoute.delete("/:id", async (c) => {
   return c.json({ error: "not_found" }, 404);
 });
 
-// 사진 업로드 — multipart/form-data "file" 필드 → R2 직접 저장 (§4.2)
+// 사진 업로드 — multipart/form-data "file" 필드 → R2 직접 저장
 adminItemsRoute.post("/:id/photos", async (c) => {
   const itemId = Number(c.req.param("id"));
+  if (!Number.isInteger(itemId)) return c.json({ error: "bad_id" }, 400);
   const form = await c.req.formData();
   const file = form.get("file") as unknown;
   if (!(file instanceof File)) return c.json({ error: "file 필드 필요" }, 400);
@@ -201,7 +207,7 @@ adminItemsRoute.post("/:id/photos", async (c) => {
       400,
     );
   }
-  // 픽셀 검사 — 용량만 보면 재압축한 큰 이미지가 통과한다(§4.2)
+  // 픽셀 검사 — 용량만 보면 재압축한 큰 이미지가 통과한다()
   const dim = imageSize(new Uint8Array(await file.arrayBuffer()));
   if (!dim) return c.json({ error: "이미지 크기를 읽을 수 없습니다" }, 400);
   if (dim.width > MAX_PHOTO_EDGE || dim.height > MAX_PHOTO_EDGE) {
@@ -228,6 +234,8 @@ adminItemsRoute.post("/:id/photos", async (c) => {
 adminItemsRoute.delete("/:id/photos/:photoId", async (c) => {
   const itemId = Number(c.req.param("id"));
   const photoId = Number(c.req.param("photoId"));
+  if (!Number.isInteger(itemId) || !Number.isInteger(photoId))
+    return c.json({ error: "bad_id" }, 400);
   const db: Sql = getDb(c.env);
   const ok = await deletePhoto(db, c.env, itemId, photoId);
   if (!ok) return c.json({ error: "not_found" }, 404);

@@ -1,4 +1,5 @@
 import { LitElement, html, css } from "lit";
+import { confirmDialog } from "../../utils/confirm";
 import { customElement, state } from "lit/decorators.js";
 import { api, ApiError } from "../../api/client";
 import "../../components/ui/badge";
@@ -11,7 +12,7 @@ import "../../components/ui/button";
 import "../../components/ui/select";
 import { rowsCss } from "../../components/ui/rows";
 
-// SPEC §4.4 — 회원 관리: 목록·탈퇴·역할 지정/해제 모두 admin 전용
+// 회원 관리: 목록·탈퇴·역할 지정/해제 모두 admin 전용
 // 역할 변경 보호장치는 서버가 강제: 마지막 관리자 해임 불가
 @customElement("page-admin-members")
 export class PageAdminMembers extends LitElement {
@@ -48,14 +49,15 @@ export class PageAdminMembers extends LitElement {
   }
 
   // 탈퇴 처리 — 활성 회원을 탈퇴시킨다. 약관이 '탈퇴는 관리자에게 요청'이라 안내하는데
-  // 처리 수단이 없어 신설했다(§4.1, v3.1). 소프트 삭제 — 대여 이력은 남고, 복구 경로는 없다.
+  // 처리 수단이 없어 신설했다. 소프트 삭제 — 대여 이력은 남고, 복구 경로는 없다.
   // 마지막 관리자 보호는 서버가 409 로 거부한다.
   private async withdraw(m: AdminMember) {
     const who = m.name || m.email || "이 회원";
     if (
-      !confirm(
+      !(await confirmDialog(
         `'${who}'님을 탈퇴 처리할까요?\n이후 다시 로그인할 수 없습니다.\n대여 중인 물품은 본인이 반납할 수 없어 관리자가 대신 처리해야 합니다.`,
-      )
+        { confirmLabel: "탈퇴 처리" },
+      ))
     )
       return;
     if (this.busy) return;
@@ -84,9 +86,10 @@ export class PageAdminMembers extends LitElement {
       admin: "관리자",
     };
     if (
-      !confirm(
+      !(await confirmDialog(
         `'${m.name || m.email}'님의 역할을 '${label[role]}'(으)로 바꿀까요?`,
-      )
+        { confirmLabel: "변경", danger: false },
+      ))
     ) {
       await this.reload(); // 취소 — select 원복
       return;
@@ -116,7 +119,7 @@ export class PageAdminMembers extends LitElement {
     return html`
       <admin-nav active="members"></admin-nav>
       <x-page-header title="회원 관리"></x-page-header>
-      <p class="msg">${this.message}</p>
+      <p class="msg" aria-live="polite">${this.message}</p>
       ${this.loading
         ? html`<x-empty compact state="loading"></x-empty>`
         : this.members.length === 0
@@ -140,7 +143,7 @@ export class PageAdminMembers extends LitElement {
           ${!m.deactivated_at
         ? html`<x-select
                   ?disabled=${this.busy}
-                  aria-label="역할 지정"
+                  ariaLabel="역할 지정"
                   .value=${m.role}
                   .options=${[
             { value: "user", label: "회원" },

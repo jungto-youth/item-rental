@@ -2,21 +2,13 @@ import { html, type ReactiveControllerHost } from "lit";
 import { Router, type RouteConfig } from "@lit-labs/router";
 import { session } from "./context/session";
 import "./pages/home";
-import "./pages/item-detail";
-import "./pages/login";
-import "./pages/mypage";
-import "./pages/my-rentals";
-import "./pages/signup-profile";
-import "./pages/not-found";
-import "./pages/admin/members";
-import "./pages/admin/allowed-emails";
-import "./pages/admin/reservations";
-import "./pages/admin/dashboard";
-import "./pages/admin/items";
-import "./pages/policy";
 import { setUnauthorizedHandler } from "./api/client";
 
-// SPEC §7.3 — 라우트 가드 (실제 권한은 서버 미들웨어가 이중 강제 — §8)
+// 라우트별 코드 스플릿 — 각 화면을 동적 import(literal 경로, Vite 청크 분할)로 받아
+// 홈 방문자는 관리자 화면 코드를 받지 않는다. 렌더 시작 시점에 import()를 걸고
+// 커스텀 엘리먼트 등록이 끝나면 브라우저가 업그레이드한다.
+
+// 라우트 가드 (실제 권한은 서버 미들웨어가 이중 강제)
 // lit-labs/router의 enter()는 false로 취소만 할 뿐 리다이렉트를 지원하지 않는다.
 // 그래서 목적지로 먼저 이동시킨 뒤 false를 반환해 원래 내비게이션을 취소한다.
 const requireSession: RouteConfig["enter"] = async () => {
@@ -36,7 +28,7 @@ const requireAdmin: RouteConfig["enter"] = async () => {
     return false;
   }
   if (user.role !== "admin") {
-    redirect("/?role=denied"); // 안내는 home(denied 배너)이 표시 — 냉무 리다이렉트 회피(§6)
+    redirect("/?role=denied"); // 안내는 home(denied 배너)이 표시 — 냉무 리다이렉트 회피()
     return false;
   }
   return true;
@@ -47,61 +39,100 @@ const routes: RouteConfig[] = [
   { path: "/", render: () => html`<page-home></page-home>` },
   {
     path: "/items/:id",
-    render: (params) =>
-      html`<page-item-detail .itemId=${params.id ?? ""}></page-item-detail>`,
+    render: (params) => {
+      void import("./pages/item-detail");
+      return html`<page-item-detail .itemId=${params.id ?? ""}></page-item-detail>`;
+    },
   },
-  { path: "/login", render: () => html`<page-login></page-login>` },
+  {
+    path: "/login",
+    render: () => {
+      void import("./pages/login");
+      return html`<page-login></page-login>`;
+    },
+  },
   {
     path: "/mypage",
-    render: () => html`<page-mypage></page-mypage>`,
+    render: () => {
+      void import("./pages/mypage");
+      return html`<page-mypage></page-mypage>`;
+    },
     enter: requireSession,
   },
   {
     path: "/my/rentals",
-    render: () => html`<page-my-rentals></page-my-rentals>`,
+    render: () => {
+      void import("./pages/my-rentals");
+      return html`<page-my-rentals></page-my-rentals>`;
+    },
     enter: requireSession,
   },
   {
     path: "/signup/profile",
-    render: () => html`<page-signup-profile></page-signup-profile>`,
+    render: () => {
+      void import("./pages/signup-profile");
+      return html`<page-signup-profile></page-signup-profile>`;
+    },
     enter: requireSession,
   },
   {
     path: "/admin",
-    render: () => html`<page-admin-dashboard></page-admin-dashboard>`,
+    render: () => {
+      void import("./pages/admin/dashboard");
+      return html`<page-admin-dashboard></page-admin-dashboard>`;
+    },
     enter: requireAdmin,
   },
   {
     path: "/admin/items",
-    render: () => html`<page-admin-items></page-admin-items>`,
+    render: () => {
+      void import("./pages/admin/items");
+      return html`<page-admin-items></page-admin-items>`;
+    },
     enter: requireAdmin,
   },
   {
     path: "/admin/reservations",
-    render: () => html`<page-admin-reservations></page-admin-reservations>`,
+    render: () => {
+      void import("./pages/admin/reservations");
+      return html`<page-admin-reservations></page-admin-reservations>`;
+    },
     enter: requireAdmin,
   },
   {
     path: "/admin/members",
-    render: () => html`<page-admin-members></page-admin-members>`,
+    render: () => {
+      void import("./pages/admin/members");
+      return html`<page-admin-members></page-admin-members>`;
+    },
     enter: requireAdmin,
   },
   {
     path: "/admin/allowed-emails",
-    render: () => html`<page-admin-allowed-emails></page-admin-allowed-emails>`,
+    render: () => {
+      void import("./pages/admin/allowed-emails");
+      return html`<page-admin-allowed-emails></page-admin-allowed-emails>`;
+    },
     enter: requireAdmin,
   },
   {
     path: "/policy/:kind",
-    render: (params) =>
-      html`<page-policy
+    render: (params) => {
+      void import("./pages/policy");
+      return html`<page-policy
         .kind=${params.kind === "terms" ? "terms" : "privacy"}
-      ></page-policy>`,
+      ></page-policy>`;
+    },
   },
 ];
 
 // 매칭 실패 → 404
-const fallback = { render: () => html`<page-not-found></page-not-found>` };
+const fallback = {
+  render: () => {
+    void import("./pages/not-found");
+    return html`<page-not-found></page-not-found>`;
+  },
+};
 
 // 풀 리로드가 사라져 브라우저의 스크롤 리셋도 사라졌다.
 // Router는 내비게이션 이벤트를 내지 않으므로 goto()를 감싸 링크 클릭·popstate·navigate를 모두 잡는다.

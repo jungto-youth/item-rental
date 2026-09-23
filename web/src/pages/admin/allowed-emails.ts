@@ -10,7 +10,7 @@ import "../../components/ui/button";
 import "../../components/ui/input";
 import { rowsCss } from "../../components/ui/rows";
 
-// SPEC §7.2 보조 — 로그인 허용 예외 이메일 관리: 목록·추가·제거 모두 admin 전용
+// 로그인 허용 예외 이메일 관리: 목록·추가·제거 모두 admin 전용
 // @jungto.org 계정은 이 목록과 무관하게 항상 로그인 가능 — 여기엔 그 외 계정만 등록한다.
 @customElement("page-admin-allowed-emails")
 export class PageAdminAllowedEmails extends LitElement {

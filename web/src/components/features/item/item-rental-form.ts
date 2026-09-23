@@ -344,7 +344,7 @@ export class ItemRentalForm extends LitElement {
         </div>
 
         ${this.message
-        ? html`<p class="msg ${this.isSuccess ? "success" : "error"}">${this.message}</p>`
+        ? html`<p class="msg ${this.isSuccess ? "success" : "error"}" aria-live="polite">${this.message}</p>`
         : ""}
 
         <x-button variant="primary" size="md" type="submit" ?loading=${this.saving}>

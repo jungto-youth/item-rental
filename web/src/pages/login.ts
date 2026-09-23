@@ -3,7 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import { reduceMotion } from "../styles/motion";
 import "../components/ui/button";
 
-// SPEC §7.2 — 소셜 로그인 (구글 전용)
+// 소셜 로그인 (구글 전용)
 // @auth/core 0.41은 GET signin/:provider를 지원하지 않으므로(UnknownAction),
 // POST signin + CSRF 토큰으로 OAuth 리다이렉트 URL을 받은 뒤 full-page 이동한다.
 @customElement("page-login")
@@ -11,7 +11,7 @@ export class PageLogin extends LitElement {
   @state() private busy = false;
   @state() private message = "";
 
-  // OAuth 콜백에서 로그인이 거부되면 ?error=와 함께 이 화면으로 돌아옴 (§7.2)
+  // OAuth 콜백에서 로그인이 거부되면 ?error=와 함께 이 화면으로 돌아옴 ()
   connectedCallback() {
     super.connectedCallback();
     const params = new URLSearchParams(window.location.search);
@@ -99,7 +99,7 @@ export class PageLogin extends LitElement {
             ${this.busy ? "이동 중…" : "구글로 로그인"}
           </x-button>
         </div>
-        <p class="msg">${this.message}</p>
+        <p class="msg" aria-live="polite">${this.message}</p>
         <p class="links">
           <a href="/policy/privacy">개인정보처리방침</a>·<a href="/policy/terms"
             >이용약관</a

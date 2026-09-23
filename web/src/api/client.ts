@@ -1,4 +1,4 @@
-// SPEC §7.2 — fetch 래퍼 (401 처리는 1주차 인증 플로우에서 확장)
+// fetch 래퍼 (401 처리는 1주차 인증 플로우에서 확장)
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -20,12 +20,30 @@ export function setUnauthorizedHandler(fn: UnauthorizedHandler) {
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   // FormData(사진 업로드)는 브라우저가 multipart boundary를 자동 지정하게 둬야 함 — content-type 수동 지정 금지
   const isForm = init?.body instanceof FormData;
-  const res = await fetch(path, {
-    ...init,
-    headers: isForm
-      ? init?.headers
-      : { "content-type": "application/json", ...init?.headers },
-  });
+  // 네트워크 실패가 원문(TypeError "Failed to fetch") 그대로 화면에 나오지 않게 감싸고,
+  // 응답 없는 요청이 무한 대기하지 않게 타임아웃을 둔다 (업로드는 여유 60초)
+  const timeoutMs = isForm ? 60_000 : 15_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(path, {
+      ...init,
+      signal: init?.signal ?? controller.signal,
+      headers: isForm
+        ? init?.headers
+        : { "content-type": "application/json", ...init?.headers },
+    });
+  } catch (err) {
+    throw new ApiError(
+      0,
+      err instanceof DOMException && err.name === "AbortError"
+        ? "요청이 오래 걸려 중단됐어요 — 잠시 후 다시 시도해 주세요"
+        : "네트워크에 연결할 수 없어요 — 연결 상태를 확인해 주세요",
+    );
+  } finally {
+    clearTimeout(timer);
+  }
   if (res.status === 401) onUnauthorized?.();
   if (!res.ok) {
     let code = "";

@@ -1,4 +1,6 @@
+import { getCategories } from "../../../utils/categories";
 import { LitElement, html, css } from "lit";
+import { confirmDialog } from "../../../utils/confirm";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
 import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
@@ -165,10 +167,10 @@ export class ItemEditDialog extends LitElement {
       return;
     }
     try {
-      const res = await api<{ categories: Category[] }>("/api/categories");
-      this.categoryOptions = res.categories.map((c) => c.name);
+      const cats = await getCategories();
+      this.categoryOptions = cats.map((c) => c.name);
       this.tagNames = categoryIds
-        .map((id) => res.categories.find((c) => c.id === id))
+        .map((id) => cats.find((c) => c.id === id))
         .flatMap((c) => (c ? [c.name] : []));
     } catch {
       this.tagNames = [];
@@ -208,7 +210,7 @@ export class ItemEditDialog extends LitElement {
 
   private async handleDeleteItem() {
     if (!this.item) return;
-    if (!confirm(`'${this.item.name}' 물품을 정말 삭제하시겠습니까?`)) return;
+    if (!(await confirmDialog(`'${this.item.name}' 물품을 정말 삭제할까요?`, { confirmLabel: "삭제" }))) return;
 
     try {
       await api(`/api/admin/items/${this.item.id}`, { method: "DELETE" });
@@ -299,6 +301,7 @@ export class ItemEditDialog extends LitElement {
               구분
               <x-select
                 size="lg"
+                ariaLabel="구분"
                 .value=${f.kind}
                 .options=${[
         { value: "rental", label: "대여품" },
@@ -312,6 +315,7 @@ export class ItemEditDialog extends LitElement {
               상태
               <x-select
                 size="lg"
+                ariaLabel="상태"
                 .value=${f.status}
                 .options=${[
         { value: "active", label: "정상" },

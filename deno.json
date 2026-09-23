@@ -9,7 +9,7 @@
     "dev:api": "wrangler dev",
     "build": "vite build",
     "deploy": "vite build && wrangler deploy",
-    "check": "tsc --noEmit -p web && tsc --noEmit -p server",
+    "check": "tsc --noEmit -p web && tsc --noEmit -p server && deno check --sloppy-imports server/tests server/scripts",
     "test": "deno test -A --sloppy-imports server/tests",
     "db:migrate": "deno run -A server/scripts/migrate.ts",
     "db:seed": "deno run -A server/scripts/seed.ts",

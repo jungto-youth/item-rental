@@ -1,3 +1,4 @@
+import { getCategories } from "../../../utils/categories";
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
@@ -107,8 +108,7 @@ export class ItemCreateDialog extends LitElement {
   // 칩 에디터 자동완성 후보 — 기존 카테고리 이름 목록 (없는 경우도 허용)
   private async loadCategoryOptions() {
     try {
-      const res = await api<{ categories: Category[] }>("/api/categories");
-      this.categoryOptions = res.categories.map((c) => c.name);
+      this.categoryOptions = (await getCategories()).map((c) => c.name);
     } catch {
       this.categoryOptions = [];
     }
@@ -248,6 +248,7 @@ export class ItemCreateDialog extends LitElement {
               구분
               <x-select
                 size="lg"
+                ariaLabel="구분"
                 .value=${f.kind}
                 .options=${[
         { value: "rental", label: "대여품" },
@@ -261,6 +262,7 @@ export class ItemCreateDialog extends LitElement {
               상태
               <x-select
                 size="lg"
+                ariaLabel="상태"
                 .value=${f.status}
                 .options=${[
         { value: "active", label: "정상" },

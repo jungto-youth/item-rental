@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # deno.lock 기준 설치 — check가 node_modules의 tsc/vite를 쓰므로 필요
+      - name: Install dependencies
+        run: deno install
+
+      - name: Typecheck (web + server + tests + scripts)
+        run: deno task check
+
+      - name: Unit tests (DB 불필요 — Sql 스텁)
+        run: deno task test

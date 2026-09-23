@@ -1,6 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { api } from "../api/client";
+import { fmtKstDate } from "../utils/date";
 import { session } from "../context/session";
 import "../components/ui/badge";
 import "../components/ui/empty";
@@ -8,7 +9,7 @@ import "../components/ui/page-header";
 import type { MyReservation } from "../types";
 import { reduceMotion } from "../styles/motion";
 
-// SPEC §4.1 — 대여 내역 페이지: 현재 대여 중 + 대여 이력 + 반납·취소
+// 대여 내역 페이지: 현재 대여 중 + 대여 이력 + 반납·취소
 @customElement("page-my-rentals")
 export class PageMyRentals extends LitElement {
   @state() private loading = true;
@@ -185,7 +186,7 @@ export class PageMyRentals extends LitElement {
   }
 
   private fmtDate(iso: string): string {
-    return iso.slice(0, 10);
+    return fmtKstDate(iso);
   }
 
   private async doCancel(r: MyReservation) {

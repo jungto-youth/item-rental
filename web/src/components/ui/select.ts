@@ -14,8 +14,47 @@ export class XSelect extends LitElement {
     @property({ type: Boolean, reflect: true }) disabled = false;
     @property() placeholder = "선택";
     @property({ reflect: true }) size: "sm" | "md" | "lg" = "sm";
+    // 접근성 — <label for>는 섀도 경계를 못 넘으므로 라벨 텍스트를 이 속성으로 넣어
+    // 트리거 버튼에 붙인다
+    @property() ariaLabel = "";
 
     @state() private open = false;
+
+    protected updated(changed: Map<string | number | symbol, unknown>) {
+        super.updated(changed);
+        // 열릴 때 현재 선택 항목(없으면 첫 항목)으로 포커스를 옮긴다
+        if (changed.has("open") && this.open) {
+            requestAnimationFrame(() => {
+                const buttons = this.optionButtons;
+                const idx = Math.max(0, this.options.findIndex((o) => o.value === this.value));
+                (buttons[idx] ?? buttons[0])?.focus();
+            });
+        }
+    }
+
+    private get optionButtons(): HTMLButtonElement[] {
+        return Array.from(
+            this.shadowRoot?.querySelectorAll<HTMLButtonElement>(".menu button") ?? [],
+        );
+    }
+
+    // 목록 모델 — 화살표로 항목 사이를 순환하고 Home·End로 끝으로 이동한다.
+    // 클릭·Enter·Space 선택은 option이 button이라 자동 동작한다.
+    private onMenuKeydown(e: KeyboardEvent) {
+        const buttons = this.optionButtons;
+        if (buttons.length === 0) return;
+        const i = buttons.indexOf(e.target as HTMLButtonElement);
+        const last = buttons.length - 1;
+        let next = -1;
+        if (e.key === "ArrowDown") next = i >= last ? 0 : i + 1;
+        else if (e.key === "ArrowUp") next = i <= 0 ? last : i - 1;
+        else if (e.key === "Home") next = 0;
+        else if (e.key === "End") next = last;
+        if (next >= 0) {
+            e.preventDefault();
+            buttons[next].focus();
+        }
+    }
 
     static styles = css`
     :host {
@@ -199,6 +238,7 @@ export class XSelect extends LitElement {
         class="trigger size-${this.size} ${this.open ? "open" : ""}"
         aria-haspopup="listbox"
         aria-expanded=${this.open}
+        aria-label=${this.ariaLabel || undefined}
         ?disabled=${this.disabled}
         @click=${this.toggle}
       >
@@ -206,7 +246,7 @@ export class XSelect extends LitElement {
       </button>
       ${this.open
                 ? html`
-            <div class="menu" role="listbox">
+            <div class="menu" role="listbox" @keydown=${this.onMenuKeydown}>
               ${this.options.map(
                     (o) => html`
                   <button

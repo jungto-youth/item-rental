@@ -16,32 +16,7 @@ import {
   type CreateReservationParams,
   type ReserveItem,
 } from "../src/services/reservations.service.ts";
-import type { Sql } from "../src/db.ts";
-
-type Row = Record<string, unknown>;
-type Query = { text: string; values: unknown[] };
-
-// neon Sql의 최소 스텁 — 태그드 템플릿 호출(트랜잭션 배치 구성)과 query()·transaction()만
-// 흉내낸다. 실제 SQL은 실행하지 않고, 각 쿼리의 텍스트·바인딩만 기록한다.
-function stubSql(script: {
-  query: (text: string, values: unknown[]) => Row[];
-  transaction: (queries: Query[]) => unknown;
-}) {
-  const calls: Query[] = [];
-  const tag = (strings: TemplateStringsArray, ...values: unknown[]): Query => {
-    const query = { text: strings.join("?"), values };
-    calls.push(query);
-    return query;
-  };
-  const db = Object.assign(tag, {
-    query: async (text: string, values: unknown[] = []) => {
-      calls.push({ text, values });
-      return script.query(text, values);
-    },
-    transaction: async (queries: Query[]) => script.transaction(queries),
-  });
-  return { db: db as unknown as Sql, calls };
-}
+import { stubSql, type Query } from "./_stub.ts";
 
 // 대여 가능한 물품 (재고 2, 수리중 0)
 const RENTAL_ITEM: ReserveItem = {
@@ -245,7 +220,7 @@ Deno.test("returnReservationByMember: SQL 이 본인·대여 중 조건을 모�
   await returnReservationByMember(db, 5, "member-1");
 
   const update = calls[0].text;
-  // member_id 조건이 빠지면 남의 대여를 반납 처리할 수 있다 (§6.5)
+  // member_id 조건이 빠지면 남의 대여를 반납 처리할 수 있다 ()
   assertEquals(/member_id = \$2/.test(update), true);
   assertEquals(/status = 'rented'/.test(update), true);
 });

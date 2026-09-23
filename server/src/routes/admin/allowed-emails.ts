@@ -9,7 +9,7 @@ import {
   normalizeEmail,
 } from "../../services/allowed-emails.service";
 
-// SPEC §7.2 보조 — 로그인 허용 예외 이메일 관리 (admin 전용)
+// 로그인 허용 예외 이메일 관리 (admin 전용)
 // 등록/제거는 어드민 화면에서, env 변수 AUTH_ALLOWED_EMAILS 는 비상용 폴백 (auth.ts)
 export const adminAllowedEmailsRoute = new Hono<{
   Bindings: Bindings;

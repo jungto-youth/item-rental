@@ -16,10 +16,31 @@ import { adminDashboardRoute } from "./routes/admin/dashboard";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
+// --- 공통 가드 ---
+// 세션은 쿠키(HttpOnly, SameSite=Lax)라 cross-site POST 에는 실리지 않지만,
+// SameSite 정책이 바뀌거나 서브도메인 경로에서 방어선이 하나 더 필요하다 —
+// 상태 변경 요청의 Origin 헤더가 같은 origin 이 아니면 거부한다.
+// /api/auth/* 는 Auth.js가 자체 CSRF 검증을 하므로 통과시킨다.
+app.use("/api/*", async (c, next) => {
+  if (!c.env.AUTH_SECRET) throw new Error("AUTH_SECRET 미설정 — 시크릿/환경변수를 확인하세요");
+  if (c.req.method !== "GET" && c.req.method !== "HEAD" && !c.req.path.startsWith("/api/auth/")) {
+    const origin = c.req.header("origin");
+    const host = c.req.header("host");
+    if (origin && host) {
+      try {
+        if (new URL(origin).host !== host) return c.json({ error: "bad_origin" }, 403);
+      } catch {
+        return c.json({ error: "bad_origin" }, 403);
+      }
+    }
+  }
+  await next();
+});
+
 // --- 헬스체크 ---
 app.get("/api/health", (c) => c.json({ ok: true }));
 
-// --- 인증 (Auth.js — §7.2) ---
+// --- 인증 (Auth.js) ---
 // signin/callback/signout 전부 Auth.js가 처리 (full-page redirect 방식)
 // req를 넘겨 127.0.0.1 → localhost 정규화 (Google OAuth redirect_uri 등록 문제)
 app.all("/api/auth/*", (c) => Auth(c.req.raw, authConfig(c.env, c.req.raw)));
@@ -32,7 +53,7 @@ app.get("/api/me", async (c) => {
 });
 
 // --- 사진 서빙 (R2) ---
-// 키에 UUID가 포함되어 불변 → 1년 캐시. /api/*는 run_worker_first로 워커가 처리 (§7.5)
+// 키에 UUID가 포함되어 불변 → 1년 캐시. /api/*는 run_worker_first로 워커가 처리 ()
 app.get("/api/photos/*", async (c) => {
   const key = c.req.path.slice("/api/photos/".length);
   if (!key || key.includes("..")) return c.json({ error: "bad_key" }, 400);
@@ -42,6 +63,8 @@ app.get("/api/photos/*", async (c) => {
   obj.writeHttpMetadata(headers);
   headers.set("etag", obj.httpEtag);
   headers.set("cache-control", "public, max-age=31536000, immutable");
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("content-disposition", "inline");
   return new Response(obj.body, { headers });
 });
 

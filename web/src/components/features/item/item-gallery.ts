@@ -105,7 +105,8 @@ export class ItemGallery extends LitElement {
         ${current
           ? html`<img
               src=${current.url}
-              alt=${this.name}
+              alt=""
+              loading="lazy"
               @error=${this.handleMainError}
             />`
           : "📦"}

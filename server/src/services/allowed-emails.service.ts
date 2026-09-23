@@ -1,5 +1,5 @@
 // 로그인 허용 예외 이메일 도메인 서비스 — 목록/추가/삭제 SQL 을 직접 소유
-// SPEC §7.2 보조 — @jungto.org 외 계정의 로그인 허용을 어드민 화면에서 관리.
+// 구글 OAuth 로그인 게이트 보조 — @jungto.org 외 계정의 로그인 허용을 어드민 화면에서 관리.
 // env 변수 AUTH_ALLOWED_EMAILS 는 비상용 폴백으로 병행 사용된다 (auth.ts).
 import type { Sql } from "../db";
 

@@ -8,7 +8,7 @@ import {
   deleteCategory,
 } from "../../services/categories.service";
 
-// SPEC §7.4 — /api/admin/categories (카테고리 생성·이름변경·삭제, admin 전용)
+// /api/admin/categories (카테고리 생성·이름변경·삭제, admin 전용)
 // 물품 등록 다이얼로그에서 새 이름을 쓰면 생성이 자동으로 호출되고,
 // 이름 변경은 id 기준이라 물품 전체에 반영된다. 삭제된 카테고리의 물품은 미지정이 된다.
 export const adminCategoriesRoute = new Hono<{
@@ -23,7 +23,7 @@ function readName(body: Record<string, unknown>): string | null {
 }
 
 adminCategoriesRoute.post("/", async (c) => {
-  const body = await c.req.json<Record<string, unknown>>();
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
   const name = readName(body);
   if (!name) return c.json({ error: "name 필수" }, 400);
 
@@ -36,7 +36,7 @@ adminCategoriesRoute.post("/", async (c) => {
 adminCategoriesRoute.patch("/:id", async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
-  const body = await c.req.json<Record<string, unknown>>();
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
   const name = readName(body);
   if (!name) return c.json({ error: "name 필수" }, 400);
 

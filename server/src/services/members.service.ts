@@ -1,5 +1,5 @@
 // 회원(Member) 도메인 서비스 — 목록/탈퇴/역할 SQL 을 직접 소유
-// SPEC §4.1·§4.4 — 소프트 삭제(이력 보존), 마지막 관리자 보호
+// 소프트 삭제(이력 보존), 마지막 관리자 보호
 import type { Sql } from "../db";
 import type { Role } from "../types";
 
@@ -19,7 +19,7 @@ export type WithdrawResult =
   | { error: "last_admin" };
 
 // 탈퇴 처리 — 관리자가 활성 회원을 탈퇴시킨다. 약관이 회원에게 '탈퇴는 관리자에게 요청'이라
-// 안내하는데 처리 수단이 없어 신설(§4.1, v3.1). 소프트 삭제 — 대여 이력 보존 위해 행 삭제 대신
+// 안내하는데 처리 수단이 없어 신설. 소프트 삭제 — 대여 이력 보존 위해 행 삭제 대신
 // deactivated_at 기록(재가입 경로는 없고 복구도 안 함 — 탈퇴는 되돌릴 수 없다). 마지막 관리자
 // 보호는 역할 핸들러와 같은 기준.
 export async function withdrawMember(
@@ -69,7 +69,10 @@ export async function setMemberRole(
   // 마지막 관리자 보호 — 해임하면 관리 기능 사용 불가 (본인 포함)
   if (target.role === "admin" && role !== "admin") {
     const cnt = (await db.query(
-      `SELECT COUNT(*)::int AS n FROM members WHERE role = 'admin'`,
+      // 탈퇴(deactivated)된 관리자는 관리 기능을 못 쓰므로 개수에서 빼야 한다 —
+      // withdrawMember 와 같은 기준. 누락하면 탈퇴 관리자가 재적돼 활성 관리자가 0이 될 수 있다
+      `SELECT COUNT(*)::int AS n FROM members
+        WHERE role = 'admin' AND deactivated_at IS NULL`,
     )) as {
       n: number;
     }[];

@@ -1,11 +1,11 @@
-// 업로드 전 클라이언트 이미지 리사이즈 (§4.2)
-// — 본문 최대 폭 640px @2x retina 여유인 최장 변 1600px, WebP q80으로 재인코딩.
+// 업로드 전 클라이언트 이미지 리사이즈 ()
+// 본문 최대 폭 640px @2x retina 여유인 최장 변 1600px, WebP q80으로 재인코딩.
 // R2 10GB 스토리지 절감 + 페이지 로딩 단축 + EXIF(위치정보 포함) 자동 제거.
 // 원본은 보관하지 않고 변환본만 업로드. Safari 등 WebP 인코딩 미지원 브라우저는 JPEG 폴백.
 export const PHOTO_OK = ["image/jpeg", "image/png", "image/webp"];
 // 원본 선택 한도(5MB) — 사용자가 고르는 원본 크기 기준이다.
 // 서버 한도(2MB, server/src/routes/admin/items.ts)와 값이 다른 게 정상:
-// 여기서는 변환 전 원본을, 서버는 1600px·WebP로 줄인 결과물을 검사한다 (§4.2).
+// 여기서는 변환 전 원본을, 서버는 1600px·WebP로 줄인 결과물을 검사한다 ().
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 const MAX_EDGE = 1600;

@@ -52,7 +52,7 @@ web/src/
   components/ui/          — badge
   utils/photo.ts          — 사진 리사이즈·업로드 (1600px WebP)
   pages/                  — home, item-detail, mypage, login, signup-profile, policy, admin/*
-migrations/               — Neon 마이그레이션 SQL (0001~0019). `_migrations` 이력 기준 파일당 1회 실행 — 적용된 파일은 수정하지 않는다(추가 전용)
+migrations/               — Neon 마이그레이션 SQL (0001~0021, 0012는 삭제 이력 있음). `_migrations` 이력+해시 기준 파일당 1회 실행 — 적용된 파일은 수정하지 않는다(추가 전용)
 server/scripts/           — migrate, seed, reembed, import-items, backfill-remove-item-attrs (Deno)
 ```
 
@@ -103,7 +103,7 @@ server/scripts/           — migrate, seed, reembed, import-items, backfill-rem
 
 ## DB 스키마 (요약)
 
-`members` · `items` · `item_photos` · `reservations` — 전체 DDL과 가용성 쿼리는 [SPEC.md](SPEC.md) §6.
+`members` · `items` · `item_photos` · `reservations` — 전체 DDL과 가용성 쿼리는 [SPEC.md](SPEC.md)
 
 ## SPA 라우트
 
@@ -156,8 +156,8 @@ deno task db:import-items    # 실물 시트 물품 일괄 반영
 
 1. Neon 콘솔에서 현재 브랜치로 **dev 브랜치 생성**
 2. `.env` 와 `.dev.vars` 의 `DATABASE_URL` 만 브랜치 URL 로 교체 (프로덕션 시크릿은 그대로 둔다)
-3. `deno task db:migrate` — 신규 DB 경로 검증을 겸한다 (0001~0018 이 순서대로 전부 적용되는지)
-4. 필요하면 `deno task db:seed`
+3. `deno task db:migrate` — 신규 DB 경로 검증을 겸한다 (0001~0021 이 순서대로 전부 적용되는지)
+4. 필요하면 `deno task db:seed -- --confirm` (실수 방지 가드 — 대상 호스트를 먼저 출력하고 플래그 없으면 중단)
 
 ### 환경 변수 (`.dev.vars` / `wrangler secret put`)
 
