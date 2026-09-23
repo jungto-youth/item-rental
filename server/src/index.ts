@@ -13,6 +13,7 @@ import { adminMembersRoute } from "./routes/admin/members";
 import { adminAllowedEmailsRoute } from "./routes/admin/allowed-emails";
 import { adminReservationsRoute } from "./routes/admin/reservations";
 import { adminDashboardRoute } from "./routes/admin/dashboard";
+import { adminReembedRoute } from "./routes/admin/reembed";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -79,6 +80,7 @@ app.route("/api/admin/members", adminMembersRoute);
 app.route("/api/admin/allowed-emails", adminAllowedEmailsRoute);
 app.route("/api/admin/reservations", adminReservationsRoute);
 app.route("/api/admin/dashboard", adminDashboardRoute);
+app.route("/api/admin/reembed-all", adminReembedRoute);
 
 // --- 에러 처리 ---
 app.notFound((c) => c.json({ error: "not_found" }, 404));

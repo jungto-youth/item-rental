@@ -1,40 +1,13 @@
-// 예시 데이터 시드 — deno task db:seed
-// 멱등: 물품 이름 중복 시 건너뜀 → 몇 번 돌려도 안전
-import { neon } from '@neondatabase/serverless'
-
-// .env 로드 (migrate.ts와 동일 패턴 — 실제 환경변수가 우선)
-try {
-  const envFile = await Deno.readTextFile(new URL('../../.env', import.meta.url))
-  for (const line of envFile.split('\n')) {
-    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/)
-    if (m && Deno.env.get(m[1]) === undefined) {
-      Deno.env.set(m[1], m[2].replace(/^["']|["']$/g, ''))
-    }
-  }
-} catch {
-  // .env 없으면 건너뜀
-}
-
-const url = Deno.env.get('DATABASE_URL')
-if (!url) {
-  console.error('DATABASE_URL 미설정 — .env 파일(또는 환경변수)을 확인하세요')
-  Deno.exit(1)
-}
-// 기본값은 로컬·프로덕션이 같은 DB 를 가리킨다 — 시드는 데이터를 바꾸므로
-// 대상 호스트를 먼저 보여주고 --confirm 플래그로 명시적 승인을 받는다
-let targetHost = 'unknown'
-try {
-  targetHost = new URL(url).host
-} catch {
-  // 파싱 실패 시 그대로 진행 — neon() 이 오류를 낸다
-}
-if (!Deno.args.includes('--confirm')) {
-  console.error(`이 스크립트는 DB 에 데이터를 씁니다. 대상: ${targetHost}`)
-  console.error('진행하려면 --confirm 플래그를 붙여 실행하세요: deno task db:seed -- --confirm')
-  Deno.exit(1)
-}
-console.log(`DB 대상: ${targetHost}`)
-const sql = neon(url)
+// 예시 데이터 시드 — deno task db:seed (PLAN §8)
+// 워커 밖 스크립트는 D1에 직접 연결할 수 없으므로 INSERT SQL을 생성하고
+// wrangler d1 execute 로 적용한다:
+//   deno task db:seed                                                    # out/seed.sql 생성
+//   npx wrangler d1 execute item-rental-db --local  --file=server/scripts/out/seed.sql
+//   npx wrangler d1 execute item-rental-db --remote --file=server/scripts/out/seed.sql
+//
+// 멱등: 같은 이름의 물품이 있으면 INSERT를 건너뛴다(NOT EXISTS) — 파일을 몇 번 적용해도 안전.
+// FTS: items_fts(rowid = items.id)에 검색 텍스트를 함께 넣는다(PLAN §7.3) — 기존 물품 중
+//      FTS 행이 없는 것도 여기서 같이 채워진다(가드가 중복을 막는다).
 
 // --- 예시 물품 (v2.5 — 카테고리 없음, 탐색은 검색으로) ---
 const ITEMS = [
@@ -55,22 +28,36 @@ const ITEMS = [
   { name: '접이식 운반 카트', description: '물품 나를 때 사용하는 접이식 카트.', total_qty: 2 },
 ]
 
-// 멱등 — 이미 있는 물품은 건너뜀
-const existing = (await sql.query('SELECT name FROM items')) as { name: string }[]
-const have = new Set(existing.map((r) => r.name))
+// SQL 문자열 리터럴 — ' 를 '' 로 이중화
+const q = (s: string) => `'${s.replace(/'/g, "''")}'`
 
-let added = 0
+const stmts: string[] = []
 for (const it of ITEMS) {
-  if (have.has(it.name)) {
-    console.log(`· ${it.name} — 이미 있음, 건너뜀`)
-    continue
-  }
-  await sql.query(
-    `INSERT INTO items (name, description, total_qty) VALUES ($1, $2, $3)`,
-    [it.name, it.description, it.total_qty],
+  stmts.push(
+    `INSERT INTO items (name, description, total_qty)\n` +
+      `SELECT ${q(it.name)}, ${q(it.description)}, ${it.total_qty}\n` +
+      `WHERE NOT EXISTS (SELECT 1 FROM items WHERE name = ${q(it.name)});`,
   )
-  added++
-  console.log(`✓ ${it.name}`)
+  // INSERT가 0행(이미 있음)이어도 FTS 행이 없으면 채운다 — 가드가 멱등성을 보장
+  stmts.push(
+    `INSERT INTO items_fts (rowid, name, description, location, tags)\n` +
+      `SELECT i.id, i.name, COALESCE(i.description, ''), COALESCE(i.location, ''), ''\n` +
+      `FROM items i WHERE i.name = ${q(it.name)}\n` +
+      `  AND NOT EXISTS (SELECT 1 FROM items_fts WHERE rowid = i.id);`,
+  )
 }
 
-console.log(`시드 완료 — 물품 ${added}개 추가`)
+const outDir = new URL('./out/', import.meta.url)
+await Deno.mkdir(outDir, { recursive: true })
+const out = new URL('./out/seed.sql', import.meta.url)
+await Deno.writeTextFile(
+  out,
+  `-- 시드 데이터 (deno task db:seed 생성) — 재적용 멱등\n\n` +
+    stmts.join('\n') +
+    '\n',
+)
+
+console.log(`생성: server/scripts/out/seed.sql — 물품 ${ITEMS.length}종 (멱등 가드 포함, FTS 동기화 포함)`)
+console.log('\n적용:')
+console.log('  npx wrangler d1 execute item-rental-db --local  --file=server/scripts/out/seed.sql')
+console.log('  npx wrangler d1 execute item-rental-db --remote --file=server/scripts/out/seed.sql')

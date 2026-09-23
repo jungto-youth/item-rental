@@ -54,7 +54,7 @@ web/src/
   pages/                  — home, item-detail, mypage, login, signup-profile, policy, admin/*
 migrations-d1/            — D1 마이그레이션 SQL (0001_baseline — 현재 최종 형태). `wrangler d1 migrations apply item-rental-db`
 migrations/               — Neon 마이그레이션 SQL (0001~0023, 레거시 — Phase 6 전환 후 정리 예정). `_migrations` 이력+해시 기준 파일당 1회 실행 — 적용된 파일은 수정하지 않는다(추가 전용)
-server/scripts/           — migrate, seed, reembed, import-items, backfill-remove-item-attrs (Deno)
+server/scripts/           — seed, import-items, export-neon-to-d1 (Deno — D1용 SQL 생성), backfill-remove-item-attrs (Neon 레거시, 실행 대상 아님)
 ```
 
 ## 주요 API
@@ -144,29 +144,36 @@ deno task test        # 단위 테스트 (server/tests — DB 불필요, Sql 스
 deno task build       # vite build → web/dist
 deno task deploy      # vite build && wrangler deploy
 
-# DB (server/scripts/*.ts)
-deno task db:migrate         # migrations/*.sql 순차 적용 — `_migrations` 이력 기준 파일당 1회
-deno task db:seed            # 더미 데이터
-deno task db:reembed         # 임베딩 백필 — DB 직접 INSERT 뒤 필수
-deno task db:import-items    # 실물 시트 물품 일괄 반영
+# DB (server/scripts/*.ts — D1용 SQL 생성 + wrangler d1 execute 적용)
+deno task db:seed            # 시드 SQL 생성 → out/seed.sql
+deno task db:import-items    # 실물 시트 물품 일괄 반영 SQL 생성 → out/import-*.csv.sql
+deno task db:export-neon     # Neon 데이터 펌프 SQL 생성 → out/d1-data.sql (Phase 6 이관용)
+
+# 생성된 SQL 적용
+npx wrangler d1 execute item-rental-db --local  --file=server/scripts/out/seed.sql
+npx wrangler d1 execute item-rental-db --remote --file=server/scripts/out/seed.sql
+
+# 스키마
+npx wrangler d1 migrations apply item-rental-db --local    # migrations-d1/ 적용 (--remote 도 동일)
+
+# 임베딩 백필 — DB 직접 INSERT 뒤 필수 (Workers AI는 워커 안에서만 호출 가능)
+#   관리자 세션으로 POST /api/admin/reembed-all 를 반복 호출 — next_after 가 null 이면 완료
+#   curl -X POST .../api/admin/reembed-all -b "authjs.session-token=..." -d '{}'
 ```
 
 `deno task` 목록은 `deno task`(인자 없이)로 확인한다. 작업 디렉터리는 `deno.json`이 있는 루트다.
 
-주의: DB 스크립트는 **`.env`** 를, `wrangler dev`는 **`.dev.vars`** 를 읽는다. 둘 다 `DATABASE_URL`이 필요하다 (두 파일 모두 git 추적 제외).
+주의: `db:export-neon` 은 **`.env`** 의 `DATABASE_URL`(Neon)을 읽고, `wrangler` 는 **`.dev.vars`** 를 읽는다 (두 파일 모두 git 추적 제외).
 
-기본값은 **로컬·프로덕션이 같은 Neon DB** 를 가리킨다 — 배포 없이 실데이터를 볼 수 있는 대신, `db:seed`·`db:import-*` 실수가 곧 실데이터 변경이고 배포 전 코드가 실 DB 를 만진다. 분리하려면:
+D1 이후 로컬(`wrangler dev`)과 프로덕션(배포된 워커)은 **자동으로 다른 DB** 를 쓴다 — 로컬은 로컬 D1 SQLite 파일, 배포는 `wrangler d1 execute item-rental-db --remote` 로 만진다. 로컬에 시드를 넣으려면 `deno task db:seed` → `--local` 적용.
 
-1. Neon 콘솔에서 현재 브랜치로 **dev 브랜치 생성**
-2. `.env` 와 `.dev.vars` 의 `DATABASE_URL` 만 브랜치 URL 로 교체 (프로덕션 시크릿은 그대로 둔다)
-3. `deno task db:migrate` — 신규 DB 경로 검증을 겸한다 (0001~0021 이 순서대로 전부 적용되는지)
-4. 필요하면 `deno task db:seed -- --confirm` (실수 방지 가드 — 대상 호스트를 먼저 출력하고 플래그 없으면 중단)
+`DATABASE_URL`(Neon)은 Phase 6 데이터 이관(`db:export-neon`)까지 `db:export-neon` 전용으로만 쓰인다 — 앱은 더 이상 읽지 않는다.
 
 ### 환경 변수 (`.dev.vars` / `wrangler secret put`)
 
 | 변수                                    | 용도                                                  |
 | --------------------------------------- | ----------------------------------------------------- |
-| `DATABASE_URL`                          | Neon 연결 문자열 (`postgresql://...`)                 |
+| `DATABASE_URL`                          | Neon 연결 문자열 — `db:export-neon` 전용 (Phase 6 이관 후 삭제 예정) |
 | `AUTH_SECRET`                           | Auth.js JWT 서명 시크릿                               |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | 구글 OAuth 클라이언트                                 |
 | `AUTH_ALLOWED_EMAILS`                   | 로그인 허용 예외 이메일 (콤마 구분) — 비상용 폴백. 정식 관리는 어드민 허용 이메일 페이지 |

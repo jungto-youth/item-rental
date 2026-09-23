@@ -1,6 +1,6 @@
 # D1 이관 계획 — Neon(Postgres) → Cloudflare D1(SQLite)
 
-> 상태: 진행 중 — Phase 0~4 완료 (2026-09-23) · 작성: 2026-09 · 예상 공수: 2.5~3일
+> 상태: 진행 중 — Phase 0~5 완료 (2026-09-23) · 작성: 2026-09 · 예상 공수: 2.5~3일
 > 목표: 검색 계층을 D1 FTS5(trigram) + 벡터 BLOB + RRF 융합으로 재작성하며 DB를 Neon에서 D1으로 옮긴다
 > 관련 문서: [SPEC.md](SPEC.md) §4.2, [README.md](README.md) 기술 스택 표
 
@@ -183,15 +183,17 @@ tokens = q.trim().split(/\s+/).slice(0, 5)
 - [x] `SPEC.md` §4.2: "키워드(ILIKE) → 의미 순 배치" → "3개 랭킹(FTS5 bm25 / LIKE 폴백 / BLOB 코사인) RRF 융합", 1-2글자 폴백 명시. 스키마 표시도 D1 기준으로 갱신(embedding BLOB, strftime 기본값)
 - [x] README 기술 스택 표: DB 행 → `Cloudflare D1 (SQLite)`, 검색 행 갱신 + 검색 절·디렉터리 안내(db.ts 어댑터, migrations-d1) 갱신
 
-## 8. Phase 5 — 스크립트 이관 (반나절)
+## 8. Phase 5 — 스크립트 이관 (반나절) ✅ (완료 2026-09-23)
 
 | 스크립트 | 처리 |
 |---|---|
-| `scripts/migrate.ts` | 은퇴 — `wrangler d1 migrations apply item-rental-db --remote`로 대체 |
-| `scripts/seed.ts`, `import-items.ts` | getDb 어댑터 + D1: 로컬은 `wrangler dev` 바인딩, 리모트는 `wrangler d1 execute`용 SQL 생성 모드. import 시 FTS 삽입 포함 |
-| `scripts/backfill-remove-item-attrs.ts` | 과거 마이그레이션 보조 — 보존만, 실행 대상 아님 표시 |
-| `scripts/reembed.ts` | Workers AI는 워커 밖에서 호출 불가 → **관리자 임시 엔드포인트** `POST /api/admin/reembed-all` (admin 가드) 로 대체, 완료 후 유지(재사용 저렴) |
-| 신규 `scripts/export-neon-to-d1.ts` | §9 데이터 펌프 |
+| `scripts/migrate.ts` | ✅ **삭제** — `wrangler d1 migrations apply item-rental-db`로 대체, `db:migrate` 태스크 제거 |
+| `scripts/seed.ts`, `import-items.ts` | ✅ **SQL 생성 모드로 통일** (§8 원안의 "로컬은 wrangler dev 바인딩" 대신): 워커 밖에서 D1 바인딩을 쓰려면 `getPlatformProxy` 같은 별도 런타임이 필요하지만, `wrangler d1 execute --local/--remote --file=` 한 경로로 통일하면 §9 적용 절차와 같은 도구가 되고 의존성도 줄어든다. 둘 다 `NOT EXISTS` 멱등 가드 INSERT + `items_fts` 삽입(가드가 중복·고아를 막는다) 포함, `--update`는 UPDATE+FTS DELETE+INSERT. 적용 대상 파일을 `server/scripts/out/`에 생성하고 wrangler 명령을 안내 |
+| `scripts/backfill-remove-item-attrs.ts` | ✅ 보존만, 헤더에 "실행 대상 아님" 표시 (Neon 방언 레거시) |
+| `scripts/reembed.ts` | ✅ **삭제** → `POST /api/admin/reembed-all` (routes/admin/reembed.ts, admin 가드). 무료 플랜 요청당 서브리퀘스트 50 한계 때문에 커서 방식 15건/요청 — `{processed, next_after}` 반환, `next_after`가 null이면 끝. 임베딩 실패는 삼켜지므로(기존 embedItem 계약) 기본 모드 재호출로 재시도된다 |
+| 신규 `scripts/export-neon-to-d1.ts` | ✅ §9 데이터 펌프 — pgvector 텍스트 → f32 LE `X'hex'` BLOB 리터럴(1024차원 검증), timestamptz(Date 객체) → ISO 문자열, `items_fts`를 태그 재구성해 함께 생성. 선두에 FK 역순 DELETE(재적용 멱등 — **새 D1 DB에만 적용** 주의문), 콘솔에 행수 요약(§9.3 대사 기준) 출력 |
+
+**스모크**: `db:seed` 생성 → 로컬 적용(물품 15종 추가, FTS 15행) → 재적용 멱등 확인 → '코펠'(FTS)/'텐트'(LIKE) 검색 히트. reembed 엔드포인트 401 가드, 배치 15건 `next_after=15` → 이어서 2건 `next_after=null` 종료 — 실측 통과
 
 ## 9. Phase 6 — 데이터 이관 · 전환 · 검증 (반나절)
 

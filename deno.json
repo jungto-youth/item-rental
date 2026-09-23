@@ -11,9 +11,8 @@
     "deploy": "vite build && wrangler deploy",
     "check": "tsc --noEmit -p web && tsc --noEmit -p server && deno check --sloppy-imports server/tests server/scripts",
     "test": "deno test -A --sloppy-imports server/tests",
-    "db:migrate": "deno run -A server/scripts/migrate.ts",
     "db:seed": "deno run -A server/scripts/seed.ts",
-    "db:reembed": "deno run -A --sloppy-imports server/scripts/reembed.ts",
-    "db:import-items": "deno run -A server/scripts/import-items.ts"
+    "db:import-items": "deno run -A server/scripts/import-items.ts",
+    "db:export-neon": "deno run -A server/scripts/export-neon-to-d1.ts"
   }
 }

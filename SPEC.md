@@ -248,7 +248,7 @@ RETURNING id;
 
 ### 6.3 임베딩 백필
 
-`embedding`은 물품 등록/수정 API 안에서만 생성된다. 실물 시트 일괄 반영처럼 **DB에 직접 INSERT하는 경로는 임베딩을 남기지 못하고**, 목록 쿼리가 `embedding IS NOT NULL`인 행만 후보로 삼으므로 그 물품들은 의미 검색에서 조용히 빠진다(에러 없음). 등록/수정 API를 거치지 않는 일괄 입력 뒤에는 `deno task db:reembed`를 실행한다.
+`embedding`은 물품 등록/수정 API 안에서만 생성된다. 실물 시트 일괄 반영처럼 **DB에 직접 INSERT하는 경로는 임베딩을 남기지 못하고**, 그 물품들은 의미 검색에서 조용히 빠진다(에러 없음 — 키워드 검색은 동작). 등록/수정 API를 거치지 않는 일괄 입력 뒤에는 관리자 세션으로 `POST /api/admin/reembed-all`을 `next_after`가 `null`이 될 때까지 반복 호출한다(Workers AI는 워커 밖에서 호출 불가).
 
 ### 6.4 연결 방식
 

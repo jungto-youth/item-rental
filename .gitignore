@@ -14,3 +14,6 @@ dist/
 # 시트 반영 파이프라인 — 스크립트(build.py·review.py)와 물품 원장
 # (items.csv·review.csv·xa-review.csv)은 커밋한다. 공개 repo 에서 "어떻게 옮겼는지"가
 # 남아야 하고, 재실행 없이도 원본을 대조할 수 있다.
+
+# DB 스크립트 생성물 (db:seed·db:import-items·db:export-neon)
+server/scripts/out/
