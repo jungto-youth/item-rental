@@ -80,6 +80,11 @@ const KEYWORD_CAP = 40;
 
 // 가중치 점수 식 — boolean::int 로 매치를 1/0 으로 세어 가중치를 곱해 더한다.
 // nullable 컬럼은 COALESCE 로 감싸지 않으면 NULL이 점수 전체를 오염시킨다.
+// LIKE 와일드카드(% _ \) 이스케이프 — '100%' 검색이 전부 매치되지 않게
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, "\\$&");
+}
+
 function scoreExpr(tokens: string[]): { expr: string; params: string[] } {
   let p = 0;
   const terms = tokens.map(() => {
@@ -95,7 +100,12 @@ function scoreExpr(tokens: string[]): { expr: string; params: string[] } {
                           AND c.name ILIKE '%' || ${tag} || '%'))::int)
         + 1 * ((COALESCE(items.description, '') ILIKE '%' || ${desc} || '%')::int))`;
   });
-  return { expr: `(${terms.join(" + ")})`, params: tokens.flatMap((t) => [t, t, t, t]) };
+  // 토큰은 파라미터 바인딩이라 SQL 주입은 없지만, %·_ 가 그대로 바인딩되면
+  // 와일드카드로 작동해 '100%' 같은 검색어가 모든 물품에 점수를 주게 된다
+  return {
+    expr: `(${terms.join(" + ")})`,
+    params: tokens.map(escapeLike).flatMap((t) => [t, t, t, t]),
+  };
 }
 
 export async function searchKeywordRanked(
