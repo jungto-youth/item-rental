@@ -1,6 +1,6 @@
 # 청년지부 물품 대여 사이트 — 사양서 (SPEC)
 
-지부 회원(계정제)이 보유 물품을 검색해 수량과 메모로 대여하고, 관리자가 반납을 처리하는 소규모 서비스(물품 97개). Cloudflare(호스팅·저장소) + Neon(PostgreSQL) 위에서 동작한다.
+지부 회원(계정제)이 보유 물품을 검색해 수량과 메모로 대여하고, 관리자가 반납을 처리하는 소규모 서비스(물품 97개). Cloudflare(호스팅·저장소·D1) 위에서 동작한다.
 
 현재 구현 상태는 [README.md](README.md)를 본다.
 
@@ -57,8 +57,8 @@
 - 목록: 검색 + 가용 배지 3종 — `available`(대여 가능) / `rented`(대여 중) / `repair`(수리중 — 상태가 `repair`이거나 `rentable_qty ≤ 0`). 검색 대상은 이름·설명·위치·카테고리 이름
 - **카테고리 (0020 재도입 → 0021 다대다)** — 0005·0011에서 두 번 제거했던 카테고리를 '관리자가 물품 등록·수정 중에 직접 만들고 고치는 가벼운 분류'로 복원했다. `categories(id, name UNIQUE)` + 조인 테이블 `item_categories(item_id, category_id)` — 물품 하나가 카테고리 여러 개에 속할 수 있고 아예 없을 수도 있다(0021에서 단일 FK를 승격). 회원 화면에는 필터로 노출하지 않고 ①검색 ②상세 화면에만 보인다. 등록·수정 다이얼로그는 태그 칩 에디터(이름 입력 + 엔터/콤마로 추가, ✕로 제거) — 새 이름이면 저장 시점에 `POST /api/admin/categories` 로 먼저 만들고 id 배열을 보낸다. 관리(추가·이름변경·삭제)는 `/admin/items` 물품 관리 페이지의 '카테고리 관리' 모달에서 하고, 카테고리 삭제 시 조인 행이 함께 사라져 물품은 그대로 남는다(태그만 없어진다)
   - 검색어가 없으면 폐기(`retired`)를 뺀 전체 목록을 최근 등록 순으로 보여준다
-  - **키워드 매치**(이름·설명·보관 위치 ILIKE)를 먼저, **의미 매치**(pgvector)를 그 뒤에 배치한다
-  - 의미 검색: Workers AI `@cf/baai/bge-m3`로 쿼리 임베딩 → 코사인 거리 상위 8개(거리 < 0.75) 중 키워드에 없는 물품만 추가. bge-m3 거리는 0.4~0.65에 뭉쳐 절대 임계로는 관련/무관을 가르지 못하므로 상대 랭킹으로만 쓴다. 임베딩은 등록/수정 시 자동 생성하고, 실패하면 키워드 검색만 동작한다(폴백)
+  - **검색은 3개 랭킹의 RRF 융합** — ① FTS5(trigram) `bm25` 키워드 랭킹(3글자 이상 토큰, AND) ② 1-2글자 토큰의 LIKE 가중치 폴백(trigram은 3글자 미만 토큰을 만들 수 없다 — 텐트·매트 같은 짧은 단어) ③ 의미 매치(벡터 BLOB JS 코사인). `score = Σ 1/(60+rank)`로 융합해 상위 30개만 내린다
+  - 의미 검색: Workers AI `@cf/baai/bge-m3`로 쿼리 임베딩 → 물품 벡터(D1 BLOB 1024×f32, isolate 캐시) 전수 JS 코사인 상위 8개(유사도 ≥ 0.25)를 세 번째 랭킹으로 투입. bge-m3 유사도는 0.4~0.65에 뭉쳐 절대 임계로는 관련/무관을 가르지 못하므로 상대 랭킹으로만 쓴다. 임베딩은 등록/수정 시 자동 생성하고, 실패하면 키워드 검색만 동작한다(폴백)
 - 물품 속성: `kind`(대여품 `rental` / 소모품 `consumable`), `location`(보관 위치), `qty_broken`(수리중 수량) — 실물 시트에서 들어온 값이라 비어 있을 수 있고 **전부 선택 항목**이다. `size`/`color`/`note`는 로직·검색에 안 쓰여 0016에서 컬럼을 제거했고, 시트의 원본사이즈는 등록 시 설명으로 접는다(backfill-remove-item-attrs.ts 동일 규칙). 보관 위치는 상세·편집 폼에만 표시하고 카드에는 띄우지 않는다(청년물품은 '정토회관' 단일 값이라 잡음)
   - 소모품: **대여 대상이 아니다.** 상세는 신청 폼 대신 "소모품은 대여 대상이 아니에요" 안내와 재고(`전체 보유`)만 보여주고, 홈 카드·상세에 가용 배지와 "대여 가능" 수량을 내리지 않는다(서버가 `availability_badge`를 `null`로 반환). API로 직접 신청해도 서버가 `409 consumable`로 거부한다. 재고 조정은 관리자만 가능하다
 - 상세: 사진(최대 3장), 설명, 보유 수량, 실시간 잔여 수량
@@ -171,17 +171,17 @@ CREATE TABLE IF NOT EXISTS members (
 );
 
 CREATE TABLE IF NOT EXISTS items (
-  id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  id          INTEGER PRIMARY KEY,               -- rowid 별칭 — items_fts.rowid 와 같다
   name        TEXT NOT NULL,
   description TEXT,
   status      TEXT NOT NULL DEFAULT 'active',   -- active | repair | retired
   total_qty   INTEGER NOT NULL DEFAULT 1,
-  embedding   vector(1024),                     -- 의미 검색 (pgvector) — 등록/수정 시 자동 생성
+  embedding   BLOB,                             -- 1024×f32 LE — 의미 검색, 등록/수정 시 자동 생성
   source_key  TEXT,                             -- 실물 시트 행 키('Y26-*') — 일괄 반영의 멱등 키
   kind        TEXT NOT NULL DEFAULT 'rental',   -- rental 대여품 | consumable 소모품
   location    TEXT,                             -- 보관 위치
   qty_broken  INTEGER NOT NULL DEFAULT 0,       -- 수리중 수량 — rentable_qty 에서 차감
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 -- 0016: size/color/note 컬럼 제거 (규격·색상·내부 메모 — 로직·검색에 미사용, 등록 폼에도 없었음)
 -- 대여 기간 정책(items.max_days)은 0015에서 제거했다 — 날짜 개념 자체가 없다

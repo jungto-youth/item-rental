@@ -1,6 +1,6 @@
 # D1 이관 계획 — Neon(Postgres) → Cloudflare D1(SQLite)
 
-> 상태: 진행 중 — Phase 0~3 완료 (2026-09-23) · 작성: 2026-09 · 예상 공수: 2.5~3일
+> 상태: 진행 중 — Phase 0~4 완료 (2026-09-23) · 작성: 2026-09 · 예상 공수: 2.5~3일
 > 목표: 검색 계층을 D1 FTS5(trigram) + 벡터 BLOB + RRF 융합으로 재작성하며 DB를 Neon에서 D1으로 옮긴다
 > 관련 문서: [SPEC.md](SPEC.md) §4.2, [README.md](README.md) 기술 스택 표
 
@@ -142,46 +142,46 @@ export function getDb(env: Bindings): Sql { /* env.DB.prepare().bind().all() / e
 
 ## 7. Phase 4 — 검색 재작성 `search.service.ts` + `embedding.ts` (1일)
 
-### 7.1 `embedding.ts`
+### 7.1 `embedding.ts` ✅ (완료 — Phase 3에서 선행, §6 규칙표 `embedding <=> $1::vector → JS 코사인` 적용분)
 
-- `embed(env, text): Promise<Float32Array>` — `'[...]'` 문자열 반환을 Float32Array로 변경
-- `vecToBlob(v: Float32Array): ArrayBuffer` / `blobToVec(b: ArrayBuffer): { v: Float32Array; norm: number }` (little-endian 고정)
-- `embedItem`: `UPDATE items SET embedding = ?1` (BLOB 파라미터) + isolate 벡터 캐시 갱신
-- `string_agg` → `group_concat` (서브쿼리 정렬)
+- [x] `embed(env, text): Promise<Float32Array>` — `'[...]'` 문자열 반환을 Float32Array로 변경
+- [x] `vecToBlob(v: Float32Array): Uint8Array` / `blobToVec(b): Vec` (DataView 명시 little-endian, 노름 선계산)
+- [x] `embedItem`: `UPDATE items SET embedding = ?1` (BLOB 파라미터) + isolate 벡터 캐시 갱신
+- [x] `string_agg` → `group_concat` (서브쿼리 정렬) — **파생 테이블 별명(`) c`) 필수, 누락 시 `no such column`** (Phase 3 스모크에서 발견·수정)
 
-### 7.2 벡터 캐시 (`search.service.ts` 또는 `embedding.ts`)
+### 7.2 벡터 캐시 (`embedding.ts`에 배치 — search.service와의 import 순환 회피) ✅ (완료)
 
-- `Map<number, { v: Float32Array; norm: number }>` — 최초 의미검색 시 `SELECT id, embedding FROM items WHERE embedding IS NOT NULL` 일괄 로드
-- 갱신: `embedItem` 성공 시 해당 항목 교체, 삭제 시 제거. 기존 `QUERY_VEC_CACHE`(쿼리 임베딩) 무변경
+- [x] `Map<number, { v: Float32Array; norm: number }>` — 최초 의미검색 시 `SELECT id, embedding FROM items WHERE embedding IS NOT NULL` 일괄 로드
+- [x] 갱신: `embedItem` 성공 시 `cacheVec` 교체, `deleteItem` 성공 시 `uncacheVec` 제거. 기존 `QUERY_VEC_CACHE`(쿼리 임베딩) 무변경
 
-### 7.3 FTS5 동기화 지점 (contentful 테이블, `rowid = items.id`)
+### 7.3 FTS5 동기화 지점 (contentful 테이블, `rowid = items.id`) ✅ (완료 — Phase 3)
 
-- `createItem`: INSERT 직후 `INSERT INTO items_fts(rowid, name, description, location, tags) VALUES (?,?,?,?,?)` — tags는 카테고리 이름 공백 조인 (`embedItem`이 쓰는 것과 동일 텍스트 규칙)
-- `updateItem`: name/description/location 변경 시 `UPDATE`, 카테고리 변경 시 tags 재계산 → 같은 batch로 원자 처리
-- `deleteItem`: `DELETE FROM items_fts WHERE rowid = ?` 같은 batch
-- `import-items.ts`: FTS 삽입 포함
+- [x] `createItem`: INSERT + 카테고리 교체 후 `syncItemFts` — `DELETE+INSERT INTO items_fts` batch (FTS5는 UPSERT 미지원)
+- [x] `updateItem`: 컬럼 변경 또는 카테고리 변경 시 `syncItemFts` (행을 재조회해 name/description/location/tags 재구성)
+- [x] `deleteItem`: `DELETE items RETURNING` + `DELETE items_fts WHERE rowid = ?` 같은 batch — 고아 방지
+- [ ] `import-items.ts`: FTS 삽입 포함 → **§8 (Phase 5) scripts 전환과 함께**
 
-### 7.4 검색 흐름 (`searchItemsCombined` 재작성)
+### 7.4 검색 흐름 (`searchHybrid` 재작성) ✅ (완료)
 
 ```
 tokens = q.trim().split(/\s+/).slice(0, 5)
-1) FTS5:  MATCH '"토큰1" AND "토큰2" …'  (토큰을 큰따옴표로 감싸 FTS5 구문 주입 차단, " → "")
-          ORDER BY bm25(items_fts) LIMIT 50 → id 랭킹 리스트
-          ※ 1-2글자 토큰은 trigram 매치 불가 → 해당 토큰만 기존 escapeLike + LIKE 폴백
-2) 벡터:  쿼리 임베딩(캐시) × isolate 벡터 전수 코사인, similarity ≥ 0.25 상위 8
-          (기존 거리 < 0.75 동등 이동)
-3) RRF:   score(id) = Σ 1/(60 + rank)  — bm25 리스트 + 코사인 리스트 융합
-4) 목록:  buildListSql WHERE items.id IN (…) — 사진/태그/active_now/배지 기존 그대로
-5) 의미검색 실패(Workers AI 오류) 시: 키워드 결과만 — 기존 폴백 동작 유지
+1) FTS5:  MATCH '"토큰1" AND "토큰2" …'  (토큰을 큰따옴표로 감싸 FTS5 구문 주입 차단, " → "")   ✅ ftsQuery + 단위 테스트
+          ORDER BY bm25(items_fts), rowid DESC LIMIT 50 → id 랭킹 리스트                          ✅ searchFtsRanked
+          ※ 1-2글자 토큰은 trigram 매치 불가 → 해당 토큰만 기존 escapeLike + LIKE 폴백            ✅ splitKeywordTokens + searchLikeRankedIds
+2) 벡터:  쿼리 임베딩(캐시) × isolate 벡터 전수 코사인, similarity ≥ 0.25 상위 8                  ✅ semanticRankIds
+3) RRF:   score(id) = Σ 1/(60 + rank)  — bm25·LIKE·코사인 3리스트 융합                            ✅ fuseRRF(number[][], k=60)
+4) 목록:  buildListSql WHERE items.id IN (SELECT value FROM json_each(?1)) — 목록 컬럼 그대로     ✅
+5) 의미검색 실패(Workers AI 오류) 시: 키워드 결과만 — 기존 폴백 동작 유지                          ✅ semanticRankIds가 [] 반환
 ```
 
-- 삭제되는 코드: ILIKE 가중치 점수식(`search.service.ts:81-100`), `searchItems`의 OR-루프, `string_to_array/ANY` 우회
-- 통계 쿼리(`:62-63`): `SUM(CASE WHEN …)`로
+- [x] 삭제되는 코드: ILIKE 가중치 점수식, `searchKeywordRanked`의 행 랭킹, `string_to_array/ANY` 우회 (Phase 3에서 이미 제거)
+- [x] 통계 쿼리: `SUM(CASE WHEN …)`로 (Phase 3에서 완료)
+- **구현 노트**: FTS 행은 상태를 모르므로 폐기 물품은 최종 목록 SQL(`status <> 'retired'`)에서 걸러진다. bm25 동률 tiebreak는 `rowid DESC` (최근 등록 우선 관례). 로컬 스모크: FTS 경로(점프로프), LIKE 경로(요가·매트 운동), FTS AND 두 토큰, '100%' 와일드카드 차단 — 전부 실측 통과. 의미 축은 배포 환경에서만 검증 가능(로컬 AI 바인딩 불가 — 폴백 동작은 확인)
 
-### 7.5 SPEC 반영
+### 7.5 SPEC 반영 ✅ (완료)
 
-- `SPEC.md` §4.2: "키워드(ILIKE) → 의미 순 배치" → "FTS5 bm25 × pgvector→BLOB 코사인을 RRF 융합"으로 갱신, FTS5 폴백(1-2글자) 명시
-- README 기술 스택 표: DB 행 `Neon (PostgreSQL 16)` → `Cloudflare D1 (SQLite)`, 검색 행 갱신
+- [x] `SPEC.md` §4.2: "키워드(ILIKE) → 의미 순 배치" → "3개 랭킹(FTS5 bm25 / LIKE 폴백 / BLOB 코사인) RRF 융합", 1-2글자 폴백 명시. 스키마 표시도 D1 기준으로 갱신(embedding BLOB, strftime 기본값)
+- [x] README 기술 스택 표: DB 행 → `Cloudflare D1 (SQLite)`, 검색 행 갱신 + 검색 절·디렉터리 안내(db.ts 어댑터, migrations-d1) 갱신
 
 ## 8. Phase 5 — 스크립트 이관 (반나절)
 

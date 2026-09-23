@@ -13,8 +13,8 @@
 | 클라이언트      | Lit 3 + TypeScript                            | Shadow DOM 캡슐화 웹 컴포넌트 SPA                     |
 | 클라이언트 빌드 | Vite                                          | `web/dist` 산출물을 그대로 배포                       |
 | 라우팅·상태     | @lit-labs/router · @lit/context               | history API 라우트 가드 / session·toast 컨텍스트      |
-| DB              | Neon (PostgreSQL 16)                          | `@neondatabase/serverless` HTTP 드라이버 (fetch 기반) |
-| 검색            | Cloudflare Workers AI `@cf/baai/bge-m3`       | pgvector `vector(1024)` 의미 검색, API 키 불필요      |
+| DB              | Cloudflare D1 (SQLite)                        | 바인딩 호출 — Neon HTTP 왕복 제거 (PLAN/PLAN_D1_이관.md) |
+| 검색            | Cloudflare Workers AI `@cf/baai/bge-m3`       | FTS5(trigram) bm25 × 벡터 BLOB 코사인 RRF 융합, API 키 불필요 |
 | 이미지          | Cloudflare R2                                 | 사진 저장 + 이그레스 0 — `/api/photos/*`로 서빙       |
 | 인증            | Auth.js                                       | 구글 OAuth + JWT 세션 (HttpOnly 쿠키)                 |
 | 배포            | Wrangler CLI                                  | `deno task deploy`                                    |
@@ -38,7 +38,7 @@
 ```
 server/src/
   index.ts                — Hono 앱 (라우트 마운트, /api/photos/* R2 서빙, SPA 폴백)
-  types.ts / db.ts        — Bindings·SessionUser 타입 / Neon HTTP 드라이버 초기화
+  types.ts / db.ts        — Bindings·SessionUser 타입 / D1 Sql 어댑터 (query/batch)
   auth.ts                 — Auth.js 설정 (구글 OAuth, 이메일 제한, JWT)
   embedding.ts / image-size.ts — 임베딩 / 이미지 검사
   middleware/auth.ts      — requireAuth(getSessionUser) / requireAdmin
@@ -52,7 +52,8 @@ web/src/
   components/ui/          — badge
   utils/photo.ts          — 사진 리사이즈·업로드 (1600px WebP)
   pages/                  — home, item-detail, mypage, login, signup-profile, policy, admin/*
-migrations/               — Neon 마이그레이션 SQL (0001~0021, 0012는 삭제 이력 있음). `_migrations` 이력+해시 기준 파일당 1회 실행 — 적용된 파일은 수정하지 않는다(추가 전용)
+migrations-d1/            — D1 마이그레이션 SQL (0001_baseline — 현재 최종 형태). `wrangler d1 migrations apply item-rental-db`
+migrations/               — Neon 마이그레이션 SQL (0001~0023, 레거시 — Phase 6 전환 후 정리 예정). `_migrations` 이력+해시 기준 파일당 1회 실행 — 적용된 파일은 수정하지 않는다(추가 전용)
 server/scripts/           — migrate, seed, reembed, import-items, backfill-remove-item-attrs (Deno)
 ```
 
@@ -95,8 +96,10 @@ server/scripts/           — migrate, seed, reembed, import-items, backfill-rem
 
 ## 검색
 
-- **키워드**: 공백 구분 단어 AND — 이름·설명·보관 위치 ILIKE
-- **의미**: 쿼리 임베딩 → pgvector 코사인 거리 상위 8개(거리 < 0.75)를 키워드 결과 뒤에 추가
+- **융합**: 키워드 랭킹(FTS5 bm25)·1-2글자 LIKE 폴백 랭킹·의미 랭킹(코사인)을 RRF로 합산해 상위 30개만 내린다 — 여러 랭킹에 걸린 물품이 위로 온다
+- **키워드(FTS5)**: 3글자 이상 토큰 — items_fts(trigram) `MATCH` + `bm25()` 랭킹, 토큰은 AND
+- **LIKE 폴백**: 1-2글자 토큰은 trigram을 만들 수 없어 가중치 LIKE 점수(이름 ×3·태그/위치 ×2·설명 ×1)로 별도 랭킹
+- **의미**: 쿼리 임베딩 → 물품 벡터 BLOB(D1, isolate 캐시) 전수 JS 코사인 상위 8개(유사도 ≥ 0.25)
 - 임베딩은 물품 등록/수정 시 자동 생성, 실패하면 키워드 검색만으로 폴백
 - 쿼리 임베딩은 워커 isolate 메모리에 100개까지 캐시한다(검색어 정규화 키) — 같은 검색어를 반복해도 Workers AI 를 다시 부르지 않는다
 - 검색어가 없으면 폐기(`retired`) 물품을 뺀 전체 목록을 보여준다

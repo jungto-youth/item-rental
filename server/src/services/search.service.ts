@@ -1,12 +1,12 @@
 // 검색·탐색 서비스 — "탐색"(전체 목록 무한스크롤)과 "검색"(랭킹된 짧은 리스트)을 분리한다.
-// 검색 = 키워드(OR-완화 가중치 랭킹) + 의미(벡터 BLOB JS 코사인) 후보를 RRF로 융합해 상위 N개만 내린다.
+// 검색 = FTS5 bm25 랭킹(3글자↑ 토큰) + LIKE 폴백 랭킹(1-2글자 토큰) + 의미(벡터 BLOB JS 코사인)
+// 를 RRF로 융합해 상위 N개만 내린다 (PLAN §7.4).
 // 검색에는 페이지네이션이 없다 — 퍼지 매치의 꼬리는 노이즈라 "2페이지"가 의미 없다.
-// (PLAN §7.4 — Phase 4에서 키워드 축이 FTS5 bm25로 교체된다. LIKE 폴백은 그때도 1-2글자용으로 남는다)
 import type { Sql } from "../db";
 import type { Bindings } from "../types";
 import type { ListItemRow } from "./items.service";
 import { parseJsonCol } from "./items.service";
-import { embed, getVectorCache, type Vec } from "../embedding";
+import { embed, getVectorCache } from "../embedding";
 
 // 배지까지 계산된 목록 행 — 화면(web/src/types.ts Item)과 같은 모양
 export type ListItemWithBadge = ListItemRow & {
@@ -79,23 +79,47 @@ export async function listItems(
   };
 }
 
-// ===== 키워드 검색 (OR-완화 + 가중치 랭킹) =====
-// 토큰별 점수: 이름 ×3 · 태그/위치 ×2 · 설명 ×1. AND가 아니라 OR이므로 토큰 하나만
-// 맞아도 후보가 되고, 점수 순으로 여러 토큰을 다 맞춘 물품이 위로 온다.
-// (기존 AND 검색은 토큰 하나만 안 맞아도 결과 0개라 의미 검색 폴백에 전부 의존했다)
-// Phase 4(PLAN §7.4)에서 이 축은 FTS5 bm25로 교체된다 — 그 전까지 ILIKE → LIKE 로 유지한다.
-// SQLite LIKE 는 ASCII만 케이스를 무시한다 — 한글엔 무영향.
-const KEYWORD_CAP = 40;
+// ===== 키워드 검색 (FTS5 bm25 + 1-2글자 LIKE 폴백, PLAN §7.4) =====
+// trigram 인덱스는 3글자 이상 토큰만 매치할 수 있다 — 3글자 이상은 FTS5 MATCH + bm25,
+// 1-2글자(텐트·매트 같은 짧은 단어)는 escapeLike + LIKE 폴백으로 각각 독립 랭킹을 만들어
+// RRF에서 융합한다. 후보 상한 50 — RRF 전 단계 후보라 넉넉히 뽑아도 최종 상위 30에 걸러진다.
+const KEYWORD_CAP = 50;
 
-// 가중치 점수 식 — SQLite 에선 LIKE/EXISTS 가 이미 1/0 을 돌려줘 Postgres 의 ::int 캐스트가 필요 없다.
-// nullable 컬럼은 COALESCE 로 감싸지 않으면 NULL이 점수 전체를 오염시킨다.
+// 토큰 길이 분리 — [...t] 코드 포인트 기준(한글 1글자 = 1)으로 센다
+export function splitKeywordTokens(tokens: string[]): { long: string[]; short: string[] } {
+  const long: string[] = [];
+  const short: string[] = [];
+  for (const t of tokens) ([...t].length >= 3 ? long : short).push(t);
+  return { long, short };
+}
+
+// FTS5 MATCH 구문 — 토큰을 큰따옴표로 감싸 구문 주입 차단(AND·NEAR 같은 예약어도 리터럴이 됨),
+// 내부 " 는 "" 로 이중화한다
+export function ftsQuery(tokens: string[]): string {
+  return tokens.map((t) => `"${t.replace(/"/g, '""')}"`).join(" AND ");
+}
+
+// FTS5 bm25 랭킹 — rowid = items.id (§7.3). bm25 는 값이 작을수록 잘 맞는다.
+// FTS 행은 상태를 모르므로 폐기(retired) 물품은 최종 목록 SQL에서 걸러진다
+async function searchFtsRanked(db: Sql, tokens: string[]): Promise<number[]> {
+  if (tokens.length === 0) return [];
+  const rows = (await db.query(
+    `SELECT rowid FROM items_fts WHERE items_fts MATCH ?1
+     ORDER BY bm25(items_fts), rowid DESC LIMIT ${KEYWORD_CAP}`,
+    [ftsQuery(tokens)],
+  )) as { rowid: number }[];
+  return rows.map((r) => r.rowid);
+}
+
 // LIKE 와일드카드(% _ \) 이스케이프 — '100%' 검색이 전부 매치되지 않게.
 // SQLite LIKE 는 기본 이스케이프 문자가 없어 ESCAPE '\' 를 문장마다 명시해야 한다.
 function escapeLike(s: string): string {
   return s.replace(/[\\%_]/g, "\\$&");
 }
 
-function scoreExpr(tokens: string[]): { expr: string; params: string[] } {
+// 가중치 점수 식 — SQLite 에선 LIKE/EXISTS 가 이미 1/0 을 돌려줘 Postgres 의 ::int 캐스트가 필요 없다.
+// nullable 컬럼은 COALESCE 로 감싸지 않으면 NULL이 점수 전체를 오염시킨다
+function likeScoreExpr(tokens: string[]): { expr: string; params: string[] } {
   let p = 0;
   const terms = tokens.map(() => {
     const name = `?${++p}`;
@@ -118,22 +142,19 @@ function scoreExpr(tokens: string[]): { expr: string; params: string[] } {
   };
 }
 
-export async function searchKeywordRanked(
-  db: Sql,
-  tokens: string[],
-): Promise<ListItemRow[]> {
+// 1-2글자 토큰 LIKE 폴백 — trigram 이 만들 수 없는 짧은 토큰의 랭킹 목록(§7.4)
+async function searchLikeRankedIds(db: Sql, tokens: string[]): Promise<number[]> {
   if (tokens.length === 0) return [];
-  const { expr, params } = scoreExpr(tokens);
+  const { expr, params } = likeScoreExpr(tokens);
   const rows = (await db.query(
-    `${LIST_COLUMNS},
-            ${expr} AS score
+    `SELECT items.id AS rowid, ${expr} AS score
      FROM items
      WHERE items.status <> 'retired' AND ${expr} > 0
      ORDER BY score DESC, items.id DESC
      LIMIT ${KEYWORD_CAP}`,
     params,
-  )) as ListItemRow[];
-  return parseListRows(rows);
+  )) as { rowid: number }[];
+  return rows.map((r) => r.rowid);
 }
 
 // ===== 의미 검색 =====
@@ -157,24 +178,22 @@ async function embedQuery(env: Bindings, q: string): Promise<Float32Array> {
   return vec;
 }
 
-// 의미 후보 — 벡터 BLOB 전수 JS 코사인 상위 30개. D1엔 pgvector 연산자가 없어(isolate 캐시
-// + 전수 코사인으로 대체, PLAN §7.2) 임계는 기존 pgvector cosine distance < 0.8 을
-// similarity ≥ 0.2 로 동등 이식했다. bge-m3 유사도는 0.4~0.65에 뭉쳐 절대 임계로 관련/무관
-// 구분이 안 되므로 → 상대 랭킹으로만 사용 (Phase 4에서 0.25로 재조정 예정)
-const SEMANTIC_CAP = 30;
-const SEMANTIC_MIN_SIM = 0.2;
+// 의미 후보 — 벡터 BLOB 전수 JS 코사인 상위 8개(유사도 ≥ 0.25, §7.4). D1엔 pgvector 연산자가
+// 없어 isolate 캐시 + 전수 코사인으로 대체한다(§7.2). 후보는 RRF에서 키워드 순위와 경쟁하므로
+// 좁혀 뽑아도 융합 상위 30에 걸러진다. bge-m3 유사도는 0.4~0.65에 뭉쳐 절대 임계로 관련/무관
+// 구분이 안 되므로 → 상대 랭킹으로만 사용
+const SEMANTIC_CAP = 8;
+const SEMANTIC_MIN_SIM = 0.25;
 
 /**
- * 의미 검색 — 임베딩으로 관련성 높은 항목 검색. 실패해도 호출부를 죽이지 않고
- * 빈 배열을 돌려 키워드 결과만으로 검색이 계속되게 한다.
- * 키워드 결과를 제외하지 않는다 — 융합(fuseRRF)에서 양쪽에 나온 물품의 점수가 합쳐진다.
- * @returns ListItemRow 배열 (유사도 순서대로)
+ * 의미 검색 랭킹 — 물품 id 목록(유사도 순). 실패해도 호출부를 죽이지 않고
+ * 빈 배열을 돌려 키워드 결과만으로 검색이 계속되게 한다(폴백).
  */
-export async function searchSemanticItems(
+async function semanticRankIds(
   env: Bindings,
   db: Sql,
   q: string,
-): Promise<ListItemRow[]> {
+): Promise<number[]> {
   try {
     const qv = await embedQuery(env, q);
     let qNorm = 0;
@@ -191,22 +210,7 @@ export async function searchSemanticItems(
       if (sim >= SEMANTIC_MIN_SIM) scored.push({ id, sim });
     }
     scored.sort((a, b) => b.sim - a.sim);
-    const ids = scored.slice(0, SEMANTIC_CAP).map((s) => s.id);
-    if (ids.length === 0) return [];
-
-    // 거리 순위를 JS에서 복원 — SQL은 id 집합으로 목록 컬럼만 가져온다
-    const rank = new Map(ids.map((id, i) => [id, i]));
-    const semanticRows = parseListRows(
-      (await db.query(
-        buildListSql(` AND items.id IN (SELECT value FROM json_each(?1))`),
-        [JSON.stringify(ids)],
-      )) as ListItemRow[],
-    );
-    semanticRows.sort(
-      (a, b) => (rank.get(a.id) ?? 99) - (rank.get(b.id) ?? 99),
-    );
-
-    return semanticRows;
+    return scored.slice(0, SEMANTIC_CAP).map((s) => s.id);
   } catch (err) {
     console.error("의미 검색 실패 — 키워드 결과만 사용", err);
     return [];
@@ -234,9 +238,9 @@ export function withAvailabilityBadge(r: ListItemRow): ListItemWithBadge {
 const SEARCH_RESULT_CAP = 30;
 
 /**
- * 하이브리드 검색 — 키워드 랭킹과 의미 랭킹을 RRF로 융합해 상위 30개만 내린다.
- * 기존 "키워드 결과 + 의미 결과 이어붙이기"와 달리 한 물품이 양쪽 후보에 나오면
- * 점수가 합쳐져 위로 간다 — 순서가 랭킹 논리로 설명된다.
+ * 하이브리드 검색 — FTS5 bm25 랭킹·LIKE 폴백 랭킹·의미 랭킹을 RRF로 융합해 상위 30개만 내린다.
+ * 한 물품이 여러 후보 목록에 나오면 점수가 합쳐져 위로 간다 — 순서가 랭킹 논리로 설명된다.
+ * 의미 검색(Workers AI)이 실패하면 키워드 목록만으로 검색이 계속된다(폴백).
  * @param q - 검색어 (공백 분해, 최대 5토큰)
  */
 export async function searchHybrid(
@@ -246,46 +250,52 @@ export async function searchHybrid(
 ): Promise<ListItemWithBadge[]> {
   // 토큰 처리: 단어 단위 (최대 5개 토큰)
   const tokens = q.trim().split(/\s+/).filter(Boolean).slice(0, 5);
-
   if (tokens.length === 0) return [];
+  const { long, short } = splitKeywordTokens(tokens);
 
-  const [kwRows, semRows] = await Promise.all([
-    searchKeywordRanked(db, tokens),
-    searchSemanticItems(env, db, tokens.join(" ")),
+  const [ftsIds, likeIds, semIds] = await Promise.all([
+    searchFtsRanked(db, long),
+    searchLikeRankedIds(db, short),
+    semanticRankIds(env, db, tokens.join(" ")),
   ]);
 
-  return fuseRRF(kwRows, semRows)
-    .slice(0, SEARCH_RESULT_CAP)
-    .map(withAvailabilityBadge);
+  const fusedIds = fuseRRF([ftsIds, likeIds, semIds]).slice(
+    0,
+    SEARCH_RESULT_CAP,
+  );
+  if (fusedIds.length === 0) return [];
+
+  // 융합 순위를 JS에서 복원 — SQL은 id 집합으로 목록 컬럼(사진·태그·active_now)만 가져온다
+  const rank = new Map(fusedIds.map((id, i) => [id, i]));
+  const rows = parseListRows(
+    (await db.query(
+      buildListSql(` AND items.id IN (SELECT value FROM json_each(?1))`),
+      [JSON.stringify(fusedIds)],
+    )) as ListItemRow[],
+  );
+  rows.sort((a, b) => (rank.get(a.id) ?? 99) - (rank.get(b.id) ?? 99));
+  return rows.map(withAvailabilityBadge);
 }
 
 // ===== RRF (Reciprocal Rank Fusion) =====
 /**
- * 두 순위 목록을 하나의 순위로 융합한다.
- * @param keywordRows - 키워드 랭킹 (점수 DESC — index 0이 1위)
- * @param semanticRows - 의미 랭킹 (거리 ASC — index 0이 1위)
+ * 여러 순위 목록을 하나의 순위로 융합한다.
+ * @param lists - 랭킹 목록들, 각 index 0이 1위 (FTS5 bm25·LIKE 점수·코사인)
  * @param k - 완화 상수. 순위 차이를 부드럽게 만든다 (정보검색 표준값 60)
- * @returns 융합 순위로 정렬된 물품 (id 중복 없음)
+ * @returns 융합 순위의 물품 id (중복 없음)
  */
-export function fuseRRF(
-  keywordRows: ListItemRow[],
-  semanticRows: ListItemRow[],
-  k = 60,
-): ListItemRow[] {
-  // id → {행, RRF 점수}. 양쪽 목록에 모두 나온 물품은 점수가 합산되어 위로 간다 —
+export function fuseRRF(lists: number[][], k = 60): number[] {
+  // 여러 목록에 모두 나온 물품은 점수가 합산되어 위로 간다 —
   // "키워드+의미 둘 다 맞는 물품이 가장 관련성 높다"는 융합의 핵심 논리
-  const best = new Map<number, { row: ListItemRow; s: number }>();
-  const add = (rows: ListItemRow[]) =>
-    rows.forEach((row, i) => {
-      const hit = best.get(row.id) ?? { row, s: 0 };
-      hit.s += 1 / (k + i + 1); // rank는 1부터 — SQL 인덱스(i)는 0부터라 +1
-      best.set(row.id, hit);
+  const scores = new Map<number, number>();
+  for (const list of lists) {
+    list.forEach((id, i) => {
+      scores.set(id, (scores.get(id) ?? 0) + 1 / (k + i + 1)); // rank는 1부터 — 인덱스(i)는 0부터라 +1
     });
-  add(keywordRows);
-  add(semanticRows);
+  }
 
   // 점수 내림차순. 동률은 id DESC — 홈 목록 정렬(최근 등록 우선)과 통일
-  return [...best.values()]
-    .sort((a, b) => b.s - a.s || b.row.id - a.row.id)
-    .map(({ row }) => row);
+  return [...scores.entries()]
+    .sort((a, b) => b[1] - a[1] || b[0] - a[0])
+    .map(([id]) => id);
 }
