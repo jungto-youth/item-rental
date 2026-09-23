@@ -14,6 +14,15 @@
   // DATABASE_URL (Neon 연결 문자열)은 바인딩이 아닌 시크릿으로 관리:
   //   로컬: .dev.vars 파일 → `DATABASE_URL=postgresql://...`
   //   배포: `wrangler secret put DATABASE_URL`
+  // D1 — Neon 이관 대상 (PLAN_D1_이관.md). 전환 완료(Phase 6) 전까지 Neon 시크릿과 병행 유지
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "item-rental-db",
+      "database_id": "4f220ed2-dd45-41dc-ba1e-075889a4589a",
+      "migrations_dir": "migrations-d1"
+    }
+  ],
   "r2_buckets": [
     { "binding": "PHOTOS", "bucket_name": "item-rental-photos" }
   ],

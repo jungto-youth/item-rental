@@ -1,10 +1,10 @@
 // 대여(Rental) 도메인 서비스 — 신청/취소/내역/관리자 전이의 SQL 을 직접 소유
-// 가용성 검사 + advisory 락 동시성, 조건부 상태 전이
+// 가용성 검사 + batch 원자 가드, 조건부 상태 전이
 //
 // 날짜·기간·최대 대여일이 없는 단순 모델이다. 회원이 수량+메모로 신청하면 즉시
 // '대여 중'(rented)이 되고, 관리자는 반납(returned)만 처리한다. 가용성은
 // "지금 대여 중인 수량의 합"만 센다 — 일별 점유도, 승인 대기 예약도 없다.
-import type { Sql } from "../db";
+import { SQL_NOW, type Sql } from "../db";
 
 // 대여 가능 아이템 조회 (사전 검사용)
 export type ReserveItem = {
@@ -30,11 +30,7 @@ export type ReservationResult =
   | { error: "item_not_active" }
   | { error: "consumable" }
   | { error: "too_many"; rentable: number }
-  | { error: "no_availability" }
-  | { error: "busy" };
-
-// 신청 사이 물품 삭제(FK 23503)와 락 대기 초과(55P03)를 결과 배열과 구분하는 sentinel
-const TIMEOUT: unique symbol = Symbol("lock_timeout");
+  | { error: "no_availability" };
 
 // 1단계 사전 검사 — 오류 코드 구분용 (가용성은 아래 단일 문장이 보장)
 export async function getItemForReservation(
@@ -42,7 +38,7 @@ export async function getItemForReservation(
   itemId: number,
 ): Promise<ReserveItem | null> {
   const [row] = (await db.query(
-    `SELECT id, status, kind, total_qty, qty_broken FROM items WHERE id = $1`,
+    `SELECT id, status, kind, total_qty, qty_broken FROM items WHERE id = ?1`,
     [itemId],
   )) as ReserveItem[];
   return row ?? null;
@@ -79,47 +75,44 @@ export async function createReservation(
   const validation = validateReservation(item, { qty });
   if ("error" in validation) return validation;
 
-  // 동시 신청 직렬화 — 물품별 advisory 락을 먼저 잡고 같은 트랜잭션에서 가드 INSERT를 실행.
-  // 날짜가 없어져도 이 락은 그대로 필요하다: 두 요청이 같은 순간에 남은 수량 1개를 각자 읽고
-  // 둘 다 INSERT하면 재고를 넘긴다. READ COMMITTED에서 단일 문장의 원자성만으로는
-  // 두 동시 신청의 직렬화가 보장되지 않는다.
-  const results = await db
-    .transaction([
-      // 락 대기가 무한정 길어지지 않게 트랜잭션 범위 초 단위로 제한
-      db`SET LOCAL lock_timeout = '5s'`,
-      db`SELECT pg_advisory_xact_lock(${itemId}::bigint)`,
+  // 동시 신청 — SQLite 단일 라이터 + D1 batch 원자성이 Postgres advisory 락을 대체한다.
+  // D1 의 batch 는 하나의 트랜잭션으로 직렬 실행되므로 두 동시 신청이 남은 수량 1개를
+  // 각자 읽고 둘 다 INSERT 하는 끼어들기가 없다. 잔여 수량 판정은 가드 INSERT 문 하나가
+  // 원자적으로 수행한다 — batch 결과에서 INSERT 의 RETURNING 행수로만 성공을 판정한다.
+  let results: { id: number }[][];
+  try {
+    results = await db.batch<{ id: number }>([
       // 현재 대여 중(rented) 수량의 합 + 신청 수량이 대여가능 수량을 넘지 않아야 INSERT.
       // 반납(returned)·취소(cancelled)는 점유에서 빠진다 — 그 수량은 다시 빌려줄 수 있다.
-      db`INSERT INTO reservations (item_id, member_id, member_memo, qty, status)
-         SELECT ${itemId}, ${memberId}, ${memo}, ${qty}, 'rented'
-         WHERE ${qty} <= (SELECT total_qty - qty_broken FROM items WHERE items.id = ${itemId})
-           AND EXISTS (SELECT 1 FROM items
-                        WHERE items.id = ${itemId} AND status = 'active' AND kind <> 'consumable')
-           AND ${qty} + COALESCE((SELECT SUM(r.qty) FROM reservations r
-                                   WHERE r.item_id = ${itemId} AND r.status = 'rented'), 0)
-               <= (SELECT total_qty - qty_broken FROM items WHERE items.id = ${itemId})
-         RETURNING id`,
-    ])
-    .catch((err: { code?: string }) => {
-      // 신청 사이 물품 삭제 — FK 위반은 '수량 없음'이 아니므로 404로 구분
-      if (err.code === "23503") return null;
-      // 락 대기 초과 — 5초 상한을 넘으면 큐 끝이 아니라 즉시 응답 (lock_timeout · 55P03)
-      if (err.code === "55P03") return TIMEOUT;
-      throw err;
-    });
+      {
+        sql: `INSERT INTO reservations (item_id, member_id, member_memo, qty, status)
+           SELECT ?1, ?2, ?3, ?4, 'rented'
+           WHERE ?4 <= (SELECT total_qty - qty_broken FROM items WHERE items.id = ?1)
+             AND EXISTS (SELECT 1 FROM items
+                          WHERE items.id = ?1 AND status = 'active' AND kind <> 'consumable')
+             AND ?4 + COALESCE((SELECT SUM(r.qty) FROM reservations r
+                                 WHERE r.item_id = ?1 AND r.status = 'rented'), 0)
+                 <= (SELECT total_qty - qty_broken FROM items WHERE items.id = ?1)
+           RETURNING id`,
+        params: [itemId, memberId, memo, qty],
+      },
+    ]);
+  } catch (err) {
+    // 신청 사이 물품 삭제 — FK 위반은 '수량 없음'이 아니므로 404로 구분
+    if (err instanceof Error && /FOREIGN KEY constraint failed/.test(err.message)) {
+      return { error: "not_found" };
+    }
+    throw err;
+  }
 
-  if (results === null) return { error: "not_found" };
-  if (results === TIMEOUT) return { error: "busy" };
-
-  // transaction() 결과는 쿼리 순서와 1:1: [SET LOCAL, advisory lock, INSERT]
-  // 락 SELECT는 항상 1행을 반환하므로 results[1]을 보면 재고가 없어도 성공으로 오인한다.
-  const inserted = results.at(-1) as { id: number }[];
+  // INSERT 의 RETURNING 이 0행이면 성공으로 오인하지 않는다 — 가드가 거절한 것.
+  const inserted = results.at(-1)!;
 
   if (inserted.length > 0) return { ok: true, id: inserted[0].id };
 
   // 0행 — 가드가 거절했다(재고·상태 변경 또는 물품 삭제). 재조회로 원인을 가려
   const [cur] = (await db.query(
-    `SELECT status, kind, total_qty, qty_broken FROM items WHERE id = $1`,
+    `SELECT status, kind, total_qty, qty_broken FROM items WHERE id = ?1`,
     [itemId],
   )) as ReserveItem[];
 
@@ -138,7 +131,7 @@ export async function getMyReservations(db: Sql, memberId: string) {
             r.qty, r.status, r.member_memo, r.created_at
        FROM reservations r
        JOIN items ON items.id = r.item_id
-      WHERE r.member_id = $1
+      WHERE r.member_id = ?1
       ORDER BY r.created_at DESC`,
     [memberId],
   );
@@ -163,7 +156,7 @@ async function ownAction(
   }[];
   if (rows.length > 0) return { ok: true };
   const found = (await db.query(
-    `SELECT member_id FROM reservations WHERE id = $1`,
+    `SELECT member_id FROM reservations WHERE id = ?1`,
     [reservationId],
   )) as { member_id: string }[];
   if (found.length === 0 || found[0].member_id !== memberId) {
@@ -182,8 +175,8 @@ export async function cancelReservation(
     db,
     reservationId,
     memberId,
-    `UPDATE reservations SET status = 'cancelled', updated_at = now()
-      WHERE id = $1 AND member_id = $2 AND status = 'rented'
+    `UPDATE reservations SET status = 'cancelled', updated_at = ${SQL_NOW}
+      WHERE id = ?1 AND member_id = ?2 AND status = 'rented'
       RETURNING id`,
   );
 }
@@ -201,8 +194,8 @@ export async function returnReservationByMember(
     db,
     reservationId,
     memberId,
-    `UPDATE reservations SET status = 'returned', updated_at = now()
-      WHERE id = $1 AND member_id = $2 AND status = 'rented'
+    `UPDATE reservations SET status = 'returned', updated_at = ${SQL_NOW}
+      WHERE id = ?1 AND member_id = ?2 AND status = 'rented'
       RETURNING id`,
   );
 }
@@ -224,7 +217,7 @@ async function transition(
 ): Promise<TransitionResult> {
   const rows = (await db.query(sql, params)) as { id: number }[];
   if (rows.length > 0) return { ok: true };
-  const found = (await db.query(`SELECT id FROM reservations WHERE id = $1`, [
+  const found = (await db.query(`SELECT id FROM reservations WHERE id = ?1`, [
     reservationId,
   ])) as {
     id: number;
@@ -250,7 +243,7 @@ export async function listReservations(db: Sql, status: string | null) {
        JOIN items ON items.id = r.item_id
        JOIN members m ON m.id = r.member_id
        LEFT JOIN members a ON a.id = r.admin_id
-      WHERE ($1::text IS NULL OR r.status = $1::text)
+      WHERE (?1 IS NULL OR r.status = ?1)
       ORDER BY (r.status = 'rented') DESC, r.created_at DESC
       LIMIT 500`,
     [status],
@@ -269,8 +262,8 @@ export async function returnReservation(
   return transition(
     db,
     reservationId,
-    `UPDATE reservations SET status = 'returned', admin_id = $2, updated_at = now()
-      WHERE id = $1 AND status = 'rented' RETURNING id`,
+    `UPDATE reservations SET status = 'returned', admin_id = ?2, updated_at = ${SQL_NOW}
+      WHERE id = ?1 AND status = 'rented' RETURNING id`,
     [reservationId, adminId],
   );
 }

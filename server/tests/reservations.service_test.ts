@@ -1,6 +1,6 @@
 // 대여 서비스 단위 테스트 — DB 없이 돌아간다 (Sql 스텁)
-// 회귀 대상(P0-1): createReservation이 transaction() 결과에서 advisory 락 SELECT를
-// INSERT 결과로 오인해, 재고가 없어도 {ok:true, id:undefined}로 201을 내주던 버그.
+// 회귀 대상(P0-1): createReservation이 batch 결과를 INSERT의 RETURNING 행수가 아니라
+// 다른 문장의 결과로 오인해, 재고가 없어도 {ok:true, id:undefined}로 201을 내주던 버그.
 /// <reference types="@cloudflare/workers-types" />
 import {
   assert,
@@ -39,28 +39,27 @@ function params(overrides: Partial<CreateReservationParams> = {}): CreateReserva
 
 // ===== P0-1 회귀 =====
 
-Deno.test("createReservation: INSERT가 0행이면 성공으로 오인하지 않는다 (advisory 락 SELECT는 1행)", async () => {
-  // transaction() 결과는 쿼리 순서와 1:1 — [SET LOCAL, advisory 락 SELECT, INSERT]
-  // 락 SELECT는 항상 1행이라, 이를 INSERT 결과로 읽으면 재고가 없어도 성공이 된다.
+Deno.test("createReservation: 가드 INSERT가 0행이면 성공으로 오인하지 않는다 (batch INSERT 행수로만 판정)", async () => {
+  // batch 결과에서 INSERT의 RETURNING이 빈 배열이면 가드가 거절한 것 — 재고 없음
   const { db } = stubSql({
     query: () => [RENTAL_ITEM],
-    transaction: () => [[], [{ pg_advisory_xact_lock: null }], []],
+    batch: () => [[]],
   });
 
   const result = await createReservation(db, params());
 
-  // 옛 코드(results[1])는 {ok:true, id:undefined}를 반환해 이 단언이 실패한다
+  // 옛 코드(다른 문장의 결과를 INSERT로 오인)는 {ok:true, id:undefined}를 반환해 이 단언이 실패한다
   assertEquals(result, { error: "no_availability" });
   assert(!("ok" in result), "성공으로 오인하면 안 된다");
 });
 
-Deno.test("createReservation: 마지막 쿼리가 실제 삽입 결과다 (3문장 배치 불변식)", async () => {
+Deno.test("createReservation: 마지막 문장이 실제 삽입 결과다 (단일 가드 INSERT 배치 불변식)", async () => {
   let batch: Query[] = [];
   const { db } = stubSql({
     query: () => [RENTAL_ITEM],
-    transaction: (queries) => {
-      batch = queries;
-      return [[], [{ pg_advisory_xact_lock: null }], [{ id: 42 }]];
+    batch: (stmts) => {
+      batch = stmts;
+      return [[{ id: 42 }]];
     },
   });
 
@@ -68,9 +67,8 @@ Deno.test("createReservation: 마지막 쿼리가 실제 삽입 결과다 (3문�
 
   assertEquals(result, { ok: true, id: 42 });
   // results.at(-1) 전제 — 누군가 INSERT 뒤에 문장을 덧붙이면 이 단언이 깨진다
-  assertEquals(batch.length, 3, "트랜잭션은 [SET LOCAL, 락, INSERT] 3문장이어야 한다");
-  assertMatch(batch[0].text, /SET LOCAL lock_timeout/);
-  assertMatch(batch.at(-1)!.text, /INSERT INTO reservations/);
+  assertEquals(batch.length, 1, "batch는 가드 INSERT 한 문장이어야 한다");
+  assertMatch(batch[0].sql, /INSERT INTO reservations/);
 });
 
 Deno.test("createReservation: 가드 INSERT가 대여 중(rented) 수량만 점유로 센다", async () => {
@@ -79,15 +77,15 @@ Deno.test("createReservation: 가드 INSERT가 대여 중(rented) 수량만 점�
   let batch: Query[] = [];
   const { db } = stubSql({
     query: () => [RENTAL_ITEM],
-    transaction: (queries) => {
-      batch = queries;
-      return [[], [{ pg_advisory_xact_lock: null }], [{ id: 7 }]];
+    batch: (stmts) => {
+      batch = stmts;
+      return [[{ id: 7 }]];
     },
   });
 
   await createReservation(db, params());
 
-  const insert = batch.at(-1)!.text;
+  const insert = batch.at(-1)!.sql;
   assertMatch(insert, /status = 'rented'/);
   assertMatch(insert, /SUM\(r\.qty\)/);
   // 옛 일별 점유 검사(generate_series)가 남아 있으면 날짜 컬럼 삭제 후 런타임 오류가 난다
@@ -100,25 +98,25 @@ Deno.test("createReservation: 신청 즉시 rented 상태로 INSERT한다", asyn
   let batch: Query[] = [];
   const { db } = stubSql({
     query: () => [RENTAL_ITEM],
-    transaction: (queries) => {
-      batch = queries;
-      return [[], [{ pg_advisory_xact_lock: null }], [{ id: 1 }]];
+    batch: (stmts) => {
+      batch = stmts;
+      return [[{ id: 1 }]];
     },
   });
 
   await createReservation(db, params());
 
-  assertMatch(batch.at(-1)!.text, /'rented'/);
-  assert(!/'pending'/.test(batch.at(-1)!.text), "pending 상태는 더 이상 쓰지 않는다");
+  assertMatch(batch.at(-1)!.sql, /'rented'/);
+  assert(!/'pending'/.test(batch.at(-1)!.sql), "pending 상태는 더 이상 쓰지 않는다");
 });
 
 // ===== 실패 신호 구분 =====
 
-Deno.test("createReservation: 물품이 없으면 transaction을 열지 않는다", async () => {
+Deno.test("createReservation: 물품이 없으면 batch를 실행하지 않는다", async () => {
   let opened = false;
   const { db } = stubSql({
     query: () => [],
-    transaction: () => {
+    batch: () => {
       opened = true;
       return [];
     },
@@ -130,33 +128,22 @@ Deno.test("createReservation: 물품이 없으면 transaction을 열지 않는�
   assertEquals(opened, false);
 });
 
-Deno.test("createReservation: 신청 사이 물품 삭제(FK 23503)는 not_found", async () => {
+Deno.test("createReservation: 신청 사이 물품 삭제(FK 위반)는 not_found", async () => {
   const { db } = stubSql({
     query: () => [RENTAL_ITEM],
-    transaction: () => {
-      throw Object.assign(new Error("fk"), { code: "23503" });
+    batch: () => {
+      throw new Error("FOREIGN KEY constraint failed");
     },
   });
 
   assertEquals(await createReservation(db, params()), { error: "not_found" });
 });
 
-Deno.test("createReservation: 락 대기 초과(55P03)는 busy", async () => {
-  const { db } = stubSql({
-    query: () => [RENTAL_ITEM],
-    transaction: () => {
-      throw Object.assign(new Error("lock timeout"), { code: "55P03" });
-    },
-  });
-
-  assertEquals(await createReservation(db, params()), { error: "busy" });
-});
-
 Deno.test("createReservation: 알 수 없는 DB 오류는 삼키지 않고 던진다", async () => {
   const { db } = stubSql({
     query: () => [RENTAL_ITEM],
-    transaction: () => {
-      throw Object.assign(new Error("boom"), { code: "XX000" });
+    batch: () => {
+      throw new Error("boom");
     },
   });
 
@@ -196,7 +183,7 @@ Deno.test("validateReservation: 비활성 물품·소모품을 거른다", () =>
 Deno.test("returnReservationByMember: 본인 + 대여 중이면 성공한다", async () => {
   const { db, calls } = stubSql({
     query: (text) => (text.startsWith("UPDATE") ? [{ id: 5 }] : []),
-    transaction: () => [],
+    batch: () => [],
   });
 
   const result = await returnReservationByMember(db, 5, "member-1");
@@ -214,14 +201,14 @@ Deno.test("returnReservationByMember: 본인 + 대여 중이면 성공한다", a
 Deno.test("returnReservationByMember: SQL 이 본인·대여 중 조건을 모두 건다", async () => {
   const { db, calls } = stubSql({
     query: (text) => (text.startsWith("UPDATE") ? [{ id: 5 }] : []),
-    transaction: () => [],
+    batch: () => [],
   });
 
   await returnReservationByMember(db, 5, "member-1");
 
   const update = calls[0].text;
   // member_id 조건이 빠지면 남의 대여를 반납 처리할 수 있다 ()
-  assertEquals(/member_id = \$2/.test(update), true);
+  assertEquals(/member_id = \?2/.test(update), true);
   assertEquals(/status = 'rented'/.test(update), true);
 });
 
@@ -230,7 +217,7 @@ Deno.test("returnReservationByMember: 이미 반납된 건은 bad_status", async
     // UPDATE 0행 → 재조회에서 본인 건임을 확인 → 종료 상태
     query: (text) =>
       text.startsWith("UPDATE") ? [] : [{ member_id: "member-1" }],
-    transaction: () => [],
+    batch: () => [],
   });
 
   assertEquals(await returnReservationByMember(db, 5, "member-1"), {
@@ -241,7 +228,7 @@ Deno.test("returnReservationByMember: 이미 반납된 건은 bad_status", async
 Deno.test("returnReservationByMember: 남의 건은 bad_status 가 아니라 not_found", async () => {
   const { db } = stubSql({
     query: (text) => (text.startsWith("UPDATE") ? [] : [{ member_id: "다른사람" }]),
-    transaction: () => [],
+    batch: () => [],
   });
 
   // 타인 건의 존재를 알려주지 않는다 — 404 로 숨긴다
@@ -253,7 +240,7 @@ Deno.test("returnReservationByMember: 남의 건은 bad_status 가 아니라 not
 Deno.test("returnReservationByMember: 없는 건은 not_found", async () => {
   const { db } = stubSql({
     query: (text) => (text.startsWith("UPDATE") ? [] : []),
-    transaction: () => [],
+    batch: () => [],
   });
 
   assertEquals(await returnReservationByMember(db, 999, "member-1"), {
@@ -264,7 +251,7 @@ Deno.test("returnReservationByMember: 없는 건은 not_found", async () => {
 Deno.test("cancelReservation: 반납과 같은 가드(본인 + rented)를 쓴다", async () => {
   const { db, calls } = stubSql({
     query: (text) => (text.startsWith("UPDATE") ? [{ id: 5 }] : []),
-    transaction: () => [],
+    batch: () => [],
   });
 
   assertEquals(await cancelReservation(db, 5, "member-1"), { ok: true });

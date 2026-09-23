@@ -38,7 +38,7 @@ function memberDb(members: Member[]) {
       }
       return [];
     },
-    transaction: () => [],
+    batch: () => [],
   });
   return db;
 }
@@ -92,7 +92,7 @@ Deno.test("setMemberRole: 해임 개수 쿼리는 활성 관리자만 센다 (SQ
       if (/UPDATE members SET role/.test(text)) return [{ id: values[1] }];
       return [];
     },
-    transaction: () => [],
+    batch: () => [],
   });
 
   assertEquals(await setMemberRole(db, "a", "user"), { ok: true });
@@ -120,7 +120,7 @@ Deno.test("withdrawMember: 탈퇴 UPDATE는 소프트 삭제(deactivated_at)만 
       if (/UPDATE members SET deactivated_at/.test(text)) return [{ id: values[0] }];
       return [];
     },
-    transaction: () => [],
+    batch: () => [],
   });
 
   assertEquals(await withdrawMember(db, "u"), { ok: true });

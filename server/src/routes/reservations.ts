@@ -24,7 +24,7 @@ export const reservationsRoute = new Hono<{
 reservationsRoute.use("*", requireAuth);
 
 // 신청 — 가용 검사는 reservations.service.createReservation에 위임
-// 동시 신청에도 이중 대여 불가 (advisory 락 + 대여 중 수량 검사)
+// 동시 신청에도 이중 대여 불가 (D1 batch 원자 가드 + 대여 중 수량 검사)
 reservationsRoute.post("/", async (c) => {
   const user = c.get("user")!;
 
@@ -72,7 +72,6 @@ reservationsRoute.post("/", async (c) => {
   if (result.error === "too_many") return c.json({ error: "too_many" }, 400);
   if (result.error === "no_availability")
     return c.json({ error: "no_availability" }, 409);
-  if (result.error === "busy") return c.json({ error: "busy" }, 409);
   if (result.error === "not_found") return c.json({ error: "not_found" }, 404);
 
   return c.json({ error: "internal" }, 500);

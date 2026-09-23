@@ -14,7 +14,7 @@ function env(): never {
 Deno.test("updateItem: category_ids만 보내면 UPDATE를 건너뛰고 태그 교체만 한다", async () => {
   const { db, calls } = stubSql({
     query: (text) => (/SELECT id FROM items/.test(text) ? [{ id: 1 }] : []),
-    transaction: () => [],
+    batch: () => [],
   });
 
   const result = await updateItem(
@@ -42,7 +42,7 @@ Deno.test("updateItem: category_ids만 보내면 UPDATE를 건너뛰고 태그 �
 Deno.test("updateItem: 컬럼 필드와 태그를 함께 보내면 둘 다 반영한다", async () => {
   const { db, calls } = stubSql({
     query: (text) => (/UPDATE items SET/.test(text) ? [{ id: 1 }] : []),
-    transaction: () => [],
+    batch: () => [],
   });
 
   const result = await updateItem(
@@ -62,7 +62,7 @@ Deno.test("updateItem: 컬럼 필드와 태그를 함께 보내면 둘 다 반�
 Deno.test("updateItem: 컬럼 필드 전용 수정은 UPDATE 결과로 not_found를 구분한다", async () => {
   const { db } = stubSql({
     query: () => [],
-    transaction: () => [],
+    batch: () => [],
   });
 
   assertEquals(await updateItem(db, env(), 999, { name: "없는 물품" }), {
@@ -73,7 +73,7 @@ Deno.test("updateItem: 컬럼 필드 전용 수정은 UPDATE 결과로 not_found
 Deno.test("updateItem: 태그 전용 수정에서 물품이 없으면 not_found를 돌려준다", async () => {
   const { db } = stubSql({
     query: () => [],
-    transaction: () => [],
+    batch: () => [],
   });
 
   assertEquals(await updateItem(db, env(), 999, { category_ids: [1] }), {
