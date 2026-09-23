@@ -42,7 +42,7 @@ export async function getSessionUser(
 
   const db: Sql = getDb(c.env);
   const rows = (await db.query(
-    `SELECT id, email, name, phone, role, deactivated_at FROM members WHERE id = $1 AND deactivated_at IS NULL`,
+    `SELECT id, email, name, phone, role, deactivated_at FROM members WHERE id = ?1 AND deactivated_at IS NULL`,
     [payload.sub],
   )) as SessionUser[];
   return rows[0] ?? null;

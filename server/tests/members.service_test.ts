@@ -15,7 +15,7 @@ function memberDb(members: Member[]) {
   // stubSql은 {db, calls}를 돌려준다 — 서비스에는 Sql 자체를 넘긴다
   const { db } = stubSql({
     query: (text, values) => {
-      if (/SELECT id, role FROM members WHERE id = \$1/.test(text)) {
+      if (/SELECT id, role FROM members WHERE id = \?1/.test(text)) {
         return members.filter((m) => m.id === values[0]);
       }
       if (/COUNT\(\*\)/.test(text)) {
@@ -124,7 +124,8 @@ Deno.test("withdrawMember: 탈퇴 UPDATE는 소프트 삭제(deactivated_at)만 
   });
 
   assertEquals(await withdrawMember(db, "u"), { ok: true });
-  assertMatch(calls[1].text, /UPDATE members SET deactivated_at = now\(\)/);
+  // now() 가 아니라 SQLite strftime 상수로 기록된다 (PLAN §6 규칙표)
+  assertMatch(calls[1].text, /UPDATE members SET deactivated_at = strftime\('%Y-%m-%dT%H:%M:%fZ','now'\)/);
   // 행을 지우지 않는다 — 대여 이력 보존이 전제
   assert(!calls[1].text.startsWith("DELETE"));
 });

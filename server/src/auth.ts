@@ -58,7 +58,7 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
         }
         if (!isEnvAllowed(user.email)) {
           const allowed = await db()
-            .query('SELECT 1 FROM allowed_emails WHERE email = $1', [
+            .query('SELECT 1 FROM allowed_emails WHERE email = ?1', [
               user.email.trim().toLowerCase(),
             ])
             .then((rows) => (rows as unknown[]).length > 0)
@@ -78,7 +78,7 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
         try {
           const sql: Sql = db()
           await sql.query(
-            `INSERT INTO members (email, name) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING`,
+            `INSERT INTO members (email, name) VALUES (?1, ?2) ON CONFLICT (email) DO NOTHING`,
             [user.email, user.name ?? ''],
           )
         } catch (err) {
@@ -91,7 +91,7 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
       // JWT sub를 members.id로 교체 — 이후 모든 쿼리가 이 값으로 권한 판단 ()
       async jwt({ token, user }) {
         if (user?.email) {
-          const rows = (await db().query('SELECT id FROM members WHERE email = $1', [
+          const rows = (await db().query('SELECT id FROM members WHERE email = ?1', [
             user.email,
           ])) as { id: string }[]
           if (rows[0]) token.sub = rows[0].id

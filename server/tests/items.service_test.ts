@@ -54,7 +54,7 @@ Deno.test("updateItem: 컬럼 필드와 태그를 함께 보내면 둘 다 반�
 
   assertEquals(result, { ok: true });
   const update = calls.find((c) => /UPDATE items SET/.test(c.text))!;
-  assertMatch(update.text, /name = \$2/);
+  assertMatch(update.text, /name = \?2/);
   assertEquals(update.values, [1, "새 이름"]);
   assertEquals(calls.filter((c) => /INSERT INTO item_categories/.test(c.text)).length, 1);
 });

@@ -1,10 +1,12 @@
 // 검색·탐색 서비스 — "탐색"(전체 목록 무한스크롤)과 "검색"(랭킹된 짧은 리스트)을 분리한다.
-// 검색 = 키워드(OR-완화 가중치 랭킹) + 의미(pgvector) 후보를 RRF로 융합해 상위 N개만 내린다.
+// 검색 = 키워드(OR-완화 가중치 랭킹) + 의미(벡터 BLOB JS 코사인) 후보를 RRF로 융합해 상위 N개만 내린다.
 // 검색에는 페이지네이션이 없다 — 퍼지 매치의 꼬리는 노이즈라 "2페이지"가 의미 없다.
+// (PLAN §7.4 — Phase 4에서 키워드 축이 FTS5 bm25로 교체된다. LIKE 폴백은 그때도 1-2글자용으로 남는다)
 import type { Sql } from "../db";
 import type { Bindings } from "../types";
 import type { ListItemRow } from "./items.service";
-import { embed } from "../embedding";
+import { parseJsonCol } from "./items.service";
+import { embed, getVectorCache, type Vec } from "../embedding";
 
 // 배지까지 계산된 목록 행 — 화면(web/src/types.ts Item)과 같은 모양
 export type ListItemWithBadge = ListItemRow & {
@@ -12,15 +14,21 @@ export type ListItemWithBadge = ListItemRow & {
 };
 
 // 목록 SELECT 공용 — 전체 목록/키워드/의미가 같은 컬럼을 내려준다 (where 절만 다름)
+// json 집계는 SQLite가 ORDER BY를 지원하지 않아 정렬용 서브쿼리로 감싼다 (PLAN §6 규칙표)
 const LIST_COLUMNS = `SELECT items.id, items.name, items.description, items.total_qty, items.status,
             items.kind, items.location,
             items.qty_broken,
             (items.total_qty - items.qty_broken) AS rentable_qty,
-            (SELECT COALESCE(json_agg(json_build_object('id', p.id, 'url', '/api/photos/' || p.r2_key)
-                              ORDER BY p.sort_order), '[]'::json)
-             FROM item_photos p WHERE p.item_id = items.id) AS photos,
-            (SELECT COALESCE(SUM(r.qty), 0)::int FROM reservations r
+            (SELECT json_group_array(json_object('id', p.id, 'url', '/api/photos/' || p.r2_key))
+             FROM (SELECT p.id, p.r2_key FROM item_photos p
+                    WHERE p.item_id = items.id ORDER BY p.sort_order) p) AS photos,
+            (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
              WHERE r.item_id = items.id AND r.status = 'rented') AS active_now`;
+
+function parseListRows(rows: ListItemRow[]): ListItemRow[] {
+  for (const r of rows) r.photos = parseJsonCol(r.photos);
+  return rows;
+}
 
 function buildListSql(where: string): string {
   return `${LIST_COLUMNS}
@@ -59,13 +67,13 @@ export async function listItems(
   const [rows, counts] = (await Promise.all([
     db.query(`${buildListSql(where)} LIMIT ${opts.limit} OFFSET ${opts.offset}`),
     db.query(
-      `SELECT COUNT(*)::int AS total,
-              COUNT(*) FILTER (WHERE ${AVAILABLE_SQL})::int AS available_total
+      `SELECT COUNT(*) AS total,
+              COALESCE(SUM(CASE WHEN ${AVAILABLE_SQL} THEN 1 ELSE 0 END), 0) AS available_total
        FROM items WHERE status <> 'retired'`,
     ),
   ])) as [ListItemRow[], { total: number; available_total: number }[]];
   return {
-    items: rows.map(withAvailabilityBadge),
+    items: parseListRows(rows).map(withAvailabilityBadge),
     total: counts[0].total,
     available_total: counts[0].available_total,
   };
@@ -75,12 +83,14 @@ export async function listItems(
 // 토큰별 점수: 이름 ×3 · 태그/위치 ×2 · 설명 ×1. AND가 아니라 OR이므로 토큰 하나만
 // 맞아도 후보가 되고, 점수 순으로 여러 토큰을 다 맞춘 물품이 위로 온다.
 // (기존 AND 검색은 토큰 하나만 안 맞아도 결과 0개라 의미 검색 폴백에 전부 의존했다)
-// ILIKE '%…%'는 btree 인덱스를 못 쓰지만 pg_trgm GIN 인덱스(0022)가 가속한다.
+// Phase 4(PLAN §7.4)에서 이 축은 FTS5 bm25로 교체된다 — 그 전까지 ILIKE → LIKE 로 유지한다.
+// SQLite LIKE 는 ASCII만 케이스를 무시한다 — 한글엔 무영향.
 const KEYWORD_CAP = 40;
 
-// 가중치 점수 식 — boolean::int 로 매치를 1/0 으로 세어 가중치를 곱해 더한다.
+// 가중치 점수 식 — SQLite 에선 LIKE/EXISTS 가 이미 1/0 을 돌려줘 Postgres 의 ::int 캐스트가 필요 없다.
 // nullable 컬럼은 COALESCE 로 감싸지 않으면 NULL이 점수 전체를 오염시킨다.
-// LIKE 와일드카드(% _ \) 이스케이프 — '100%' 검색이 전부 매치되지 않게
+// LIKE 와일드카드(% _ \) 이스케이프 — '100%' 검색이 전부 매치되지 않게.
+// SQLite LIKE 는 기본 이스케이프 문자가 없어 ESCAPE '\' 를 문장마다 명시해야 한다.
 function escapeLike(s: string): string {
   return s.replace(/[\\%_]/g, "\\$&");
 }
@@ -88,17 +98,17 @@ function escapeLike(s: string): string {
 function scoreExpr(tokens: string[]): { expr: string; params: string[] } {
   let p = 0;
   const terms = tokens.map(() => {
-    const name = `$${++p}`;
-    const loc = `$${++p}`;
-    const tag = `$${++p}`;
-    const desc = `$${++p}`;
-    return `(3 * ((items.name ILIKE '%' || ${name} || '%')::int)
-        + 2 * ((COALESCE(items.location, '') ILIKE '%' || ${loc} || '%')::int)
-        + 2 * ((EXISTS (SELECT 1 FROM item_categories ic
+    const name = `?${++p}`;
+    const loc = `?${++p}`;
+    const tag = `?${++p}`;
+    const desc = `?${++p}`;
+    return `(3 * (items.name LIKE '%' || ${name} || '%' ESCAPE '\\')
+        + 2 * ((COALESCE(items.location, '')) LIKE '%' || ${loc} || '%' ESCAPE '\\')
+        + 2 * (EXISTS (SELECT 1 FROM item_categories ic
                         JOIN categories c ON c.id = ic.category_id
                         WHERE ic.item_id = items.id
-                          AND c.name ILIKE '%' || ${tag} || '%'))::int)
-        + 1 * ((COALESCE(items.description, '') ILIKE '%' || ${desc} || '%')::int))`;
+                          AND c.name LIKE '%' || ${tag} || '%' ESCAPE '\\'))
+        + 1 * ((COALESCE(items.description, '')) LIKE '%' || ${desc} || '%' ESCAPE '\\'))`;
   });
   // 토큰은 파라미터 바인딩이라 SQL 주입은 없지만, %·_ 가 그대로 바인딩되면
   // 와일드카드로 작동해 '100%' 같은 검색어가 모든 물품에 점수를 주게 된다
@@ -123,7 +133,7 @@ export async function searchKeywordRanked(
      LIMIT ${KEYWORD_CAP}`,
     params,
   )) as ListItemRow[];
-  return rows;
+  return parseListRows(rows);
 }
 
 // ===== 의미 검색 =====
@@ -131,10 +141,10 @@ export async function searchKeywordRanked(
 // 검색은 공개 엔드포인트라 같은 검색어 반복이 흔한데, 매번 Workers AI 를 부르면 무료 한도를 쓰고
 // 검색마다 수백 ms 가 붙는다. isolate 가 살아 있는 동안만 유효하다(ponytail: 삽입순 FIFO 이고
 // 기기 간 공유가 필요해지면 캐시 API/KV 로 승격).
-const QUERY_VEC_CACHE = new Map<string, string>();
+const QUERY_VEC_CACHE = new Map<string, Float32Array>();
 const QUERY_VEC_CACHE_MAX = 100;
 
-async function embedQuery(env: Bindings, q: string): Promise<string> {
+async function embedQuery(env: Bindings, q: string): Promise<Float32Array> {
   const key = q.trim().toLowerCase().replace(/\s+/g, " ");
   const hit = QUERY_VEC_CACHE.get(key);
   if (hit !== undefined) return hit;
@@ -147,22 +157,18 @@ async function embedQuery(env: Bindings, q: string): Promise<string> {
   return vec;
 }
 
-// 의미 후보 — pgvector cosine distance 상위 30개. 임계 0.75→0.8 로 완화했다:
-// 후보는 RRF에서 키워드 순위와 경쟁하므로 넉넉히 뽑아도 최종 상위 30에 걸러진다.
-// bge-m3 거리는 0.4~0.65에 뭉쳐 절대 임계로 관련/무관 구분이 안 되므로 → 상대 랭킹으로만 사용
-function semanticSearchSql(): string {
-  return `SELECT id FROM items
-   WHERE status <> 'retired' AND embedding IS NOT NULL
-     AND embedding <=> $1::vector < 0.8
-   ORDER BY embedding <=> $1::vector
-   LIMIT 30`;
-}
+// 의미 후보 — 벡터 BLOB 전수 JS 코사인 상위 30개. D1엔 pgvector 연산자가 없어(isolate 캐시
+// + 전수 코사인으로 대체, PLAN §7.2) 임계는 기존 pgvector cosine distance < 0.8 을
+// similarity ≥ 0.2 로 동등 이식했다. bge-m3 유사도는 0.4~0.65에 뭉쳐 절대 임계로 관련/무관
+// 구분이 안 되므로 → 상대 랭킹으로만 사용 (Phase 4에서 0.25로 재조정 예정)
+const SEMANTIC_CAP = 30;
+const SEMANTIC_MIN_SIM = 0.2;
 
 /**
  * 의미 검색 — 임베딩으로 관련성 높은 항목 검색. 실패해도 호출부를 죽이지 않고
  * 빈 배열을 돌려 키워드 결과만으로 검색이 계속되게 한다.
  * 키워드 결과를 제외하지 않는다 — 융합(fuseRRF)에서 양쪽에 나온 물품의 점수가 합쳐진다.
- * @returns ListItemRow 배열 (거리 순서대로)
+ * @returns ListItemRow 배열 (유사도 순서대로)
  */
 export async function searchSemanticItems(
   env: Bindings,
@@ -170,22 +176,32 @@ export async function searchSemanticItems(
   q: string,
 ): Promise<ListItemRow[]> {
   try {
-    const vec = await embedQuery(env, q);
-    const rows = (await db.query(semanticSearchSql(), [vec])) as {
-      id: number;
-    }[];
+    const qv = await embedQuery(env, q);
+    let qNorm = 0;
+    for (let i = 0; i < qv.length; i++) qNorm += qv[i] * qv[i];
+    qNorm = Math.sqrt(qNorm);
+    if (qNorm === 0) return [];
 
-    if (rows.length === 0) return [];
+    const cache = await getVectorCache(db);
+    const scored: { id: number; sim: number }[] = [];
+    for (const [id, { v, norm }] of cache) {
+      let dot = 0;
+      for (let i = 0; i < qv.length; i++) dot += qv[i] * v[i];
+      const sim = dot / (qNorm * norm);
+      if (sim >= SEMANTIC_MIN_SIM) scored.push({ id, sim });
+    }
+    scored.sort((a, b) => b.sim - a.sim);
+    const ids = scored.slice(0, SEMANTIC_CAP).map((s) => s.id);
+    if (ids.length === 0) return [];
 
-    // ID 목록으로 SQL WHERE 절 생성
-    const ids = rows.map((r) => r.id);
-
-    // listSql이 id DESC로 정렬하므로 거리 순위를 JS에서 복원
+    // 거리 순위를 JS에서 복원 — SQL은 id 집합으로 목록 컬럼만 가져온다
     const rank = new Map(ids.map((id, i) => [id, i]));
-    const semanticRows = (await db.query(
-      buildListSql(` AND items.id = ANY(string_to_array($1, ',')::int[])`),
-      [ids.join(",")],
-    )) as ListItemRow[];
+    const semanticRows = parseListRows(
+      (await db.query(
+        buildListSql(` AND items.id IN (SELECT value FROM json_each(?1))`),
+        [JSON.stringify(ids)],
+      )) as ListItemRow[],
+    );
     semanticRows.sort(
       (a, b) => (rank.get(a.id) ?? 99) - (rank.get(b.id) ?? 99),
     );

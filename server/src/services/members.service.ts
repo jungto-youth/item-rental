@@ -1,6 +1,6 @@
 // 회원(Member) 도메인 서비스 — 목록/탈퇴/역할 SQL 을 직접 소유
 // 소프트 삭제(이력 보존), 마지막 관리자 보호
-import type { Sql } from "../db";
+import { SQL_NOW, type Sql } from "../db";
 import type { Role } from "../types";
 
 // 목록 — 최근 가입순
@@ -26,7 +26,7 @@ export async function withdrawMember(
   db: Sql,
   memberId: string,
 ): Promise<WithdrawResult> {
-  const found = (await db.query("SELECT id, role FROM members WHERE id = $1", [
+  const found = (await db.query("SELECT id, role FROM members WHERE id = ?1", [
     memberId,
   ])) as {
     id: string;
@@ -35,13 +35,14 @@ export async function withdrawMember(
   if (found.length === 0) return { error: "not_found" };
   if (found[0].role === "admin") {
     const cnt = (await db.query(
-      `SELECT COUNT(*)::int AS n FROM members WHERE role = 'admin' AND deactivated_at IS NULL`,
+      `SELECT COUNT(*) AS n FROM members WHERE role = 'admin' AND deactivated_at IS NULL`,
     )) as { n: number }[];
     if (cnt[0].n <= 1) return { error: "last_admin" };
   }
-  await db.query(`UPDATE members SET deactivated_at = now() WHERE id = $1`, [
-    memberId,
-  ]);
+  await db.query(
+    `UPDATE members SET deactivated_at = ${SQL_NOW} WHERE id = ?1`,
+    [memberId],
+  );
   return { ok: true };
 }
 
@@ -58,7 +59,7 @@ export async function setMemberRole(
   role: Role,
 ): Promise<RoleResult> {
   const found = (await db.query(
-    "SELECT id, role FROM members WHERE id = $1",
+    "SELECT id, role FROM members WHERE id = ?1",
     [memberId],
   )) as {
     id: string;
@@ -71,14 +72,14 @@ export async function setMemberRole(
     const cnt = (await db.query(
       // 탈퇴(deactivated)된 관리자는 관리 기능을 못 쓰므로 개수에서 빼야 한다 —
       // withdrawMember 와 같은 기준. 누락하면 탈퇴 관리자가 재적돼 활성 관리자가 0이 될 수 있다
-      `SELECT COUNT(*)::int AS n FROM members
+      `SELECT COUNT(*) AS n FROM members
         WHERE role = 'admin' AND deactivated_at IS NULL`,
     )) as {
       n: number;
     }[];
     if (cnt[0].n <= 1) return { error: "last_admin" };
   }
-  await db.query("UPDATE members SET role = $1 WHERE id = $2", [
+  await db.query("UPDATE members SET role = ?1 WHERE id = ?2", [
     role,
     memberId,
   ]);

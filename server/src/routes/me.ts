@@ -17,6 +17,6 @@ meRoute.put('/', requireAuth, async (c) => {
     return c.json({ error: '휴대폰 번호를 정확히 입력하세요' }, 400)
 
   const db: Sql = getDb(c.env)
-  await db.query('UPDATE members SET name = $2, phone = $3 WHERE id = $1', [user.id, name, phone])
+  await db.query('UPDATE members SET name = ?2, phone = ?3 WHERE id = ?1', [user.id, name, phone])
   return c.json({ ok: true })
 })

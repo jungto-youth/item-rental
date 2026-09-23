@@ -8,7 +8,7 @@ export type CategoryRow = { id: number; name: string; item_count: number };
 
 export async function listCategories(db: Sql): Promise<CategoryRow[]> {
   const rows = (await db.query(
-    `SELECT c.id, c.name, COUNT(ic.item_id)::int AS item_count
+    `SELECT c.id, c.name, COUNT(ic.item_id) AS item_count
      FROM categories c
      LEFT JOIN item_categories ic ON ic.category_id = c.id
      GROUP BY c.id, c.name
@@ -22,7 +22,8 @@ export type CategoryWriteResult =
   | { error: "dup" }
   | { error: "not_found" };
 
-// 이름 중복은 UNIQUE 제약이 잡는다 — Postgres 오류 코드 23505 를 dup 으로 매핑
+// 이름 중복은 UNIQUE 제약이 잡는다 — Postgres 오류 코드 23505 와 달리 D1(SQLite)은
+// 메시지로만 판별한다 ("UNIQUE constraint failed: categories.name")
 async function runWithDup(
   db: Sql,
   sql: string,
@@ -33,7 +34,9 @@ async function runWithDup(
     if (rows.length === 0) return { error: "not_found" };
     return { ok: true, id: rows[0].id };
   } catch (err) {
-    if ((err as { code?: string }).code === "23505") return { error: "dup" };
+    if (err instanceof Error && /UNIQUE constraint failed/.test(err.message)) {
+      return { error: "dup" };
+    }
     throw err;
   }
 }
@@ -42,7 +45,7 @@ export async function createCategory(
   db: Sql,
   name: string,
 ): Promise<CategoryWriteResult> {
-  return runWithDup(db, `INSERT INTO categories (name) VALUES ($1) RETURNING id`, [name]);
+  return runWithDup(db, `INSERT INTO categories (name) VALUES (?1) RETURNING id`, [name]);
 }
 
 export async function renameCategory(
@@ -52,7 +55,7 @@ export async function renameCategory(
 ): Promise<CategoryWriteResult> {
   return runWithDup(
     db,
-    `UPDATE categories SET name = $2 WHERE id = $1 RETURNING id`,
+    `UPDATE categories SET name = ?2 WHERE id = ?1 RETURNING id`,
     [id, name],
   );
 }
@@ -61,7 +64,7 @@ export async function deleteCategory(
   db: Sql,
   id: number,
 ): Promise<{ ok: true } | { error: "not_found" }> {
-  const rows = (await db.query(`DELETE FROM categories WHERE id = $1 RETURNING id`, [
+  const rows = (await db.query(`DELETE FROM categories WHERE id = ?1 RETURNING id`, [
     id,
   ])) as { id: number }[];
   return rows.length === 0 ? { error: "not_found" } : { ok: true };

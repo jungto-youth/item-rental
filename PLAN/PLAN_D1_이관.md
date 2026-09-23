@@ -1,6 +1,6 @@
 # D1 이관 계획 — Neon(Postgres) → Cloudflare D1(SQLite)
 
-> 상태: 진행 중 — Phase 0~2 완료 (2026-09-23) · 작성: 2026-09 · 예상 공수: 2.5~3일
+> 상태: 진행 중 — Phase 0~3 완료 (2026-09-23) · 작성: 2026-09 · 예상 공수: 2.5~3일
 > 목표: 검색 계층을 D1 FTS5(trigram) + 벡터 BLOB + RRF 융합으로 재작성하며 DB를 Neon에서 D1으로 옮긴다
 > 관련 문서: [SPEC.md](SPEC.md) §4.2, [README.md](README.md) 기술 스택 표
 
@@ -107,6 +107,7 @@ export function getDb(env: Bindings): Sql { /* env.DB.prepare().bind().all() / e
 
 **플레이스홀더 치환 파일 목록 (14개)**
 `middleware/auth.ts`, `auth.ts`, `embedding.ts`, `routes/me.ts`, `routes/items.ts`, `routes/reservations.ts`, `routes/categories.ts`, `routes/admin/{items,reservations,members,categories,allowed-emails,dashboard}.ts` (routes 6), `services/{search,items,reservations,members,categories,allowed-emails,dashboard}.service.ts` (services 7), `scripts/{migrate,seed,import-items,backfill-remove-item-attrs}.ts`
+※ 실제 전환은 `server/src` 전체(스크립트 제외) — scripts는 §8에서 어댑터와 함께 전환 (Neon 병행 유지 필요)
 
 **치환 규칙표**
 
@@ -123,10 +124,21 @@ export function getDb(env: Bindings): Sql { /* env.DB.prepare().bind().all() / e
 | `ILIKE` (검색 외 남는 곳) | `LIKE` (ASCII만 케이스 무시 — 한글 무영향) |
 | `embedding <=> $1::vector` | JS 코사인 (§7) |
 
-- [ ] `items.service.ts`: `json_agg` 3종 + `createItem` 동적 INSERT/UPDATE(`$${i+1}` 생성부 → `?${i+1}`) + FTS5 동기화 호출 추가 (§7)
-- [ ] `members.service.ts`, `routes/me.ts`, `auth.ts`, `middleware/auth.ts`: `now()`/placeholder 치환
-- [ ] `dashboard.service.ts`, `routes/admin/*`: 치환 + `::int` 제거
-- [ ] 각 파일 수정 직후 `npx tsc --noEmit -p server/tsconfig.json` 유지
+- [x] `items.service.ts`: `json_agg` 3종 + `createItem` 동적 INSERT/UPDATE(`$${i+1}` 생성부 → `?${i+1}`) + FTS5 동기화 호출 추가 (§7) ✅ (완료 — 등록/수정은 `DELETE+INSERT` batch, 삭제는 `DELETE items RETURNING` + `DELETE items_fts` 동일 batch. `items.*` 대신 명시 컬럼으로 응답에서 `embedding` BLOB 제외 — ArrayBuffer 직렬화 깨짐 방지, web 미사용 확인)
+- [x] `members.service.ts`, `routes/me.ts`, `auth.ts`, `middleware/auth.ts`: `now()`/placeholder 치환 ✅
+- [x] `dashboard.service.ts`, `routes/admin/*`: 치환 + `::int` 제거 ✅ (routes/admin/* 는 SQL 위임 구조라 무변경 — 실제 치환은 services 6종과 embedding.ts)
+- [x] 각 파일 수정 직후 `npx tsc --noEmit -p server/tsconfig.json` 유지 ✅
+
+**Phase 3 구현 노트 (§6 규칙표 확정 사항)**
+- **scripts 4종은 Phase 3에서 제외 → §8(Phase 5)로 연기**: seed/import/backfill/migrate 는 Neon 전용 도구라 지금 `?N`으로 바꾸면 Neon 대상 실행이 파손된다. §8의 어댑터 전환과 함께 처리
+- **json 집계는 TEXT 반환**: D1은 `json_group_array`를 TEXT로 돌려준다(Postgres 드라이버는 json 타입을 파싱). `parseJsonCol` 헬퍼로 services에서 `JSON.parse` — API 응답 형태 무변경
+- **정렬 서브쿼리 패턴 실측 통과**: 상관 참조(`items.id`)를 FROM 파생 테이블 안에서 쓰는 `json_group_array`/`group_concat` 모두 D1에서 정상. **파생 테이블 별명(`) c`) 누락 시 `no such column` — 별명 필수** (스모크에서 발견·수정한 실제 버그)
+- **의미검색 선행 전환(§7.1/7.2)**: 규칙표대로 `embedding <=> $1::vector` → JS 코사인. `embed()`가 Float32Array 반환, `vecToBlob`/`blobToVec`(명시 little-endian), isolate 벡터 캐시(`getVectorCache`/`cacheVec`/`uncacheVec`)를 embedding.ts에 배치 — import 순환 없음. 임계는 기존 distance<0.8 동등인 sim≥0.2, 상위 30 유지(Phase 4에서 §7.4 값으로 조정)
+- **`id IN (SELECT value FROM json_each(?1))`** — `ANY(string_to_array)` 대체, `JSON.stringify(ids)` 바인딩
+- **`LIKE ... ESCAPE '\'`**: SQLite LIKE는 기본 이스케이프 문자가 없어 문장마다 명시 — '100%' 회귀(684976e) 보존 확인
+- **`returned_by_member` boolean 매핑**: SQLite는 boolean 식이 0/1 — `listReservations`에서 JS로 `!== 0` 변환해 API 계약(true/false) 유지. UNIQUE 중복 판별도 `code==='23505'` → 메시지 매치로 전환
+- **로컬 스모크 실측 (wrangler dev + 로컬 D1)**: 탐색/검색(랭킹·부분매치·와일드카드 이스케이프)/상세/카테고리, 프로필 수정, 대여 신청 201·**재고 초과 409(batch 가드)**·본인 반납, 관리자 CRUD 왕복(등록→검색→수정→삭제, FTS 고아 없음), allowed_emails 201/409, 역할 변경·**last_admin 409**·탈퇴 — 전부 통과. 의미검색·임베딩은 로컬에선 AI 바인딩 불가 → 폴백(키워드만) 동작 확인, 배포 환경에서 정상
+- 타임스탬프 실측: `2026-09-23T11:05:04.786Z` — Postgres JSON 출력과 동일
 
 ## 7. Phase 4 — 검색 재작성 `search.service.ts` + `embedding.ts` (1일)
 

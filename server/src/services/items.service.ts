@@ -2,7 +2,18 @@
 // 검색 외 물품 조회·관리에 필요한 모든 쿼리
 import type { Sql } from "../db";
 import type { Bindings } from "../types";
-import { embedItem } from "../embedding";
+import { embedItem, uncacheVec } from "../embedding";
+
+// D1 의 json_group_array 는 TEXT 를 돌려준다 — Postgres 드라이버는 json 타입을 파싱해 줬으므로
+// 그 자리를 이 헬퍼가 대신한다 (문자열이 아니면 이미 파싱된 값으로 간주)
+export function parseJsonCol<T>(v: unknown): T {
+  return typeof v === "string" ? (JSON.parse(v) as T) : ((v ?? []) as T);
+}
+
+// D1 에선 BLOB(ArrayBuffer)이 c.json 에서 {} 로 직렬화된다 — 응답에 임베딩을 싣지 않게
+// items.* 대신 컬럼을 명시한다 (web 은 embedding 필드를 읽지 않는다)
+const ADMIN_ITEM_COLUMNS = `items.id, items.name, items.description, items.status, items.total_qty,
+            items.qty_broken, items.kind, items.location, items.created_at`;
 
 // ===== 행 타입 =====
 
@@ -51,56 +62,63 @@ export async function getItemDetail(
       items.kind, items.location,
       items.qty_broken,
       (items.total_qty - items.qty_broken) AS rentable_qty,
-      (SELECT COALESCE(json_agg(json_build_object('id', p.id, 'url', '/api/photos/' || p.r2_key)
-                        ORDER BY p.sort_order), '[]'::json)
-       FROM item_photos p WHERE p.item_id = items.id) AS photos,
-      (SELECT COALESCE(SUM(r.qty), 0)::int FROM reservations r
+      (SELECT json_group_array(json_object('id', p.id, 'url', '/api/photos/' || p.r2_key))
+       FROM (SELECT p.id, p.r2_key FROM item_photos p
+              WHERE p.item_id = items.id ORDER BY p.sort_order) p) AS photos,
+      (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
         WHERE r.item_id = items.id AND r.status = 'rented') AS active_now,
-      (SELECT COALESCE(json_agg(json_build_object('id', c.id, 'name', c.name) ORDER BY c.name), '[]'::json)
-       FROM item_categories ic JOIN categories c ON c.id = ic.category_id
-       WHERE ic.item_id = items.id) AS categories
+      (SELECT json_group_array(json_object('id', c.id, 'name', c.name))
+       FROM (SELECT c.id, c.name FROM item_categories ic
+              JOIN categories c ON c.id = ic.category_id
+              WHERE ic.item_id = items.id ORDER BY c.name) c) AS categories
      FROM items
-    WHERE items.id = $1`,
+    WHERE items.id = ?1`,
     [itemId],
   )) as ListItemRow[];
 
-  return rows.length === 0 ? null : rows[0];
+  if (rows.length === 0) return null;
+  const row = rows[0];
+  row.photos = parseJsonCol(row.photos);
+  row.categories = parseJsonCol(row.categories);
+  return row;
 }
 
 // ===== 관리자 CRUD () =====
 
 // 목록 — 폐기 포함 전체 (관리자)
 export async function listAdminItems(db: Sql) {
-  return db.query(
-    `SELECT items.*,
-            (SELECT COALESCE(json_agg(json_build_object('id', c.id, 'name', c.name)
-                              ORDER BY c.name), '[]'::json)
-             FROM item_categories ic JOIN categories c ON c.id = ic.category_id
-             WHERE ic.item_id = items.id) AS categories,
+  const rows = (await db.query(
+    `SELECT ${ADMIN_ITEM_COLUMNS},
+            (SELECT json_group_array(json_object('id', c.id, 'name', c.name))
+             FROM (SELECT c.id, c.name FROM item_categories ic
+                    JOIN categories c ON c.id = ic.category_id
+                    WHERE ic.item_id = items.id ORDER BY c.name) c) AS categories,
             (SELECT p.r2_key FROM item_photos p WHERE p.item_id = items.id
               ORDER BY p.sort_order LIMIT 1) AS thumb_key,
-            (SELECT COUNT(*)::int FROM item_photos p WHERE p.item_id = items.id) AS photo_count,
-            (SELECT COUNT(*)::int FROM reservations r WHERE r.item_id = items.id) AS reservation_count
+            (SELECT COUNT(*) FROM item_photos p WHERE p.item_id = items.id) AS photo_count,
+            (SELECT COUNT(*) FROM reservations r WHERE r.item_id = items.id) AS reservation_count
      FROM items
      ORDER BY items.id DESC`,
-  );
+  )) as (AdminItemRow & { categories: unknown })[];
+  return rows.map((r) => ({ ...r, categories: parseJsonCol(r.categories) }));
 }
 
-// 편집용 단건 — 공개 상세()와 달리 태그까지 내려준다 (SELECT * + 태그 조인 — 관리자 화면용)
+// 편집용 단건 — 공개 상세()와 달리 태그까지 내려준다 (SELECT + 태그 조인 — 관리자 화면용)
 export async function getAdminItem(
   db: Sql,
   itemId: number,
 ): Promise<AdminItemRow | null> {
   const rows = (await db.query(
-    `SELECT items.*,
-            (SELECT COALESCE(json_agg(json_build_object('id', c.id, 'name', c.name)
-                              ORDER BY c.name), '[]'::json)
-             FROM item_categories ic JOIN categories c ON c.id = ic.category_id
-             WHERE ic.item_id = items.id) AS categories
-     FROM items WHERE items.id = $1`,
+    `SELECT ${ADMIN_ITEM_COLUMNS},
+            (SELECT json_group_array(json_object('id', c.id, 'name', c.name))
+             FROM (SELECT c.id, c.name FROM item_categories ic
+                    JOIN categories c ON c.id = ic.category_id
+                    WHERE ic.item_id = items.id ORDER BY c.name) c) AS categories
+     FROM items WHERE items.id = ?1`,
     [itemId],
-  )) as AdminItemRow[];
-  return rows.length === 0 ? null : rows[0];
+  )) as (AdminItemRow & { categories: unknown })[];
+  if (rows.length === 0) return null;
+  return { ...rows[0], categories: parseJsonCol(rows[0].categories) };
 }
 
 // 등록 — 입력 검증은 라우트, SQL·임베딩은 서비스
@@ -126,21 +144,45 @@ export async function createItem(
   ];
   const [row] = (await db.query(
     `INSERT INTO items (${cols.join(", ")})
-     VALUES (${cols.map((_, i) => `$${i + 1}`).join(", ")}) RETURNING id`,
+     VALUES (${cols.map((_, i) => `?${i + 1}`).join(", ")}) RETURNING id`,
     vals,
   )) as { id: number }[];
   await replaceItemCategories(db, row.id, categoryIds);
+  await syncItemFts(db, row.id);
   // 등록 즉시 의미 검색용 임베딩 생성 (실패해도 등록은 성공 — 키워드 검색은 계속 동작)
   await embedItem(env, db, row.id);
   return row.id;
 }
 
+// items_fts 동기화 — contentful 가상 테이블, rowid = items.id (PLAN §7.3).
+// 태그 컬럼은 카테고리 이름 공백 조인 — embedItem 의 itemEmbedText 와 같은 텍스트 규칙.
+// FTS5 는 UPSERT 를 지원하지 않아 DELETE+INSERT 를 batch 로 원자 처리한다.
+async function syncItemFts(db: Sql, itemId: number): Promise<void> {
+  const [row] = (await db.query(
+    `SELECT i.name, i.description, i.location,
+            (SELECT group_concat(c.name, ' ')
+               FROM (SELECT c.name FROM item_categories ic
+                      JOIN categories c ON c.id = ic.category_id
+                      WHERE ic.item_id = i.id ORDER BY c.name) c) AS tags
+       FROM items i WHERE i.id = ?1`,
+    [itemId],
+  )) as { name: string; description: string | null; location: string | null; tags: string | null }[];
+  if (!row) return; // 사이에 삭제된 경우 — 동기화할 것이 없다
+  await db.batch([
+    { sql: `DELETE FROM items_fts WHERE rowid = ?1`, params: [itemId] },
+    {
+      sql: `INSERT INTO items_fts (rowid, name, description, location, tags) VALUES (?1, ?2, ?3, ?4, ?5)`,
+      params: [itemId, row.name, row.description ?? "", row.location ?? "", row.tags ?? ""],
+    },
+  ]);
+}
+
 // 태그 전체 교체 — 배열이 비면 연결만 제거된다 (만든 중복 id 는 라우트가 이미 제거)
 async function replaceItemCategories(db: Sql, itemId: number, categoryIds: number[]) {
-  await db.query(`DELETE FROM item_categories WHERE item_id = $1`, [itemId]);
+  await db.query(`DELETE FROM item_categories WHERE item_id = ?1`, [itemId]);
   for (const cid of categoryIds) {
     await db.query(
-      `INSERT INTO item_categories (item_id, category_id) VALUES ($1, $2)
+      `INSERT INTO item_categories (item_id, category_id) VALUES (?1, ?2)
        ON CONFLICT DO NOTHING`,
       [itemId, cid],
     );
@@ -166,7 +208,7 @@ export async function updateItem(
   // 한쪽만 보내는 경우가 흔하므로 현재 값을 읽어 합쳐서 판정한다.
   if ("qty_broken" in fields || "total_qty" in fields) {
     const [cur] = (await db.query(
-      `SELECT total_qty, qty_broken FROM items WHERE id = $1`,
+      `SELECT total_qty, qty_broken FROM items WHERE id = ?1`,
       [itemId],
     )) as { total_qty: number; qty_broken: number }[];
     if (!cur) return { error: "not_found" };
@@ -179,20 +221,24 @@ export async function updateItem(
   // 건너뛴다 — 이 경우 존재 여부는 조인 테이블 작업 전 가드 SELECT 로 확인한다.
   const keys = Object.keys(itemFields);
   if (keys.length > 0) {
-    const setSql = keys.map((k, i) => `${k} = $${i + 2}`).join(", ");
+    const setSql = keys.map((k, i) => `${k} = ?${i + 2}`).join(", ");
     const rows = (await db.query(
-      `UPDATE items SET ${setSql} WHERE id = $1 RETURNING id`,
+      `UPDATE items SET ${setSql} WHERE id = ?1 RETURNING id`,
       [itemId, ...keys.map((k) => itemFields[k])],
     )) as { id: number }[];
     if (rows.length === 0) return { error: "not_found" };
   } else if (categoryIds !== undefined) {
-    const [row] = (await db.query(`SELECT id FROM items WHERE id = $1`, [
+    const [row] = (await db.query(`SELECT id FROM items WHERE id = ?1`, [
       itemId,
     ])) as { id: number }[];
     if (!row) return { error: "not_found" };
   }
   if (categoryIds !== undefined) {
     await replaceItemCategories(db, itemId, categoryIds);
+  }
+  // 검색 텍스트(이름·설명·위치·태그)가 바뀔 수 있으면 FTS 행을 최신 상태로
+  if (keys.length > 0 || categoryIds !== undefined) {
+    await syncItemFts(db, itemId);
   }
   // 이름·설명·태그가 바뀌면 임베딩도 갱신 (무조건 재생성 — 소규모라 비용 무시)
   await embedItem(env, db, itemId);
@@ -212,7 +258,7 @@ export async function deleteItem(
 ): Promise<DeleteItemResult> {
   // 대여 이력 확인
   const [cnt] = (await db.query(
-    `SELECT COUNT(*)::int AS n FROM reservations WHERE item_id = $1`,
+    `SELECT COUNT(*) AS n FROM reservations WHERE item_id = ?1`,
     [itemId],
   )) as { n: number }[];
   if (cnt.n > 0) return { error: "has_history" };
@@ -221,13 +267,16 @@ export async function deleteItem(
   // 영구 고아가 되므로 키를 읽어 함께 삭제한다(v3.1). R2 삭제가 일부 실패하면 오브젝트가 남을
   // 수 있으나 키를 잃어 사후 정리조차 못 하는 것보다 낫다.
   const keys = (await db.query(
-    `SELECT r2_key FROM item_photos WHERE item_id = $1`,
+    `SELECT r2_key FROM item_photos WHERE item_id = ?1`,
     [itemId],
   )) as { r2_key: string }[];
-  const rows = (await db.query(`DELETE FROM items WHERE id = $1 RETURNING id`, [
-    itemId,
-  ])) as { id: number }[];
-  if (rows.length === 0) return { error: "not_found" };
+  // 물품 + FTS 행을 한 트랜잭션으로 — FTS 에 고아가 남지 않는다 (PLAN §7.3)
+  const results = await db.batch<{ id: number }>([
+    { sql: `DELETE FROM items WHERE id = ?1 RETURNING id`, params: [itemId] },
+    { sql: `DELETE FROM items_fts WHERE rowid = ?1`, params: [itemId] },
+  ]);
+  if (results[0].length === 0) return { error: "not_found" };
+  uncacheVec(itemId);
   try {
     for (const key of keys) await env.PHOTOS.delete(key.r2_key);
   } catch (err) {
@@ -254,14 +303,14 @@ export async function addPhoto(
   ext: string,
 ): Promise<AddPhotoResult> {
   // 물품 존재 확인
-  const exists = (await db.query(`SELECT id FROM items WHERE id = $1`, [
+  const exists = (await db.query(`SELECT id FROM items WHERE id = ?1`, [
     itemId,
   ])) as { id: number }[];
   if (exists.length === 0) return { error: "not_found" };
 
   // 사진 개수 확인
   const [cnt] = (await db.query(
-    `SELECT COUNT(*)::int AS n FROM item_photos WHERE item_id = $1`,
+    `SELECT COUNT(*) AS n FROM item_photos WHERE item_id = ?1`,
     [itemId],
   )) as { n: number }[];
   if (cnt.n >= MAX_PHOTOS) return { error: "too_many" };
@@ -274,11 +323,11 @@ export async function addPhoto(
   // 첫 사진으로 결정되는 근거가 된다. 전부 0 이면 ORDER BY p.sort_order 가 동점이라 순서·대표가
   // 임의로 바뀌었다 .
   const [mx] = (await db.query(
-    `SELECT COALESCE(MAX(sort_order), 0) AS m FROM item_photos WHERE item_id = $1`,
+    `SELECT COALESCE(MAX(sort_order), 0) AS m FROM item_photos WHERE item_id = ?1`,
     [itemId],
   )) as { m: number }[];
   const [row] = (await db.query(
-    `INSERT INTO item_photos (item_id, r2_key, sort_order) VALUES ($1, $2, $3) RETURNING id`,
+    `INSERT INTO item_photos (item_id, r2_key, sort_order) VALUES (?1, ?2, ?3) RETURNING id`,
     [itemId, key, mx.m + 1],
   )) as { id: number }[];
   return { ok: true, id: row.id, url: `/api/photos/${key}` };
@@ -292,11 +341,11 @@ export async function deletePhoto(
   photoId: number,
 ): Promise<boolean> {
   const rows = (await db.query(
-    `SELECT id, r2_key FROM item_photos WHERE id = $1 AND item_id = $2`,
+    `SELECT id, r2_key FROM item_photos WHERE id = ?1 AND item_id = ?2`,
     [photoId, itemId],
   )) as { id: number; r2_key: string }[];
   if (rows.length === 0) return false;
   await env.PHOTOS.delete(rows[0].r2_key);
-  await db.query(`DELETE FROM item_photos WHERE id = $1`, [photoId]);
+  await db.query(`DELETE FROM item_photos WHERE id = ?1`, [photoId]);
   return true;
 }

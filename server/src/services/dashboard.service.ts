@@ -25,14 +25,14 @@ export type DashboardItem = {
 };
 
 export async function getDashboard(db: Sql) {
-  // Q1 전체 물품(폐기 포함) + Q2 현재 대여자 — neon HTTP 드라이버는 쿼리당 1 request라 병렬 실행
+  // Q1 전체 물품(폐기 포함) + Q2 현재 대여자 — D1 도 쿼리당 왕복이라 병렬 실행
   const [itemsRaw, rentersRaw] = await Promise.all([
     db.query(
       `SELECT items.id, items.name, items.kind, items.status, items.total_qty, items.qty_broken,
               (items.total_qty - items.qty_broken) AS rentable_qty,
               (SELECT '/api/photos/' || p.r2_key FROM item_photos p
                 WHERE p.item_id = items.id ORDER BY p.sort_order LIMIT 1) AS photo,
-              (SELECT COALESCE(SUM(r.qty), 0)::int FROM reservations r
+              (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
                 WHERE r.item_id = items.id AND r.status = 'rented') AS active_now
          FROM items ORDER BY items.id DESC`,
     ),
@@ -45,8 +45,8 @@ export async function getDashboard(db: Sql) {
     ),
   ]);
 
-  // SAFETY: 각 raw 쿼리의 SELECT 목록이 아래 타입과 일치한다. neon HTTP 드라이버의
-  // 반환형이 유니온이라 단언이 필요한데, tsc는 SELECT 문자열을 읽지 못해 이 일치를 검사할 수 없다.
+  // SAFETY: 각 raw 쿼리의 SELECT 목록이 아래 타입과 일치한다. tsc는 SELECT 문자열을 읽지
+  // 못해 이 일치를 검사할 수 없다.
   const items = itemsRaw as unknown as Omit<DashboardItem, "current_renters">[];
   // SAFETY: rentersRaw 도 같은 이유 — Q2 SELECT(member_name·member_phone·qty·item_id)와 타입 일치
   const renters = rentersRaw as unknown as (DashboardRenter & { item_id: number })[];

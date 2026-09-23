@@ -36,7 +36,7 @@ export async function addAllowedEmail(
 ): Promise<AddAllowedEmailResult> {
   const rows = (await db.query(
     `INSERT INTO allowed_emails (email, note, created_by)
-     VALUES ($1, $2, $3)
+     VALUES (?1, ?2, ?3)
      ON CONFLICT (email) DO NOTHING
      RETURNING id`,
     [normalizeEmail(email), opts?.note?.trim() || null, opts?.createdBy ?? null],
@@ -53,7 +53,7 @@ export async function deleteAllowedEmail(
   id: string,
 ): Promise<DeleteAllowedEmailResult> {
   const rows = (await db.query(
-    "DELETE FROM allowed_emails WHERE id = $1 RETURNING id",
+    "DELETE FROM allowed_emails WHERE id = ?1 RETURNING id",
     [id],
   )) as { id: string }[];
   if (rows.length === 0) return { error: "not_found" };

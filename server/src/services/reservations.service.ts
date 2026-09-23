@@ -250,7 +250,10 @@ export async function listReservations(db: Sql, status: string | null) {
   );
   // 500건 하드 리밋 — 넘으면 오래된 건이 잘린다. 화면에서 '500건 이상' 표시를 위해 절단 여부를 내려준다
   const truncated = (rows as { id: number }[]).length === 500;
-  return { reservations: rows, truncated };
+  // SQLite 는 boolean 식을 0/1 로 돌려준다 — API 계약(Postgres 시절 true/false)을 유지한다
+  const reservations = (rows as (Record<string, unknown> & { returned_by_member: number })[])
+    .map((r) => ({ ...r, returned_by_member: r.returned_by_member !== 0 }));
+  return { reservations, truncated };
 }
 
 // 반납 — rented → returned. 관리자가 물품을 돌려받았을 때 누른다
