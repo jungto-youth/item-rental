@@ -20,6 +20,23 @@ function readStoredTheme(): Theme {
   return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+// 관리자 청크 사전 로드 — 관리자 세션이면 브라우저가 한가할 때 5개 관리자 화면 청크를
+// 미리 받아둔다. 라우트별 코드 스플릿의 첫 클릭 빈 구간(화면 깜빡임)을 없애는 용도로,
+// 일반 방문자는 관리자 청크를 받지 않는다(번들 비용 0).
+function preloadAdminChunks() {
+  const idle = (cb: () => void) =>
+    typeof window.requestIdleCallback === "function"
+      ? window.requestIdleCallback(() => cb())
+      : setTimeout(cb, 1500);
+  idle(() => {
+    void import("./pages/admin/dashboard");
+    void import("./pages/admin/items");
+    void import("./pages/admin/reservations");
+    void import("./pages/admin/members");
+    void import("./pages/admin/allowed-emails");
+  });
+}
+
 @customElement("app-shell")
 export class AppShell extends LitElement {
   @state() private user: SessionUser | null = null;
@@ -191,6 +208,29 @@ export class AppShell extends LitElement {
         font-size: var(--text-body);
         line-height: 1.47;
       }
+      /* 코드 스플릿 청크 로딩 구간 — 아직 등록되지 않은 페이지 요소가 빈 화면으로
+         깜빡이지 않게 스피너 영역을 보여준다 (사전 로드가 커버 못 하는 콜드 로드·
+         관리자 외 라우트 첫 방문용 보험) */
+      main > :not(:defined) {
+        display: block;
+        min-height: 60vh;
+      }
+      main > :not(:defined)::after {
+        content: "";
+        display: block;
+        width: 16px;
+        height: 16px;
+        margin: 35vh auto 0;
+        border: 2px solid var(--color-muted);
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
     `,
   ];
 
@@ -198,7 +238,9 @@ export class AppShell extends LitElement {
     super.connectedCallback();
     this.applyTheme(this.theme); // 저장값(또는 시스템)을 최초 1회 적용
     this.user = session.user;
-    session.ensure();
+    void session.ensure().then((u) => {
+      if (u?.role === "admin") preloadAdminChunks();
+    });
     this.unsubscribe = session.subscribe(() => {
       this.user = session.user;
     });

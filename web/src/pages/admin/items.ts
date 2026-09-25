@@ -211,11 +211,11 @@ export class PageAdminItems extends LitElement {
 
   render() {
     if (this.loading) {
-      return html`<admin-nav active="items"></admin-nav><x-empty state="loading"></x-empty>`;
+      return html`<admin-nav active="items"></admin-nav><x-empty compact state="loading"></x-empty>`;
     }
     if (this.loadError && this.items.length === 0) {
       return html`<admin-nav active="items"></admin-nav>
-        <x-empty state="error" text="물품 목록을 불러오지 못했어요">
+        <x-empty compact state="error" text="물품 목록을 불러오지 못했어요">
           <x-button variant="secondary" size="sm" @click=${() => void this.reload()}>
             다시 시도
           </x-button>
