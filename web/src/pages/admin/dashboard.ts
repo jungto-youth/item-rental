@@ -3,10 +3,9 @@ import { customElement, state } from "lit/decorators.js";
 import { api } from "../../api/client";
 import type { Dashboard, DashboardItem, DashboardRenter } from "../../types";
 import { reduceMotion } from "../../styles/motion";
-import "../../components/admin/admin-nav";
+import "../../components/admin/admin-page";
 import "../../components/ui/badge";
 import "../../components/ui/empty";
-import "../../components/ui/page-header";
 import { rowsCss } from "../../components/ui/rows";
 
 // 관리자 물품 현황 — 물품별 현재 상태.
@@ -25,6 +24,7 @@ const SECTIONS: { key: GroupKey; title: string }[] = [
 @customElement("page-admin-dashboard")
 export class PageAdminDashboard extends LitElement {
   @state() private data: Dashboard | null = null;
+  @state() private loading = true;
   @state() private error = "";
 
   static styles = [
@@ -59,7 +59,7 @@ export class PageAdminDashboard extends LitElement {
         border-radius: var(--radius-sm, 6px);
         background: var(--color-bg);
         border: 1px solid var(--color-border);
-        font-size: 1.25rem;
+        font-size: var(--text-title, 1.25rem);
         overflow: hidden;
       }
       .thumb img {
@@ -92,10 +92,18 @@ export class PageAdminDashboard extends LitElement {
 
   async connectedCallback() {
     super.connectedCallback();
+    await this.reload();
+  }
+
+  private async reload() {
+    this.loading = true;
+    this.error = "";
     try {
       this.data = await api<Dashboard>("/api/admin/dashboard");
     } catch (e) {
-      this.error = e instanceof Error ? e.message : "오류";
+      this.error = e instanceof Error ? e.message : "물품 현황을 불러오지 못했어요";
+    } finally {
+      this.loading = false;
     }
   }
 
@@ -180,30 +188,26 @@ export class PageAdminDashboard extends LitElement {
   }
 
   render() {
-    if (this.error) {
-      return html`
-        <admin-nav active="dashboard"></admin-nav>
-        <x-page-header title="물품 현황"></x-page-header>
-        <x-empty compact state="error" text=${this.error}></x-empty>
-      `;
-    }
-    if (!this.data) {
-      return html`
-        <admin-nav active="dashboard"></admin-nav>
-        <x-page-header title="물품 현황"></x-page-header>
-        <x-empty compact state="loading"></x-empty>
-      `;
-    }
-    const items = this.data.items;
-    const g = this.groupItems(items);
-    const summary =
-      `전체 ${items.length}개 · 대여 중 ${g.rented.length} · 점검·수리 ${g.repair.length}` +
-      ` · 소모품 ${g.consumable.length} · 폐기 ${g.retired.length}`;
+    const items = this.data?.items;
+    const g = items ? this.groupItems(items) : null;
+    const summary = g
+      ? `전체 ${items!.length}개 · 대여 중 ${g.rented.length} · 점검·수리 ${g.repair.length}` +
+        ` · 소모품 ${g.consumable.length} · 폐기 ${g.retired.length}`
+      : "";
     return html`
-      <admin-nav active="dashboard"></admin-nav>
-      <x-page-header title="물품 현황" subtitle=${summary}></x-page-header>
-      ${items.length === 0 ? html`<x-empty compact state="empty" text="등록된 물품이 없어요"></x-empty>` : ""}
-      ${SECTIONS.map((s) => this.renderSection(s.title, g[s.key]))}
+      <admin-page
+        active="dashboard"
+        title="물품 현황"
+        .subtitle=${summary}
+        ?loading=${this.loading}
+        .error=${this.error}
+        @retry=${() => void this.reload()}
+      >
+        ${items && items.length === 0
+          ? html`<x-empty compact state="empty" text="등록된 물품이 없어요"></x-empty>`
+          : ""}
+        ${g ? SECTIONS.map((s) => this.renderSection(s.title, g[s.key])) : ""}
+      </admin-page>
     `;
   }
 }

@@ -6,9 +6,8 @@ import "../../components/ui/badge";
 import type { AdminReservation, ReservationStatus } from "../../types";
 import { api } from "../../api/client";
 import { reduceMotion } from "../../styles/motion";
-import "../../components/admin/admin-nav";
+import "../../components/admin/admin-page";
 import "../../components/ui/empty";
-import "../../components/ui/page-header";
 import "../../components/ui/select";
 import { rowsCss } from "../../components/ui/rows";
 
@@ -23,6 +22,7 @@ export class PageAdminReservations extends LitElement {
   @state() private loading = true; /* 초기 로드 전 — "없어요" 깜빡임 방지 */
   @state() private busy = false;
   @state() private message = "";
+  @state() private error = "";
 
   static styles = [
     reduceMotion,
@@ -57,6 +57,7 @@ export class PageAdminReservations extends LitElement {
   }
 
   private async reload() {
+    this.error = "";
     try {
       const qs = this.filter ? `?status=${this.filter}` : "";
       const res = await api<{
@@ -66,7 +67,7 @@ export class PageAdminReservations extends LitElement {
       this.reservations = res.reservations;
       this.truncated = res.truncated === true;
     } catch (e) {
-      this.message = e instanceof Error ? e.message : "오류";
+      this.error = e instanceof Error ? e.message : "대여 목록을 불러오지 못했어요";
     } finally {
       this.loading = false;
     }
@@ -92,32 +93,36 @@ export class PageAdminReservations extends LitElement {
 
   render() {
     return html`
-      <admin-nav active="reservations"></admin-nav>
-      <x-page-header title="대여 관리"></x-page-header>
-      <div class="bar">
-        <label for="filter-status">상태</label>
-        <x-select
-          id="filter-status"
-          .value=${this.filter}
-          .options=${[
-        { value: "", label: "전체" },
-        { value: "rented", label: "대여 중" },
-        { value: "returned", label: "반납 완료" },
-        { value: "cancelled", label: "취소" },
-      ]}
-          @change=${(e: CustomEvent<{ value: string }>) => {
-        this.filter = e.detail.value as "" | ReservationStatus;
-        void this.reload();
-      }}
-        ></x-select>
-      </div>
-      <p class="msg" aria-live="polite">${this.message}</p>
-      ${this.loading
-        ? html`<x-empty compact state="loading"></x-empty>`
-        : this.reservations.length === 0
+      <admin-page
+        active="reservations"
+        title="대여 관리"
+        ?loading=${this.loading}
+        .error=${this.error}
+        .message=${this.message}
+        @retry=${() => void this.reload()}
+      >
+        <div class="bar" slot="toolbar">
+          <label for="filter-status">상태</label>
+          <x-select
+            id="filter-status"
+            .value=${this.filter}
+            .options=${[
+          { value: "", label: "전체" },
+          { value: "rented", label: "대여 중" },
+          { value: "returned", label: "반납 완료" },
+          { value: "cancelled", label: "취소" },
+        ]}
+            @change=${(e: CustomEvent<{ value: string }>) => {
+          this.filter = e.detail.value as "" | ReservationStatus;
+          void this.reload();
+        }}
+          ></x-select>
+        </div>
+        ${this.reservations.length === 0
           ? html`<x-empty compact state="empty" text="대여가 없어요"></x-empty>`
           : html`${this.truncated ? html`<x-empty compact state="empty" text="500건까지만 표시 — 오래된 건은 잘릴 수 있어요"></x-empty>` : ""}${this.renderCards()}`
-      }
+        }
+      </admin-page>
     `;
   }
 

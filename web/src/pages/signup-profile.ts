@@ -29,7 +29,7 @@ export class PageSignupProfile extends LitElement {
         padding: var(--space-5);
       }
       h2 {
-        font-size: 1.0625rem;
+        font-size: var(--text-heading, 1.0625rem);
         font-weight: 600;
         letter-spacing: var(--tracking-tight);
         margin: 0;

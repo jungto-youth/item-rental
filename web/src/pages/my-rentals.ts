@@ -2,12 +2,14 @@ import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { api } from "../api/client";
 import { fmtKstDate } from "../utils/date";
+import { confirmDialog } from "../utils/confirm";
 import { session } from "../context/session";
 import "../components/ui/badge";
 import "../components/ui/empty";
 import "../components/ui/page-header";
 import type { MyReservation } from "../types";
 import { reduceMotion } from "../styles/motion";
+import { sectionHeadingCss, linkButtonCss } from "../styles/sections";
 
 // 대여 내역 페이지: 현재 대여 중 + 대여 이력 + 반납·취소
 @customElement("page-my-rentals")
@@ -16,20 +18,14 @@ export class PageMyRentals extends LitElement {
   @state() private reservations: MyReservation[] = [];
   @state() private busy = false;
   @state() private message = "";
-  @state() private confirmingReturnId: number | null = null;
-  @state() private confirmingCancelId: number | null = null;
 
   static styles = [
     reduceMotion,
+    sectionHeadingCss,
+    linkButtonCss,
     css`
       :host {
         display: block;
-      }
-      h2 {
-        font-size: 1.0625rem;
-        font-weight: 600;
-        letter-spacing: var(--tracking-tight);
-        margin: var(--space-5) 0 var(--space-3);
       }
       .section-top {
         margin-top: var(--space-2);
@@ -65,63 +61,6 @@ export class PageMyRentals extends LitElement {
         align-items: center;
         gap: 6px;
       }
-      .link-btn {
-        background: none;
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm, 6px);
-        color: var(--color-primary);
-        cursor: pointer;
-        padding: 5px 12px;
-        font-size: var(--text-caption, 13px);
-        font-weight: 500;
-        font-family: inherit;
-        transition: all 0.12s ease;
-      }
-      .link-btn:hover:not(:disabled) {
-        background: var(--color-primary);
-        color: var(--color-primary-text);
-        border-color: var(--color-primary);
-      }
-      .link-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .link-btn.danger {
-        border-color: transparent;
-        color: var(--color-danger);
-      }
-      .link-btn.danger:hover:not(:disabled) {
-        background: var(--tone-danger-bg);
-        border-color: var(--color-danger);
-      }
-      .confirm-inline {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .confirm-text {
-        font-size: var(--text-fine, 12px);
-        color: var(--color-muted);
-      }
-      .btn-confirm-yes {
-        background: var(--color-primary);
-        color: var(--color-primary-text);
-        border: none;
-        border-radius: var(--radius-sm, 6px);
-        padding: 4px 10px;
-        font-size: var(--text-caption, 13px);
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .btn-confirm-no {
-        background: var(--color-surface);
-        color: var(--color-muted);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm, 6px);
-        padding: 4px 8px;
-        font-size: var(--text-caption, 13px);
-        cursor: pointer;
-      }
       .note {
         color: var(--color-muted);
         font-size: var(--text-caption);
@@ -154,7 +93,7 @@ export class PageMyRentals extends LitElement {
       }
       details.history-details summary {
         cursor: pointer;
-        font-size: 1.0625rem;
+        font-size: var(--text-heading, 1.0625rem);
         font-weight: 600;
         letter-spacing: var(--tracking-tight);
         color: var(--color-text);
@@ -190,7 +129,6 @@ export class PageMyRentals extends LitElement {
   }
 
   private async doCancel(r: MyReservation) {
-    this.confirmingCancelId = null;
     if (this.busy) return;
     this.busy = true;
     try {
@@ -205,7 +143,6 @@ export class PageMyRentals extends LitElement {
   }
 
   private async doReturn(r: MyReservation) {
-    this.confirmingReturnId = null;
     if (this.busy) return;
     this.busy = true;
     try {
@@ -219,10 +156,33 @@ export class PageMyRentals extends LitElement {
     }
   }
 
-  private renderActiveRow(r: MyReservation) {
-    const isConfirmingReturn = this.confirmingReturnId === r.id;
-    const isConfirmingCancel = this.confirmingCancelId === r.id;
+  // 확인은 다른 화면과 같은 confirmDialog(모달)로 — 반납·취소는 되돌릴 수 있거나
+  // 자기 신고라 위험 동작이 아니므로 확인 버튼은 기본(primary) 톤을 쓴다
+  private async onReturn(r: MyReservation) {
+    if (this.busy) return;
+    if (
+      !(await confirmDialog(`'${r.item_name}'를 반납할까요?`, {
+        confirmLabel: "반납",
+        danger: false,
+      }))
+    )
+      return;
+    await this.doReturn(r);
+  }
 
+  private async onCancel(r: MyReservation) {
+    if (this.busy) return;
+    if (
+      !(await confirmDialog(`'${r.item_name}' 대여를 취소할까요?`, {
+        confirmLabel: "취소",
+        danger: false,
+      }))
+    )
+      return;
+    await this.doCancel(r);
+  }
+
+  private renderActiveRow(r: MyReservation) {
     return html`
       <div class="row active-row">
         <div>
@@ -233,66 +193,12 @@ export class PageMyRentals extends LitElement {
         </div>
         <div class="spacer"></div>
         <div class="action-group">
-          ${isConfirmingReturn
-            ? html`
-                <div class="confirm-inline">
-                  <span class="confirm-text">반납할까요?</span>
-                  <button
-                    class="btn-confirm-yes"
-                    ?disabled=${this.busy}
-                    @click=${() => this.doReturn(r)}
-                  >
-                    확인
-                  </button>
-                  <button
-                    class="btn-confirm-no"
-                    @click=${() => (this.confirmingReturnId = null)}
-                  >
-                    취소
-                  </button>
-                </div>
-              `
-            : isConfirmingCancel
-              ? html`
-                  <div class="confirm-inline">
-                    <span class="confirm-text">취소할까요?</span>
-                    <button
-                      class="btn-confirm-yes"
-                      ?disabled=${this.busy}
-                      @click=${() => this.doCancel(r)}
-                    >
-                      확인
-                    </button>
-                    <button
-                      class="btn-confirm-no"
-                      @click=${() => (this.confirmingCancelId = null)}
-                    >
-                      닫기
-                    </button>
-                  </div>
-                `
-              : html`
-                  <button
-                    class="link-btn"
-                    ?disabled=${this.busy}
-                    @click=${() => {
-                      this.confirmingCancelId = null;
-                      this.confirmingReturnId = r.id;
-                    }}
-                  >
-                    반납하기
-                  </button>
-                  <button
-                    class="link-btn danger"
-                    ?disabled=${this.busy}
-                    @click=${() => {
-                      this.confirmingReturnId = null;
-                      this.confirmingCancelId = r.id;
-                    }}
-                  >
-                    취소
-                  </button>
-                `}
+          <button class="link-btn" ?disabled=${this.busy} @click=${() => this.onReturn(r)}>
+            반납하기
+          </button>
+          <button class="link-btn danger" ?disabled=${this.busy} @click=${() => this.onCancel(r)}>
+            취소
+          </button>
         </div>
       </div>
       ${r.member_memo ? html`<p class="note">메모: ${r.member_memo}</p>` : ""}

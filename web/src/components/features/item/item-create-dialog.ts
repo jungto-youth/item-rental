@@ -5,10 +5,10 @@ import { api } from "../../../api/client";
 import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
 import { type Category, type ItemKind, type ItemStatus } from "../../../types";
 import { resolveCategoryIds } from "../../../utils/category";
-import { numberInputCss } from "../../../styles/controls";
 import "../../ui/modal";
 import "../../ui/button";
 import "../../ui/select";
+import "../../ui/input";
 import "../category/category-tags-input";
 import "./photo-uploader";
 
@@ -37,7 +37,6 @@ export class ItemCreateDialog extends LitElement {
   @state() private categoryOptions: string[] = [];
 
   static styles = [
-    numberInputCss,
     css`
     :host {
       display: contents;
@@ -49,38 +48,14 @@ export class ItemCreateDialog extends LitElement {
       gap: 14px;
     }
 
+    /* 태그 입력·x-select 감싸는 래퍼 라벨 — x-input 은 자체 라벨을 쓴다 */
     label {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      font-size: var(--text-fine, 12px);
+      font-size: var(--text-caption, 13px);
       font-weight: 600;
       color: var(--color-muted);
-    }
-
-    input, textarea {
-      padding: 0 12px;
-      height: 44px;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md, 8px);
-      background: var(--color-surface);
-      color: var(--color-text);
-      font-family: inherit;
-      font-size: var(--text-body, 15px);
-      box-sizing: border-box;
-      transition: border-color 0.15s ease;
-    }
-
-    textarea {
-      height: auto;
-      padding: 10px 12px;
-      resize: vertical;
-    }
-
-    input:focus, textarea:focus {
-      outline: none;
-      border-color: var(--color-primary);
-      background: var(--color-bg);
     }
 
     .row {
@@ -169,6 +144,15 @@ export class ItemCreateDialog extends LitElement {
   private async handleSave(e: Event) {
     e.preventDefault();
     if (this.saving) return;
+    // 자체 검증 — 폼 required 의 무음 차단 대신 명시적 오류 문구를 보여준다
+    if (!this.form.name.trim()) {
+      this.error = "이름을 입력해주세요";
+      return;
+    }
+    if (!(this.form.total_qty >= 1)) {
+      this.error = "보유 수량은 1 이상이어야 해요";
+      return;
+    }
     this.saving = true;
     this.error = "";
 
@@ -223,14 +207,11 @@ export class ItemCreateDialog extends LitElement {
         <form id="create-item-form" @submit=${this.handleSave}>
           ${this.error ? html`<p class="error-msg">${this.error}</p>` : ""}
 
-          <label>
-            이름 *
-            <input
-              required
-              .value=${f.name}
-              @input=${(e: Event) => this.set("name", (e.target as HTMLInputElement).value)}
-            />
-          </label>
+          <x-input
+            label="이름 *"
+            .value=${f.name}
+            @input=${(e: Event) => this.set("name", (e.target as HTMLInputElement).value)}
+          ></x-input>
 
           <label>
             카테고리
@@ -276,54 +257,46 @@ export class ItemCreateDialog extends LitElement {
           </div>
 
           <div class="row">
-            <label>
-              보유 수량 *
-              <input
-                type="number"
-                inputmode="numeric"
-                min="1"
-                required
-                .value=${String(f.total_qty)}
-                @input=${(e: Event) =>
+            <x-input
+              label="보유 수량 *"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              .value=${String(f.total_qty)}
+              @input=${(e: Event) =>
         this.set("total_qty", Number((e.target as HTMLInputElement).value))}
-              />
-            </label>
+            ></x-input>
             ${f.kind === "rental"
         ? html`
-                  <label>
-                    수리중 수량
-                    <input
-                      type="number"
-                      inputmode="numeric"
-                      min="0"
-                      .value=${String(f.qty_broken)}
-                      @input=${(e: Event) =>
+                  <x-input
+                    label="수리중 수량"
+                    type="number"
+                    inputmode="numeric"
+                    min="0"
+                    .value=${String(f.qty_broken)}
+                    @input=${(e: Event) =>
             this.set("qty_broken", Number((e.target as HTMLInputElement).value))}
-                    />
-                  </label>
+                  ></x-input>
                 `
         : ""}
           </div>
 
-          <label>
-            보관 위치
-            <input
-              .value=${f.location}
-              placeholder="예: 7층, 2층 OA실"
-              @input=${(e: Event) => this.set("location", (e.target as HTMLInputElement).value)}
-            />
-          </label>
+          <x-input
+            label="보관 위치"
+            placeholder="예: 7층, 2층 OA실"
+            .value=${f.location}
+            @input=${(e: Event) => this.set("location", (e.target as HTMLInputElement).value)}
+          ></x-input>
 
-          <label>
-            설명
-            <textarea
-              rows="2"
-              .value=${f.description}
-              placeholder="물품 설명이나 주의사항을 적어주세요"
-              @input=${(e: Event) =>
-        this.set("description", (e.target as HTMLTextAreaElement).value)}
-            ></textarea>
-          </label>
+          <x-input
+            label="설명"
+            type="textarea"
+            rows="2"
+            placeholder="물품 설명이나 주의사항을 적어주세요"
+            .value=${f.description}
+            @input=${(e: Event) =>
+        this.set("description", (e.target as HTMLInputElement).value)}
+          ></x-input>
 
           <photo-uploader
             multiple

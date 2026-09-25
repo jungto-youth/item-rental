@@ -1,5 +1,6 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { numberInputCss } from "../../styles/controls";
 
 // 라벨 + 입력 필드 — 페이지마다 흩어져 있던 input 스타일(높이·라운드·포커스)을 통일한다.
 // Form-Associated Custom Element: required 검증이 내부 input의 shadow에 묻히지 않도록
@@ -15,10 +16,18 @@ export class XInput extends LitElement {
   @property({ reflect: true }) size: "sm" | "md" = "md";
   @property({ type: Boolean, reflect: true }) required = false;
   @property({ type: Boolean, reflect: true }) disabled = false;
+  // type="textarea"일 때 행 수
+  @property({ type: Number }) rows = 2;
+  // type="number"일 때 최솟값 — 네이티브 전달용(스피너·키보드 힌트), 폼 검증은 required 범위만
+  @property() min = "";
+  // 모바일 키보드 힌트("numeric" 등)
+  @property() inputmode = "";
 
   private internals = this.attachInternals();
 
-  static styles = css`
+  static styles = [
+    numberInputCss,
+    css`
     :host {
       display: flex;
       flex-direction: column;
@@ -67,7 +76,17 @@ export class XInput extends LitElement {
       padding: 0 12px;
       font-size: var(--text-caption, 13px);
     }
-  `;
+    /* textarea — 고정 높이 대신 세로 확장 */
+    textarea.control {
+      height: auto;
+      padding: 10px 14px;
+      font-size: var(--text-body, 15px);
+      line-height: 1.5;
+      resize: vertical;
+      min-height: 60px;
+    }
+  `,
+  ];
 
   protected updated(changed: Map<string, unknown>) {
     super.updated(changed);
@@ -80,7 +99,7 @@ export class XInput extends LitElement {
   }
 
   private validate() {
-    const input = this.renderRoot.querySelector("input");
+    const input = this.renderRoot.querySelector("input, textarea") as HTMLElement | null;
     if (this.required && this.value.trim() === "") {
       this.internals.setValidity({ valueMissing: true }, "필수 입력 항목이에요", input ?? undefined);
     } else {
@@ -96,15 +115,27 @@ export class XInput extends LitElement {
   render() {
     return html`
       ${this.label ? html`<label for="control">${this.label}</label>` : ""}
-      <input
-        id="control"
-        class="control size-${this.size}"
-        type=${this.type}
-        placeholder=${this.placeholder}
-        .value=${this.value}
-        ?disabled=${this.disabled}
-        @input=${this.onInput}
-      />
+      ${this.type === "textarea"
+        ? html`<textarea
+            id="control"
+            class="control"
+            rows=${this.rows}
+            placeholder=${this.placeholder}
+            .value=${this.value}
+            ?disabled=${this.disabled}
+            @input=${this.onInput}
+          ></textarea>`
+        : html`<input
+            id="control"
+            class="control size-${this.size}"
+            type=${this.type}
+            min=${this.min || undefined}
+            inputmode=${this.inputmode || undefined}
+            placeholder=${this.placeholder}
+            .value=${this.value}
+            ?disabled=${this.disabled}
+            @input=${this.onInput}
+          />`}
     `;
   }
 }

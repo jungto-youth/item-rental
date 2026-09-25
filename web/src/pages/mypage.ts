@@ -9,6 +9,7 @@ import "../components/ui/notice";
 import "../components/ui/page-header";
 import "../components/ui/input";
 import { reduceMotion } from "../styles/motion";
+import { sectionHeadingCss, linkButtonCss } from "../styles/sections";
 
 // 내 정보 페이지: 계정 정보 (상단 배너 + 계정 정보 카드)
 @customElement("page-mypage")
@@ -25,15 +26,11 @@ export class PageMypage extends LitElement {
 
   static styles = [
     reduceMotion,
+    sectionHeadingCss,
+    linkButtonCss,
     css`
       :host {
         display: block;
-      }
-      h2 {
-        font-size: 1.0625rem;
-        font-weight: 600;
-        letter-spacing: var(--tracking-tight);
-        margin: var(--space-5) 0 var(--space-3);
       }
       .card {
         background: var(--color-surface);
@@ -59,27 +56,6 @@ export class PageMypage extends LitElement {
       x-notice {
         display: block;
         margin-bottom: var(--space-4, 16px);
-      }
-      .link-btn {
-        background: none;
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm, 6px);
-        color: var(--color-primary);
-        cursor: pointer;
-        padding: 5px 12px;
-        font-size: var(--text-caption, 13px);
-        font-weight: 500;
-        font-family: inherit;
-        transition: all 0.12s ease;
-      }
-      .link-btn:hover:not(:disabled) {
-        background: var(--color-primary);
-        color: var(--color-primary-text);
-        border-color: var(--color-primary);
-      }
-      .link-btn:focus-visible {
-        outline: 2px solid var(--color-primary-focus);
-        outline-offset: 1px;
       }
       /* 인라인 수정 폼 — 카드 안 상태 전환 (표시 모드 ↔ 입력 모드) */
       .edit-actions {

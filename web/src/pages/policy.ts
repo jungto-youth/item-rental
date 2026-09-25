@@ -20,14 +20,14 @@ export class PagePolicy extends LitElement {
       margin: 0 auto;
     }
     h1 {
-      font-size: 1.375rem;
+      font-size: var(--text-page-title, 1.375rem);
       font-weight: 600;
       letter-spacing: var(--tracking-tight);
       line-height: 1.1;
       margin: var(--space-2) 0 var(--space-2);
     }
     h2 {
-      font-size: 1.0625rem;
+      font-size: var(--text-heading, 1.0625rem);
       font-weight: 600;
       letter-spacing: var(--tracking-tight);
       margin: var(--space-5) 0 var(--space-2);

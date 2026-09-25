@@ -3,8 +3,10 @@ import { customElement, state } from "lit/decorators.js";
 import { api } from "../../api/client";
 import type { Category, Item, ItemKind, ItemStatus } from "../../types";
 import { rowsCss } from "../../components/ui/rows";
+import { searchInputCss } from "../../styles/controls";
+import { reduceMotion } from "../../styles/motion";
 import { getCategories } from "../../utils/categories";
-import "../../components/admin/admin-nav";
+import "../../components/admin/admin-page";
 import "../../components/ui/empty";
 import "../../components/ui/button";
 import "../../components/ui/select";
@@ -46,61 +48,22 @@ export class PageAdminItems extends LitElement {
   @state() private editModel: Item | null = null;
 
   static styles = [
+    reduceMotion,
     rowsCss,
+    searchInputCss,
     css`
       :host {
         display: block;
-      }
-      .page-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: var(--space-3, 12px);
-        margin-bottom: var(--space-4, 16px);
-      }
-      h1 {
-        margin: 0;
-        font-size: var(--text-heading-lg, 20px);
-        font-weight: 700;
-        letter-spacing: var(--tracking-tight);
-        color: var(--color-text);
-      }
-      .sub {
-        margin: 2px 0 0;
-        font-size: var(--text-caption, 13px);
-        color: var(--color-muted);
-      }
-      .actions {
-        display: flex;
-        gap: var(--space-2, 8px);
-        flex-shrink: 0;
       }
       .toolbar {
         display: flex;
         gap: var(--space-2, 8px);
         margin-bottom: var(--space-3, 12px);
       }
-      .toolbar input {
-        flex: 1;
-        min-width: 0;
-        height: 40px;
-        padding: 0 12px;
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md, 8px);
-        background: var(--color-surface);
-        color: var(--color-text);
-        font-family: inherit;
-        font-size: var(--text-body, 15px);
-        box-sizing: border-box;
-      }
       /* x-select는 자체 스타일 담당 — 툴바에서는 검색 인풋과 높이만 맞춘다 */
       .toolbar x-select {
         width: 200px;
         flex-shrink: 0;
-      }
-      .toolbar input:focus {
-        outline: none;
-        border-color: var(--color-primary);
       }
       .row {
         display: flex;
@@ -210,63 +173,62 @@ export class PageAdminItems extends LitElement {
   }
 
   render() {
-    if (this.loading) {
-      return html`<admin-nav active="items"></admin-nav><x-empty compact state="loading"></x-empty>`;
-    }
-    if (this.loadError && this.items.length === 0) {
-      return html`<admin-nav active="items"></admin-nav>
-        <x-empty compact state="error" text="물품 목록을 불러오지 못했어요">
-          <x-button variant="secondary" size="sm" @click=${() => void this.reload()}>
-            다시 시도
-          </x-button>
-        </x-empty>`;
-    }
     const list = this.filtered();
     return html`
-      <div class="page-head">
-        <div>
-          <h1>물품 관리</h1>
-          <p class="sub">
-            전체 ${this.items.length}개 · 카테고리 ${this.categories.length}개
-          </p>
-        </div>
-        <div class="actions">
-          <x-button variant="secondary" size="sm" @click=${() => (this.catOpen = true)}>
-            카테고리 관리
-          </x-button>
-          <x-button variant="primary" size="sm" @click=${() => (this.createOpen = true)}>
-            + 물품 등록
-          </x-button>
-        </div>
-      </div>
-      <admin-nav active="items"></admin-nav>
+      <admin-page
+        active="items"
+        title="물품 관리"
+        subtitle="전체 ${this.items.length}개 · 카테고리 ${this.categories.length}개"
+        ?loading=${this.loading}
+        .error=${this.loadError && this.items.length === 0
+        ? "물품 목록을 불러오지 못했어요"
+        : ""}
+        @retry=${() => void this.reload()}
+      >
+        <x-button
+          slot="action"
+          variant="secondary"
+          size="sm"
+          @click=${() => (this.catOpen = true)}
+        >
+          카테고리 관리
+        </x-button>
+        <x-button
+          slot="action"
+          variant="primary"
+          size="sm"
+          @click=${() => (this.createOpen = true)}
+        >
+          + 물품 등록
+        </x-button>
 
-      <div class="toolbar">
-        <input
-          type="search"
-          aria-label="물품 검색"
-          placeholder="물품명, 위치, 카테고리"
-          .value=${this.q}
-          @input=${(e: Event) => (this.q = (e.target as HTMLInputElement).value)}
-        />
-        <x-select
-          size="md"
-          ariaLabel="카테고리 필터"
-          .value=${this.categoryFilter}
-          .options=${[
-        { value: "all", label: "카테고리 전체" },
-        ...this.categories.map((c) => ({
-          value: String(c.id),
-          label: `${c.name} (${c.item_count})`,
-        })),
-        { value: "none", label: "미지정" },
-      ]}
-          @change=${(e: CustomEvent<{ value: string }>) =>
+        <div class="toolbar" slot="toolbar">
+          <input
+            class="search-input"
+            type="search"
+            aria-label="물품 검색"
+            placeholder="물품명, 위치, 카테고리"
+            .value=${this.q}
+            @input=${(e: Event) => (this.q = (e.target as HTMLInputElement).value)}
+          />
+          <x-select
+            size="md"
+            ariaLabel="카테고리 필터"
+            .value=${this.categoryFilter}
+            .options=${[
+          { value: "all", label: "카테고리 전체" },
+          ...this.categories.map((c) => ({
+            value: String(c.id),
+            label: `${c.name} (${c.item_count})`,
+          })),
+          { value: "none", label: "미지정" },
+        ]}
+            @change=${(e: CustomEvent<{ value: string }>) =>
         (this.categoryFilter = e.detail.value)}
-        ></x-select>
-      </div>
+          ></x-select>
+        </div>
 
-      ${list.length === 0
+        ${list.length === 0
         ? html`<x-empty compact text="조건에 맞는 물품이 없어요"></x-empty>`
         : html`
             <ul class="rows">
@@ -274,29 +236,30 @@ export class PageAdminItems extends LitElement {
             </ul>
           `}
 
-      <item-create-dialog
-        ?open=${this.createOpen}
-        @close=${() => (this.createOpen = false)}
-        @created=${() => {
+        <item-create-dialog
+          ?open=${this.createOpen}
+          @close=${() => (this.createOpen = false)}
+          @created=${() => {
         this.createOpen = false;
         void this.reload();
       }}
-      ></item-create-dialog>
+        ></item-create-dialog>
 
-      <item-edit-dialog
-        .item=${this.editModel ?? undefined}
-        ?open=${this.editOpen}
-        @close=${() => (this.editOpen = false)}
-        @saved=${() => void this.reload()}
-        @deleted=${() => void this.reload()}
-        @photo-changed=${() => void this.reload()}
-      ></item-edit-dialog>
+        <item-edit-dialog
+          .item=${this.editModel ?? undefined}
+          ?open=${this.editOpen}
+          @close=${() => (this.editOpen = false)}
+          @saved=${() => void this.reload()}
+          @deleted=${() => void this.reload()}
+          @photo-changed=${() => void this.reload()}
+        ></item-edit-dialog>
 
-      <category-manage-dialog
-        ?open=${this.catOpen}
-        @close=${() => (this.catOpen = false)}
-        @changed=${() => void this.reload()}
-      ></category-manage-dialog>
+        <category-manage-dialog
+          ?open=${this.catOpen}
+          @close=${() => (this.catOpen = false)}
+          @changed=${() => void this.reload()}
+        ></category-manage-dialog>
+      </admin-page>
     `;
   }
 

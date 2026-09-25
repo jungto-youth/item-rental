@@ -1,7 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
-// 페이지 제목 헤더 — 제목(1.375rem/600) + 보조 설명(선택) + 우측 액션 슬롯(선택).
+// 페이지 제목 헤더 — 제목(--text-page-title/600) + 보조 설명(선택) + 우측 액션 슬롯(선택).
 // 페이지마다 반복되던 h1 규칙을 한 곳으로 모은다.
 @customElement("x-page-header")
 export class XPageHeader extends LitElement {
@@ -20,7 +20,7 @@ export class XPageHeader extends LitElement {
       gap: var(--space-3, 12px);
     }
     h1 {
-      font-size: 1.375rem;
+      font-size: var(--text-page-title, 1.375rem);
       font-weight: 600;
       letter-spacing: var(--tracking-tight);
       line-height: 1.1;

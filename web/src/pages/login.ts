@@ -29,7 +29,7 @@ export class PageLogin extends LitElement {
         padding: var(--space-6) 0;
       }
       h1 {
-        font-size: 1.375rem;
+        font-size: var(--text-page-title, 1.375rem);
         font-weight: 600;
         letter-spacing: var(--tracking-tight);
         line-height: 1.1;

@@ -5,9 +5,8 @@ import { api, ApiError } from "../../api/client";
 import "../../components/ui/badge";
 import type { AdminMember, Role } from "../../types";
 import { reduceMotion } from "../../styles/motion";
-import "../../components/admin/admin-nav";
+import "../../components/admin/admin-page";
 import "../../components/ui/empty";
-import "../../components/ui/page-header";
 import "../../components/ui/button";
 import "../../components/ui/select";
 import { rowsCss } from "../../components/ui/rows";
@@ -20,6 +19,7 @@ export class PageAdminMembers extends LitElement {
   @state() private loading = true; /* 초기 로드 전 — "없어요" 깜빡임 방지 */
   @state() private busy = false;
   @state() private message = "";
+  @state() private error = "";
 
   static styles = [
     reduceMotion,
@@ -38,11 +38,12 @@ export class PageAdminMembers extends LitElement {
   }
 
   private async reload() {
+    this.error = "";
     try {
       const res = await api<{ members: AdminMember[] }>("/api/admin/members");
       this.members = res.members;
     } catch (e) {
-      this.message = e instanceof Error ? e.message : "오류";
+      this.error = e instanceof Error ? e.message : "회원 목록을 불러오지 못했어요";
     } finally {
       this.loading = false;
     }
@@ -117,15 +118,19 @@ export class PageAdminMembers extends LitElement {
 
   render() {
     return html`
-      <admin-nav active="members"></admin-nav>
-      <x-page-header title="회원 관리"></x-page-header>
-      <p class="msg" aria-live="polite">${this.message}</p>
-      ${this.loading
-        ? html`<x-empty compact state="loading"></x-empty>`
-        : this.members.length === 0
+      <admin-page
+        active="members"
+        title="회원 관리"
+        ?loading=${this.loading}
+        .error=${this.error}
+        .message=${this.message}
+        @retry=${() => void this.reload()}
+      >
+        ${this.members.length === 0
           ? html`<x-empty compact state="empty" text="아직 회원이 없어요"></x-empty>`
           : this.renderCards()
-      }
+        }
+      </admin-page>
     `;
   }
 

@@ -76,7 +76,7 @@ export class PhotoUploader extends LitElement {
       width: 20px;
       height: 20px;
       background: rgba(0, 0, 0, 0.65);
-      color: #fff;
+      color: var(--color-on-overlay, #ffffff);
       border: none;
       border-radius: 50%;
       cursor: pointer;

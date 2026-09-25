@@ -5,6 +5,7 @@ import { session, type SessionUser } from "../context/session";
 import { navigate } from "../router";
 import { type Item } from "../types";
 import { reduceMotion } from "../styles/motion";
+import { searchInputCss } from "../styles/controls";
 import "../components/ui/button";
 import "../components/ui/empty";
 import "../components/ui/notice";
@@ -47,6 +48,7 @@ export class PageHome extends LitElement {
 
   static styles = [
     reduceMotion,
+    searchInputCss,
     css`
       :host {
         display: block;
@@ -66,28 +68,11 @@ export class PageHome extends LitElement {
         align-items: center;
       }
 
+      /* .search — searchInputCss 공용 조형 + 이 화면 전용 오버라이드(높이·클리어 버튼 자리) */
       .search {
         width: 100%;
         height: 44px;
         padding: 0 36px 0 14px;
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md, 8px);
-        background: var(--color-surface);
-        color: var(--color-text);
-        box-sizing: border-box;
-        font-size: var(--text-body, 15px);
-        font-family: inherit;
-        transition: border-color 0.15s ease, background-color 0.15s ease;
-      }
-
-      .search:focus {
-        outline: none;
-        border-color: var(--color-primary);
-        background: var(--color-bg);
-      }
-
-      .search::placeholder {
-        color: var(--color-muted);
       }
 
       .clear-btn {
@@ -367,7 +352,7 @@ export class PageHome extends LitElement {
       <div class="top-bar">
         <div class="search-box">
           <input
-            class="search"
+            class="search-input search"
             aria-label="물품 검색"
             placeholder="물품명, 위치, 설명, 카테고리 검색…"
             .value=${this.q}
