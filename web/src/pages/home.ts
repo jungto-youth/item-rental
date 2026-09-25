@@ -253,7 +253,7 @@ export class PageHome extends LitElement {
       }
     } catch (e) {
       if (gen !== this.fetchGen) return;
-      this.error = e instanceof Error ? e.message : "물품 목록을 불러오지 못했습니다";
+      this.error = e instanceof Error ? e.message : "물품 목록을 불러오지 못했어요";
     } finally {
       if (gen === this.fetchGen) this.loading = false;
     }

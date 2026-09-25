@@ -199,7 +199,7 @@ export class PageItemDetail extends LitElement {
       this.error = "";
     } catch (e) {
       if (gen !== this.loadGen) return;
-      if (!quiet) this.error = e instanceof Error ? e.message : "물품 정보를 불러오지 못했습니다";
+      if (!quiet) this.error = e instanceof Error ? e.message : "물품 정보를 불러오지 못했어요";
     } finally {
       if (gen === this.loadGen && !quiet) this.loading = false;
     }

@@ -204,7 +204,7 @@ export class ItemRentalForm extends LitElement {
       });
 
       this.isSuccess = true;
-      this.message = "대여가 완료되었습니다!";
+      this.message = "대여가 완료되었어요!";
       this.memo = "";
       this.qty = 1;
 
@@ -216,11 +216,11 @@ export class ItemRentalForm extends LitElement {
       if (code === "no_availability") {
         this.message = "방금 대여가 마감되었어요. 반납 후 다시 시도해주세요.";
       } else if (code === "too_many") {
-        this.message = "요청 수량이 대여 가능 수량보다 많습니다.";
+        this.message = "요청 수량이 대여 가능 수량보다 많아요.";
       } else if (code === "phone_required") {
         this.message = "내 정보에서 연락처를 먼저 등록해주세요.";
       } else {
-        this.message = err instanceof Error ? err.message : "대여 신청에 실패했습니다.";
+        this.message = err instanceof Error ? err.message : "대여 신청에 실패했어요.";
       }
     } finally {
       this.saving = false;

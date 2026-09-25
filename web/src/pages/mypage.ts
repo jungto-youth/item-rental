@@ -145,7 +145,7 @@ export class PageMypage extends LitElement {
       this.editing = false;
       this.saved = true;
     } catch (err) {
-      this.formMessage = err instanceof Error ? err.message : "저장에 실패했습니다.";
+      this.formMessage = err instanceof Error ? err.message : "저장에 실패했어요.";
     } finally {
       this.busy = false;
     }

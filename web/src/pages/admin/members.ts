@@ -55,7 +55,7 @@ export class PageAdminMembers extends LitElement {
     const who = m.name || m.email || "이 회원";
     if (
       !(await confirmDialog(
-        `'${who}'님을 탈퇴 처리할까요?\n이후 다시 로그인할 수 없습니다.\n대여 중인 물품은 본인이 반납할 수 없어 관리자가 대신 처리해야 합니다.`,
+        `'${who}'님을 탈퇴 처리할까요?\n이후 다시 로그인할 수 없어요.\n대여 중인 물품은 본인이 반납할 수 없어 관리자가 대신 처리해야 해요.`,
         { confirmLabel: "탈퇴 처리" },
       ))
     )

@@ -202,7 +202,7 @@ export class ItemEditDialog extends LitElement {
       this.dispatchEvent(new CustomEvent("saved", { bubbles: true, composed: true }));
       this.handleClose();
     } catch (err) {
-      this.error = err instanceof Error ? err.message : "수정 저장에 실패했습니다.";
+      this.error = err instanceof Error ? err.message : "수정 저장에 실패했어요.";
     } finally {
       this.saving = false;
     }
@@ -230,7 +230,7 @@ export class ItemEditDialog extends LitElement {
       return;
     }
     if (this.photos.length >= 3) {
-      this.error = "사진은 최대 3장까지 등록할 수 있습니다.";
+      this.error = "사진은 최대 3장까지 등록할 수 있어요.";
       return;
     }
 

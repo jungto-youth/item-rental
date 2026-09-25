@@ -267,7 +267,7 @@ export class PageAdminItems extends LitElement {
       </div>
 
       ${list.length === 0
-        ? html`<x-empty text="조건에 맞는 물품이 없어요"></x-empty>`
+        ? html`<x-empty compact text="조건에 맞는 물품이 없어요"></x-empty>`
         : html`
             <ul class="rows">
               ${list.map((it) => this.renderRow(it))}
