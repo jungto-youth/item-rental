@@ -14,6 +14,12 @@ import { setUnauthorizedHandler } from "./api/client";
 const requireSession: RouteConfig["enter"] = async () => {
   const user = await session.ensure();
   if (!user) {
+    // 세션 확인 자체가 실패(5xx·오프라인)한 것이지 비로그인이 아니다 — /login 으로
+    // 밀어내면 로그인해도 같은 오류를 다시 만난다. 공개 페이지로 돌려 확인을 재시도하게 둔다
+    if (session.unreachable) {
+      navigate("/");
+      return false;
+    }
     redirect("/login");
     return false;
   }
@@ -24,6 +30,10 @@ const requireSession: RouteConfig["enter"] = async () => {
 const requireAdmin: RouteConfig["enter"] = async () => {
   const user = await session.ensure();
   if (!user) {
+    if (session.unreachable) {
+      navigate("/");
+      return false;
+    }
     redirect("/login");
     return false;
   }

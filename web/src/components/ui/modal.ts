@@ -13,6 +13,15 @@ export class XModal extends LitElement {
   @state() private titleId = `x-modal-title-${Math.random().toString(36).slice(2)}`;
   private lastFocused: HTMLElement | null = null;
 
+  // 열린 모달 스택 — Esc·Tab은 맨 위 모달만 처리한다. confirmDialog가 페이지 모달 위에
+  // 떠 있을 때 두 모달이 같이 닫히고(닫힘 방송이 각자 울리고) 포커스 트랩이 이중으로
+  // 계산되는 일을 막는다.
+  private static openStack: XModal[] = [];
+
+  private get isTopmost(): boolean {
+    return XModal.openStack[XModal.openStack.length - 1] === this;
+  }
+
   private get focusables(): HTMLElement[] {
     const sel =
       'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -26,12 +35,14 @@ export class XModal extends LitElement {
 
   private handleOpenChange() {
     if (this.open) {
+      if (!XModal.openStack.includes(this)) XModal.openStack.push(this);
       this.lastFocused = document.activeElement as HTMLElement | null;
       requestAnimationFrame(() => {
         const dialog = this.shadowRoot?.querySelector<HTMLElement>(".dialog");
         (this.focusables[0] ?? dialog)?.focus();
       });
     } else {
+      XModal.openStack = XModal.openStack.filter((m) => m !== this);
       // 외부에서 open을 내린 경우에도 트리거로 포커스를 돌려준다
       this.lastFocused?.focus();
       this.lastFocused = null;
@@ -151,10 +162,11 @@ export class XModal extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener("keydown", this.handleKeyDown);
+    XModal.openStack = XModal.openStack.filter((m) => m !== this);
   }
 
   private handleKeyDown = (e: KeyboardEvent) => {
-    if (!this.open) return;
+    if (!this.open || !this.isTopmost) return;
     if (e.key === "Escape") {
       this.close();
     } else if (e.key === "Tab") {

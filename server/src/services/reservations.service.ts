@@ -61,7 +61,7 @@ export function validateReservation(
   return { ok: true };
 }
 
-// 2단계 — 실제 대여 생성 (advisory 락 + 가용 검사 + INSERT)
+// 2단계 — 실제 대여 생성 (가드 INSERT: 가용·상태 검사와 INSERT 를 원자 수행)
 export async function createReservation(
   db: Sql,
   params: CreateReservationParams,

@@ -239,11 +239,15 @@ export class AppShell extends LitElement {
   };
 
   private async signOut() {
+    // JWT 세션은 서버에 상태가 없다 — signout은 응답으로 쿠키를 지울 뿐이다.
+    // 네트워크가 나빠도 버튼이 멈추지 않게 타임아웃을 두고, 실패해도 로컬 세션은 비운다
+    // (쿠키가 남으면 다음 요청에서 다시 로그인 상태로 보일 수 있으나, 재시도 이전 상태보다 낫다).
     try {
-      const csrfRes = await fetch("/api/auth/csrf");
+      const csrfRes = await fetch("/api/auth/csrf", { signal: AbortSignal.timeout(10_000) });
       const { csrfToken } = (await csrfRes.json()) as { csrfToken: string };
       await fetch("/api/auth/signout", {
         method: "POST",
+        signal: AbortSignal.timeout(10_000),
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           "X-Auth-Return-Redirect": "1",
@@ -251,7 +255,7 @@ export class AppShell extends LitElement {
         body: new URLSearchParams({ csrfToken }),
       });
     } catch {
-      // 네트워크 오류 무시
+      // 네트워크 오류 — 서버 쿠키 삭제는 못 했지만 로그아웃 의사는 그대로 반영한다
     }
     session.clear();
     await session.refresh();

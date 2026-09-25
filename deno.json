@@ -1,4 +1,9 @@
 {
+  "compilerOptions": {
+    // deno test/check 가 server 코드의 Cloudflare 바인딩 타입과 node:sqlite 타입을
+    // 모두 보게 한다 (tsc -p server 는 server/tsconfig.json 의 types 를 쓴다)
+    "types": ["npm:@cloudflare/workers-types", "npm:@types/node"]
+  },
   "imports": {
     "@std/assert": "jsr:@std/assert@^1"
   },

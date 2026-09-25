@@ -20,6 +20,9 @@ export class PageItemDetail extends LitElement {
   @state() private loading = true;
   @state() private error = "";
 
+  // 로드 세대 — itemId가 빠르게 바뀌면(A→B 전환) 늦게 도착한 A의 응답이 B를 덮어쓰지 않게 한다
+  private loadGen = 0;
+
   @state() private user: SessionUser | null = null;
   @state() private userReady = false;
   @state() private editOpen = false;
@@ -187,15 +190,18 @@ export class PageItemDetail extends LitElement {
   }
 
   private async load(quiet = false) {
+    const gen = ++this.loadGen;
     if (!quiet) this.loading = true;
     try {
       const res = await api<{ item: Item }>(`/api/items/${this.itemId}`);
+      if (gen !== this.loadGen) return; // 다른 물품 로드가 시작됨 — 늦은 응답은 버린다
       this.item = res.item;
       this.error = "";
     } catch (e) {
+      if (gen !== this.loadGen) return;
       if (!quiet) this.error = e instanceof Error ? e.message : "물품 정보를 불러오지 못했습니다";
     } finally {
-      if (!quiet) this.loading = false;
+      if (gen === this.loadGen && !quiet) this.loading = false;
     }
   }
 

@@ -123,6 +123,11 @@ export async function getAdminItem(
 
 // 등록 — 입력 검증은 라우트, SQL·임베딩은 서비스
 // attrs.category_ids (배열, 0개 허용)는 items 컬럼이 아니라 조인 테이블에 넣는다.
+// 물품 + 태그 + FTS 행을 batch 한 장으로 — 중간 실패로 태그 없는 물품이나 FTS 미갱신 같은
+// 부분 상태가 남지 않는다. 이후 문장들은 새 물품 id 를 (SELECT MAX(id) FROM items) 로 참조한다 —
+// batch 는 하나의 트랜잭션이라 도중에 다른 쓰기가 끼어들 수 없고 INSERT 직후라 MAX(id) 는
+// 방금 넣은 행이다. last_insert_rowid() 는 문장 사이에 값이 바뀌므로(태그 INSERT 도 새 rowid 를
+// 만든다) 쓰지 않는다. 카테고리 FK 위반이면 batch 전체가 롤백된다 — 물품만 남는 일이 없다.
 export async function createItem(
   db: Sql,
   env: Bindings,
@@ -142,51 +147,31 @@ export async function createItem(
     input.total_qty,
     ...Object.values(itemAttrs),
   ];
-  const [row] = (await db.query(
-    `INSERT INTO items (${cols.join(", ")})
-     VALUES (${cols.map((_, i) => `?${i + 1}`).join(", ")}) RETURNING id`,
-    vals,
-  )) as { id: number }[];
-  await replaceItemCategories(db, row.id, categoryIds);
-  await syncItemFts(db, row.id);
-  // 등록 즉시 의미 검색용 임베딩 생성 (실패해도 등록은 성공 — 키워드 검색은 계속 동작)
-  await embedItem(env, db, row.id);
-  return row.id;
-}
-
-// items_fts 동기화 — contentful 가상 테이블, rowid = items.id (PLAN §7.3).
-// 태그 컬럼은 카테고리 이름 공백 조인 — embedItem 의 itemEmbedText 와 같은 텍스트 규칙.
-// FTS5 는 UPSERT 를 지원하지 않아 DELETE+INSERT 를 batch 로 원자 처리한다.
-async function syncItemFts(db: Sql, itemId: number): Promise<void> {
-  const [row] = (await db.query(
-    `SELECT i.name, i.description, i.location,
-            (SELECT group_concat(c.name, ' ')
-               FROM (SELECT c.name FROM item_categories ic
-                      JOIN categories c ON c.id = ic.category_id
-                      WHERE ic.item_id = i.id ORDER BY c.name) c) AS tags
-       FROM items i WHERE i.id = ?1`,
-    [itemId],
-  )) as { name: string; description: string | null; location: string | null; tags: string | null }[];
-  if (!row) return; // 사이에 삭제된 경우 — 동기화할 것이 없다
-  await db.batch([
-    { sql: `DELETE FROM items_fts WHERE rowid = ?1`, params: [itemId] },
+  const results = await db.batch<{ id: number }>([
     {
-      sql: `INSERT INTO items_fts (rowid, name, description, location, tags) VALUES (?1, ?2, ?3, ?4, ?5)`,
-      params: [itemId, row.name, row.description ?? "", row.location ?? "", row.tags ?? ""],
+      sql: `INSERT INTO items (${cols.join(", ")})
+            VALUES (${cols.map((_, i) => `?${i + 1}`).join(", ")}) RETURNING id`,
+      params: vals,
+    },
+    {
+      sql: `INSERT INTO item_categories (item_id, category_id)
+            SELECT (SELECT MAX(id) FROM items), j.value FROM json_each(?1) j`,
+      params: [JSON.stringify(categoryIds)],
+    },
+    {
+      sql: `INSERT INTO items_fts (rowid, name, description, location, tags)
+            SELECT i.id, i.name, COALESCE(i.description, ''), COALESCE(i.location, ''),
+                   COALESCE((SELECT group_concat(c.name, ' ')
+                      FROM (SELECT c.name FROM item_categories ic
+                             JOIN categories c ON c.id = ic.category_id
+                            WHERE ic.item_id = i.id ORDER BY c.name) c), '')
+              FROM items i WHERE i.id = (SELECT MAX(id) FROM items)`,
     },
   ]);
-}
-
-// 태그 전체 교체 — 배열이 비면 연결만 제거된다 (만든 중복 id 는 라우트가 이미 제거)
-async function replaceItemCategories(db: Sql, itemId: number, categoryIds: number[]) {
-  await db.query(`DELETE FROM item_categories WHERE item_id = ?1`, [itemId]);
-  for (const cid of categoryIds) {
-    await db.query(
-      `INSERT INTO item_categories (item_id, category_id) VALUES (?1, ?2)
-       ON CONFLICT DO NOTHING`,
-      [itemId, cid],
-    );
-  }
+  const id = results[0][0].id;
+  // 등록 즉시 의미 검색용 임베딩 생성 (실패해도 등록은 성공 — 키워드 검색은 계속 동작)
+  await embedItem(env, db, id);
+  return id;
 }
 
 // 수정 결과 — qty_constraint: 수량 조합이 제약(qty_broken ≤ total_qty) 위반 (라우트가 400 응답)
@@ -204,8 +189,11 @@ export async function updateItem(
   // 태그는 items 컬럼이 아니므로 SET 절에서 빼 조인 테이블을 교체한다 (매개변수는 교체 의미론)
   const categoryIds = fields.category_ids as number[] | undefined;
   const { category_ids: _tags, ...itemFields } = fields;
+  const keys = Object.keys(itemFields);
+
   // 수량 관련 필드가 바뀌면 결과 조합이 제약(qty_broken ≤ total_qty)을 지키는지 본다.
-  // 한쪽만 보내는 경우가 흔하므로 현재 값을 읽어 합쳐서 판정한다.
+  // 한쪽만 보내는 경우가 흔하므로 현재 값을 읽어 합쳐서 판정한다 — 친절한 400 용 사전 검사이고,
+  // 검사와 UPDATE 사이 값이 바뀌어도 DB CHECK 가 아래 batch 를 원자 거절한다.
   if ("qty_broken" in fields || "total_qty" in fields) {
     const [cur] = (await db.query(
       `SELECT total_qty, qty_broken FROM items WHERE id = ?1`,
@@ -217,28 +205,68 @@ export async function updateItem(
       (fields.qty_broken as number | undefined) ?? cur.qty_broken;
     if (nextBroken > nextTotal) return { error: "qty_constraint" };
   }
-  // 태그만 보낸 요청(keys 비움)에서 UPDATE 문이 문법 오류가 되므로 컬럼 갱신을
-  // 건너뛴다 — 이 경우 존재 여부는 조인 테이블 작업 전 가드 SELECT 로 확인한다.
-  const keys = Object.keys(itemFields);
-  if (keys.length > 0) {
-    const setSql = keys.map((k, i) => `${k} = ?${i + 2}`).join(", ");
-    const rows = (await db.query(
-      `UPDATE items SET ${setSql} WHERE id = ?1 RETURNING id`,
-      [itemId, ...keys.map((k) => itemFields[k])],
-    )) as { id: number }[];
-    if (rows.length === 0) return { error: "not_found" };
-  } else if (categoryIds !== undefined) {
+  // 태그만 보낸 요청(keys 비움)은 UPDATE 문이 문법 오류가 되므로 컬럼 갱신을 건너뛴다 —
+  // 이 경우 존재 여부는 조인 테이블 작업 전 가드 SELECT 로 확인한다.
+  if (keys.length === 0 && categoryIds !== undefined) {
     const [row] = (await db.query(`SELECT id FROM items WHERE id = ?1`, [
       itemId,
     ])) as { id: number }[];
     if (!row) return { error: "not_found" };
   }
-  if (categoryIds !== undefined) {
-    await replaceItemCategories(db, itemId, categoryIds);
-  }
-  // 검색 텍스트(이름·설명·위치·태그)가 바뀔 수 있으면 FTS 행을 최신 상태로
+
+  // 컬럼 갱신 + 태그 교체 + FTS 동기화를 batch 한 장으로 원자 처리 — 도중 실패로
+  // 태그만 바뀌고 FTS 가 옛 태그를 가리키는 부분 상태가 남지 않는다.
   if (keys.length > 0 || categoryIds !== undefined) {
-    await syncItemFts(db, itemId);
+    const stmts: { sql: string; params?: unknown[] }[] = [];
+    if (keys.length > 0) {
+      const setSql = keys.map((k, i) => `${k} = ?${i + 2}`).join(", ");
+      stmts.push({
+        sql: `UPDATE items SET ${setSql} WHERE id = ?1 RETURNING id`,
+        params: [itemId, ...keys.map((k) => itemFields[k])],
+      });
+    }
+    if (categoryIds !== undefined) {
+      stmts.push({
+        sql: `DELETE FROM item_categories WHERE item_id = ?1`,
+        params: [itemId],
+      });
+      // 물품 존재 가드 — 없는 물품이면 INSERT 하지 않는다. 가드 없이는 FK 위반으로
+      // batch 가 떨어져 not_found(404) 대신 500 이 된다
+      stmts.push({
+        sql: `INSERT INTO item_categories (item_id, category_id)
+              SELECT ?1, j.value FROM json_each(?2) j
+               WHERE EXISTS (SELECT 1 FROM items WHERE id = ?1)`,
+        params: [itemId, JSON.stringify(categoryIds)],
+      });
+    }
+    stmts.push({
+      sql: `DELETE FROM items_fts WHERE rowid = ?1`,
+      params: [itemId],
+    });
+    stmts.push({
+      sql: `INSERT INTO items_fts (rowid, name, description, location, tags)
+            SELECT i.id, i.name, COALESCE(i.description, ''), COALESCE(i.location, ''),
+                   COALESCE((SELECT group_concat(c.name, ' ')
+                      FROM (SELECT c.name FROM item_categories ic
+                             JOIN categories c ON c.id = ic.category_id
+                            WHERE ic.item_id = i.id ORDER BY c.name) c), '')
+              FROM items i WHERE i.id = ?1`,
+      params: [itemId],
+    });
+    try {
+      const results = await db.batch<{ id: number }>(stmts);
+      // 컬럼 갱신이 있었는데 0행이면 물품이 없다 — 태그·FTS 문은 없는 물품에 no-op 이라
+      // batch 가 부분 변경을 남기지 않는다
+      if (keys.length > 0 && results[0].length === 0) {
+        return { error: "not_found" };
+      }
+    } catch (err) {
+      // 사전 검사와 UPDATE 사이 수량이 바뀐 경우 — DB CHECK 가 최종 방어선
+      if (err instanceof Error && /CHECK constraint failed/.test(err.message)) {
+        return { error: "qty_constraint" };
+      }
+      throw err;
+    }
   }
   // 이름·설명·태그가 바뀌면 임베딩도 갱신 (무조건 재생성 — 소규모라 비용 무시)
   await embedItem(env, db, itemId);
@@ -308,32 +336,35 @@ export async function addPhoto(
   ])) as { id: number }[];
   if (exists.length === 0) return { error: "not_found" };
 
-  // 사진 개수 확인
-  const [cnt] = (await db.query(
-    `SELECT COUNT(*) AS n FROM item_photos WHERE item_id = ?1`,
-    [itemId],
-  )) as { n: number }[];
-  if (cnt.n >= MAX_PHOTOS) return { error: "too_many" };
-
   const key = `items/${itemId}/${crypto.randomUUID()}.${ext}`;
-  await env.PHOTOS.put(key, file.stream(), {
-    httpMetadata: { contentType: file.type },
-  });
-  // 등록순 확정 — 기존 최대 sort_order + 1 을 할당한다. 대표 사진(목록 photos[0]·상세 대표)이
-  // 첫 사진으로 결정되는 근거가 된다. 전부 0 이면 ORDER BY p.sort_order 가 동점이라 순서·대표가
-  // 임의로 바뀌었다 .
-  const [mx] = (await db.query(
-    `SELECT COALESCE(MAX(sort_order), 0) AS m FROM item_photos WHERE item_id = ?1`,
-    [itemId],
-  )) as { m: number }[];
-  const [row] = (await db.query(
-    `INSERT INTO item_photos (item_id, r2_key, sort_order) VALUES (?1, ?2, ?3) RETURNING id`,
-    [itemId, key, mx.m + 1],
+  // 사진 개수 상한을 INSERT 가드로 검사 — COUNT-then-INSERT 사이 동시 업로드로
+  // MAX_PHOTOS 를 넘기지 않는다. sort_order 도 같은 문장에서 최댓값+1 로 정한다
+  // (등록순 확정 — 대표 사진이 첫 사진이 되는 근거).
+  const inserted = (await db.query(
+    `INSERT INTO item_photos (item_id, r2_key, sort_order)
+     SELECT ?1, ?2, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM item_photos WHERE item_id = ?1)
+      WHERE (SELECT COUNT(*) FROM item_photos WHERE item_id = ?1) < ${MAX_PHOTOS}
+      RETURNING id`,
+    [itemId, key],
   )) as { id: number }[];
-  return { ok: true, id: row.id, url: `/api/photos/${key}` };
+  if (inserted.length === 0) return { error: "too_many" };
+  const photoId = inserted[0].id;
+
+  // R2 업로드가 실패하면 슬롯을 환수한다 — 오브젝트 없는 행(깨진 이미지)을 남기지 않게
+  try {
+    await env.PHOTOS.put(key, file.stream(), {
+      httpMetadata: { contentType: file.type },
+    });
+  } catch (err) {
+    await db.query(`DELETE FROM item_photos WHERE id = ?1`, [photoId]);
+    throw err;
+  }
+  return { ok: true, id: photoId, url: `/api/photos/${key}` };
 }
 
-// 사진 삭제 — R2 오브젝트 + 행 함께 제거. false 면 없음(404)
+// 사진 삭제 — 행 먼저 지우고 R2 오브젝트를 지운다. R2 삭제가 실패해도 남는 건
+// 회수 가능한 고아 오브젝트뿐이다 (행이 남아 깨진 이미지를 보여주는 것보다 낫다 —
+// deleteItem 과 같은 기준). false 면 없음(404)
 export async function deletePhoto(
   db: Sql,
   env: Bindings,
@@ -341,11 +372,14 @@ export async function deletePhoto(
   photoId: number,
 ): Promise<boolean> {
   const rows = (await db.query(
-    `SELECT id, r2_key FROM item_photos WHERE id = ?1 AND item_id = ?2`,
+    `DELETE FROM item_photos WHERE id = ?1 AND item_id = ?2 RETURNING r2_key`,
     [photoId, itemId],
-  )) as { id: number; r2_key: string }[];
+  )) as { r2_key: string }[];
   if (rows.length === 0) return false;
-  await env.PHOTOS.delete(rows[0].r2_key);
-  await db.query(`DELETE FROM item_photos WHERE id = ?1`, [photoId]);
+  try {
+    await env.PHOTOS.delete(rows[0].r2_key);
+  } catch (err) {
+    console.error(`R2 사진 삭제 실패 (photo ${photoId})`, err);
+  }
   return true;
 }

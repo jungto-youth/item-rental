@@ -22,28 +22,28 @@ export type WithdrawResult =
 // 안내하는데 처리 수단이 없어 신설. 소프트 삭제 — 대여 이력 보존 위해 행 삭제 대신
 // deactivated_at 기록(재가입 경로는 없고 복구도 안 함 — 탈퇴는 되돌릴 수 없다). 마지막 관리자
 // 보호는 역할 핸들러와 같은 기준.
+// 마지막 관리자 보호는 COUNT-then-UPDATE 두 쿼리로 나누면 동시 해임 레이스로 관리자가 0이 될 수
+// 있어, 가드를 UPDATE WHERE 절 안에 넣어 단일 문장으로 원자 판정한다 (대여 가드 INSERT와 같은 방식).
 export async function withdrawMember(
   db: Sql,
   memberId: string,
 ): Promise<WithdrawResult> {
-  const found = (await db.query("SELECT id, role FROM members WHERE id = ?1", [
-    memberId,
-  ])) as {
-    id: string;
-    role: string;
-  }[];
-  if (found.length === 0) return { error: "not_found" };
-  if (found[0].role === "admin") {
-    const cnt = (await db.query(
-      `SELECT COUNT(*) AS n FROM members WHERE role = 'admin' AND deactivated_at IS NULL`,
-    )) as { n: number }[];
-    if (cnt[0].n <= 1) return { error: "last_admin" };
-  }
-  await db.query(
-    `UPDATE members SET deactivated_at = ${SQL_NOW} WHERE id = ?1`,
+  const rows = (await db.query(
+    `UPDATE members SET deactivated_at = ${SQL_NOW}
+      WHERE id = ?1
+        AND (role <> 'admin'
+             OR (SELECT COUNT(*) FROM members x
+                  WHERE x.role = 'admin' AND x.deactivated_at IS NULL
+                    AND x.id <> members.id) >= 1)
+      RETURNING id`,
     [memberId],
-  );
-  return { ok: true };
+  )) as { id: string }[];
+  if (rows.length > 0) return { ok: true };
+  const found = (await db.query(`SELECT id FROM members WHERE id = ?1`, [
+    memberId,
+  ])) as { id: string }[];
+  if (found.length === 0) return { error: "not_found" };
+  return { error: "last_admin" };
 }
 
 // 역할 지정/해제 결과
@@ -53,35 +53,27 @@ export type RoleResult =
   | { error: "last_admin" };
 
 // 역할 지정/해제 — admin ↔ user (검증은 라우트, v3.2)
+// 마지막 관리자 보호를 UPDATE 가드로 원자 판정 — withdrawMember 와 같은 방식.
+// 0행이면 재조회로 없음(not_found) vs 마지막 관리자(last_admin)를 가린다.
 export async function setMemberRole(
   db: Sql,
   memberId: string,
   role: Role,
 ): Promise<RoleResult> {
-  const found = (await db.query(
-    "SELECT id, role FROM members WHERE id = ?1",
-    [memberId],
-  )) as {
-    id: string;
-    role: Role;
-  }[];
-  if (found.length === 0) return { error: "not_found" };
-  const target = found[0];
-  // 마지막 관리자 보호 — 해임하면 관리 기능 사용 불가 (본인 포함)
-  if (target.role === "admin" && role !== "admin") {
-    const cnt = (await db.query(
-      // 탈퇴(deactivated)된 관리자는 관리 기능을 못 쓰므로 개수에서 빼야 한다 —
-      // withdrawMember 와 같은 기준. 누락하면 탈퇴 관리자가 재적돼 활성 관리자가 0이 될 수 있다
-      `SELECT COUNT(*) AS n FROM members
-        WHERE role = 'admin' AND deactivated_at IS NULL`,
-    )) as {
-      n: number;
-    }[];
-    if (cnt[0].n <= 1) return { error: "last_admin" };
-  }
-  await db.query("UPDATE members SET role = ?1 WHERE id = ?2", [
-    role,
+  const rows = (await db.query(
+    `UPDATE members SET role = ?1 WHERE id = ?2
+       AND (?1 = 'admin'
+            OR role <> 'admin'
+            OR (SELECT COUNT(*) FROM members x
+                 WHERE x.role = 'admin' AND x.deactivated_at IS NULL
+                   AND x.id <> members.id) >= 1)
+     RETURNING id`,
+    [role, memberId],
+  )) as { id: string }[];
+  if (rows.length > 0) return { ok: true };
+  const found = (await db.query(`SELECT id FROM members WHERE id = ?1`, [
     memberId,
-  ]);
-  return { ok: true };
+  ])) as { id: string }[];
+  if (found.length === 0) return { error: "not_found" };
+  return { error: "last_admin" };
 }

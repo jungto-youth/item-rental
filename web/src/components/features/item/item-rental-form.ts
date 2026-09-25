@@ -1,6 +1,6 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { api } from "../../../api/client";
+import { api, ApiError } from "../../../api/client";
 import { type Item } from "../../../types";
 import { type SessionUser } from "../../../context/session";
 import { navigate } from "../../../router";
@@ -211,12 +211,13 @@ export class ItemRentalForm extends LitElement {
       this.dispatchEvent(new CustomEvent("rented", { bubbles: true, composed: true }));
     } catch (err) {
       this.isSuccess = false;
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.includes("no_availability")) {
+      // 기계용 code로 분기한다 — 메시지 문자열 파싱은 포맷이 바뀌면 깨진다 (client.ts 규약)
+      const code = err instanceof ApiError ? err.code : undefined;
+      if (code === "no_availability") {
         this.message = "방금 대여가 마감되었어요. 반납 후 다시 시도해주세요.";
-      } else if (msg.includes("too_many")) {
+      } else if (code === "too_many") {
         this.message = "요청 수량이 대여 가능 수량보다 많습니다.";
-      } else if (msg.includes("phone_required")) {
+      } else if (code === "phone_required") {
         this.message = "내 정보에서 연락처를 먼저 등록해주세요.";
       } else {
         this.message = err instanceof Error ? err.message : "대여 신청에 실패했습니다.";

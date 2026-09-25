@@ -34,6 +34,7 @@ export class PageAdminItems extends LitElement {
   @state() private items: AdminItem[] = [];
   @state() private categories: Category[] = [];
   @state() private loading = true;
+  @state() private loadError = false;
   @state() private q = "";
   // "all" | "none" | 카테고리 id 문자열
   @state() private categoryFilter = "all";
@@ -169,8 +170,10 @@ export class PageAdminItems extends LitElement {
       ]);
       this.items = itemsRes.items;
       this.categories = cats;
+      this.loadError = false;
     } catch {
-      this.items = [];
+      // 일시 오류가 '물품 없음'으로 보이면 안 된다 — 목록이 비어 있을 때만 에러 화면
+      if (this.items.length === 0) this.loadError = true;
     } finally {
       this.loading = false;
     }
@@ -209,6 +212,14 @@ export class PageAdminItems extends LitElement {
   render() {
     if (this.loading) {
       return html`<admin-nav active="items"></admin-nav><x-empty state="loading"></x-empty>`;
+    }
+    if (this.loadError && this.items.length === 0) {
+      return html`<admin-nav active="items"></admin-nav>
+        <x-empty state="error" text="물품 목록을 불러오지 못했어요">
+          <x-button variant="secondary" size="sm" @click=${() => void this.reload()}>
+            다시 시도
+          </x-button>
+        </x-empty>`;
     }
     const list = this.filtered();
     return html`

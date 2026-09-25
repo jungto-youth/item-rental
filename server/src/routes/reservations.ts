@@ -57,7 +57,7 @@ reservationsRoute.post("/", async (c) => {
     qty,
   };
 
-  // 가용성 검사 + 대여 생성 (advisory 락 + 대여 중 수량 검사 포함)
+  // 가용성 검사 + 대여 생성 (가드 INSERT 원자 검사 포함)
   const result = await createReservation(db, params);
 
   if ("ok" in result) {

@@ -12,6 +12,9 @@ export type SessionUser = {
 
 class SessionStore {
   user: SessionUser | null = null;
+  // 마지막 로드가 401이 아닌 실패(5xx·오프라인)로 끝났고 로그인 여부를 모를 때 true.
+  // 라우트 가드가 '비로그인'으로 오판해 /login 으로 밀어내는 것을 막는 용도
+  unreachable = false;
   private loaded = false;
   private loading: Promise<SessionUser | null> | null = null;
   private listeners = new Set<() => void>();
@@ -59,13 +62,18 @@ class SessionStore {
       if (gen !== this.gen) return this.user; // 새 요청이 시작됨 — 늦은 응답은 버린다
       this.user = user;
       this.loaded = true;
+      this.unreachable = false;
     } catch (e) {
       // 401만 '비로그인 확정'. 오프라인·5xx는 캐시하지 않되, 이미 로드된 세션은
       // 그대로 돌려준다 — 일시 오류로 가드가 로그인 화면으로 밀어내는 것을 막는다
-      if (!(e instanceof ApiError) || e.status !== 401) return this.user;
+      if (!(e instanceof ApiError) || e.status !== 401) {
+        if (gen === this.gen && this.user === null) this.unreachable = true;
+        return this.user;
+      }
       if (gen !== this.gen) return this.user;
       this.user = null;
       this.loaded = true;
+      this.unreachable = false;
     } finally {
       // 내 요청이 아직 최신일 때만 슬롯을 비운다 — refresh()가 건 새 요청을 지우면 안 된다
       if (gen === this.gen) this.loading = null;

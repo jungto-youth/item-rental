@@ -8,10 +8,11 @@
     "npm:@lit-labs/router@~0.1.4": "0.1.4",
     "npm:@neondatabase/serverless@1": "1.1.0",
     "npm:@types/deno@^2.7.0": "2.7.0",
+    "npm:@types/node@24": "24.13.6",
     "npm:hono@4": "4.13.7",
     "npm:lit@3": "3.3.3",
     "npm:typescript@5": "5.9.3",
-    "npm:vite@7": "7.3.6",
+    "npm:vite@7": "7.3.6_@types+node@24.13.6",
     "npm:wrangler@^4.135.0": "4.135.0_@cloudflare+workers-types@5.20260919.1"
   },
   "jsr": {
@@ -580,6 +581,12 @@
     "@types/estree@1.0.9": {
       "integrity": "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg=="
     },
+    "@types/node@24.13.6": {
+      "integrity": "sha512-SGrw/h3KPFshy3OE6ZL53LMBG5vGQQ8/gIpiqz/kRZhPJ7HgwCEs8LBuNtWLa8dvGZVpSF7+Bf+c11HUrCb/yg==",
+      "dependencies": [
+        "undici-types"
+      ]
+    },
     "@types/trusted-types@2.0.7": {
       "integrity": "sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw=="
     },
@@ -815,6 +822,9 @@
       "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
       "bin": true
     },
+    "undici-types@7.18.2": {
+      "integrity": "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w=="
+    },
     "undici@7.29.0": {
       "integrity": "sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw=="
     },
@@ -824,9 +834,10 @@
         "pathe"
       ]
     },
-    "vite@7.3.6": {
+    "vite@7.3.6_@types+node@24.13.6": {
       "integrity": "sha512-4XP60spRGjSZFf1qYH+dJIkK2znL3zQfl9KkOV9MkkRR/3Dls0dxaBsQPTloEc5BLXWPL9vsOxopxyKoMmDueg==",
       "dependencies": [
+        "@types/node",
         "esbuild",
         "fdir",
         "picomatch",
@@ -836,6 +847,9 @@
       ],
       "optionalDependencies": [
         "fsevents"
+      ],
+      "optionalPeers": [
+        "@types/node"
       ],
       "bin": true
     },
@@ -900,7 +914,9 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@std/assert@1"
+      "jsr:@std/assert@1",
+      "npm:@cloudflare/workers-types@*",
+      "npm:@types/node@*"
     ],
     "packageJson": {
       "dependencies": [
@@ -909,6 +925,7 @@
         "npm:@lit-labs/router@~0.1.4",
         "npm:@neondatabase/serverless@1",
         "npm:@types/deno@^2.7.0",
+        "npm:@types/node@24",
         "npm:hono@4",
         "npm:lit@3",
         "npm:typescript@5",

@@ -225,29 +225,37 @@ export class PageHome extends LitElement {
     return this.user?.role === "admin";
   }
 
-  // 첫 페이지 로드 — 검색어 있으면 랭킹된 짧은 리스트(페이지 없음), 없으면 탐색 1페이지
+  // 첫 페이지 로드 — 검색어 있으면 랭킹된 짧은 리스트(페이지 없음), 없으면 탐색 1페이지.
+  // 세대 번호로 늦은 응답을 버린다 — 검색어가 빠르게 바뀌면(debounce 끼리) 응답 순서가
+  // 뒤집혀 오래된 결과가 새 결과를 덮어쓸 수 있다
+  private fetchGen = 0;
+
   private async fetchItems() {
+    const gen = ++this.fetchGen;
     this.loading = true;
     this.error = "";
     try {
       if (this.q) {
         const params = new URLSearchParams({ q: this.q });
         const { items } = await api<{ items: Item[] }>(`/api/items?${params}`);
+        if (gen !== this.fetchGen) return;
         this.items = items;
         this.hasMore = false;
       } else {
         const { items, total, available_total, hasMore } = await api<BrowseResponse>(
           `/api/items?${this.browseParams(0)}`,
         );
+        if (gen !== this.fetchGen) return;
         this.items = items;
         this.total = total;
         this.availTotal = available_total;
         this.hasMore = hasMore;
       }
     } catch (e) {
+      if (gen !== this.fetchGen) return;
       this.error = e instanceof Error ? e.message : "물품 목록을 불러오지 못했습니다";
     } finally {
-      this.loading = false;
+      if (gen === this.fetchGen) this.loading = false;
     }
   }
 

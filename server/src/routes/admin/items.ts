@@ -92,8 +92,8 @@ adminItemsRoute.get("/", async (c) => {
   return c.json({ items });
 });
 
-// 편집용 단건 — 공개 상세()와 달리 note(내부 메모)까지 내려준다.
-// 편집 폼이 공개 상세를 씨드로 쓰면 note가 undefined → ''로 저장되어 메모가 날아간다.
+// 편집용 단건 — 관리자 화면용으로 태그까지 내려준다. 편집 폼이 공개 상세를 씨드로
+// 쓰면 카테고리가 undefined → [] 로 저장되어 태그가 날아간다.
 adminItemsRoute.get("/:id", async (c) => {
   const db: Sql = getDb(c.env);
   const id = Number(c.req.param("id"));
