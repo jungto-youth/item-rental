@@ -1,4 +1,8 @@
 // 공유 타입 — Hono 앱 전역 바인딩/변수
+// API 응답 계약(Role 등)은 shared/api-types.ts 가 소유한다 — web 과 같은 정의.
+import type { Role } from "../../shared/api-types";
+export type { Role };
+
 export type Bindings = {
   // D1 (SQLite) — PLAN_D1_이관.md (Neon 이관 완료, Phase 6.5)
   DB: D1Database;
@@ -13,9 +17,6 @@ export type Bindings = {
   // Workers AI — 물품 임베딩 생성 (의미 검색)
   AI: Ai;
 };
-
-// 역할 2단계 (v3.2) — admin(관리자) > user(회원)
-export type Role = "user" | "admin";
 
 // 미들웨어가 세팅하는 세션 사용자
 export type SessionUser = {

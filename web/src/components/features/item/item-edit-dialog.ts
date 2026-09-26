@@ -1,11 +1,10 @@
-import { getCategories } from "../../../utils/categories";
+import { getCategories, resolveCategoryIds } from "../../../utils/categories";
 import { LitElement, html, css } from "lit";
 import { confirmDialog } from "../../../utils/confirm";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
 import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
 import { type Category, type Item, type ItemKind, type ItemStatus, type Photo } from "../../../types";
-import { resolveCategoryIds } from "../../../utils/category";
 import "../../ui/modal";
 import "../../ui/button";
 import "../../ui/select";

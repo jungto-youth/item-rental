@@ -45,6 +45,7 @@ web/src/
   styles/                 — tokens.css(디자인 토큰), controls.ts, motion.ts
   utils/                  — date, photo(리사이즈·업로드), confirm, categories(캐시)
 migrations-d1/            — D1 스키마 마이그레이션 (0001_baseline이 현재 최종 형태)
+shared/api-types.ts       — server·web 공유 API 계약 타입 (서비스 row 타입이 이 정의를 채택해 드리프트를 컴파일 타임에 잡는다)
 migrations/               — Neon 시절 마이그레이션 0001~0023 (레거시 — D1 이관 완료, 참고용)
 server/scripts/           — seed, import-items (Deno — D1용 SQL 생성), export-neon-to-d1 (이관용 레거시)
 server/tests/             — 단위 테스트(Sql 스텁) + sqlite.integration_test.ts(실 SQLite)

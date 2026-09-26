@@ -1,15 +1,16 @@
 // 회원(Member) 도메인 서비스 — 목록/탈퇴/역할 SQL 을 직접 소유
 // 소프트 삭제(이력 보존), 마지막 관리자 보호
 import { SQL_NOW, type Sql } from "../db";
+import type { AdminMember } from "../../../shared/api-types";
 import type { Role } from "../types";
 
 // 목록 — 최근 가입순
-export async function listMembers(db: Sql) {
-  return db.query(
+export async function listMembers(db: Sql): Promise<AdminMember[]> {
+  return (await db.query(
     `SELECT id, email, name, phone, role, deactivated_at, created_at
        FROM members
       ORDER BY created_at DESC`,
-  );
+  )) as AdminMember[];
 }
 
 // 탈퇴 결과 — last_admin: 마지막 관리자 보호 (409)

@@ -5,6 +5,10 @@
 // '대여 중'(rented)이 되고, 관리자는 반납(returned)만 처리한다. 가용성은
 // "지금 대여 중인 수량의 합"만 센다 — 일별 점유도, 승인 대기 예약도 없다.
 import { SQL_NOW, type Sql } from "../db";
+import type {
+  AdminReservation,
+  MyReservation,
+} from "../../../shared/api-types";
 
 // 대여 가능 아이템 조회 (사전 검사용)
 export type ReserveItem = {
@@ -123,8 +127,11 @@ export async function createReservation(
 }
 
 // ===== 내 대여 조회 () =====
-export async function getMyReservations(db: Sql, memberId: string) {
-  return db.query(
+export async function getMyReservations(
+  db: Sql,
+  memberId: string,
+): Promise<MyReservation[]> {
+  return (await db.query(
     `SELECT r.id, r.item_id, items.name AS item_name,
             (SELECT '/api/photos/' || p.r2_key FROM item_photos p
               WHERE p.item_id = items.id ORDER BY p.sort_order LIMIT 1) AS item_photo,
@@ -134,7 +141,7 @@ export async function getMyReservations(db: Sql, memberId: string) {
       WHERE r.member_id = ?1
       ORDER BY r.created_at DESC`,
     [memberId],
-  );
+  )) as MyReservation[];
 }
 
 // ===== 본인 조작: 취소·반납 () =====
@@ -229,7 +236,10 @@ async function transition(
 // 관리자 목록 — 대여 중이 맨 위, 최근 신청순.
 // 날짜가 없어져 초과 경고(conflict_count)도 없다: 신청 가드가 대여 중 수량을 직접 세므로
 // 정원 초과 상태 자체가 만들어지지 않는다.
-export async function listReservations(db: Sql, status: string | null) {
+export async function listReservations(
+  db: Sql,
+  status: string | null,
+): Promise<{ reservations: AdminReservation[]; truncated: boolean }> {
   const rows = await db.query(
     `SELECT r.id, r.item_id, items.name AS item_name, items.total_qty,
             r.member_id, m.name AS member_name, m.email AS member_email, m.phone AS member_phone,
@@ -252,7 +262,7 @@ export async function listReservations(db: Sql, status: string | null) {
   const truncated = (rows as { id: number }[]).length === 500;
   // SQLite 는 boolean 식을 0/1 로 돌려준다 — API 계약(Postgres 시절 true/false)을 유지한다
   const reservations = (rows as (Record<string, unknown> & { returned_by_member: number })[])
-    .map((r) => ({ ...r, returned_by_member: r.returned_by_member !== 0 }));
+    .map((r) => ({ ...r, returned_by_member: r.returned_by_member !== 0 })) as AdminReservation[];
   return { reservations, truncated };
 }
 

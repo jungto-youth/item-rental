@@ -2,18 +2,17 @@
 // 카테고리는 관리자가 물품 등록·수정 중에 만드는 가벼운 분류로,
 // 별도 정렬 컬럼 없이 이름순으로 보여준다. 삭제 시 연결은 조인 행이
 // (ON DELETE CASCADE) 함께 사라져 물품은 그대로 남는다 — 태그만 없어진다.
+import type { Category } from "../../../shared/api-types";
 import type { Sql } from "../db";
 
-export type CategoryRow = { id: number; name: string; item_count: number };
-
-export async function listCategories(db: Sql): Promise<CategoryRow[]> {
+export async function listCategories(db: Sql): Promise<Category[]> {
   const rows = (await db.query(
     `SELECT c.id, c.name, COUNT(ic.item_id) AS item_count
      FROM categories c
      LEFT JOIN item_categories ic ON ic.category_id = c.id
      GROUP BY c.id, c.name
      ORDER BY c.name`,
-  )) as CategoryRow[];
+  )) as Category[];
   return rows;
 }
 

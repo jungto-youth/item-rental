@@ -3,26 +3,10 @@
 // 예약 건수나 대여 처리 목록 대신, 전체 물품(폐기 포함)을 한 번에 내려줘서
 // 화면에서 상태(대여 중/점검·수리/가용/소모품/폐기)별로 그룹핑한다.
 // 현재 대여자는 별도 쿼리로 뽑아 물품별로 묶는다.
+import type { DashboardItem, DashboardRenter } from "../../../shared/api-types";
 import type { Sql } from "../db";
 
-export type DashboardRenter = {
-  member_name: string;
-  member_phone: string | null;
-  qty: number;
-};
-
-export type DashboardItem = {
-  id: number;
-  name: string;
-  kind: string; // items.kind: rental | consumable
-  status: string; // items.status: active | repair | retired
-  total_qty: number;
-  qty_broken: number;
-  rentable_qty: number;
-  active_now: number;
-  photo: string | null;
-  current_renters: DashboardRenter[];
-};
+export type { DashboardItem, DashboardRenter };
 
 export async function getDashboard(db: Sql) {
   // Q1 전체 물품(폐기 포함) + Q2 현재 대여자 — D1 도 쿼리당 왕복이라 병렬 실행

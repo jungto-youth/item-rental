@@ -1,20 +1,13 @@
 // 로그인 허용 예외 이메일 도메인 서비스 — 목록/추가/삭제 SQL 을 직접 소유
 // 구글 OAuth 로그인 게이트 보조 — @jungto.org 외 계정의 로그인 허용을 어드민 화면에서 관리.
 // env 변수 AUTH_ALLOWED_EMAILS 는 비상용 폴백으로 병행 사용된다 (auth.ts).
+import type { AllowedEmail } from "../../../shared/api-types";
 import type { Sql } from "../db";
 
 // 저장/조회 전 정규화 — members.email 과 동일 기준 (trim + lowercase)
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
-
-export type AllowedEmail = {
-  id: string;
-  email: string;
-  note: string | null;
-  created_by: string | null;
-  created_at: string;
-};
 
 // 목록 — 최근 등록순
 export async function listAllowedEmails(db: Sql): Promise<AllowedEmail[]> {

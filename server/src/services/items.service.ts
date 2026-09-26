@@ -2,6 +2,7 @@
 // 검색 외 물품 조회·관리에 필요한 모든 쿼리
 import type { Sql } from "../db";
 import type { Bindings } from "../types";
+import type { Item } from "../../../shared/api-types";
 import { embedItem, uncacheVec } from "../embedding";
 
 // D1 의 json_group_array 는 TEXT 를 돌려준다 — Postgres 드라이버는 json 타입을 파싱해 줬으므로
@@ -34,6 +35,10 @@ export type ListItemRow = ItemAttrs & {
   active_now: number;
   categories: { id: number; name: string }[];
 };
+
+// 컴파일 타임 가드 — SQL 행이 클라이언트 뷰(shared Item)를 만족하는지 검사한다.
+// 어느 쪽이 어긋나면 이 타입이 never 가 되어 tsc 가 에러를 낸다.
+type _ListItemRowIsItem = ListItemRow extends Item ? true : never;
 
 // 관리자용 Item 행
 // categories·thumb_key 는 목록/단건 SQL (=0021 태그 조인)이 채운다.

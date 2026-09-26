@@ -4,13 +4,14 @@
 // 검색에는 페이지네이션이 없다 — 퍼지 매치의 꼬리는 노이즈라 "2페이지"가 의미 없다.
 import type { Sql } from "../db";
 import type { Bindings } from "../types";
+import type { AvailabilityBadge } from "../../../shared/api-types";
 import type { ListItemRow } from "./items.service";
 import { parseJsonCol } from "./items.service";
 import { embed, getVectorCache } from "../embedding";
 
 // 배지까지 계산된 목록 행 — 화면(web/src/types.ts Item)과 같은 모양
 export type ListItemWithBadge = ListItemRow & {
-  availability_badge: "available" | "rented" | "repair" | null;
+  availability_badge: AvailabilityBadge | null;
 };
 
 // 목록 SELECT 공용 — 전체 목록/키워드/의미가 같은 컬럼을 내려준다 (where 절만 다름)
