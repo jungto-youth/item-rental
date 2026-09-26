@@ -30,20 +30,22 @@ export class PageMyRentals extends LitElement {
       .section-top {
         margin-top: var(--space-2);
       }
-      .row {
+      .card {
         background: var(--color-surface);
         border: 1px solid var(--color-border);
         border-radius: var(--radius-md, 8px);
         padding: var(--space-3) var(--space-4);
+        margin-bottom: var(--space-2);
+        transition: border-color 0.15s ease;
+      }
+      .card.active-card {
+        border-left: 3px solid var(--color-primary);
+      }
+      .row {
         display: flex;
         align-items: center;
         gap: var(--space-3);
         font-size: var(--text-body);
-        margin-bottom: var(--space-2);
-        transition: border-color 0.15s ease;
-      }
-      .row.active-row {
-        border-left: 3px solid var(--color-primary);
       }
       .row .name {
         font-weight: 600;
@@ -64,7 +66,8 @@ export class PageMyRentals extends LitElement {
       .note {
         color: var(--color-muted);
         font-size: var(--text-caption);
-        margin: -4px 0 var(--space-2) var(--space-2);
+        margin: 0;
+        padding-top: var(--space-1);
       }
       .empty-box {
         text-align: center;
@@ -184,42 +187,46 @@ export class PageMyRentals extends LitElement {
 
   private renderActiveRow(r: MyReservation) {
     return html`
-      <div class="row active-row">
-        <div>
-          <div class="name">
-            ${r.item_name} · ${r.qty}개
+      <div class="card active-card">
+        <div class="row">
+          <div>
+            <div class="name">
+              ${r.item_name} · ${r.qty}개
+            </div>
+            <div class="dates">${this.fmtDate(r.created_at)} 대여 신청</div>
           </div>
-          <div class="dates">${this.fmtDate(r.created_at)} 대여 신청</div>
+          <div class="spacer"></div>
+          <div class="action-group">
+            <button class="link-btn" ?disabled=${this.busy} @click=${() => this.onReturn(r)}>
+              반납하기
+            </button>
+            <button class="link-btn danger" ?disabled=${this.busy} @click=${() => this.onCancel(r)}>
+              취소
+            </button>
+          </div>
         </div>
-        <div class="spacer"></div>
-        <div class="action-group">
-          <button class="link-btn" ?disabled=${this.busy} @click=${() => this.onReturn(r)}>
-            반납하기
-          </button>
-          <button class="link-btn danger" ?disabled=${this.busy} @click=${() => this.onCancel(r)}>
-            취소
-          </button>
-        </div>
+        ${r.member_memo ? html`<p class="note">메모: ${r.member_memo}</p>` : ""}
       </div>
-      ${r.member_memo ? html`<p class="note">메모: ${r.member_memo}</p>` : ""}
     `;
   }
 
   private renderHistoryRow(r: MyReservation) {
     return html`
-      <div class="row">
-        <div>
-          <div class="name">
-            ${r.item_name} · ${r.qty}개
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="name">
+              ${r.item_name} · ${r.qty}개
+            </div>
+            <div class="dates">
+              ${this.fmtDate(r.created_at)} 대여${r.status === "returned" ? html` → ${this.fmtDate(r.updated_at)} 반납` : ""}
+            </div>
           </div>
-          <div class="dates">
-            ${this.fmtDate(r.created_at)} 대여${r.status === "returned" ? html` → ${this.fmtDate(r.updated_at)} 반납` : ""}
-          </div>
+          <div class="spacer"></div>
+          <x-badge kind=${r.status}></x-badge>
         </div>
-        <div class="spacer"></div>
-        <x-badge kind=${r.status}></x-badge>
+        ${r.member_memo ? html`<p class="note">메모: ${r.member_memo}</p>` : ""}
       </div>
-      ${r.member_memo ? html`<p class="note">메모: ${r.member_memo}</p>` : ""}
     `;
   }
 
