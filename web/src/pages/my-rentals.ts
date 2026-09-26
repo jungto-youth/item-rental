@@ -187,7 +187,7 @@ export class PageMyRentals extends LitElement {
       <div class="row active-row">
         <div>
           <div class="name">
-            ${r.item_name}${r.qty > 1 ? ` · ${r.qty}개` : ""}
+            ${r.item_name} · ${r.qty}개
           </div>
           <div class="dates">${this.fmtDate(r.created_at)} 대여 신청</div>
         </div>
@@ -210,9 +210,11 @@ export class PageMyRentals extends LitElement {
       <div class="row">
         <div>
           <div class="name">
-            ${r.item_name}${r.qty > 1 ? ` · ${r.qty}개` : ""}
+            ${r.item_name} · ${r.qty}개
           </div>
-          <div class="dates">${this.fmtDate(r.created_at)} 대여</div>
+          <div class="dates">
+            ${this.fmtDate(r.created_at)} 대여${r.status === "returned" ? html` → ${this.fmtDate(r.updated_at)} 반납` : ""}
+          </div>
         </div>
         <div class="spacer"></div>
         <x-badge kind=${r.status}></x-badge>

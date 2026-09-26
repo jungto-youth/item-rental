@@ -135,7 +135,7 @@ export async function getMyReservations(
     `SELECT r.id, r.item_id, items.name AS item_name,
             (SELECT '/api/photos/' || p.r2_key FROM item_photos p
               WHERE p.item_id = items.id ORDER BY p.sort_order LIMIT 1) AS item_photo,
-            r.qty, r.status, r.member_memo, r.created_at
+            r.qty, r.status, r.member_memo, r.created_at, r.updated_at
        FROM reservations r
        JOIN items ON items.id = r.item_id
       WHERE r.member_id = ?1
@@ -242,9 +242,10 @@ export async function listReservations(
 ): Promise<{ reservations: AdminReservation[]; truncated: boolean }> {
   const rows = await db.query(
     `SELECT r.id, r.item_id, items.name AS item_name, items.total_qty,
+            r.qty,
             r.member_id, m.name AS member_name, m.email AS member_email, m.phone AS member_phone,
             r.status, r.member_memo,
-            a.name AS admin_name, r.created_at,
+            a.name AS admin_name, r.created_at, r.updated_at,
             -- 누가 반납 처리했는가 — 반납은 관리자와 회원이 모두 할 수 있다.
             -- admin_id 는 '처리한 관리자'라, 비어 있는 returned 행은 회원이 직접 반납한 것이다.
             -- 회원 반납은 자기 신고이므로 관리자가 목록에서 구분해 확인할 수 있어야 한다.

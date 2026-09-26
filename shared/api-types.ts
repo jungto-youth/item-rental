@@ -72,6 +72,8 @@ export type MyReservation = {
   status: ReservationStatus;
   member_memo: string | null;
   created_at: string;
+  // 마지막 상태 전이 시각 — returned 면 반납 처리 시각
+  updated_at: string;
 };
 
 export type AdminReservation = MyReservation & {

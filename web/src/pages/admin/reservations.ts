@@ -149,14 +149,16 @@ export class PageAdminReservations extends LitElement {
       <div class="row">
         <span class="head">
           <span class="name"
-            >${r.item_name}${r.qty > 1 ? ` · ${r.qty}개` : ""}</span
+            >${r.item_name} · ${r.qty}개</span
           >
           <x-badge kind=${r.status}></x-badge>
           ${acts}
         </span>
         <span class="meta"
           >${r.member_name || "—"} · ${r.member_phone ?? r.member_email} ·
-          ${fmtKstDate(r.created_at)}</span
+          ${fmtKstDate(r.created_at)} 대여${r.status === "returned"
+            ? ` → ${fmtKstDate(r.updated_at)} 반납`
+            : ""}</span
         >
         ${r.returned_by_member
         ? html`<span class="by"
