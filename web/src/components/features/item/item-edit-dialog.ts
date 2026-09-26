@@ -7,7 +7,7 @@ import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
 import { type Category, type Item, type ItemKind, type ItemStatus, type Photo } from "../../../types";
 import "../../ui/modal";
 import "../../ui/button";
-import "../../ui/select";
+import "../../ui/chip-filter";
 import "../../ui/input";
 import "../category/category-tags-input";
 import "./photo-uploader";
@@ -60,8 +60,18 @@ export class ItemEditDialog extends LitElement {
       gap: 14px;
     }
 
-    /* 태그 입력·x-select 감싸는 래퍼 라벨 — x-input 은 자체 라벨을 쓴다 */
+    /* 태그 입력은 래퍼 라벨, 칩 필터(구분·상태)는 .field 래퍼 — 칩은 버튼이라
+       label 안에 넣으면 label 클릭이 첫 칩으로 튀는 HTML 구조 문제가 있다 */
     label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: var(--text-caption, 13px);
+      font-weight: 600;
+      color: var(--color-muted);
+    }
+
+    .field {
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -277,9 +287,9 @@ export class ItemEditDialog extends LitElement {
           </label>
 
           <div class="row">
-            <label>
+            <span class="field">
               구분
-              <x-select
+              <x-chip-filter
                 size="lg"
                 ariaLabel="구분"
                 .value=${f.kind}
@@ -289,11 +299,11 @@ export class ItemEditDialog extends LitElement {
       ]}
                 @change=${(e: CustomEvent<{ value: string }>) =>
         this.set("kind", e.detail.value as ItemKind)}
-              ></x-select>
-            </label>
-            <label>
+              ></x-chip-filter>
+            </span>
+            <span class="field">
               상태
-              <x-select
+              <x-chip-filter
                 size="lg"
                 ariaLabel="상태"
                 .value=${f.status}
@@ -304,8 +314,8 @@ export class ItemEditDialog extends LitElement {
       ]}
                 @change=${(e: CustomEvent<{ value: string }>) =>
         this.set("status", e.detail.value as ItemStatus)}
-              ></x-select>
-            </label>
+              ></x-chip-filter>
+            </span>
           </div>
 
           <div class="row">

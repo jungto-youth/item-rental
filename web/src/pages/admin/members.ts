@@ -8,7 +8,7 @@ import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-page";
 import "../../components/ui/empty";
 import "../../components/ui/button";
-import "../../components/ui/select";
+import "../../components/ui/chip-filter";
 import { rowsCss } from "../../components/ui/rows";
 
 // 회원 관리: 목록·탈퇴·역할 지정/해제 모두 admin 전용
@@ -92,8 +92,7 @@ export class PageAdminMembers extends LitElement {
         { confirmLabel: "변경", danger: false },
       ))
     ) {
-      await this.reload(); // 취소 — select 원복
-      return;
+      return; // 취소 — 칩은 제어 컴포넌트라 역할 상태가 안 바뀌면 제자리에 머문다
     }
     if (this.busy) return;
     this.busy = true;
@@ -146,7 +145,7 @@ export class PageAdminMembers extends LitElement {
         <span class="head">
           <span class="name">${m.name || "—"}</span>
           ${!m.deactivated_at
-        ? html`<x-select
+        ? html`<x-chip-filter
                   ?disabled=${this.busy}
                   ariaLabel="역할 지정"
                   .value=${m.role}
@@ -156,7 +155,7 @@ export class PageAdminMembers extends LitElement {
           ]}
                   @change=${(e: CustomEvent<{ value: string }>) =>
             this.setRole(m, e.detail.value as Role)}
-                ></x-select>`
+                ></x-chip-filter>`
         : html`<x-badge kind=${m.role}></x-badge>`
       }
           ${m.deactivated_at ? html`<x-badge kind="withdrawn"></x-badge>` : ""}
