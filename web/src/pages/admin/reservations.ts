@@ -102,9 +102,9 @@ export class PageAdminReservations extends LitElement {
         @retry=${() => void this.reload()}
       >
         <div class="bar" slot="toolbar">
-          <label for="filter-status">상태</label>
           <x-select
             id="filter-status"
+            ariaLabel="상태 필터"
             .value=${this.filter}
             .options=${[
           { value: "", label: "전체" },
