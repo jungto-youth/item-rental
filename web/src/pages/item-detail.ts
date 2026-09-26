@@ -10,7 +10,6 @@ import "../components/ui/button";
 import "../components/ui/empty";
 import "../components/features/item/item-gallery";
 import "../components/features/item/item-rental-form";
-import "../components/features/item/item-edit-dialog";
 
 @customElement("page-item-detail")
 export class PageItemDetail extends LitElement {
@@ -25,7 +24,6 @@ export class PageItemDetail extends LitElement {
 
   @state() private user: SessionUser | null = null;
   @state() private userReady = false;
-  @state() private editOpen = false;
 
   static styles = [
     reduceMotion,
@@ -262,7 +260,7 @@ export class PageItemDetail extends LitElement {
         <x-button variant="secondary" size="sm" @click=${() => history.back()}>취소</x-button>
         ${this.isAdmin
           ? html`
-              <x-button variant="primary" size="sm" @click=${() => (this.editOpen = true)}>
+              <x-button variant="primary" size="sm" @click=${() => navigate(`/admin/items/${it.id}`)}>
                 수정
               </x-button>
             `
@@ -315,15 +313,6 @@ export class PageItemDetail extends LitElement {
           ></item-rental-form>
         </div>
       </div>
-
-      <item-edit-dialog
-        ?open=${this.editOpen}
-        .item=${it}
-        @close=${() => (this.editOpen = false)}
-        @saved=${() => void this.load(true)}
-        @photo-changed=${() => void this.load(true)}
-        @deleted=${() => navigate("/")}
-      ></item-edit-dialog>
 
       ${it.kind !== "consumable" && this.availableNow > 0
         ? html`

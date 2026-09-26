@@ -102,6 +102,15 @@ const routes: RouteConfig[] = [
     enter: requireAdmin,
   },
   {
+    // 등록/편집 통합 — :id === "new" 면 등록 모드
+    path: "/admin/items/:id",
+    render: (params) => {
+      void import("./pages/admin/item-form");
+      return html`<page-admin-item-form .itemId=${params.id ?? ""}></page-admin-item-form>`;
+    },
+    enter: requireAdmin,
+  },
+  {
     path: "/admin/reservations",
     render: () => {
       void import("./pages/admin/reservations");

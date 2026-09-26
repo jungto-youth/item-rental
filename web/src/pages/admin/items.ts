@@ -1,7 +1,8 @@
 import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { api } from "../../api/client";
-import type { Category, Item, ItemKind, ItemStatus } from "../../types";
+import type { Category, ItemKind, ItemStatus } from "../../types";
+import { navigate } from "../../router";
 import { rowsCss } from "../../components/ui/rows";
 import { searchInputCss } from "../../styles/controls";
 import { reduceMotion } from "../../styles/motion";
@@ -10,8 +11,6 @@ import "../../components/admin/admin-page";
 import "../../components/ui/empty";
 import "../../components/ui/button";
 import "../../components/ui/chip-filter";
-import "../../components/features/item/item-create-dialog";
-import "../../components/features/item/item-edit-dialog";
 import "../../components/features/category/category-manage-dialog";
 
 // 물품 관리: 전체 물품(폐기 포함) 목록 + 카테고리 필터 + 등록·수정·카테고리 관리.
@@ -40,12 +39,7 @@ export class PageAdminItems extends LitElement {
   @state() private q = "";
   // "all" | "none" | 카테고리 id 문자열
   @state() private categoryFilter = "all";
-  @state() private createOpen = false;
   @state() private catOpen = false;
-  // open 플래그와 바인딩용 모델을 분리 — 닫을 때 item 을 null 로 만들면
-  // 다이얼로그가 flash 를 일으키므로 마지막 편집 대상을 남겨둔다.
-  @state() private editOpen = false;
-  @state() private editModel: Item | null = null;
 
   static styles = [
     reduceMotion,
@@ -142,22 +136,6 @@ export class PageAdminItems extends LitElement {
     }
   }
 
-  private openEdit(it: AdminItem) {
-    // 편집 다이얼로그 계약(Item)의 최소 형태 — 사진은 다이얼로그가 단건 조회로 채운다
-    this.editModel = {
-      id: it.id,
-      name: it.name,
-      status: it.status,
-      total_qty: it.total_qty,
-      kind: it.kind,
-      location: it.location,
-      description: it.description,
-      category_ids: it.categories.map((c) => c.id),
-      photos: [],
-    };
-    this.editOpen = true;
-  }
-
   private filtered(): AdminItem[] {
     const q = this.q.trim().toLowerCase();
     return this.items.filter((it) => {
@@ -197,7 +175,7 @@ export class PageAdminItems extends LitElement {
           slot="action"
           variant="primary"
           size="sm"
-          @click=${() => (this.createOpen = true)}
+          @click=${() => navigate("/admin/items/new")}
         >
           + 물품 등록
         </x-button>
@@ -237,24 +215,6 @@ export class PageAdminItems extends LitElement {
             </ul>
           `}
 
-        <item-create-dialog
-          ?open=${this.createOpen}
-          @close=${() => (this.createOpen = false)}
-          @created=${() => {
-        this.createOpen = false;
-        void this.reload();
-      }}
-        ></item-create-dialog>
-
-        <item-edit-dialog
-          .item=${this.editModel ?? undefined}
-          ?open=${this.editOpen}
-          @close=${() => (this.editOpen = false)}
-          @saved=${() => void this.reload()}
-          @deleted=${() => void this.reload()}
-          @photo-changed=${() => void this.reload()}
-        ></item-edit-dialog>
-
         <category-manage-dialog
           ?open=${this.catOpen}
           @close=${() => (this.catOpen = false)}
@@ -288,7 +248,7 @@ export class PageAdminItems extends LitElement {
         : it.status === "retired"
           ? html`<span class="tag retired">폐기</span>`
           : ""}
-        <x-button variant="secondary" size="sm" @click=${() => this.openEdit(it)}>수정</x-button>
+        <x-button variant="secondary" size="sm" @click=${() => navigate(`/admin/items/${it.id}`)}>수정</x-button>
       </li>
     `;
   }

@@ -11,7 +11,6 @@ import "../components/ui/chip-filter";
 import "../components/ui/empty";
 import "../components/ui/notice";
 import "../components/features/item/item-card";
-import "../components/features/item/item-create-dialog";
 
 // 탐색(전체 목록) 한 페이지 크기 — 카드 높이 기준 24장이 스크롤 2~3화면 분량
 const PAGE_SIZE = 24;
@@ -38,7 +37,6 @@ export class PageHome extends LitElement {
   @state() private loadingMore = false;
 
   @state() private user: SessionUser | null = null;
-  @state() private createOpen = false;
   @state() private noticeMsg = "";
   @state() private availableOnly = false;
 
@@ -290,16 +288,6 @@ export class PageHome extends LitElement {
     return rentable - (it.active_now ?? 0) > 0;
   }
 
-  private handleItemCreated(e: CustomEvent<{ id: number; failedPhotos: string[] }>) {
-    this.createOpen = false;
-    this.fetchItems();
-    if (e.detail.failedPhotos.length > 0) {
-      this.noticeMsg = `저장 완료 (사진 업로드 실패: ${e.detail.failedPhotos.join(", ")})`;
-    } else {
-      navigate(`/items/${e.detail.id}`);
-    }
-  }
-
   render() {
     // 배지 카운트 — 탐색 모드는 서버가 센 실제 전체 수, 검색 모드는 받은 결과 기준
     const totalCount = this.q ? this.items.length : this.total;
@@ -339,7 +327,7 @@ export class PageHome extends LitElement {
         </div>
         ${this.isAdmin
           ? html`
-              <x-button variant="primary" size="md" @click=${() => (this.createOpen = true)}>
+              <x-button variant="primary" size="md" @click=${() => navigate("/admin/items/new")}>
                 + 물품 등록
               </x-button>
             `
@@ -387,12 +375,6 @@ export class PageHome extends LitElement {
                     `
                   : ""}
               `}
-
-      <item-create-dialog
-        ?open=${this.createOpen}
-        @close=${() => (this.createOpen = false)}
-        @created=${this.handleItemCreated}
-      ></item-create-dialog>
     `;
   }
 }

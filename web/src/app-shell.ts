@@ -31,6 +31,7 @@ function preloadAdminChunks() {
   idle(() => {
     void import("./pages/admin/dashboard");
     void import("./pages/admin/items");
+    void import("./pages/admin/item-form");
     void import("./pages/admin/reservations");
     void import("./pages/admin/members");
     void import("./pages/admin/allowed-emails");
