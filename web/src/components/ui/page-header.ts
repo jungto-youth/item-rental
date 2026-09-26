@@ -35,6 +35,11 @@ export class XPageHeader extends LitElement {
     }
     .action {
       flex-shrink: 0;
+      /* 슬롯된 액션(버튼 여러 개)이 붙어 나오지 않게 셸이 간격을 소유한다 —
+         named 슬롯엔 light DOM 공백이 배정되지 않아 기본 간격이 0 이다 */
+      display: flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
     }
     .action ::slotted(*) {
       margin: 0;
