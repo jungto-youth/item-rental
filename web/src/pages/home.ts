@@ -5,7 +5,7 @@ import { session, type SessionUser } from "../context/session";
 import { navigate } from "../router";
 import { type Item } from "../types";
 import { reduceMotion } from "../styles/motion";
-import { searchInputCss } from "../styles/controls";
+import { filterChipsCss, searchInputCss } from "../styles/controls";
 import "../components/ui/button";
 import "../components/ui/empty";
 import "../components/ui/notice";
@@ -49,6 +49,7 @@ export class PageHome extends LitElement {
   static styles = [
     reduceMotion,
     searchInputCss,
+    filterChipsCss,
     css`
       :host {
         display: block;
@@ -96,46 +97,6 @@ export class PageHome extends LitElement {
       .clear-btn:hover {
         background: var(--color-muted);
         color: var(--color-bg);
-      }
-
-      .filter-row {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2, 8px);
-        margin-bottom: var(--space-4, 16px);
-      }
-
-      .filter-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        height: 32px;
-        padding: 0 12px;
-        border-radius: var(--radius-pill, 8px);
-        border: 1px solid var(--color-border);
-        background: var(--color-surface);
-        color: var(--color-muted);
-        font-size: var(--text-caption, 13px);
-        font-weight: 500;
-        cursor: pointer;
-        font-family: inherit;
-        transition: all 0.15s ease;
-      }
-
-      .filter-chip:hover {
-        border-color: var(--color-muted);
-        color: var(--color-text);
-      }
-
-      .filter-chip.active {
-        border-color: var(--color-primary);
-        background: var(--color-primary);
-        color: var(--color-primary-text);
-      }
-
-      .filter-chip .count {
-        font-size: var(--text-fine, 12px);
-        opacity: 0.85;
       }
 
       x-notice {

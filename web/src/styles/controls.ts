@@ -53,6 +53,51 @@ export const numberInputCss = css`
   }
 `;
 
+// 필터 칩 — home(전체/대여 가능만)과 관리자 물품 현황(상태 그룹)이 공유하는
+// 단일 선택 칩 행. .filter-row 위에 .filter-chip을 나열하고 active 클래스로
+// 선택 표시, .count 로 개수를 곁들인다. 레이아웃 값(행 마감 간격 등)은 사용처가 오버라이드.
+export const filterChipsCss = css`
+  .filter-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+    margin-bottom: var(--space-4, 16px);
+  }
+
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill, 8px);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-muted);
+    font-size: var(--text-caption, 13px);
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s ease;
+  }
+
+  .filter-chip:hover {
+    border-color: var(--color-muted);
+    color: var(--color-text);
+  }
+
+  .filter-chip.active {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: var(--color-primary-text);
+  }
+
+  .filter-chip .count {
+    font-size: var(--text-fine, 12px);
+    opacity: 0.85;
+  }
+`;
+
 // 검색 input — home(44px + 클리어 버튼 자리)과 관리자 툴바(40px + flex:1)의
 // 공통 시각 조형. 높이·우측 패딩 같은 레이아웃 값은 사용처가 뒤에서 오버라이드한다.
 export const searchInputCss = css`

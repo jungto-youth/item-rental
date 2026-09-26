@@ -3,14 +3,16 @@ import { customElement, state } from "lit/decorators.js";
 import { api } from "../../api/client";
 import type { Dashboard, DashboardItem, DashboardRenter } from "../../types";
 import { reduceMotion } from "../../styles/motion";
+import { filterChipsCss } from "../../styles/controls";
 import "../../components/admin/admin-page";
 import "../../components/ui/badge";
 import "../../components/ui/empty";
 import { rowsCss } from "../../components/ui/rows";
 
 // 관리자 물품 현황 — 물품별 현재 상태.
-// 예약 건수 카드·처리 목록 대신, 전체 물품(폐기 포함)을 상태 그룹으로 나눠 보여준다.
-// 그룹 판정은 item-card.ts 의 배지 로직과 같은 우선순위를 쓴다.
+// 상태 그룹(대여 중·점검·수리·대여 가능·소모품·폐기)을 필터 칩으로 내걸어
+// home(전체/대여 가능만)과 같은 상호작용으로 좁혀 본다. 그룹 판정은
+// item-card.ts 의 배지 로직과 같은 우선순위를 쓴다.
 type GroupKey = "rented" | "repair" | "available" | "consumable" | "retired";
 
 const SECTIONS: { key: GroupKey; title: string }[] = [
@@ -26,10 +28,13 @@ export class PageAdminDashboard extends LitElement {
   @state() private data: Dashboard | null = null;
   @state() private loading = true;
   @state() private error = "";
+  // "all" | GroupKey — 홈의 전체/대여 가능만 칩과 같은 단일 선택 필터
+  @state() private activeGroup: GroupKey | "all" = "all";
 
   static styles = [
     reduceMotion,
     rowsCss,
+    filterChipsCss,
     css`
       section {
         margin-bottom: var(--space-5);
@@ -190,15 +195,10 @@ export class PageAdminDashboard extends LitElement {
   render() {
     const items = this.data?.items;
     const g = items ? this.groupItems(items) : null;
-    const summary = g
-      ? `전체 ${items!.length}개 · 대여 중 ${g.rented.length} · 점검·수리 ${g.repair.length}` +
-        ` · 소모품 ${g.consumable.length} · 폐기 ${g.retired.length}`
-      : "";
     return html`
       <admin-page
         active="dashboard"
         title="물품 현황"
-        .subtitle=${summary}
         ?loading=${this.loading}
         .error=${this.error}
         @retry=${() => void this.reload()}
@@ -206,9 +206,43 @@ export class PageAdminDashboard extends LitElement {
         ${items && items.length === 0
           ? html`<x-empty compact state="empty" text="등록된 물품이 없어요"></x-empty>`
           : ""}
-        ${g ? SECTIONS.map((s) => this.renderSection(s.title, g[s.key])) : ""}
+        ${items && items.length > 0 && g ? this.renderChips(items, g) : ""}
+        ${g
+          ? this.activeGroup === "all"
+            ? SECTIONS.map((s) => this.renderSection(s.title, g[s.key]))
+            : this.renderGroup(g[this.activeGroup])
+          : ""}
       </admin-page>
     `;
+  }
+
+  // 상태 필터 칩 — 홈(전체/대여 가능만)과 같은 조형·상호작용. 개수는
+  // 이미 그룹핑된 버킷에서 센다 (서버 왕복 없음)
+  private renderChips(items: DashboardItem[], g: Record<GroupKey, DashboardItem[]>) {
+    const chip = (key: GroupKey | "all", label: string, count: number) => html`
+      <button
+        type="button"
+        class="filter-chip ${this.activeGroup === key ? "active" : ""}"
+        aria-pressed=${this.activeGroup === key}
+        @click=${() => (this.activeGroup = key)}
+      >
+        ${label} <span class="count">${count}</span>
+      </button>
+    `;
+    return html`
+      <div class="filter-row">
+        ${chip("all", "전체", items.length)}
+        ${SECTIONS.map((s) => chip(s.key, s.title, g[s.key].length))}
+      </div>
+    `;
+  }
+
+  // 특정 그룹 칩 선택 — 섹션 헤더 없이 해당 그룹만 플랫 목록으로
+  private renderGroup(rows: DashboardItem[]) {
+    if (rows.length === 0) {
+      return html`<x-empty compact state="empty" text="해당 상태의 물품이 없어요"></x-empty>`;
+    }
+    return html`<ul class="rows">${rows.map((it) => this.row(it))}</ul>`;
   }
 }
 
