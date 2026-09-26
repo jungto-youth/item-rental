@@ -3,9 +3,9 @@ import { customElement, state } from "lit/decorators.js";
 import { api } from "../../api/client";
 import type { Dashboard, DashboardItem, DashboardRenter } from "../../types";
 import { reduceMotion } from "../../styles/motion";
-import { filterChipsCss } from "../../styles/controls";
 import "../../components/admin/admin-page";
 import "../../components/ui/badge";
+import "../../components/ui/chip-filter";
 import "../../components/ui/empty";
 import { rowsCss } from "../../components/ui/rows";
 
@@ -34,8 +34,10 @@ export class PageAdminDashboard extends LitElement {
   static styles = [
     reduceMotion,
     rowsCss,
-    filterChipsCss,
     css`
+      x-chip-filter {
+        margin-bottom: var(--space-4);
+      }
       section {
         margin-bottom: var(--space-5);
       }
@@ -216,24 +218,24 @@ export class PageAdminDashboard extends LitElement {
     `;
   }
 
-  // 상태 필터 칩 — 홈(전체/대여 가능만)과 같은 조형·상호작용. 개수는
+  // 상태 필터 칩 — 홈(전체/대여 가능만)과 같은 상호작용. 개수는
   // 이미 그룹핑된 버킷에서 센다 (서버 왕복 없음)
   private renderChips(items: DashboardItem[], g: Record<GroupKey, DashboardItem[]>) {
-    const chip = (key: GroupKey | "all", label: string, count: number) => html`
-      <button
-        type="button"
-        class="filter-chip ${this.activeGroup === key ? "active" : ""}"
-        aria-pressed=${this.activeGroup === key}
-        @click=${() => (this.activeGroup = key)}
-      >
-        ${label} <span class="count">${count}</span>
-      </button>
-    `;
     return html`
-      <div class="filter-row">
-        ${chip("all", "전체", items.length)}
-        ${SECTIONS.map((s) => chip(s.key, s.title, g[s.key].length))}
-      </div>
+      <x-chip-filter
+        ariaLabel="상태 필터"
+        .value=${this.activeGroup}
+        .options=${[
+          { value: "all", label: "전체", count: items.length },
+          ...SECTIONS.map((s) => ({
+            value: s.key,
+            label: s.title,
+            count: g[s.key].length,
+          })),
+        ]}
+        @change=${(e: CustomEvent<{ value: string }>) =>
+          (this.activeGroup = e.detail.value as GroupKey | "all")}
+      ></x-chip-filter>
     `;
   }
 

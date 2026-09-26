@@ -5,8 +5,9 @@ import { session, type SessionUser } from "../context/session";
 import { navigate } from "../router";
 import { type Item } from "../types";
 import { reduceMotion } from "../styles/motion";
-import { filterChipsCss, searchInputCss } from "../styles/controls";
+import { searchInputCss } from "../styles/controls";
 import "../components/ui/button";
+import "../components/ui/chip-filter";
 import "../components/ui/empty";
 import "../components/ui/notice";
 import "../components/features/item/item-card";
@@ -49,10 +50,13 @@ export class PageHome extends LitElement {
   static styles = [
     reduceMotion,
     searchInputCss,
-    filterChipsCss,
     css`
       :host {
         display: block;
+      }
+
+      x-chip-filter {
+        margin-bottom: var(--space-4, 16px);
       }
 
       .top-bar {
@@ -342,24 +346,16 @@ export class PageHome extends LitElement {
           : ""}
       </div>
 
-      <div class="filter-row">
-        <button
-          type="button"
-          class="filter-chip ${!this.availableOnly ? "active" : ""}"
-          aria-pressed=${!this.availableOnly}
-          @click=${() => this.setAvailableOnly(false)}
-        >
-          전체 <span class="count">${totalCount}</span>
-        </button>
-        <button
-          type="button"
-          class="filter-chip ${this.availableOnly ? "active" : ""}"
-          aria-pressed=${this.availableOnly}
-          @click=${() => this.setAvailableOnly(true)}
-        >
-          대여 가능만 <span class="count">${availableCount}</span>
-        </button>
-      </div>
+      <x-chip-filter
+        ariaLabel="물품 필터"
+        .value=${this.availableOnly ? "available" : "all"}
+        .options=${[
+          { value: "all", label: "전체", count: totalCount },
+          { value: "available", label: "대여 가능만", count: availableCount },
+        ]}
+        @change=${(e: CustomEvent<{ value: string }>) =>
+          this.setAvailableOnly(e.detail.value === "available")}
+      ></x-chip-filter>
 
       ${this.noticeMsg ? html`<x-notice>${this.noticeMsg}</x-notice>` : ""}
       ${this.denied

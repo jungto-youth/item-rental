@@ -9,7 +9,7 @@ import { getCategories } from "../../utils/categories";
 import "../../components/admin/admin-page";
 import "../../components/ui/empty";
 import "../../components/ui/button";
-import "../../components/ui/select";
+import "../../components/ui/chip-filter";
 import "../../components/features/item/item-create-dialog";
 import "../../components/features/item/item-edit-dialog";
 import "../../components/features/category/category-manage-dialog";
@@ -60,10 +60,10 @@ export class PageAdminItems extends LitElement {
         gap: var(--space-2, 8px);
         margin-bottom: var(--space-3, 12px);
       }
-      /* x-select는 자체 스타일 담당 — 툴바에서는 검색 인풋과 높이만 맞춘다 */
-      .toolbar x-select {
-        width: 200px;
-        flex-shrink: 0;
+      /* 카테고리 칩은 검색 인풋 옆 남은 폭을 차지하고, 넘치면 행 안에서 가로 스크롤 */
+      .toolbar x-chip-filter {
+        flex: 1;
+        min-width: 0;
       }
       .row {
         display: flex;
@@ -211,7 +211,7 @@ export class PageAdminItems extends LitElement {
             .value=${this.q}
             @input=${(e: Event) => (this.q = (e.target as HTMLInputElement).value)}
           />
-          <x-select
+          <x-chip-filter
             size="md"
             ariaLabel="카테고리 필터"
             .value=${this.categoryFilter}
@@ -219,13 +219,14 @@ export class PageAdminItems extends LitElement {
           { value: "all", label: "카테고리 전체" },
           ...this.categories.map((c) => ({
             value: String(c.id),
-            label: `${c.name} (${c.item_count})`,
+            label: c.name,
+            count: c.item_count,
           })),
           { value: "none", label: "미지정" },
         ]}
             @change=${(e: CustomEvent<{ value: string }>) =>
-        (this.categoryFilter = e.detail.value)}
-          ></x-select>
+          (this.categoryFilter = e.detail.value)}
+          ></x-chip-filter>
         </div>
 
         ${list.length === 0

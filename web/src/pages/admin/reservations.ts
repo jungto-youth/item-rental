@@ -8,7 +8,7 @@ import { api } from "../../api/client";
 import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-page";
 import "../../components/ui/empty";
-import "../../components/ui/select";
+import "../../components/ui/chip-filter";
 import { rowsCss } from "../../components/ui/rows";
 
 // 대여 관리: 반납 처리만 (admin 전용)
@@ -33,10 +33,6 @@ export class PageAdminReservations extends LitElement {
         align-items: center;
         gap: var(--space-2);
         margin-bottom: var(--space-4);
-      }
-      .bar label {
-        font-size: var(--text-caption);
-        color: var(--color-muted);
       }
       /* 회원이 직접 반납한 건 — 자기 신고라 관리자가 물품을 확인해야 한다 */
       .by {
@@ -102,8 +98,7 @@ export class PageAdminReservations extends LitElement {
         @retry=${() => void this.reload()}
       >
         <div class="bar" slot="toolbar">
-          <x-select
-            id="filter-status"
+          <x-chip-filter
             ariaLabel="상태 필터"
             .value=${this.filter}
             .options=${[
@@ -116,7 +111,7 @@ export class PageAdminReservations extends LitElement {
           this.filter = e.detail.value as "" | ReservationStatus;
           void this.reload();
         }}
-          ></x-select>
+          ></x-chip-filter>
         </div>
         ${this.reservations.length === 0
           ? html`<x-empty compact state="empty" text="대여가 없어요"></x-empty>`
