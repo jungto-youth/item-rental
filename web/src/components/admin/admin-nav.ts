@@ -3,6 +3,8 @@ import { customElement, property } from "lit/decorators.js";
 
 // 관리자 영역 상단 탭 — 헤더의 서브네비를 페이지 안으로 옮긴 것 (헤더 단순화).
 // 라우트 가드는 그대로이고, 이 탭은 위치 안내 역할만 한다.
+// "items"는 탭 목록엔 없지만 타입엔 남아 있다 — 물품 관리는 홈(/)의 목록 보기로
+// 흡수됐고, 물품 등록/편집 폼(page-admin-item-form)이 active="items"로 셸을 쓴다.
 export type AdminTab =
   | "dashboard"
   | "items"
@@ -12,7 +14,6 @@ export type AdminTab =
 
 const TABS: { key: AdminTab; label: string; href: string }[] = [
   { key: "dashboard", label: "대시보드", href: "/admin" },
-  { key: "items", label: "물품 관리", href: "/admin/items" },
   { key: "reservations", label: "대여 관리", href: "/admin/reservations" },
   { key: "members", label: "회원 관리", href: "/admin/members" },
   { key: "allowed-emails", label: "허용 이메일", href: "/admin/allowed-emails" },

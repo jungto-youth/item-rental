@@ -94,12 +94,13 @@ const routes: RouteConfig[] = [
     enter: requireAdmin,
   },
   {
+    // 물품 관리는 홈(/)의 목록 보기로 흡수됐다 — 북마크는 홈으로 보낸다
     path: "/admin/items",
-    render: () => {
-      void import("./pages/admin/items");
-      return html`<page-admin-items></page-admin-items>`;
+    render: () => html``,
+    enter: () => {
+      navigate("/");
+      return false;
     },
-    enter: requireAdmin,
   },
   {
     // 등록/편집 통합 — :id === "new" 면 등록 모드

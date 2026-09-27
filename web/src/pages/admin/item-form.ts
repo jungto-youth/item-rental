@@ -355,8 +355,8 @@ export class PageAdminItemForm extends LitElement {
     if (!(await confirmDialog(`'${this.form.name}' 물품을 정말 삭제할까요?`, { confirmLabel: "삭제" }))) return;
     try {
       await api(`/api/admin/items/${this.itemId}`, { method: "DELETE" });
-      // 삭제된 물품의 이전 화면으로 돌아가면 없는 물품이 된다 — 목록으로 보낸다
-      navigate("/admin/items");
+      // 삭제된 물품의 이전 화면으로 돌아가면 없는 물품이 된다 — 물품 화면으로 보낸다
+      navigate("/");
     } catch (err) {
       this.error = err instanceof Error ? err.message : "삭제 실패";
     }

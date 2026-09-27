@@ -30,7 +30,6 @@ function preloadAdminChunks() {
       : setTimeout(cb, 1500);
   idle(() => {
     void import("./pages/admin/dashboard");
-    void import("./pages/admin/items");
     void import("./pages/admin/item-form");
     void import("./pages/admin/reservations");
     void import("./pages/admin/members");
@@ -339,9 +338,9 @@ export class AppShell extends LitElement {
     return html`
       <header>
         <div class="row-main">
-          <a href="/" class="brand" aria-label="홈 — 청년지부 물품 대여">
+          <a href="/" class="brand" aria-label=${this.user?.role === "admin" ? "홈 — 청년지부 물품 관리" : "홈 — 청년지부 물품 대여"}>
             <img src="/logo.png" alt="" />
-            <span class="brand-title">물품 대여</span>
+            <span class="brand-title">${this.user?.role === "admin" ? "물품 관리" : "물품 대여"}</span>
           </a>
 
           <div class="actions">
