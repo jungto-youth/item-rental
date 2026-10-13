@@ -13,6 +13,7 @@ import { test, expect } from "vitest";
 import { createReservation } from "../src/services/reservations.service.ts";
 import { withdrawMember, setMemberRole } from "../src/services/members.service.ts";
 import { createItem, updateItem } from "../src/services/items.service.ts";
+import { listItems } from "../src/services/search.service.ts";
 import type { Sql } from "../src/db.ts";
 
 // workers-types 의 전역 URL 과 Node 의 url.URL 이 서로 다른 타입이라 href 문자열로 넘긴다
@@ -425,3 +426,85 @@ test("FTS 스모크: 등록된 물품이 trigram 매치로 검색된다", async 
   expect(hits).toEqual(1);
 });
 
+// ===== 탐색 목록 (listItems) — 관리자 카테고리 필터·행 카테고리 =====
+
+function tagItem(db: DatabaseSync, itemId: number, categoryId: number) {
+  db.prepare("INSERT INTO item_categories (item_id, category_id) VALUES (?1, ?2)").run(itemId, categoryId);
+}
+
+test("listItems: withCategories 는 관리자 행에만 카테고리를 채운다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const catId = addCategory(db, "캠핑");
+  const itemId = addItem(db);
+  tagItem(db, itemId, catId);
+
+  const admin = await listItems(sql, { limit: 10, offset: 0, available: false, withCategories: true });
+  expect(admin.items[0].categories).toEqual([{ id: catId, name: "캠핑" }]);
+
+  const member = await listItems(sql, { limit: 10, offset: 0, available: false });
+  expect(member.items[0].categories).toEqual(undefined);
+});
+
+test("listItems: 카테고리 필터가 행과 카운트에 함께 적용된다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const catId = addCategory(db, "사무");
+  const tagged = addItem(db);
+  const untagged = addItem(db);
+  tagItem(db, tagged, catId);
+  addItem(db, { status: "retired" }); // 폐기는 필터와 무관하게 항상 제외
+
+  const inCat = await listItems(sql, { limit: 10, offset: 0, available: false, category: String(catId) });
+  expect(inCat.items.map((i) => i.id)).toEqual([tagged]);
+  expect(inCat.total).toEqual(1);
+
+  const none = await listItems(sql, { limit: 10, offset: 0, available: false, category: "none" });
+  expect(none.items.map((i) => i.id)).toEqual([untagged]);
+  expect(none.total).toEqual(1);
+
+  const all = await listItems(sql, { limit: 10, offset: 0, available: false });
+  expect(all.items.length).toEqual(2);
+  expect(all.total).toEqual(2);
+});
+
+test("listItems: 카테고리 + 대여가능 필터를 같이 건다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const catId = addCategory(db, "청소");
+  const rentable = addItem(db);
+  const broken = addItem(db, { total_qty: 1, qty_broken: 1 });
+  tagItem(db, rentable, catId);
+  tagItem(db, broken, catId);
+
+  const res = await listItems(sql, {
+    limit: 10,
+    offset: 0,
+    available: true,
+    category: String(catId),
+    withCategories: true,
+  });
+  expect(res.items.map((i) => i.id)).toEqual([rentable]);
+  expect(res.available_total).toEqual(1);
+});
+
+test("listItems: includeRetired 는 폐기 물품을 행과 카운트에 포함한다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const active = addItem(db);
+  const retired = addItem(db, { status: "retired" });
+
+  const base = await listItems(sql, { limit: 10, offset: 0, available: false });
+  expect(base.items.map((i) => i.id)).toEqual([active]);
+  expect(base.total).toEqual(1);
+
+  // ORDER BY id DESC — 나중에 등록된(폐기) 물품이 먼저 온다
+  const all = await listItems(sql, {
+    limit: 10,
+    offset: 0,
+    available: false,
+    includeRetired: true,
+  });
+  expect(all.items.map((i) => i.id)).toEqual([retired, active]);
+  expect(all.total).toEqual(2);
+});

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
 import { getDb, type Sql } from "../db";
+import { getSessionUser } from "../middleware/auth";
 import { searchHybrid, listItems } from "../services/search.service";
 import { getItemDetail } from "../services/items.service";
 
@@ -49,13 +50,18 @@ itemsRoute.get("/", async (c) => {
   const db: Sql = getDb(c.env);
   const q = (c.req.query("q") ?? "").trim();
 
+  // 관리자 세션이면 행에 카테고리를 얹고 카테고리 필터를 허용한다 —
+  // 회원·비로그인 응답은 관리 목록 통합 이전과 같은 모양을 유지한다
+  const user = await getSessionUser(c);
+  const isAdmin = user?.role === "admin";
+
   // 검색 — 키워드+의미를 RRF 로 융합한 상위 30개. 검색에는 페이지네이션이 없다:
   // 퍼지 매치의 꼬리는 노이즈라 "페이지 2"를 보여줘도 아무도 안 본다
   if (q) {
     if (searchThrottled(c.req.header("cf-connecting-ip") ?? "unknown")) {
       return c.json({ error: "too_many_requests" }, 429);
     }
-    const items = await searchHybrid(c.env, db, q);
+    const items = await searchHybrid(c.env, db, q, { withCategories: isAdmin });
     return c.json({ items });
   }
 
@@ -63,10 +69,16 @@ itemsRoute.get("/", async (c) => {
   const limit = clampInt(c.req.query("limit"), 24, 1, 60);
   const offset = clampInt(c.req.query("offset"), 0, 0, 100_000);
   const available = c.req.query("available") === "1";
+  // 카테고리 필터 — 관리자 전용. "none"(미지정) 또는 숫자 id 만 받고 이외는 무시
+  const categoryRaw = c.req.query("category") ?? "";
+  const category =
+    isAdmin && (categoryRaw === "none" || /^\d+$/.test(categoryRaw)) ? categoryRaw : null;
   const { items, total, available_total } = await listItems(db, {
     limit,
     offset,
     available,
+    category,
+    withCategories: isAdmin,
   });
   return c.json({
     items,

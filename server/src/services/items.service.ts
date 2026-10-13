@@ -18,7 +18,7 @@ const ADMIN_ITEM_COLUMNS = `items.id, items.name, items.description, items.statu
 
 // ===== 행 타입 =====
 
-export type ItemAttrs = {
+type ItemAttrs = {
   kind: "rental" | "consumable";
   location: string | null;
   qty_broken: number;
@@ -33,15 +33,15 @@ export type ListItemRow = ItemAttrs & {
   status: "active" | "repair" | "retired";
   photos: { id: number; url: string }[];
   active_now: number;
-  categories: { id: number; name: string }[];
+  // 관리자 목록·검색 응답에만 채운다 — 회원 응답에는 없다 (shared Item.categories? 참조)
+  categories?: { id: number; name: string }[];
 };
 
 // 컴파일 타임 가드 — SQL 행이 클라이언트 뷰(shared Item)를 만족하는지 검사한다.
 // 어느 쪽이 어긋나면 이 타입이 never 가 되어 tsc 가 에러를 낸다.
 type _ListItemRowIsItem = ListItemRow extends Item ? true : never;
 
-// 관리자용 Item 행
-// categories·thumb_key 는 목록/단건 SQL (=0021 태그 조인)이 채운다.
+// 관리자용 Item 행 — categories 는 단건 SQL (=0021 태그 조인)이 채운다
 export type AdminItemRow = {
   id: number;
   name: string;
@@ -52,7 +52,6 @@ export type AdminItemRow = {
   kind: string;
   location: string | null;
   categories: { id: number; name: string }[];
-  thumb_key: string | null;
 };
 
 // ===== 공개 조회 () =====
@@ -91,23 +90,6 @@ export async function getItemDetail(
 // ===== 관리자 CRUD () =====
 
 // 목록 — 폐기 포함 전체 (관리자)
-export async function listAdminItems(db: Sql) {
-  const rows = (await db.query(
-    `SELECT ${ADMIN_ITEM_COLUMNS},
-            (SELECT json_group_array(json_object('id', c.id, 'name', c.name))
-             FROM (SELECT c.id, c.name FROM item_categories ic
-                    JOIN categories c ON c.id = ic.category_id
-                    WHERE ic.item_id = items.id ORDER BY c.name) c) AS categories,
-            (SELECT p.r2_key FROM item_photos p WHERE p.item_id = items.id
-              ORDER BY p.sort_order LIMIT 1) AS thumb_key,
-            (SELECT COUNT(*) FROM item_photos p WHERE p.item_id = items.id) AS photo_count,
-            (SELECT COUNT(*) FROM reservations r WHERE r.item_id = items.id) AS reservation_count
-     FROM items
-     ORDER BY items.id DESC`,
-  )) as (AdminItemRow & { categories: unknown })[];
-  return rows.map((r) => ({ ...r, categories: parseJsonCol(r.categories) }));
-}
-
 // 편집용 단건 — 공개 상세()와 달리 태그까지 내려준다 (SELECT + 태그 조인 — 관리자 화면용)
 export async function getAdminItem(
   db: Sql,
@@ -180,7 +162,7 @@ export async function createItem(
 }
 
 // 수정 결과 — qty_constraint: 수량 조합이 제약(qty_broken ≤ total_qty) 위반 (라우트가 400 응답)
-export type UpdateItemResult =
+type UpdateItemResult =
   | { ok: true }
   | { error: "not_found" }
   | { error: "qty_constraint" };
@@ -279,7 +261,7 @@ export async function updateItem(
 }
 
 // 삭제 결과 — has_history: 대여 이력 있어 거부 (라우트가 409 응답, 폐기 상태 전환 권장)
-export type DeleteItemResult =
+type DeleteItemResult =
   | { ok: true }
   | { error: "not_found" }
   | { error: "has_history" };
@@ -303,7 +285,7 @@ export async function deleteItem(
     `SELECT r2_key FROM item_photos WHERE item_id = ?1`,
     [itemId],
   )) as { r2_key: string }[];
-  // 물품 + FTS 행을 한 트랜잭션으로 — FTS 에 고아가 남지 않는다 (PLAN §7.3)
+  // 물품 + FTS 행을 한 트랜잭션으로 — FTS 에 고아가 남지 않는다
   const results = await db.batch<{ id: number }>([
     { sql: `DELETE FROM items WHERE id = ?1 RETURNING id`, params: [itemId] },
     { sql: `DELETE FROM items_fts WHERE rowid = ?1`, params: [itemId] },
@@ -323,7 +305,7 @@ export async function deleteItem(
 export const MAX_PHOTOS = 3; //  사진 최대 3장
 
 // 사진 추가 결과 — too_many: 최대 장수 초과 (라우트가 409 응답)
-export type AddPhotoResult =
+type AddPhotoResult =
   | { ok: true; id: number; url: string }
   | { error: "not_found" }
   | { error: "too_many" };

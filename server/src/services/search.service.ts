@@ -1,6 +1,6 @@
 // 검색·탐색 서비스 — "탐색"(전체 목록 무한스크롤)과 "검색"(랭킹된 짧은 리스트)을 분리한다.
 // 검색 = FTS5 bm25 랭킹(3글자↑ 토큰) + LIKE 폴백 랭킹(1-2글자 토큰) + 의미(벡터 BLOB JS 코사인)
-// 를 RRF로 융합해 상위 N개만 내린다 (PLAN §7.4).
+// 를 RRF로 융합해 상위 N개만 내린다.
 // 검색에는 페이지네이션이 없다 — 퍼지 매치의 꼬리는 노이즈라 "2페이지"가 의미 없다.
 import type { Sql } from "../db";
 import type { Bindings } from "../types";
@@ -15,7 +15,7 @@ export type ListItemWithBadge = ListItemRow & {
 };
 
 // 목록 SELECT 공용 — 전체 목록/키워드/의미가 같은 컬럼을 내려준다 (where 절만 다름)
-// json 집계는 SQLite가 ORDER BY를 지원하지 않아 정렬용 서브쿼리로 감싼다 (PLAN §6 규칙표)
+// json 집계는 SQLite가 ORDER BY를 지원하지 않아 정렬용 서브쿼리로 감싼다
 const LIST_COLUMNS = `SELECT items.id, items.name, items.description, items.total_qty, items.status,
             items.kind, items.location,
             items.qty_broken,
@@ -26,16 +26,43 @@ const LIST_COLUMNS = `SELECT items.id, items.name, items.description, items.tota
             (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
              WHERE r.item_id = items.id AND r.status = 'rented') AS active_now`;
 
+// 행별 카테고리 — 관리자 요청에만 붙인다. 회원 응답은 오늘과 같은 모양(카테고리 제외) 유지
+const CATEGORIES_COLUMN = `(SELECT json_group_array(json_object('id', c.id, 'name', c.name))
+             FROM (SELECT c.id, c.name FROM item_categories ic
+                    JOIN categories c ON c.id = ic.category_id
+                    WHERE ic.item_id = items.id ORDER BY c.name) c) AS categories`;
+
 function parseListRows(rows: ListItemRow[]): ListItemRow[] {
-  for (const r of rows) r.photos = parseJsonCol(r.photos);
+  for (const r of rows) {
+    r.photos = parseJsonCol(r.photos);
+    if (r.categories != null) r.categories = parseJsonCol(r.categories);
+  }
   return rows;
 }
 
-function buildListSql(where: string): string {
-  return `${LIST_COLUMNS}
+function buildListSql(
+  where: string,
+  withCategories = false,
+  includeRetired = false,
+): string {
+  const statusFilter = includeRetired ? "" : "items.status <> 'retired' AND ";
+  return `${LIST_COLUMNS}${withCategories ? `,\n            ${CATEGORIES_COLUMN}` : ""}
      FROM items
-     WHERE items.status <> 'retired' ${where}
+     WHERE ${statusFilter}1=1 ${where}
      ORDER BY items.id DESC`;
+}
+
+// 관리자 카테고리 필터 — "none" 은 미지정, 숫자는 카테고리 id.
+// id 는 라우트에서 /^\d+$/ 검증 후 전달되므로 정수 보간이 안전하다 (limit/offset 과 같은 근거)
+function categoryWhere(category: string | null | undefined): string {
+  if (category === "none") {
+    return ` AND NOT EXISTS (SELECT 1 FROM item_categories ic WHERE ic.item_id = items.id)`;
+  }
+  if (category) {
+    return ` AND EXISTS (SELECT 1 FROM item_categories ic
+              WHERE ic.item_id = items.id AND ic.category_id = ${Number(category)})`;
+  }
+  return "";
 }
 
 // 대여 가능 조건 — 홈 화면 isItemAvailable(web/src/pages/home.ts)과 같은 규칙.
@@ -56,21 +83,58 @@ export type BrowseList = {
   available_total: number;
 };
 
+// 텍스트 필터 — 이름·위치·범주 이름의 부분일치(LIKE). 랭킹 검색이 아니라
+// 관리자 목록의 좁히기용이라 단순 LIKE다. %·_·\ 는 escapeLike로 무력화하고 값은
+// 파라미터 바인딩한다(LIKE 폴백과 같은 근거)
+function textFilter(q: string | null | undefined): { sql: string; params: string[] } {
+  if (!q) return { sql: "", params: [] };
+  return {
+    sql: ` AND (items.name LIKE '%' || ?1 || '%' ESCAPE '\\'
+          OR (COALESCE(items.location, '')) LIKE '%' || ?1 || '%' ESCAPE '\\'
+          OR EXISTS (SELECT 1 FROM item_categories ic
+                      JOIN categories c ON c.id = ic.category_id
+                      WHERE ic.item_id = items.id
+                        AND c.name LIKE '%' || ?1 || '%' ESCAPE '\\'))`,
+    params: [escapeLike(q)],
+  };
+}
+
 /**
  * 전체 목록 — OFFSET/LIMIT 페이지네이션.
- * limit/offset은 라우트에서 정수로 클램프되므로 문자열 보간이 안전하다.
+ * limit/offset은 라우트에서 정수로 클램프되고 category도 정수 검증을 거치므로
+ * 문자열 보간이 안전하다. q는 바인드 파라미터라 임의 문자열이 안전하다.
+ * withCategories — 관리자 요청: 행에 카테고리를 얹고 category 필터를 허용한다.
+ * includeRetired — 관리자 요청: 폐기 물품도 목록에 포함한다 (물품 수정 선택 목록용).
+ * q — 관리자 요청: 이름·위치·범주 이름 부분일치로 좁힌다.
  */
 export async function listItems(
   db: Sql,
-  opts: { limit: number; offset: number; available: boolean },
+  opts: {
+    limit: number;
+    offset: number;
+    available: boolean;
+    category?: string | null;
+    withCategories?: boolean;
+    includeRetired?: boolean;
+    q?: string;
+  },
 ): Promise<BrowseList> {
-  const where = opts.available ? ` AND ${AVAILABLE_SQL}` : "";
+  const retired = opts.includeRetired ?? false;
+  const tf = textFilter(opts.q);
+  const where =
+    (opts.available ? ` AND ${AVAILABLE_SQL}` : "") +
+    categoryWhere(opts.category) +
+    tf.sql;
   const [rows, counts] = (await Promise.all([
-    db.query(`${buildListSql(where)} LIMIT ${opts.limit} OFFSET ${opts.offset}`),
+    db.query(
+      `${buildListSql(where, opts.withCategories ?? false, retired)} LIMIT ${opts.limit} OFFSET ${opts.offset}`,
+      tf.params,
+    ),
     db.query(
       `SELECT COUNT(*) AS total,
               COALESCE(SUM(CASE WHEN ${AVAILABLE_SQL} THEN 1 ELSE 0 END), 0) AS available_total
-       FROM items WHERE status <> 'retired'`,
+       FROM items WHERE ${retired ? "" : "status <> 'retired' AND "}1=1${categoryWhere(opts.category)}${tf.sql}`,
+      tf.params,
     ),
   ])) as [ListItemRow[], { total: number; available_total: number }[]];
   return {
@@ -80,7 +144,7 @@ export async function listItems(
   };
 }
 
-// ===== 키워드 검색 (FTS5 bm25 + 1-2글자 LIKE 폴백, PLAN §7.4) =====
+// ===== 키워드 검색 (FTS5 bm25 + 1-2글자 LIKE 폴백) =====
 // trigram 인덱스는 3글자 이상 토큰만 매치할 수 있다 — 3글자 이상은 FTS5 MATCH + bm25,
 // 1-2글자(텐트·매트 같은 짧은 단어)는 escapeLike + LIKE 폴백으로 각각 독립 랭킹을 만들어
 // RRF에서 융합한다. 후보 상한 50 — RRF 전 단계 후보라 넉넉히 뽑아도 최종 상위 30에 걸러진다.
@@ -100,7 +164,7 @@ export function ftsQuery(tokens: string[]): string {
   return tokens.map((t) => `"${t.replace(/"/g, '""')}"`).join(" AND ");
 }
 
-// FTS5 bm25 랭킹 — rowid = items.id (§7.3). bm25 는 값이 작을수록 잘 맞는다.
+// FTS5 bm25 랭킹 — rowid = items.id. bm25 는 값이 작을수록 잘 맞는다.
 // FTS 행은 상태를 모르므로 폐기(retired) 물품은 최종 목록 SQL에서 걸러진다
 async function searchFtsRanked(db: Sql, tokens: string[]): Promise<number[]> {
   if (tokens.length === 0) return [];
@@ -143,7 +207,7 @@ function likeScoreExpr(tokens: string[]): { expr: string; params: string[] } {
   };
 }
 
-// 1-2글자 토큰 LIKE 폴백 — trigram 이 만들 수 없는 짧은 토큰의 랭킹 목록(§7.4)
+// 1-2글자 토큰 LIKE 폴백 — trigram 이 만들 수 없는 짧은 토큰의 랭킹 목록
 async function searchLikeRankedIds(db: Sql, tokens: string[]): Promise<number[]> {
   if (tokens.length === 0) return [];
   const { expr, params } = likeScoreExpr(tokens);
@@ -179,8 +243,8 @@ async function embedQuery(env: Bindings, q: string): Promise<Float32Array> {
   return vec;
 }
 
-// 의미 후보 — 벡터 BLOB 전수 JS 코사인 상위 8개(유사도 ≥ 0.25, §7.4). D1엔 pgvector 연산자가
-// 없어 isolate 캐시 + 전수 코사인으로 대체한다(§7.2). 후보는 RRF에서 키워드 순위와 경쟁하므로
+// 의미 후보 — 벡터 BLOB 전수 JS 코사인 상위 8개(유사도 ≥ 0.25). D1엔 pgvector 연산자가
+// 없어 isolate 캐시 + 전수 코사인으로 대체한다. 후보는 RRF에서 키워드 순위와 경쟁하므로
 // 좁혀 뽑아도 융합 상위 30에 걸러진다. bge-m3 유사도는 0.4~0.65에 뭉쳐 절대 임계로 관련/무관
 // 구분이 안 되므로 → 상대 랭킹으로만 사용
 const SEMANTIC_CAP = 8;
@@ -243,11 +307,13 @@ const SEARCH_RESULT_CAP = 30;
  * 한 물품이 여러 후보 목록에 나오면 점수가 합쳐져 위로 간다 — 순서가 랭킹 논리로 설명된다.
  * 의미 검색(Workers AI)이 실패하면 키워드 목록만으로 검색이 계속된다(폴백).
  * @param q - 검색어 (공백 분해, 최대 5토큰)
+ * @param opts.withCategories - 관리자 요청: 행에 카테고리를 얹는다 (클라이언트 필터용)
  */
 export async function searchHybrid(
   env: Bindings,
   db: Sql,
   q: string,
+  opts: { withCategories?: boolean } = {},
 ): Promise<ListItemWithBadge[]> {
   // 토큰 처리: 단어 단위 (최대 5개 토큰)
   const tokens = q.trim().split(/\s+/).filter(Boolean).slice(0, 5);
@@ -270,7 +336,7 @@ export async function searchHybrid(
   const rank = new Map(fusedIds.map((id, i) => [id, i]));
   const rows = parseListRows(
     (await db.query(
-      buildListSql(` AND items.id IN (SELECT value FROM json_each(?1))`),
+      buildListSql(` AND items.id IN (SELECT value FROM json_each(?1))`, opts.withCategories ?? false),
       [JSON.stringify(fusedIds)],
     )) as ListItemRow[],
   );

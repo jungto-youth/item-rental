@@ -6,8 +6,6 @@
 import type { DashboardItem, DashboardRenter } from "../../../shared/api-types";
 import type { Sql } from "../db";
 
-export type { DashboardItem, DashboardRenter };
-
 export async function getDashboard(db: Sql) {
   // Q1 전체 물품(폐기 포함) + Q2 현재 대여자 — D1 도 쿼리당 왕복이라 병렬 실행
   const [itemsRaw, rentersRaw] = await Promise.all([

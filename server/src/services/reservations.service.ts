@@ -28,7 +28,7 @@ export type CreateReservationParams = {
 };
 
 // 결과 타입 — 호출자가 switch/discriminated union으로 처리
-export type ReservationResult =
+type ReservationResult =
   | { ok: true; id: number }
   | { error: "not_found" }
   | { error: "item_not_active" }
@@ -37,7 +37,7 @@ export type ReservationResult =
   | { error: "no_availability" };
 
 // 1단계 사전 검사 — 오류 코드 구분용 (가용성은 아래 단일 문장이 보장)
-export async function getItemForReservation(
+async function getItemForReservation(
   db: Sql,
   itemId: number,
 ): Promise<ReserveItem | null> {

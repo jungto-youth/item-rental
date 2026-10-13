@@ -13,7 +13,6 @@ export type Bindings = {
   // @jungto.org 외 로그인을 허용하는 예외 이메일 (콤마 구분, 선택) — 운영진 개인 계정 등
   AUTH_ALLOWED_EMAILS?: string;
   PHOTOS: R2Bucket;
-  ASSETS: Fetcher;
   // Workers AI — 물품 임베딩 생성 (의미 검색)
   AI: Ai;
 };

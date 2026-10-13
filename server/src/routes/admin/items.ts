@@ -4,7 +4,6 @@ import { getDb, type Sql } from "../../db";
 import { requireAdmin } from "../../middleware/auth";
 import { imageSize } from "../../image-size";
 import {
-  listAdminItems,
   getAdminItem,
   createItem,
   updateItem,
@@ -13,6 +12,7 @@ import {
   deletePhoto,
   MAX_PHOTOS,
 } from "../../services/items.service";
+import { listItems } from "../../services/search.service";
 
 // /api/admin/items (물품 CRUD + 사진 관리, admin 전용)
 // 입력 검증은 여기, SQL·임베딩·R2 관리는 items.service 에 위임
@@ -24,6 +24,18 @@ adminItemsRoute.use("*", requireAdmin);
 
 const ITEM_STATUS = ["active", "repair", "retired"] as const;
 const ITEM_KIND = ["rental", "consumable"] as const;
+
+// 쿼리 파라미터 클램프 — LIMIT/OFFSET 을 SQL 에 그대로 넣기 전에 정수로 한정한다
+function clampInt(
+  raw: string | undefined,
+  dflt: number,
+  min: number,
+  max: number,
+): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return dflt;
+  return Math.min(Math.max(Math.trunc(n), min), max);
+}
 
 // 자유 텍스트 속성 — 시트에서 온 빈 칸이 ''로 들어오는 경우가 있어 NULL로 정규화한다
 // (''와 NULL이 섞이면 위치 검색이 갈라진다). size/color/note 는 0016 마이그레이션에서 제거.
@@ -85,11 +97,25 @@ const PHOTO_TYPES: Record<string, string> = {
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
 const MAX_PHOTO_EDGE = 1600;
 
-// 목록 — 폐기 포함 전체 (관리자)
+// 목록 — 폐기 포함 전체 (물품 수정 선택 목록용). 행에 카테고리를 얹는다.
+// category는 "none"(미지정) 또는 숫자 id 만 — 이외는 무시. limit/offset은
+// 클램프되고 category도 정수 검증을 거치므로 보간이 안전하다(listItems 주석 참고)
 adminItemsRoute.get("/", async (c) => {
   const db: Sql = getDb(c.env);
-  const items = await listAdminItems(db);
-  return c.json({ items });
+  const limit = clampInt(c.req.query("limit"), 500, 1, 1000);
+  const offset = clampInt(c.req.query("offset"), 0, 0, 100_000);
+  const categoryRaw = c.req.query("category") ?? "";
+  const category =
+    categoryRaw === "none" || /^\d+$/.test(categoryRaw) ? categoryRaw : null;
+  const { items, total } = await listItems(db, {
+    limit,
+    offset,
+    available: false,
+    category,
+    withCategories: true,
+    includeRetired: true,
+  });
+  return c.json({ items, total, hasMore: offset + items.length < total });
 });
 
 // 편집용 단건 — 관리자 화면용으로 태그까지 내려준다. 편집 폼이 공개 상세를 씨드로
