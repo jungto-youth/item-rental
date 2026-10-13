@@ -1,112 +1,133 @@
 # 청년지부 물품 대여 사이트
 
-정토회 청년지부의 물품(대여품·소모품) 대여 관리 사이트. 회원은 물품을 검색해 수량과 메모로 대여하고, 반납은 회원이 직접 또는 관리자가 처리한다.
+정토회 청년지부의 물품(대여품·소모품) 대여를 관리하는 사이트.
+회원은 물품을 찾아 수량과 메모로 빌리고, 반납은 회원이 직접 하거나 관리자가 처리한다.
 
-**제품·시스템 사양(도메인 규칙, API, DB 스키마, 검색 설계)은 [SPEC.md](SPEC.md)를 본다.** 이 문서는 저장소를 돌리고 배포하는 방법만 다룬다.
+Cloudflare 위에서 동작하고 운영 비용은 월 0원이다. 앱·서버 설치 없이 웹 브라우저에서
+모든 관리가 가능하다.
+
+## 기능
+
+| 역할   | 할 수 있는 것                                                          |
+| ------ | ---------------------------------------------------------------------- |
+| 방문자 | 물품 목록·상세·검색                                                     |
+| 회원   | 대여 신청·취소·반납, 내 대여 현황, 프로필 편집                          |
+| 관리자 | 물품 등록·수정·사진, 반납 처리, 회원 탈퇴·역할 지정, 로그인 허용 관리   |
+
+**로그인이 곧 가입이다** — 구글 계정으로 처음 로그인하면 회원이 되고, 프로필(이름·연락처)을
+입력하면 바로 이용한다. 정토회(`@jungto.org`) 계정만 로그인된다.
+
+## 핵심 규칙
+
+이 앱에서 지켜야 할 불변식이다. 구현 세부는 각 파일의 주석과 테스트에 적어 두었다.
+
+- **가용 수량** — 대여 가능 수량은 `전체 수량 − 수리중 수량`이다. 대여 중인 수량에 신청 수량을
+  더해도 이 값을 넘지 않아야 한다.
+- **이중 대여 방지** — 재고 검사와 상태 검사와 INSERT를 조건부 INSERT 한 문장으로 합쳤다.
+  두 사람이 동시에 신청해도 하나만 성공한다.
+- **여러 문장이면 batch** — 물품 등록·수정은 태그와 검색 색인 갱신까지 한 트랜잭션으로 묶는다.
+  하나라도 실패하면 전부 롤백되어 없는 상태가 남지 않는다.
+- **마지막 관리자 보호** — 마지막 남은 관리자는 해임하거나 탈퇴할 수 없다. 서버가 거부한다.
+- **취소와 반납은 다르다** — 취소는 "빌리지 않기로 함", 반납은 "돌려줌". 둘 다 재고는 바로
+  돌아오지만 이력에서 구분된다.
+- **기간·연체 개념이 없다** — 신청하면 바로 대여 중이고, 반납 기한도 승인 절차도 없다.
 
 ## 기술 스택
 
-| 계층            | 기술                                          | 비고                                                  |
-| --------------- | --------------------------------------------- | ----------------------------------------------------- |
-| 호스팅          | Cloudflare Workers                            | 무료 플랜, Static Assets로 SPA 서빙                   |
-| 서버            | Hono 4                                        | Workers 네이티브 JSON API (라우팅·미들웨어)           |
-| 클라이언트      | Lit 3 + TypeScript                            | Shadow DOM 캡슐화 웹 컴포넌트 SPA                     |
-| 클라이언트 빌드 | Vite                                          | `web/dist` 산출물을 그대로 배포                       |
-| 라우팅·상태     | @lit-labs/router · @lit/context               | history API 라우트 가드 / session 컨텍스트            |
-| DB              | Cloudflare D1 (SQLite)                        | 바인딩 호출 — 서버리스 HTTP 왕복 없음                 |
-| 검색            | FTS5 + Workers AI `@cf/baai/bge-m3`           | bm25 × LIKE 폴백 × 벡터 코사인 RRF 융합 — API 키 불필요 |
-| 이미지          | Cloudflare R2                                 | 사진 저장 + 이그레스 0 — `/api/photos/*`로 서빙       |
-| 인증            | Auth.js (@auth/core)                          | 구글 OAuth + JWT 세션 (HttpOnly 쿠키)                 |
-| 패키지 관리     | Deno 2 (태스크·테스트) · npm 호환 패키지      |                                                       |
+| 계층       | 기술                                | 비고                                        |
+| ---------- | ----------------------------------- | ------------------------------------------- |
+| 호스팅     | Cloudflare Workers                  | 무료 플랜, Static Assets로 SPA 서빙         |
+| 서버       | Hono 4                              | JSON API (라우팅·미들웨어)                  |
+| 클라이언트 | Lit 3 + TypeScript                  | Shadow DOM 웹 컴포넌트 SPA                  |
+| 빌드       | Vite                                | `web/dist` 산출물을 그대로 배포             |
+| DB         | Cloudflare D1 (SQLite)              | 바인딩 호출 — 서버리스 HTTP 왕복 없음       |
+| 검색       | FTS5 + Workers AI (`bge-m3`)        | 키워드·부분 일치·의미 검색을 합쳐 랭킹      |
+| 이미지     | Cloudflare R2                       | 사진 저장·서빙 (이그레스 0원)               |
+| 인증       | Auth.js (`@auth/core`)              | 구글 로그인 + HttpOnly 쿠키 세션           |
+| 도구       | Node 24+ (npm · Vitest · TypeScript) |                                            |
 
-운영 비용은 월 0원 (모두 무료 티어 이내 — 한도 상세는 SPEC.md §9).
+검색은 키워드(3글자 이상 FTS5), 부분 일치(1~2글자 LIKE 폴백), 의미(임베딩 코사인) 세
+랭킹의 결과를 RRF로 합쳐 정렬한다. API 키는 필요 없다.
 
 ## 프로젝트 구조
 
 ```
 server/src/
-  index.ts                — Hono 앱 (라우트 마운트, /api/photos/* R2 서빙, SPA 폴백)
-  types.ts / db.ts        — Bindings·SessionUser 타입 / D1 Sql 어댑터 (query/batch)
-  auth.ts                 — Auth.js 설정 (구글 OAuth, 이메일 제한, JWT)
-  embedding.ts            — bge-m3 임베딩 + isolate 벡터 캐시
-  image-size.ts           — 의존성 없는 JPEG/PNG/WebP 헤더 파서 (업로드 픽셀 검사)
-  middleware/auth.ts      — requireAuth(getSessionUser) / requireAdmin
-  routes/                 — items, categories, me, reservations + admin/{items,categories,
-                            members,allowed-emails,reservations,dashboard,reembed}
-  services/               — SQL·도메인 로직 (검색은 search.service.ts)
+  index.ts            — Hono 앱 (라우트 마운트, 사진 서빙, SPA 폴백)
+  types.ts / db.ts    — 바인딩 타입 / D1 Sql 어댑터 (query·batch)
+  auth.ts             — 로그인 설정 (구글 계정, 허용 이메일, 세션 쿠키)
+  embedding.ts        — 검색용 임베딩 생성 + 캐시
+  image-size.ts       — 의존성 없는 이미지 헤더 파서 (업로드 검사)
+  middleware/auth.ts  — requireAuth · requireAdmin
+  routes/             — items, categories, me, reservations + admin/*
+  services/           — SQL과 도메인 로직 (SQL은 여기에만 존재)
 web/src/
-  main.ts / app-shell.ts / router.ts — 부트스트랩 / 헤더·네비 셸 / 라우트 정의·가드
-  api/client.ts           — fetch 래퍼 (타임아웃, 401 처리, ApiError.code)
-  context/session.ts      — /api/me 캐시 (세대 카운터로 응답 경합 처리)
-  components/ui/          — badge, button, modal, empty, notice 등 재사용 컴포넌트
-  components/features/    — item/, category/ 도메인 컴포넌트
-  pages/                  — home, item-detail, my-rentals, mypage, login, signup-profile,
-                            policy, admin/{dashboard,items,reservations,members,allowed-emails}
-  styles/                 — tokens.css(디자인 토큰), controls.ts, motion.ts
-  utils/                  — date, photo(리사이즈·업로드), confirm, categories(캐시)
-migrations-d1/            — D1 스키마 마이그레이션 (0001_baseline이 현재 최종 형태)
-shared/api-types.ts       — server·web 공유 API 계약 타입 (서비스 row 타입이 이 정의를 채택해 드리프트를 컴파일 타임에 잡는다)
-migrations/               — Neon 시절 마이그레이션 0001~0023 (레거시 — D1 이관 완료, 참고용)
-server/scripts/           — seed, import-items (Deno — D1용 SQL 생성), export-neon-to-d1 (이관용 레거시)
-server/tests/             — 단위 테스트(Sql 스텁) + sqlite.integration_test.ts(실 SQLite)
-PLAN/                     — PLAN_D1_이관.md (Neon → D1 이관 기록)
-rules/ast-grep-rules/     — no-sql-in-code (SQL은 services 레이어에만)
+  pages/              — 화면 단위 (탐색·상세·로그인·마이페이지·관리자)
+  components/         — ui(재사용) + features(도메인) 컴포넌트
+  api/ context/ utils/ styles/  — API 클라이언트, 세션, 헬퍼, 디자인 토큰
+shared/api-types.ts   — 서버·웹이 함께 쓰는 API 타입 계약
+migrations-d1/        — D1 스키마 마이그레이션 (0001_baseline이 현재 최종 형태)
+server/tests/         — 단위 테스트(가짜 DB) + 실 SQLite 통합 테스트
+server/scripts/       — 시드·시트 반영 SQL 생성기
 ```
+
+API 목록은 `server/src/routes/`, 스키마 정의는 `migrations-d1/`를 본다.
 
 ## 개발
 
 ```bash
-deno install          # 의존성 설치 (package.json 기준 → node_modules)
+npm ci                # 의존성 설치
 
 # 개발 (터미널 2개)
-deno task dev:api     # wrangler dev → localhost:8787 (web/dist 를 서빙)
-deno task dev:web     # vite build --watch → web/dist 자동 재빌드 (브라우저 새로고침으로 반영)
-deno task dev:web:hmr # vite → localhost:5173 (/api 는 8787 로 프록시) — 구글 콜백 등록 필요
+npm run dev:api       # API 서버 → localhost:8787
+npm run dev:web       # 웹 빌드 감시 → 브라우저 새로고침으로 반영
+npm run dev:web:hmr   # 개발 서버 → localhost:5173 (구글 콜백 등록 필요)
 
-deno task check       # 타입 검사 (web + server)
-deno task test        # 테스트 — 단위(Sql 스텁) + 통합(node:sqlite 메모리 DB, 실 마이그레이션 DDL)
-deno task build       # vite build → web/dist
-deno task deploy      # vite build && wrangler deploy
+npm run check         # 타입 검사 (웹 + 서버 + 테스트 + 스크립트)
+npm test              # 테스트
+npm run build         # 빌드 → web/dist
+npm run deploy        # 빌드 후 배포
 ```
 
-통합 테스트는 `migrations-d1/`의 실제 DDL을 메모리 SQLite에 그대로 올려 대여 가드·마지막 관리자 보호·물품 등록 원자성 같은 SQL 동작을 검증한다. 스텁 단위 테스트는 "어떤 SQL을 날리는가", 통합 테스트는 "그 SQL이 실제로 무슨 행동을 하는가"를 담당한다.
+`npm run dev`로 두 서버를 한 번에 띄울 수도 있다.
 
-### DB 운영
+테스트는 두 층이다. 단위 테스트는 "어떤 SQL을 날리는가"를, 통합 테스트는 "그 SQL이 실제로
+무슨 행동을 하는가"를 검증한다. 통합 테스트는 `migrations-d1/`의 실제 스키마를 메모리
+SQLite에 올려 대여 가드·마지막 관리자 보호 같은 동시성 규칙을 확인한다.
 
-로컬(`wrangler dev`)과 프로덕션은 **자동으로 다른 DB**를 쓴다 — 로컬은 로컬 D1 SQLite 파일, 배포는 원격 D1. 로컬에 시드를 넣으려면:
+## DB 운영
+
+로컬과 운영은 자동으로 다른 DB를 쓴다(로컬은 로컬 SQLite 파일, 운영은 원격 D1).
 
 ```bash
-deno task db:seed            # 시드 SQL 생성 → server/scripts/out/seed.sql
-npx wrangler d1 execute item-rental-db --local  --file=server/scripts/out/seed.sql
+npm run db:seed                                  # 시드 SQL 생성
+npx wrangler d1 execute item-rental-db --local --file=server/scripts/out/seed.sql
 
-npx wrangler d1 migrations apply item-rental-db --local    # migrations-d1/ 적용 (--remote 도 동일)
+npx wrangler d1 migrations apply item-rental-db --local   # 스키마 적용
 
-deno task db:import-items    # 실물 시트 물품 일괄 반영 SQL 생성 → out/import-*.csv.sql
-deno task db:export-neon     # (레거시) Neon 데이터 펌프 — D1 이관 전용으로 쓰였음
+npm run db:import-items                          # 시트 물품 일괄 반영 SQL 생성
 ```
 
-DB에 직접 INSERT한 물품은 임베딩이 없다 — Workers AI는 워커 안에서만 호출 가능하므로,
-관리자 세션으로 `POST /api/admin/reembed-all`을 `next_after`가 `null`이 될 때까지 반복 호출해 백필한다.
+DB에 직접 넣은 물품은 검색용 임베딩이 없다. 관리자 세션으로
+`POST /api/admin/reembed-all`을 끝날 때까지 반복 호출해 채운다.
 
-### 환경 변수 (`.dev.vars` / `wrangler secret put`)
+백업은 D1 Time Travel(최근 30일 복구)이 기본이다.
 
-| 변수                                    | 용도                                                  |
-| --------------------------------------- | ----------------------------------------------------- |
-| `AUTH_SECRET`                           | Auth.js JWT 서명 시크릿                               |
-| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | 구글 OAuth 클라이언트                                 |
-| `AUTH_ALLOWED_EMAILS`                   | 로그인 허용 예외 이메일 (콤마 구분) — 비상용 폴백. 정식 관리는 어드민 허용 이메일 페이지 |
+## 환경 변수
 
-시크릿은 위 4개뿐이다 (`DATABASE_URL`은 D1 이관으로 2026-09-23 삭제).
+`.dev.vars`(로컬) 또는 `wrangler secret put`(운영)에 둔다.
 
-### 첫 관리자 지정
+| 변수                                      | 용도                                             |
+| ----------------------------------------- | ------------------------------------------------ |
+| `AUTH_SECRET`                             | 세션 서명 시크릿                                 |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`   | 구글 로그인 클라이언트                           |
+| `AUTH_ALLOWED_EMAILS`                     | 로그인 허용 예외 이메일(콤마 구분) — 비상용 폴백 |
 
-첫 관리자는 DB에서 수동 지정한다:
+첫 관리자는 DB에서 직접 지정한다.
 
 ```sql
 UPDATE members SET role = 'admin' WHERE email = '...';
 ```
-
-이후 지정/해제는 관리자 화면에서 (마지막 관리자는 서버가 409로 보호 — SPEC.md §3).
 
 ## 라이선스
 

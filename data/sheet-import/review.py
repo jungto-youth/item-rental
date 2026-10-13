@@ -2,7 +2,7 @@
 """items.json → review.csv (사람 검토용) + import-plan.json
 
 사이트(items 테이블)에 실제로 들어갈 값만 남기고, 결정이 필요한 건은 '반영' 컬럼으로 뺀다.
-review.csv 를 엑셀/시트에서 검토·수정한 뒤 `deno run -A server/scripts/import-items.ts` 로 반영한다.
+review.csv 를 엑셀/시트에서 검토·수정한 뒤 `npm run db:import-items` 로 반영한다.
 
 핵심 원칙
 - description 은 회원에게 보이는 공개 필드다. 시트의 '비고/특이사항'·'지원팀장 의견'은
@@ -27,7 +27,7 @@ OUT_CSV = HERE / "review.csv"
 
 # items.status 허용값 (server/src/routes/admin/items.ts ITEM_STATUS)
 VALID_STATUS = ("active", "repair", "retired")
-# SPEC §4.3 대여 기간 정책 기본값
+# 대여 기간 정책 기본값
 DEFAULT_MAX_DAYS = 7
 # 수량으로 인정하는 파싱 신뢰도
 KNOWN_CONF = ("exact", "derived", "min")
@@ -188,9 +188,9 @@ def main() -> int:
     print("  1) review.csv 를 열어 '반영' 컬럼만 O / X / 보류 로 고친다")
     print("  2) '사이트명'·'설명'·'수량'·'최대대여일' 을 필요하면 수정한다")
     print(
-        "  3) deno run -A server/scripts/import-items.ts          ← 미리보기(DB 변경 없음)"
+        "  3) npm run db:import-items                      ← 미리보기(DB 변경 없음)"
     )
-    print("     deno run -A server/scripts/import-items.ts --apply  ← 실제 반영")
+    print("     npm run db:import-items -- --apply            ← 실제 반영")
     return 0
 
 

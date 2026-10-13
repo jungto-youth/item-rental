@@ -430,7 +430,7 @@ def write_report(records, paths):
     A("")
     A(
         "`server/src` 기준 `items` 테이블 컬럼은 다음뿐이다 "
-        "(v2.5에서 `category_id` 제거, SPEC §8)."
+        "(v2.5에서 `category_id` 제거)."
     )
     A("")
     A("| 시트 | `items` | 처리 |")
