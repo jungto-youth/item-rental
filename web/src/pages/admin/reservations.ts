@@ -44,7 +44,7 @@ export class PageAdminReservations extends LitElement {
         color: var(--tone-warning-text);
       }
       .tel {
-        color: var(--color-primary);
+        color: var(--tone-primary-text);
         text-decoration: none;
       }
       .tel:hover {

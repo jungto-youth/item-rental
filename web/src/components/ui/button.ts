@@ -32,11 +32,12 @@ export class XButton extends LitElement {
       white-space: nowrap;
     }
 
-    /* 크기 스케일 (터치 타깃 44px) */
+    /* 크기 스케일 (터치 타깃 44px) — 라벨 서체는 바깥에서 --x-button-* 로 덮는다 */
     .size-md {
       height: 44px;
       padding: 0 16px;
-      font-size: var(--text-body, 15px);
+      font-size: var(--x-button-font-size, var(--text-body, 15px));
+      font-weight: var(--x-button-weight, 600);
     }
     .size-sm {
       height: 36px;
@@ -44,7 +45,7 @@ export class XButton extends LitElement {
       font-size: var(--text-caption, 13px);
     }
 
-    /* Primary: Action Blue 솔리드 풀필 */
+    /* Primary: 브랜드 오렌지 솔리드 풀필 */
     .variant-primary {
       background: var(--color-primary);
       color: var(--color-primary-text, #ffffff);

@@ -136,7 +136,7 @@ export class ItemExplorer extends LitElement {
         gap: var(--space-1, 4px);
       }
       .renters a {
-        color: var(--color-primary);
+        color: var(--tone-primary-text);
         text-decoration: none;
       }
       .renters a:hover {

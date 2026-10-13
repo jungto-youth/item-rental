@@ -165,7 +165,7 @@ export class PhotoUploader extends LitElement {
 
     .add-tile:hover {
       border-color: var(--color-primary);
-      color: var(--color-primary);
+      color: var(--tone-primary-text);
       background: var(--color-primary-tint);
     }
 

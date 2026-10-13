@@ -49,12 +49,12 @@ export class PageMyRentals extends LitElement {
       .empty-box a {
         display: inline-block;
         margin-top: var(--space-2);
-        color: var(--color-primary);
+        color: var(--tone-primary-text);
         font-weight: 500;
         text-decoration: none;
       }
       .msg {
-        color: var(--color-primary);
+        color: var(--tone-primary-text);
         font-size: var(--text-caption);
         min-height: 1.2em;
         margin: 0 0 var(--space-2);

@@ -30,7 +30,7 @@ export class XNotice extends LitElement {
       min-width: 0;
     }
     .body ::slotted(a) {
-      color: var(--color-primary);
+      color: var(--tone-primary-text);
     }
     .action {
       flex-shrink: 0;

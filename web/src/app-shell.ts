@@ -110,7 +110,7 @@ export class AppShell extends LitElement {
         background: var(--color-surface);
       }
       .nav a.active {
-        color: var(--color-primary);
+        color: var(--tone-primary-text);
         font-weight: 600;
       }
       /* 계정 메뉴 — 아바타 칩 + 드롭다운 (내 정보·로그아웃) */
@@ -161,7 +161,7 @@ export class AppShell extends LitElement {
         border: 1px solid var(--color-primary);
         border-radius: var(--radius-md, 8px);
         background: transparent;
-        color: var(--color-primary);
+        color: var(--tone-primary-text);
         text-decoration: none;
         font-family: inherit;
         font-size: var(--text-caption);

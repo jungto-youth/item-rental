@@ -73,7 +73,7 @@ export class ItemRow extends LitElement {
         text-decoration: none;
       }
       a.name:hover {
-        color: var(--color-primary);
+        color: var(--tone-primary-text);
       }
       .meta {
         display: flex;
@@ -87,7 +87,7 @@ export class ItemRow extends LitElement {
         display: none;
       }
       ::slotted(.hl) {
-        color: var(--color-primary);
+        color: var(--tone-primary-text);
         font-weight: 600;
       }
       ::slotted(.dim) {

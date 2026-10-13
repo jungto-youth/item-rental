@@ -191,7 +191,7 @@ export class PageAdminItemForm extends LitElement {
 
       .view-link {
         font-size: var(--text-caption, 13px);
-        color: var(--color-primary);
+        color: var(--tone-primary-text);
         text-decoration: none;
         white-space: nowrap;
       }

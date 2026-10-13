@@ -49,37 +49,82 @@ export class PageLogin extends LitElement {
   static styles = [
     reduceMotion,
     css`
-      div {
+      :host {
+        display: block;
+      }
+      /* 세로 중앙 정렬 — 104px는 app-shell의 헤더(56) + main 위아래 패딩(16+32).
+         이 div에 세로 패딩을 더하면 main 패딩과 중복되어 화면이 넘치므로
+         여백은 main이 이미 준다. 화면 높이를 104px 뺀 값이라 app-shell
+         레이아웃과 함께 바뀐다. */
+      .stage {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100dvh - 104px);
+      }
+      .card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-4);
+        width: 100%;
+        max-width: 400px;
         text-align: center;
-        padding: var(--space-6) 0;
+      }
+      .brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-2);
+      }
+      .logo {
+        display: block;
+        width: 48px;
+        height: 48px;
       }
       h1 {
-        font-size: var(--text-page-title, 1.375rem);
-        font-weight: 600;
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
         letter-spacing: var(--tracking-tight);
-        line-height: 1.1;
+        line-height: 1.2;
       }
-      p {
+      .sub {
+        margin: 0;
+        font-size: 1rem;
         color: var(--color-muted);
-        font-size: var(--text-caption);
-        line-height: 1.47;
+        line-height: 1.4;
       }
-      .btn-wrap {
-        margin: var(--space-4) auto 0;
-        max-width: 260px;
+      x-button {
         width: 100%;
+        --x-button-font-size: 1rem;
+        --x-button-weight: 700;
       }
       .msg {
+        margin: 0;
         color: var(--tone-danger-text);
         font-size: var(--text-fine);
+        line-height: 1.4;
       }
-      .links {
-        margin-top: var(--space-4);
-        font-size: var(--text-fine);
+      /* 오류가 없을 때는 흐름에서 빼내 버튼과의 16px 간격도 함께 사라지게 한다 */
+      .msg:empty {
+        display: none;
       }
-      .links a {
+      .foot {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+      }
+      .foot p {
+        margin: 0;
         color: var(--color-muted);
-        margin: 0 var(--space-2);
+        font-size: var(--text-fine);
+        line-height: 1.4;
+      }
+      .foot a {
+        color: inherit;
+        margin: 0 var(--space-1);
       }
     `,
   ];
@@ -114,26 +159,35 @@ export class PageLogin extends LitElement {
 
   render() {
     return html`
-      <div>
-        <h1>로그인</h1>
-        <p>${this.localTestLogin
-          ? "로컬 사진 테스트 · 테스트 관리자 계정으로 로그인할 수 있어요"
-          : "정토회 구글 계정으로 로그인하면 바로 물품을 대여할 수 있어요"}</p>
-        <div class="btn-wrap">
+      <div class="stage">
+        <div class="card">
+          <div class="brand">
+            <img class="logo" src="/logo.png" alt="" />
+            <h1>물품 대여</h1>
+            <p class="sub">물품 대여 현황 관리 시스템</p>
+          </div>
+
           ${this.localTestLogin
             ? html`<x-button variant="primary" size="md" ?loading=${this.busy} @click=${this.signInLocalTest}>
                 ${this.busy ? "이동 중…" : "로컬 테스트 관리자 로그인"}
               </x-button>`
             : html`<x-button variant="primary" size="md" ?loading=${this.busy} @click=${this.signIn}>
-                ${this.busy ? "이동 중…" : "구글로 로그인"}
+                ${this.busy ? "이동 중…" : "Google로 로그인"}
               </x-button>`}
+
+          <p class="msg" aria-live="polite">${this.message}</p>
+
+          <div class="foot">
+            <p>${this.localTestLogin
+              ? "로컬 사진 테스트 · 테스트 관리자 계정으로 로그인할 수 있어요"
+              : "정토회(@jungto.org) 구글 계정으로 로그인하면 바로 물품을 대여할 수 있어요"}</p>
+            <p>
+              <a href="/policy/privacy">개인정보처리방침</a>·<a href="/policy/terms"
+                >이용약관</a
+              >
+            </p>
+          </div>
         </div>
-        <p class="msg" aria-live="polite">${this.message}</p>
-        <p class="links">
-          <a href="/policy/privacy">개인정보처리방침</a>·<a href="/policy/terms"
-            >이용약관</a
-          >
-        </p>
       </div>
     `;
   }

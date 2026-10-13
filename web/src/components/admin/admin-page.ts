@@ -29,7 +29,7 @@ export class AdminPage extends LitElement {
         display: block;
       }
       .msg {
-        color: var(--color-primary);
+        color: var(--tone-primary-text);
         font-size: var(--text-caption, 13px);
         margin: 0 0 var(--space-2, 8px);
       }
