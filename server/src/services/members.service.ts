@@ -3,6 +3,19 @@
 import { SQL_NOW, type Sql } from "../db";
 import type { AdminMember } from "../../../shared/api-types";
 import type { Role } from "../types";
+import { LOCAL_TEST_ADMIN_ID } from "../local-test-login";
+
+// Called only by the compile-time gated local test login route.
+export async function ensureLocalTestAdmin(db: Sql): Promise<string> {
+  await db.query(
+    `INSERT INTO members (id, email, name, phone, role)
+     VALUES (?1, ?2, ?3, ?4, 'admin')
+     ON CONFLICT (id) DO UPDATE SET
+       name = excluded.name, phone = excluded.phone, role = 'admin', deactivated_at = NULL`,
+    [LOCAL_TEST_ADMIN_ID, "photo-test-admin@example.invalid", "로컬 테스트 관리자", "010-0000-0000"],
+  );
+  return LOCAL_TEST_ADMIN_ID;
+}
 
 // 목록 — 최근 가입순
 export async function listMembers(db: Sql): Promise<AdminMember[]> {

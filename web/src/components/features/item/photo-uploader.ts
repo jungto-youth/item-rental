@@ -13,19 +13,26 @@ export class PhotoUploader extends LitElement {
   @property({ type: Array }) entries: PhotoEntry[] = [];
   @property({ type: Number }) max = 3;
   @property({ type: Boolean }) multiple = false;
-  @property({ type: String }) hint = "JPEG · PNG · WebP, 5MB 이하 · 최대 3장";
+  @property({ type: Boolean }) disabled = false;
+  @property({ type: String }) hint = "JPEG · PNG · WebP · 원본 용량 제한 없음 · 최대 3장 · 업로드 전 2MB 이하로 자동 축소";
+
+  private openPicker(id: string) {
+    if (this.disabled || this.entries.length >= this.max) return;
+    this.renderRoot.querySelector<HTMLInputElement>(`#${id}`)?.click();
+  }
 
   private handleSelect(e: Event) {
     const input = e.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     input.value = "";
-    if (files.length === 0) return;
+    if (this.disabled || files.length === 0) return;
     this.dispatchEvent(
       new CustomEvent("upload", { detail: { files }, bubbles: true, composed: true }),
     );
   }
 
   private handleRemove(key: string | number) {
+    if (this.disabled) return;
     this.dispatchEvent(
       new CustomEvent("remove", { detail: { key }, bubbles: true, composed: true }),
     );
@@ -100,6 +107,8 @@ export class PhotoUploader extends LitElement {
       border: 1.5px dashed var(--color-border);
       border-radius: var(--radius-sm, 6px);
       color: var(--color-muted);
+      background: transparent;
+      font: inherit;
       cursor: pointer;
       transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
     }
@@ -110,8 +119,14 @@ export class PhotoUploader extends LitElement {
       background: var(--color-primary-tint);
     }
 
-    .add-tile input {
-      display: none;
+    .add-tile:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: wait;
     }
 
     .add-icon {
@@ -136,23 +151,24 @@ export class PhotoUploader extends LitElement {
       opacity: 0.75;
     }
 
-    .pics:has(.add-tile:only-child) .add-tile {
-      width: 100%;
+    .pics:has(.add-tile):not(:has(.pic)) .add-tile {
+      flex: 1;
+      width: auto;
       height: 76px;
       flex-direction: row;
       gap: 12px;
     }
 
-    .pics:has(.add-tile:only-child) .add-icon {
+    .pics:has(.add-tile):not(:has(.pic)) .add-icon {
       width: 22px;
       height: 22px;
     }
 
-    .pics:has(.add-tile:only-child) .add-text {
+    .pics:has(.add-tile):not(:has(.pic)) .add-text {
       align-items: flex-start;
     }
 
-    .pics:has(.add-tile:only-child) .add-main {
+    .pics:has(.add-tile):not(:has(.pic)) .add-main {
       font-size: 13px;
     }
 
@@ -168,6 +184,25 @@ export class PhotoUploader extends LitElement {
     return html`
       <div class="photos-box">
         <span class="photos-head">사진 관리 (${n}/${this.max})</span>
+        <input
+          id="photo-files"
+          type="file"
+          hidden
+          ?disabled=${this.disabled}
+          ?multiple=${this.multiple}
+          accept="image/jpeg,image/png,image/webp"
+          @change=${this.handleSelect}
+        />
+        <!-- 모바일에서 후면 카메라를 요청한다. 미지원 브라우저는 파일 선택기로 폴백. -->
+        <input
+          id="photo-camera"
+          type="file"
+          hidden
+          ?disabled=${this.disabled}
+          accept="image/jpeg,image/png,image/webp"
+          capture="environment"
+          @change=${this.handleSelect}
+        />
         <div class="pics">
           ${this.entries.map(
             (p) => html`
@@ -177,6 +212,7 @@ export class PhotoUploader extends LitElement {
                   type="button"
                   class="pic-del"
                   title="삭제"
+                  ?disabled=${this.disabled}
                   @click=${() => this.handleRemove(p.key)}
                 >
                   ×
@@ -186,14 +222,13 @@ export class PhotoUploader extends LitElement {
           )}
           ${n < this.max
             ? html`
-                <label class="add-tile" title="사진 추가">
-                  <input
-                    type="file"
-                    hidden
-                    ?multiple=${this.multiple}
-                    accept="image/jpeg,image/png,image/webp"
-                    @change=${this.handleSelect}
-                  />
+                <button
+                  type="button"
+                  class="add-tile"
+                  title="사진 촬영"
+                  ?disabled=${this.disabled}
+                  @click=${() => this.openPicker("photo-camera")}
+                >
                   <svg
                     class="add-icon"
                     viewBox="0 0 24 24"
@@ -210,10 +245,28 @@ export class PhotoUploader extends LitElement {
                     <circle cx="12" cy="13.5" r="3.2" />
                   </svg>
                   <span class="add-text">
-                    <span class="add-main">${n === 0 ? "사진 업로드" : "추가"}</span>
+                    <span class="add-main">사진 촬영</span>
                     <small class="add-count">${n}/${this.max}</small>
                   </span>
-                </label>
+                </button>
+                <button
+                  type="button"
+                  class="add-tile"
+                  title="사진 선택"
+                  ?disabled=${this.disabled}
+                  @click=${() => this.openPicker("photo-files")}
+                >
+                  <svg class="add-icon" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8" cy="8" r="1.5" />
+                    <path d="m3 17 6-6 4 4 3-3 5 5" />
+                  </svg>
+                  <span class="add-text">
+                    <span class="add-main">사진 선택</span>
+                    <small class="add-count">${n}/${this.max}</small>
+                  </span>
+                </button>
               `
             : ""}
         </div>

@@ -13,6 +13,7 @@
     "@cloudflare/workers-types": "^5.20260918.1",
     "@types/deno": "^2.7.0",
     "@types/node": "^24",
+    "playwright": "^1.64.0",
     "typescript": "^5",
     "vite": "^7",
     "wrangler": "^4.135.0"

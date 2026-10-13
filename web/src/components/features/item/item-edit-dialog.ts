@@ -3,7 +3,7 @@ import { LitElement, html, css } from "lit";
 import { confirmDialog } from "../../../utils/confirm";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
-import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
+import { processPhoto } from "../../../utils/photo";
 import { type Category, type Item, type ItemKind, type ItemStatus, type Photo } from "../../../types";
 import "../../ui/modal";
 import "../../ui/button";
@@ -46,6 +46,7 @@ export class ItemEditDialog extends LitElement {
   // 칩 에디터의 자동완성 후보 — initForm 이 단건 조회(태그)로 채운다
   @state() private categoryOptions: string[] = [];
   @state() private saving = false;
+  @state() private uploadingPhoto = false;
   @state() private error = "";
 
   static styles = [
@@ -161,7 +162,7 @@ export class ItemEditDialog extends LitElement {
 
   private async handleSave(e: Event) {
     e.preventDefault();
-    if (this.saving || !this.item) return;
+    if (this.saving || this.uploadingPhoto || !this.item) return;
     // 자체 검증 — 폼 required 의 무음 차단 대신 명시적 오류 문구를 보여준다
     if (!this.editForm.name.trim()) {
       this.error = "이름을 입력해주세요";
@@ -192,7 +193,7 @@ export class ItemEditDialog extends LitElement {
   }
 
   private async handleDeleteItem() {
-    if (!this.item) return;
+    if (!this.item || this.uploadingPhoto) return;
     if (!(await confirmDialog(`'${this.item.name}' 물품을 정말 삭제할까요?`, { confirmLabel: "삭제" }))) return;
 
     try {
@@ -204,34 +205,35 @@ export class ItemEditDialog extends LitElement {
   }
 
   private async onPhotoUpload(e: CustomEvent<{ files: File[] }>) {
-    if (!this.item) return;
+    if (!this.item || this.uploadingPhoto || this.saving) return;
     const file = e.detail.files[0];
     if (!file) return;
 
-    if (!PHOTO_OK.includes(file.type) || file.size > MAX_PHOTO_BYTES) {
-      this.error = "JPEG/PNG/WebP, 5MB 이하만 가능합니다.";
-      return;
-    }
     if (this.photos.length >= 3) {
       this.error = "사진은 최대 3장까지 등록할 수 있어요.";
       return;
     }
 
+    this.uploadingPhoto = true;
+    this.error = "";
+    const itemId = this.item.id;
     try {
       const processed = await processPhoto(file);
       const fd = new FormData();
       fd.append("file", processed);
-      await api(`/api/admin/items/${this.item.id}/photos`, {
+      await api(`/api/admin/items/${itemId}/photos`, {
         method: "POST",
         body: fd,
       });
 
       // 사진 목록 갱신
-      const res = await api<{ item: Item }>(`/api/items/${this.item.id}`);
-      this.photos = res.item.photos;
+      const res = await api<{ item: Item }>(`/api/items/${itemId}`);
+      if (this.item.id === itemId) this.photos = res.item.photos;
       this.dispatchEvent(new CustomEvent("photo-changed", { bubbles: true, composed: true }));
     } catch (err) {
       this.error = err instanceof Error ? err.message : "사진 업로드 실패";
+    } finally {
+      this.uploadingPhoto = false;
     }
   }
 
@@ -351,14 +353,16 @@ export class ItemEditDialog extends LitElement {
           ></x-input>
 
           <photo-uploader
+            .disabled=${this.uploadingPhoto || this.saving}
             .entries=${this.photos.map((p) => ({ url: p.url, key: p.id }))}
             @upload=${this.onPhotoUpload}
             @remove=${this.onPhotoRemove}
           ></photo-uploader>
+          ${this.uploadingPhoto ? html`<p role="status">사진을 축소하고 업로드하고 있어요…</p>` : ""}
         </form>
 
         <div slot="footer" class="footer-actions">
-          <x-button variant="danger" size="sm" @click=${this.handleDeleteItem}>물품 삭제</x-button>
+          <x-button variant="danger" size="sm" ?disabled=${this.uploadingPhoto} @click=${this.handleDeleteItem}>물품 삭제</x-button>
           <div class="btn-group">
             <x-button variant="secondary" size="sm" @click=${this.handleClose}>취소</x-button>
             <x-button
@@ -366,6 +370,7 @@ export class ItemEditDialog extends LitElement {
               size="sm"
               type="submit"
               ?loading=${this.saving}
+              ?disabled=${this.uploadingPhoto}
               @click=${() => {
         const form = this.shadowRoot?.querySelector("#edit-item-form") as HTMLFormElement;
         form?.requestSubmit();
