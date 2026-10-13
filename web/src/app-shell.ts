@@ -3,22 +3,6 @@ import { customElement, state } from "lit/decorators.js";
 import { createRouter, navigate } from "./router";
 import { session, type SessionUser } from "./context/session";
 import { reduceMotion } from "./styles/motion";
-import "./components/ui/icon-btn";
-
-// 테마 2단계(라이트/다크) — tokens.css의 data-theme 셀렉터와 짝을 이룸.
-// 저장값 없으면 시스템 설정을 최초 1회 따르고, 이후 토글 버튼으로 전환한다.
-type Theme = "light" | "dark";
-const THEME_KEY = "theme";
-
-function readStoredTheme(): Theme {
-  try {
-    const t = localStorage.getItem(THEME_KEY);
-    if (t === "light" || t === "dark") return t;
-  } catch {
-    // 저장 불가 환경 대비
-  }
-  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
 
 // 관리자 청크 사전 로드 — 관리자 세션이면 브라우저가 한가할 때 관리자 화면 청크를
 // 미리 받아둔다. 라우트별 코드 스플릿의 첫 클릭 빈 구간(화면 깜빡임)을 없애는 용도로,
@@ -38,7 +22,6 @@ function preloadAdminChunks() {
 @customElement("app-shell")
 export class AppShell extends LitElement {
   @state() private user: SessionUser | null = null;
-  @state() private theme: Theme = readStoredTheme();
   @state() private menuOpen = false;
   private unsubscribe: (() => void) | null = null;
   private router = createRouter(this);
@@ -283,7 +266,6 @@ export class AppShell extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.applyTheme(this.theme); // 저장값(또는 시스템)을 최초 1회 적용
     this.user = session.user;
     void session.ensure().then((u) => {
       if (u?.role === "admin") preloadAdminChunks();
@@ -301,20 +283,6 @@ export class AppShell extends LitElement {
     window.removeEventListener("pointerdown", this.onGlobalPointerDown);
     window.removeEventListener("keydown", this.onGlobalKeydown);
     this.menuOpen = false;
-  }
-
-  private applyTheme(t: Theme) {
-    this.theme = t;
-    document.documentElement.dataset.theme = t;
-  }
-
-  private cycleTheme() {
-    this.applyTheme(this.theme === "light" ? "dark" : "light");
-    try {
-      localStorage.setItem(THEME_KEY, this.theme);
-    } catch {
-      // 저장 불가 환경 대비
-    }
   }
 
   // 주 메뉴 — 업무 메뉴만 헤더에 직접 노출하고,
@@ -372,29 +340,6 @@ export class AppShell extends LitElement {
     session.clear();
     await session.refresh();
     navigate("/");
-  }
-
-  private themeIcon(t: Theme) {
-    if (t === "dark") {
-      return html`<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-      </svg>`;
-    }
-    return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="5" />
-      <line x1="12" y1="1" x2="12" y2="3" />
-      <line x1="12" y1="21" x2="12" y2="23" />
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-      <line x1="1" y1="12" x2="3" y2="12" />
-      <line x1="21" y1="12" x2="23" y2="12" />
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-    </svg>`;
-  }
-
-  private get themeLabel(): string {
-    return this.theme === "dark" ? "다크 모드" : "라이트 모드";
   }
 
   private get isProfileActive(): boolean {
@@ -469,13 +414,6 @@ export class AppShell extends LitElement {
                   </div>
                 `
               : html`<a class="btn-login" href="/login">로그인</a>`}
-
-            <x-icon-btn
-              label="테마 전환: 현재 ${this.themeLabel}"
-              @click=${this.cycleTheme}
-            >
-              ${this.themeIcon(this.theme)}
-            </x-icon-btn>
           </div>
         </div>
       </header>

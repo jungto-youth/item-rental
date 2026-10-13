@@ -1,9 +1,9 @@
 /* 미니멀 디자인 시스템 토큰
-   테마 3단계: data-theme 없음=시스템 따름, "light"/"dark"=명시 선택.
-   라이트=순백 캔버스(#ffffff), 다크=딥블랙 캔버스(#0c0c0e).
+   라이트 모드 단일 팔레트 — 순백 캔버스(#ffffff).
+   color-scheme: light 가 OS 다크 설정을 무시하므로 네이티브 위젯
+   (스크롤바 · 폼 컨트롤 · 캘린더)도 OS 설정과 무관하게 라이트로 렌더된다.
    헤어라인 보더(1px)와 8px/12px 일관된 조형 언어. */
 
-/* ── 라이트 팔레트 (순백 캔버스) ── */
 :root {
   color-scheme: light;
 
@@ -76,72 +76,6 @@
 
   --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
     "Malgun Gothic", sans-serif;
-}
-
-/* ── 다크 팔레트 (딥블랙 캔버스) ──
-   아래 두 셀렉터는 동일 블록 반복 — 수정 시 둘 다! */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-
-    --color-bg: #0c0c0e;
-    /* 딥블랙 캔버스 */
-    --color-surface: #161618;
-    /* 다크 서피스/호버 */
-    --color-border: #262628;
-    /* 다크 1px 헤어라인 */
-    --color-text: #f2f2f5;
-    /* 밝은 텍스트 */
-    --color-muted: #8e8e93;
-    /* 다크 보조 텍스트 */
-    --color-primary: #2997ff;
-    /* 다크 액센트 블루 */
-    --color-primary-text: #ffffff;
-    --color-primary-focus: #388bfd;
-    --color-primary-tint: rgba(41, 151, 255, 0.15);
-    --color-success: #10b981;
-    --color-warning: #f59e0b;
-    --color-danger: #fb7185;
-    --color-on-overlay: #ffffff;
-
-    --dot-available: #10b981;
-    --dot-rented: #8e8e93;
-    --dot-repair: #f59e0b;
-
-    --tone-success-text: #6ee7b7;
-    --tone-warning-bg: #451a03;
-    --tone-warning-text: #fde68a;
-    --tone-danger-bg: #4c0519;
-    --tone-danger-text: #fecdd3;
-  }
-}
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-
-  --color-bg: #0c0c0e;
-  --color-surface: #161618;
-  --color-border: #262628;
-  --color-text: #f2f2f5;
-  --color-muted: #8e8e93;
-  --color-primary: #2997ff;
-  --color-primary-text: #ffffff;
-  --color-primary-focus: #388bfd;
-  --color-primary-tint: rgba(41, 151, 255, 0.15);
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #fb7185;
-  --color-on-overlay: #ffffff;
-
-  --dot-available: #10b981;
-  --dot-rented: #8e8e93;
-  --dot-repair: #f59e0b;
-
-  --tone-success-text: #6ee7b7;
-  --tone-warning-bg: #451a03;
-  --tone-warning-text: #fde68a;
-  --tone-danger-bg: #4c0519;
-  --tone-danger-text: #fecdd3;
 }
 
 body {
