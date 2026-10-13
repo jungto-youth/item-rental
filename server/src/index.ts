@@ -14,6 +14,7 @@ import { adminAllowedEmailsRoute } from "./routes/admin/allowed-emails";
 import { adminReservationsRoute } from "./routes/admin/reservations";
 import { adminDashboardRoute } from "./routes/admin/dashboard";
 import { adminReembedRoute } from "./routes/admin/reembed";
+import { devLoginRoute } from "./routes/dev-login";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -42,6 +43,7 @@ app.use("/api/*", async (c, next) => {
 app.get("/api/health", (c) => c.json({ ok: true }));
 
 // --- 인증 (Auth.js) ---
+app.route("/api/dev/login", devLoginRoute);
 // signin/callback/signout 전부 Auth.js가 처리 (full-page redirect 방식)
 // req를 넘겨 127.0.0.1 → localhost 정규화 (Google OAuth redirect_uri 등록 문제)
 app.all("/api/auth/*", (c) => Auth(c.req.raw, authConfig(c.env, c.req.raw)));

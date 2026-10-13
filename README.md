@@ -82,18 +82,27 @@ npm ci                # 의존성 설치
 npm run dev:api       # API 서버 → localhost:8787
 npm run dev:web       # 웹 빌드 감시 → 브라우저 새로고침으로 반영
 npm run dev:web:hmr   # 개발 서버 → localhost:5173 (구글 콜백 등록 필요)
+npm run dev:lan       # 같은 API 서버를 0.0.0.0 에 → 폰/태블릿에서 실물로 검증
 
 npm run check         # 타입 검사 (웹 + 서버 + 테스트 + 스크립트)
 npm test              # 테스트
+npm run test:photos   # 사진 파이프라인 브라우저 테스트 (chromium 필요)
 npm run build         # 빌드 → web/dist
 npm run deploy        # 빌드 후 배포
 ```
 
 `npm run dev`로 두 서버를 한 번에 띄울 수도 있다.
 
-테스트는 두 층이다. 단위 테스트는 "어떤 SQL을 날리는가"를, 통합 테스트는 "그 SQL이 실제로
+`dev:lan`은 같은 서버에 LAN 전용 플래그를 켠다. 이 플래그가 있어야 `/api/dev/login`이
+동작해 계정 없이 로컬 관리자 세션을 만들 수 있다 — 공개 호스트나 일반 빌드에서는
+플래그가 꺼져 있어 해당 경로가 404로 막힌다.
+
+테스트는 세 층이다. 단위 테스트는 "어떤 SQL을 날리는가"를, 통합 테스트는 "그 SQL이 실제로
 무슨 행동을 하는가"를 검증한다. 통합 테스트는 `migrations-d1/`의 실제 스키마를 메모리
-SQLite에 올려 대여 가드·마지막 관리자 보호 같은 동시성 규칙을 확인한다.
+SQLite에 올려 대여 가드·마지막 관리자 보호 같은 동시성 규칙을 확인한다. 브라우저 테스트는
+실제 코덱과 multipart 요청으로 사진 축소·카메라 촬영 경로를 확인한다 — 브라우저가
+필요하므로 CI가 아니라 로컬에서 `npx playwright install chromium` 후 `npm run test:photos`
+로 수동 실행한다.
 
 ## DB 운영
 

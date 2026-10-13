@@ -1,6 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { reduceMotion } from "../styles/motion";
+import { api } from "../api/client";
 import "../components/ui/button";
 
 // 소셜 로그인 (구글 전용)
@@ -10,14 +11,38 @@ import "../components/ui/button";
 export class PageLogin extends LitElement {
   @state() private busy = false;
   @state() private message = "";
+  @state() private localTestLogin = false;
 
   // OAuth 콜백에서 로그인이 거부되면 ?error=와 함께 이 화면으로 돌아옴 ()
   connectedCallback() {
     super.connectedCallback();
+    void this.loadLocalTestLogin();
     const params = new URLSearchParams(window.location.search);
     if (params.get("error") === "AccessDenied") {
       this.message = "정토회 계정(@jungto.org)으로 로그인해주세요";
       history.replaceState(null, "", window.location.pathname); // 새로고침 시 재표시 방지
+    }
+  }
+
+  private async loadLocalTestLogin() {
+    try {
+      const result = await api<{ enabled: boolean }>("/api/dev/login");
+      this.localTestLogin = result.enabled;
+    } catch {
+      this.localTestLogin = false;
+    }
+  }
+
+  private async signInLocalTest() {
+    if (this.busy) return;
+    this.busy = true;
+    this.message = "";
+    try {
+      await api("/api/dev/login", { method: "POST" });
+      window.location.assign("/");
+    } catch (err) {
+      this.message = err instanceof Error ? err.message : "테스트 로그인에 실패했어요";
+      this.busy = false;
     }
   }
 
@@ -91,13 +116,17 @@ export class PageLogin extends LitElement {
     return html`
       <div>
         <h1>로그인</h1>
-        <p>
-          정토회 구글 계정으로 로그인하면 바로 물품을 대여할 수 있어요
-        </p>
+        <p>${this.localTestLogin
+          ? "로컬 사진 테스트 · 테스트 관리자 계정으로 로그인할 수 있어요"
+          : "정토회 구글 계정으로 로그인하면 바로 물품을 대여할 수 있어요"}</p>
         <div class="btn-wrap">
-          <x-button variant="primary" size="md" ?loading=${this.busy} @click=${this.signIn}>
-            ${this.busy ? "이동 중…" : "구글로 로그인"}
-          </x-button>
+          ${this.localTestLogin
+            ? html`<x-button variant="primary" size="md" ?loading=${this.busy} @click=${this.signInLocalTest}>
+                ${this.busy ? "이동 중…" : "로컬 테스트 관리자 로그인"}
+              </x-button>`
+            : html`<x-button variant="primary" size="md" ?loading=${this.busy} @click=${this.signIn}>
+                ${this.busy ? "이동 중…" : "구글로 로그인"}
+              </x-button>`}
         </div>
         <p class="msg" aria-live="polite">${this.message}</p>
         <p class="links">

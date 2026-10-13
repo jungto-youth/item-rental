@@ -2,6 +2,7 @@ import type { Context, Next } from "hono";
 import { decode } from "@auth/core/jwt";
 import type { Bindings, SessionUser, Variables } from "../types";
 import { getDb, type Sql } from "../db";
+import { LOCAL_TEST_ADMIN_ID, localTestLoginEnabled } from "../local-test-login";
 
 // requireAuth / requireAdmin
 // JWT 서명 검증 후 members를 1회 조회해 최신 role/탈퇴 여부를 반영한다.
@@ -20,7 +21,7 @@ function readSessionToken(
   return null;
 }
 
-type JwtPayload = { sub?: string };
+type JwtPayload = { sub?: string; local_test?: boolean };
 
 // 세션 사용자 조회 (없으면 null) — /api/me 등 401 대신 null이 필요한 곳에서 사용
 export async function getSessionUser(
@@ -39,6 +40,12 @@ export async function getSessionUser(
     return null;
   }
   if (!payload?.sub) return null;
+  // Test sessions cannot authenticate on normal builds, even with the same secret/DB.
+  if (payload.local_test || payload.sub === LOCAL_TEST_ADMIN_ID) {
+    if (payload.local_test !== true || payload.sub !== LOCAL_TEST_ADMIN_ID || !localTestLoginEnabled(c.req.raw)) {
+      return null;
+    }
+  }
 
   const db: Sql = getDb(c.env);
   const rows = (await db.query(

@@ -10,10 +10,12 @@
     "dev:web": "vite build --watch",
     "dev:web:hmr": "vite",
     "dev:api": "wrangler dev",
+    "dev:lan": "wrangler dev --local --define LOCAL_TEST_LOGIN:true --ip 0.0.0.0 --port 8787",
     "build": "vite build",
     "deploy": "vite build && wrangler deploy",
     "check": "tsc --noEmit -p web && tsc --noEmit -p server && tsc --noEmit -p server/tsconfig.tests.json && tsc --noEmit -p server/tsconfig.scripts.json",
     "test": "vitest run",
+    "test:photos": "node web/tests/photo.browser.test.mjs",
     "db:seed": "node server/scripts/seed.ts",
     "db:import-items": "node server/scripts/import-items.ts"
   },
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260918.1",
     "@types/node": "^24",
+    "playwright": "^1.64.0",
     "typescript": "^5",
     "vite": "^7",
     "vitest": "^5.0.3",

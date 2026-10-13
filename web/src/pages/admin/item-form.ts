@@ -3,7 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../api/client";
 import { confirmDialog } from "../../utils/confirm";
 import { getCategories, resolveCategoryIds } from "../../utils/categories";
-import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../utils/photo";
+import { processPhoto } from "../../utils/photo";
 import { navigate } from "../../router";
 import { type Item, type ItemKind, type ItemStatus, type Photo } from "../../types";
 import { reduceMotion } from "../../styles/motion";
@@ -70,6 +70,10 @@ export class PageAdminItemForm extends LitElement {
   @state() private loading = true;
   @state() private loadError = "";
   @state() private saving = false;
+  // 사진 축소(리사이즈)는 비동기 — 처리 중 저장을 막고, 사용자가 목록을 비웠을 때
+  // 늦게 끝난 결과를 버리기 위해 세대 번호로 세션을 구분한다
+  @state() private processingPhotos = false;
+  private photoGeneration = 0;
   @state() private error = "";
   // error 의 성격 — 저장은 성공했는데 사진 일부만 실패한 경우처럼 "실패"가 아닌
   // 주의가 필요한 상황을 빨간색과 구분한다
@@ -338,22 +342,28 @@ export class PageAdminItemForm extends LitElement {
   }
 
   private async stagePhotos(files: File[]) {
-    for (const f of files) {
-      if (this.photoCount >= 3) {
-        this.setError("사진은 최대 3장까지 등록할 수 있어요");
-        break;
+    if (this.processingPhotos || this.saving) return;
+    this.processingPhotos = true;
+    this.setError("");
+    const generation = this.photoGeneration;
+    try {
+      for (const f of files) {
+        if (this.photoCount >= 3) {
+          this.setError("사진은 최대 3장까지 등록할 수 있어요");
+          break;
+        }
+        try {
+          const processed = await processPhoto(f);
+          if (generation !== this.photoGeneration) return;
+          this.staged = [...this.staged, processed];
+          this.stagedUrls = [...this.stagedUrls, URL.createObjectURL(processed)];
+        } catch (err) {
+          if (generation !== this.photoGeneration) return;
+          this.setError(err instanceof Error ? err.message : "이미지 처리 실패");
+        }
       }
-      if (!PHOTO_OK.includes(f.type) || f.size > MAX_PHOTO_BYTES) {
-        this.setError("JPEG/PNG/WebP 5MB 이하 파일만 가능해요");
-        continue;
-      }
-      try {
-        const processed = await processPhoto(f);
-        this.staged = [...this.staged, processed];
-        this.stagedUrls = [...this.stagedUrls, URL.createObjectURL(processed)];
-      } catch (err) {
-        this.setError(err instanceof Error ? err.message : "이미지 처리 실패");
-      }
+    } finally {
+      if (generation === this.photoGeneration) this.processingPhotos = false;
     }
   }
 
@@ -364,6 +374,8 @@ export class PageAdminItemForm extends LitElement {
   }
 
   private clearStaged() {
+    this.photoGeneration++;
+    this.processingPhotos = false;
     for (const u of this.stagedUrls) URL.revokeObjectURL(u);
     this.staged = [];
     this.stagedUrls = [];
@@ -412,7 +424,7 @@ export class PageAdminItemForm extends LitElement {
 
   private async handleSave(e: Event) {
     e.preventDefault();
-    if (this.saving) return;
+    if (this.saving || this.processingPhotos) return;
     // 자체 검증 — 폼 required 의 무음 차단 대신 명시적 오류 문구를 보여준다
     if (!this.form.name.trim()) {
       this.setError("이름을 입력해주세요");
@@ -624,10 +636,12 @@ export class PageAdminItemForm extends LitElement {
 
               <photo-uploader
                 multiple
+                .disabled=${this.processingPhotos || this.saving}
                 .entries=${this.photoEntries}
                 @upload=${this.onPhotoUpload}
                 @remove=${this.onPhotoRemove}
               ></photo-uploader>
+              ${this.processingPhotos ? html`<p role="status">사진을 축소하고 있어요…</p>` : ""}
               <p class="hint">사진 추가·삭제는 저장할 때 함께 반영돼요</p>
             </fieldset>
 
@@ -651,6 +665,7 @@ export class PageAdminItemForm extends LitElement {
                   size="md"
                   type="submit"
                   ?loading=${this.saving}
+                  ?disabled=${this.processingPhotos}
                 >
                   저장
                 </x-button>
