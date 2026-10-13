@@ -24,7 +24,7 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
 
   // 로그인 허용 범위 — 정토회 계정(@jungto.org) + 예외 이메일.
   // 예외는 두 곳에서 온다: 어드민 화면에서 관리하는 DB 테이블 allowed_emails (정식 경로),
-  // env AUTH_ALLOWED_EMAILS (콤마 구분 — DB 장애 시에도 관리자가 접속할 비상용 폴백).
+  // env AUTH_ALLOWED_EMAILS (콤마 구분 — 예외 목록 조회의 폴백; 로그인 자체는 DB 필요).
   const allowedEmails = (env.AUTH_ALLOWED_EMAILS ?? '')
     .split(',')
     .map((s) => s.trim().toLowerCase())
@@ -51,7 +51,9 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
     callbacks: {
       // 최초 로그인 시 members 자동 가입 (로그인이 곧 가입, 대기/승인 단계 없음)
       // 정토회 계정이 아니면 허용목록(DB → 없으면 env 폴백)을 확인한다
-      async signIn({ user }) {
+      async signIn({ user, profile }) {
+        // Domain/allow-list checks alone do not prove ownership of an email address.
+        if (profile?.email_verified !== true) return false;
         if (!user.email) {
           console.log('로그인 거부 — 이메일 없음')
           return false
@@ -65,7 +67,7 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
             .catch((err) => {
               // 여기서 throw 하지 않는다 — members upsert·jwt 콜백이 어차피 DB를 요구하므로
               // DB 장애 시 예외 이메일 로그인은 불가하다. throw 는 같은 결과에 로그만 두 겹으로
-              // 남길 뿐. @jungto.org·env 계정은 이 catch 에 걸리지 않아 DB 없이도 로그인된다.
+              // 남길 뿐. @jungto.org·env 계정은 이 조회를 생략하지만 이후 회원/JWT 쿼리는 DB가 필요하다.
               console.error('allowed_emails 조회 실패 — 폴백 목록만 적용:', err)
               return false
             })

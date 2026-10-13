@@ -12,6 +12,8 @@ export class PageLogin extends LitElement {
   @state() private busy = false;
   @state() private message = "";
   @state() private localTestLogin = false;
+  @state() private developmentConfigured = false;
+  @state() private developmentCode = "";
 
   // OAuth 콜백에서 로그인이 거부되면 ?error=와 함께 이 화면으로 돌아옴 ()
   connectedCallback() {
@@ -32,19 +34,22 @@ export class PageLogin extends LitElement {
 
   private async loadLocalTestLogin() {
     try {
-      const result = await api<{ enabled: boolean }>("/api/dev/login");
+      const result = await api<{ enabled: boolean; configured?: boolean }>("/api/dev/login");
       this.localTestLogin = result.enabled;
+      this.developmentConfigured = result.configured === true;
     } catch {
       this.localTestLogin = false;
     }
   }
 
-  private async signInLocalTest() {
-    if (this.busy) return;
+  private async signInLocalTest(e: Event) {
+    e.preventDefault();
+    if (this.busy || !this.developmentConfigured) return;
     this.busy = true;
     this.message = "";
     try {
-      await api("/api/dev/login", { method: "POST" });
+      await api("/api/dev/login", { method: "POST", body: JSON.stringify({ code: this.developmentCode }) });
+      this.developmentCode = "";
       window.location.assign("/");
     } catch (err) {
       this.message = err instanceof Error ? err.message : "테스트 로그인에 실패했어요";
@@ -132,6 +137,18 @@ export class PageLogin extends LitElement {
         color: inherit;
         margin: 0 var(--space-1);
       }
+      form { display: flex; flex-direction: column; gap: 12px; }
+      label { text-align: left; font-size: var(--text-caption); }
+      input {
+        box-sizing: border-box; width: 100%; min-height: 44px; margin-top: 6px;
+        border: 1px solid var(--color-border); border-radius: var(--radius-sm, 6px);
+        padding: 8px; background: var(--color-bg); color: var(--color-text); font: inherit;
+      }
+      button {
+        min-height: 44px; border: 1px solid var(--color-primary); border-radius: var(--radius-md, 8px);
+        background: var(--color-primary); color: var(--color-primary-text, #fff); font: inherit; cursor: pointer;
+      }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
     `,
   ];
 
@@ -174,9 +191,19 @@ export class PageLogin extends LitElement {
           </div>
 
           ${this.localTestLogin
-            ? html`<x-button variant="primary" size="md" ?loading=${this.busy} @click=${this.signInLocalTest}>
-                ${this.busy ? "이동 중…" : "로컬 테스트 관리자 로그인"}
-              </x-button>`
+            ? html`<form @submit=${this.signInLocalTest}>
+                <label for="dev-code">테스트 접근 코드
+                  <input id="dev-code" type="password" autocomplete="off" autocapitalize="off"
+                    spellcheck="false" minlength="32" maxlength="128" required
+                    .value=${this.developmentCode}
+                    @input=${(e: Event) => { this.developmentCode = (e.target as HTMLInputElement).value; }} />
+                </label>
+                ${!this.developmentConfigured
+                  ? html`<p class="msg" role="status">.dev.vars에 무작위 DEV_LOGIN_CODE(32자 이상)를 설정하고 개발 서버를 다시 실행해주세요</p>` : ""}
+                <button type="submit" ?disabled=${this.busy || !this.developmentConfigured}>
+                  ${this.busy ? "이동 중…" : "로컬 테스트 관리자 로그인"}
+                </button>
+              </form>`
             : html`<x-button variant="primary" size="md" ?loading=${this.busy} @click=${this.signIn}>
                 ${this.busy ? "이동 중…" : "Google로 로그인"}
               </x-button>`}

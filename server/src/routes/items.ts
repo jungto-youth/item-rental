@@ -50,6 +50,7 @@ function searchThrottled(ip: string): boolean {
 itemsRoute.get("/", async (c) => {
   const db: Sql = getDb(c.env);
   const q = (c.req.query("q") ?? "").trim();
+  if (q.length > 512) return c.json({ error: "query_too_long" }, 400);
 
   // 관리자 세션이면 행에 카테고리를 얹고 카테고리 필터를 허용한다 —
   // 일반 회원 응답은 관리 목록 통합 이전과 같은 모양을 유지한다

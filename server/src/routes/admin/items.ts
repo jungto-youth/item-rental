@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Bindings, Variables } from "../../types";
 import { getDb, type Sql } from "../../db";
 import { requireAdmin } from "../../middleware/auth";
-import { imageSize } from "../../image-size";
+import { imageInfo } from "../../image-size";
 import { MAX_PHOTO_UPLOAD_BYTES as MAX_PHOTO_BYTES, MAX_PHOTO_EDGE } from "../../../../shared/photo-limits";
 import {
   getAdminItem,
@@ -172,7 +172,7 @@ adminItemsRoute.put("/:id", async (c) => {
   if ("error" in parsed) return c.json({ error: parsed.error }, 400);
   const fields: Record<string, unknown> = { ...parsed.attrs };
   if ("name" in body) {
-    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const name = typeof body.name === "string" ? body.name.trim().slice(0, 200) : "";
     if (!name) return c.json({ error: "name 빈 값 불가" }, 400);
     fields.name = name;
   }
@@ -233,8 +233,9 @@ adminItemsRoute.post("/:id/photos", async (c) => {
     );
   }
   // 픽셀 검사 — 용량만 보면 재압축한 큰 이미지가 통과한다()
-  const dim = imageSize(new Uint8Array(await file.arrayBuffer()));
+  const dim = imageInfo(new Uint8Array(await file.arrayBuffer()));
   if (!dim) return c.json({ error: "이미지 크기를 읽을 수 없습니다" }, 400);
+  if (dim.type !== file.type) return c.json({ error: "이미지 형식과 파일 내용이 일치하지 않습니다" }, 400);
   if (dim.width > MAX_PHOTO_EDGE || dim.height > MAX_PHOTO_EDGE) {
     return c.json(
       {
