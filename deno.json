@@ -12,10 +12,12 @@
     "dev:web": "vite build --watch",
     "dev:web:hmr": "vite",
     "dev:api": "wrangler dev",
+    "dev:lan": "wrangler dev --local --define LOCAL_TEST_LOGIN:true --ip 0.0.0.0 --port 8787",
     "build": "vite build",
     "deploy": "vite build && wrangler deploy",
     "check": "tsc --noEmit -p web && tsc --noEmit -p server && deno check --sloppy-imports server/tests server/scripts",
     "test": "deno test -A --sloppy-imports server/tests",
+    "test:photos": "node web/tests/photo.browser.test.mjs",
     "db:seed": "deno run -A server/scripts/seed.ts",
     "db:import-items": "deno run -A server/scripts/import-items.ts",
     "db:export-neon": "deno run -A server/scripts/export-neon-to-d1.ts"

@@ -3,6 +3,7 @@ import type { Bindings, Variables } from "../../types";
 import { getDb, type Sql } from "../../db";
 import { requireAdmin } from "../../middleware/auth";
 import { imageSize } from "../../image-size";
+import { MAX_PHOTO_UPLOAD_BYTES as MAX_PHOTO_BYTES, MAX_PHOTO_EDGE } from "../../../../shared/photo-limits";
 import {
   listAdminItems,
   getAdminItem,
@@ -82,8 +83,6 @@ const PHOTO_TYPES: Record<string, string> = {
 // 클라이언트가 1600px·q80 WebP로 줄여 보내므로 정상 업로드는 150KB 안쪽이다.
 // 2MB는 그 경로를 거치지 않은 업로드를 거르는 상한이고, MAX_PHOTO_EDGE는
 // 용량이 작아도 픽셀이 큰 경우(예: 4000×3000 JPEG q25 ≈ 700KB)를 잡는다.
-const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
-const MAX_PHOTO_EDGE = 1600;
 
 // 목록 — 폐기 포함 전체 (관리자)
 adminItemsRoute.get("/", async (c) => {

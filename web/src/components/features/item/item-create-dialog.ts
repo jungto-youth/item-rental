@@ -2,7 +2,7 @@ import { getCategories, resolveCategoryIds } from "../../../utils/categories";
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
-import { MAX_PHOTO_BYTES, PHOTO_OK, processPhoto } from "../../../utils/photo";
+import { processPhoto } from "../../../utils/photo";
 import { type Category, type ItemKind, type ItemStatus } from "../../../types";
 import "../../ui/modal";
 import "../../ui/button";
@@ -29,6 +29,8 @@ export class ItemCreateDialog extends LitElement {
   @state() private staged: File[] = [];
   @state() private stagedUrls: string[] = [];
   @state() private saving = false;
+  @state() private processingPhotos = false;
+  private photoGeneration = 0;
   @state() private error = "";
   // 태그(카테고리) — 이름 배열을 직접 다룬다. id 변환은 저장 시점에 (resolveCategoryIds)
   @state() private tagNames: string[] = [];
@@ -93,22 +95,28 @@ export class ItemCreateDialog extends LitElement {
   }
 
   private async pickStaged(files: File[]) {
-    for (const f of files) {
-      if (this.staged.length >= 3) {
-        this.error = "사진은 최대 3장까지 등록할 수 있어요";
-        break;
+    if (this.processingPhotos || this.saving) return;
+    this.processingPhotos = true;
+    this.error = "";
+    const generation = this.photoGeneration;
+    try {
+      for (const f of files) {
+        if (this.staged.length >= 3) {
+          this.error = "사진은 최대 3장까지 등록할 수 있어요";
+          break;
+        }
+        try {
+          const processed = await processPhoto(f);
+          if (generation !== this.photoGeneration) return;
+          this.staged = [...this.staged, processed];
+          this.stagedUrls = [...this.stagedUrls, URL.createObjectURL(processed)];
+        } catch (err) {
+          if (generation !== this.photoGeneration) return;
+          this.error = err instanceof Error ? err.message : "이미지 처리 실패";
+        }
       }
-      if (!PHOTO_OK.includes(f.type) || f.size > MAX_PHOTO_BYTES) {
-        this.error = "JPEG/PNG/WebP 5MB 이하 파일만 가능해요";
-        continue;
-      }
-      try {
-        const processed = await processPhoto(f);
-        this.staged = [...this.staged, processed];
-        this.stagedUrls = [...this.stagedUrls, URL.createObjectURL(processed)];
-      } catch (err) {
-        this.error = err instanceof Error ? err.message : "이미지 처리 실패";
-      }
+    } finally {
+      if (generation === this.photoGeneration) this.processingPhotos = false;
     }
   }
 
@@ -119,6 +127,8 @@ export class ItemCreateDialog extends LitElement {
   }
 
   private clearStaged() {
+    this.photoGeneration++;
+    this.processingPhotos = false;
     for (const u of this.stagedUrls) URL.revokeObjectURL(u);
     this.staged = [];
     this.stagedUrls = [];
@@ -142,7 +152,7 @@ export class ItemCreateDialog extends LitElement {
 
   private async handleSave(e: Event) {
     e.preventDefault();
-    if (this.saving) return;
+    if (this.saving || this.processingPhotos) return;
     // 자체 검증 — 폼 required 의 무음 차단 대신 명시적 오류 문구를 보여준다
     if (!this.form.name.trim()) {
       this.error = "이름을 입력해주세요";
@@ -299,10 +309,12 @@ export class ItemCreateDialog extends LitElement {
 
           <photo-uploader
             multiple
+            .disabled=${this.processingPhotos || this.saving}
             .entries=${this.stagedUrls.map((u, i) => ({ url: u, key: i }))}
             @upload=${this.onPhotoUpload}
             @remove=${this.onPhotoRemove}
           ></photo-uploader>
+          ${this.processingPhotos ? html`<p role="status">사진을 축소하고 있어요…</p>` : ""}
         </form>
 
         <div slot="footer">
@@ -312,6 +324,7 @@ export class ItemCreateDialog extends LitElement {
             size="sm"
             type="submit"
             ?loading=${this.saving}
+            ?disabled=${this.processingPhotos}
             @click=${() => {
         const form = this.shadowRoot?.querySelector("#create-item-form") as HTMLFormElement;
         form?.requestSubmit();
