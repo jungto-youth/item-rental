@@ -20,7 +20,7 @@ function readStoredTheme(): Theme {
   return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-// 관리자 청크 사전 로드 — 관리자 세션이면 브라우저가 한가할 때 5개 관리자 화면 청크를
+// 관리자 청크 사전 로드 — 관리자 세션이면 브라우저가 한가할 때 관리자 화면 청크를
 // 미리 받아둔다. 라우트별 코드 스플릿의 첫 클릭 빈 구간(화면 깜빡임)을 없애는 용도로,
 // 일반 방문자는 관리자 청크를 받지 않는다(번들 비용 0).
 function preloadAdminChunks() {
@@ -29,11 +29,9 @@ function preloadAdminChunks() {
       ? window.requestIdleCallback(() => cb())
       : setTimeout(cb, 1500);
   idle(() => {
-    void import("./pages/admin/dashboard");
     void import("./pages/admin/item-form");
     void import("./pages/admin/reservations");
     void import("./pages/admin/members");
-    void import("./pages/admin/allowed-emails");
   });
 }
 
@@ -64,7 +62,9 @@ export class AppShell extends LitElement {
         justify-content: space-between;
         gap: var(--space-3);
         box-sizing: border-box;
-        height: 48px;
+        height: 56px;
+        max-width: 720px;
+        margin: 0 auto;
         padding: 0 var(--space-4);
       }
       .brand {
@@ -90,8 +90,47 @@ export class AppShell extends LitElement {
         display: flex;
         align-items: center;
         gap: var(--space-2);
+        flex: 1;
+        min-width: 0;
+        justify-content: flex-end;
       }
-      /* 계정 메뉴 — 아바타 칩 + 드롭다운 */
+      /* 주 메뉴 — 헤더 우측 inline 링크 (모바일은 가로 스크롤) */
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1, 4px);
+        flex: 1;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .nav::-webkit-scrollbar {
+        display: none;
+      }
+      .nav a {
+        display: inline-flex;
+        align-items: center;
+        flex-shrink: 0;
+        height: 32px;
+        padding: 0 var(--space-2, 8px);
+        border-radius: var(--radius-md, 8px);
+        color: var(--color-muted);
+        text-decoration: none;
+        font-size: var(--text-caption, 13px);
+        font-weight: 500;
+        letter-spacing: var(--tracking-tight);
+        white-space: nowrap;
+        transition: color 0.15s ease, background-color 0.15s ease;
+      }
+      .nav a:hover {
+        color: var(--color-text);
+        background: var(--color-surface);
+      }
+      .nav a.active {
+        color: var(--color-primary);
+        font-weight: 600;
+      }
+      /* 계정 메뉴 — 아바타 칩 + 드롭다운 (내 정보·로그아웃) */
       .account {
         position: relative;
         flex-shrink: 0;
@@ -163,6 +202,7 @@ export class AppShell extends LitElement {
         background: var(--color-surface);
         cursor: pointer;
         font-family: inherit;
+        text-decoration: none;
         transition: background-color 0.15s ease, transform 0.15s ease;
       }
       .chip:hover {
@@ -170,6 +210,9 @@ export class AppShell extends LitElement {
       }
       .chip:active {
         transform: scale(0.96);
+      }
+      .chip.active {
+        border-color: var(--color-primary);
       }
       .avatar {
         display: flex;
@@ -180,7 +223,7 @@ export class AppShell extends LitElement {
         border-radius: var(--radius-sm, 6px);
         background: var(--color-primary);
         color: var(--color-primary-text);
-        font-size: 11px;
+        font-size: var(--text-fine, 12px);
         font-weight: 600;
       }
       .chip-name {
@@ -200,11 +243,15 @@ export class AppShell extends LitElement {
         .chip {
           padding-right: 3px;
         }
+        .brand-title {
+          display: none;
+        }
       }
       main {
         max-width: 720px;
         margin: 0 auto;
         padding: var(--space-4);
+        padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
         font-size: var(--text-body);
         line-height: 1.47;
       }
@@ -270,6 +317,28 @@ export class AppShell extends LitElement {
     }
   }
 
+  // 주 메뉴 — 업무 메뉴만 헤더에 직접 노출하고,
+  // 내 정보·로그아웃은 프로필 칩 드롭다운에 둔다
+  private get navItems(): Array<{ href: string; label: string }> {
+    if (!this.user) return [];
+    const items = [{ href: "/my/rentals", label: "대여 내역" }];
+    if (this.user.role === "admin") {
+      items.push(
+        { href: "/items/new", label: "물품 등록" },
+        { href: "/admin/reservations", label: "대여 관리" },
+        { href: "/admin/members", label: "회원 관리" },
+      );
+    }
+    return items;
+  }
+
+  private isActive(href: string): boolean {
+    const path = location.pathname;
+    if (href === "/my/rentals") return path.startsWith("/my/rentals");
+    if (href.startsWith("/admin")) return path.startsWith(href);
+    return path === href;
+  }
+
   // 계정 메뉴 — 외부 클릭이나 Esc로 닫는다
   private onGlobalPointerDown = (e: PointerEvent) => {
     if (!this.menuOpen) return;
@@ -281,6 +350,7 @@ export class AppShell extends LitElement {
   };
 
   private async signOut() {
+    this.menuOpen = false;
     // JWT 세션은 서버에 상태가 없다 — signout은 응답으로 쿠키를 지울 뿐이다.
     // 네트워크가 나빠도 버튼이 멈추지 않게 타임아웃을 두고, 실패해도 로컬 세션은 비운다
     // (쿠키가 남으면 다음 요청에서 다시 로그인 상태로 보일 수 있으나, 재시도 이전 상태보다 낫다).
@@ -327,6 +397,10 @@ export class AppShell extends LitElement {
     return this.theme === "dark" ? "다크 모드" : "라이트 모드";
   }
 
+  private get isProfileActive(): boolean {
+    return location.pathname === "/mypage";
+  }
+
   private get accountLabel(): string {
     return this.user?.name || this.user?.email || "";
   }
@@ -338,69 +412,63 @@ export class AppShell extends LitElement {
     return html`
       <header>
         <div class="row-main">
-          <a href="/" class="brand" aria-label=${this.user?.role === "admin" ? "홈 — 청년지부 물품 관리" : "홈 — 청년지부 물품 대여"}>
+          <a href="/" class="brand" aria-label="홈 — 청년지부 물품 대여">
             <img src="/logo.png" alt="" />
-            <span class="brand-title">${this.user?.role === "admin" ? "물품 관리" : "물품 대여"}</span>
+            <span class="brand-title">물품 대여</span>
           </a>
 
           <div class="actions">
-            ${
-              this.user
-                ? html`
-                    <div class="account">
-                      <button
-                        class="chip"
-                        aria-haspopup="menu"
-                        aria-expanded=${this.menuOpen}
-                        aria-label="계정 메뉴 — ${this.accountLabel}"
-                        title="계정 메뉴"
-                        @click=${() => (this.menuOpen = !this.menuOpen)}
-                      >
-                        <span class="avatar" aria-hidden="true">${this.accountInitial}</span>
-                        <span class="chip-name">${this.accountLabel}</span>
-                      </button>
-                      ${this.menuOpen
-                        ? html`
-                            <div class="menu" role="menu">
-                              <a
-                                role="menuitem"
-                                href="/mypage"
-                                @click=${() => (this.menuOpen = false)}
-                              >
-                                내 정보
-                              </a>
-                              <a
-                                role="menuitem"
-                                href="/my/rentals"
-                                @click=${() => (this.menuOpen = false)}
-                              >
-                                대여 내역
-                              </a>
-                              ${this.user.role === "admin"
-                                ? html`
-                                    <a
-                                      role="menuitem"
-                                      href="/admin"
-                                      @click=${() => (this.menuOpen = false)}
-                                    >
-                                      관리자
-                                    </a>
-                                  `
-                                : ""}
-                              <button
-                                role="menuitem"
-                                class="menu-logout"
-                                @click=${this.signOut}
-                              >
-                                로그아웃
-                              </button>
-                            </div>
-                          `
-                        : ""}
-                    </div>
-                  `
-                : html`<a class="btn-login" href="/login">로그인</a>`
-            }
+            ${this.user
+              ? html`
+                  <nav class="nav" aria-label="주 메뉴">
+                    ${this.navItems.map(
+                      (item) => html`
+                        <a
+                          href=${item.href}
+                          class=${this.isActive(item.href) ? "active" : ""}
+                          ?aria-current=${this.isActive(item.href) ? "page" : null}
+                        >
+                          ${item.label}
+                        </a>
+                      `,
+                    )}
+                  </nav>
+                  <div class="account">
+                    <button
+                      class="chip ${this.isProfileActive ? "active" : ""}"
+                      aria-haspopup="menu"
+                      aria-expanded=${this.menuOpen}
+                      ?aria-current=${this.isProfileActive ? "page" : null}
+                      aria-label="계정 메뉴 — ${this.accountLabel}"
+                      title="계정 메뉴"
+                      @click=${() => (this.menuOpen = !this.menuOpen)}
+                    >
+                      <span class="avatar" aria-hidden="true">${this.accountInitial}</span>
+                      <span class="chip-name">${this.accountLabel}</span>
+                    </button>
+                    ${this.menuOpen
+                      ? html`
+                          <div class="menu" role="menu">
+                            <a
+                              role="menuitem"
+                              href="/mypage"
+                              @click=${() => (this.menuOpen = false)}
+                            >
+                              내 정보
+                            </a>
+                            <button
+                              role="menuitem"
+                              class="menu-logout"
+                              @click=${this.signOut}
+                            >
+                              로그아웃
+                            </button>
+                          </div>
+                        `
+                      : ""}
+                  </div>
+                `
+              : html`<a class="btn-login" href="/login">로그인</a>`}
 
             <x-icon-btn
               label="테마 전환: 현재 ${this.themeLabel}"

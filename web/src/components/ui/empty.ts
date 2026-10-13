@@ -13,7 +13,7 @@ export class XEmpty extends LitElement {
     :host {
       display: block;
       text-align: center;
-      padding: 32px 16px;
+      padding: var(--space-6, 32px) var(--space-4, 16px);
     }
     :host([compact]) {
       text-align: left;
@@ -23,7 +23,7 @@ export class XEmpty extends LitElement {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: var(--space-2, 8px);
       margin: 0;
       font-size: var(--text-body, 15px);
       line-height: 1.5;

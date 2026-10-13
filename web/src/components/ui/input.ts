@@ -1,6 +1,6 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { numberInputCss } from "../../styles/controls";
+import { numberInputCss } from "../../styles/ui";
 
 // 라벨 + 입력 필드 — 페이지마다 흩어져 있던 input 스타일(높이·라운드·포커스)을 통일한다.
 // Form-Associated Custom Element: required 검증이 내부 input의 shadow에 묻히지 않도록
@@ -13,7 +13,6 @@ export class XInput extends LitElement {
   @property({ reflect: true }) type: string = "text";
   @property({ reflect: true }) placeholder = "";
   @property() value = "";
-  @property({ reflect: true }) size: "sm" | "md" = "md";
   @property({ type: Boolean, reflect: true }) required = false;
   @property({ type: Boolean, reflect: true }) disabled = false;
   // type="textarea"일 때 행 수
@@ -31,7 +30,7 @@ export class XInput extends LitElement {
     :host {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: var(--space-1, 4px);
       width: 100%;
       box-sizing: border-box;
     }
@@ -66,15 +65,10 @@ export class XInput extends LitElement {
       opacity: 0.5;
       cursor: not-allowed;
     }
-    .size-md {
+    input.control {
       height: 44px;
       padding: 0 14px;
       font-size: var(--text-body, 15px);
-    }
-    .size-sm {
-      height: 36px;
-      padding: 0 12px;
-      font-size: var(--text-caption, 13px);
     }
     /* textarea — 고정 높이 대신 세로 확장 */
     textarea.control {
@@ -127,7 +121,7 @@ export class XInput extends LitElement {
           ></textarea>`
         : html`<input
             id="control"
-            class="control size-${this.size}"
+            class="control"
             type=${this.type}
             min=${this.min || undefined}
             inputmode=${this.inputmode || undefined}

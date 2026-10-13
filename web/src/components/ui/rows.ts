@@ -1,8 +1,10 @@
 import { css } from "lit";
 
-// 관리자 로우 목록 공통 조형 — 대시보드·대여 관리·회원 관리가 같은 카드 리스트를 쓴다.
+// 인라인 편집 행 공용 조형 — categories·allowed-emails가 같은 줄 목록을 쓴다.
+// (물품·예약·회원 행은 item-row·reservation-row 카드로 이전했다.)
 // 컨테이너: 1px 헤어라인 + radius-md + surface 배경, 로우는 하이라인으로 구분.
-// 로우 1번째 줄 .head = 이름(.name, 말줄임) + 배지 + 액션 .link, 2번째 줄 .meta = 부가 정보.
+// 로우 1번째 줄 .head = 이름(.name, 말줄임) + 배지 + 액션 버튼, 2번째 줄 .meta = 부가 정보.
+// 행 안 액션은 x-button 을 쓴다 — 작은 raw 버튼은 터치 타겟이 36px 아래로 떨어진다.
 // 페이지별 추가 스타일은 각 페이지가 뒤에 덧붙인다 (같은 선택자는 뒤가 이긴다).
 export const rowsCss = css`
   .rows {
@@ -17,7 +19,7 @@ export const rowsCss = css`
   }
   .row {
     border-bottom: 1px solid var(--color-border);
-    padding: var(--space-3-5);
+    padding: var(--space-3-5, 14px) var(--space-4, 16px);
     display: grid;
     gap: var(--space-1);
   }
@@ -29,9 +31,6 @@ export const rowsCss = css`
     align-items: center;
     gap: var(--space-2);
     min-height: 44px;
-  }
-  .head .link {
-    flex-shrink: 0;
   }
   .head x-badge {
     flex-shrink: 0;
@@ -49,26 +48,5 @@ export const rowsCss = css`
   .meta {
     color: var(--color-muted);
     font-size: var(--text-caption);
-  }
-  .link {
-    background: none;
-    border: 0;
-    color: var(--color-primary);
-    cursor: pointer;
-    padding: var(--space-2);
-    font-size: var(--text-caption);
-    font-family: inherit;
-  }
-  .link:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  .link.danger {
-    color: var(--tone-danger-text);
-  }
-  .msg {
-    color: var(--color-primary);
-    font-size: var(--text-caption);
-    min-height: 1.2em;
   }
 `;

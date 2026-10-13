@@ -1,11 +1,11 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
-// 인라인 안내 배너 — info / warning / danger / success 4톤으로 통일.
+// 인라인 안내 배너 — info / warning / danger 3톤으로 통일.
 // 오른쪽에 액션 버튼을 넣고 싶으면 슬롯 안에 x-button 등을 배치한다.
 @customElement("x-notice")
 export class XNotice extends LitElement {
-  @property() tone: "info" | "warning" | "danger" | "success" = "info";
+  @property() tone: "info" | "warning" | "danger" = "info";
   @property({ type: Boolean, reflect: true }) alert = false;
 
   static styles = css`
@@ -16,8 +16,8 @@ export class XNotice extends LitElement {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      padding: 10px 14px;
+      gap: var(--space-3, 12px);
+      padding: var(--space-3, 12px) var(--space-3-5, 14px);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md, 8px);
       background: var(--color-surface);
@@ -47,11 +47,6 @@ export class XNotice extends LitElement {
       border-color: var(--color-danger);
       background: var(--tone-danger-bg);
       color: var(--tone-danger-text);
-    }
-    .success {
-      border-color: var(--color-success);
-      background: var(--tone-success-bg);
-      color: var(--tone-success-text);
     }
   `;
 

@@ -26,7 +26,7 @@ export class ItemGallery extends LitElement {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 3.5rem;
+      font-size: 3rem;
       box-sizing: border-box;
     }
 
@@ -40,10 +40,10 @@ export class ItemGallery extends LitElement {
 
     .thumbs {
       display: flex;
-      gap: 8px;
-      margin-top: 10px;
+      gap: var(--space-2, 8px);
+      margin-top: var(--space-3, 12px);
       overflow-x: auto;
-      padding-bottom: 4px;
+      padding-bottom: var(--space-1, 4px);
     }
 
     .thumb-btn {
@@ -100,16 +100,17 @@ export class ItemGallery extends LitElement {
   render() {
     const current = this.photos[this.selectedIdx] ?? this.photos[0];
 
+    // 메인 사진은 폴드 위 LCP 요소라 loading="lazy" 를 걸지 않는다 — 오히려
+    // 스크롤되기를 기다려 첫 화면이 늦게 뜬다. 썸네일들은 lazy 유지.
     return html`
       <div class="main-photo">
         ${current
           ? html`<img
               src=${current.url}
-              alt=""
-              loading="lazy"
+              alt=${this.name ? `${this.name} 사진` : "물품 사진"}
               @error=${this.handleMainError}
             />`
-          : "📦"}
+          : html`<span aria-hidden="true">📦</span>`}
       </div>
 
       ${this.photos.length > 1
@@ -121,6 +122,7 @@ export class ItemGallery extends LitElement {
                     class="thumb-btn ${idx === this.selectedIdx ? "active" : ""}"
                     @click=${() => (this.selectedIdx = idx)}
                     aria-label="사진 ${idx + 1}"
+                    aria-pressed=${idx === this.selectedIdx}
                   >
                     <img
                       src=${p.url}

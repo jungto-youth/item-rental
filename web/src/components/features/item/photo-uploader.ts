@@ -127,12 +127,12 @@ export class PhotoUploader extends LitElement {
     }
 
     .add-main {
-      font-size: 11px;
+      font-size: var(--text-fine, 12px);
       font-weight: 600;
     }
 
     .add-count {
-      font-size: 10px;
+      font-size: var(--text-fine, 12px);
       opacity: 0.75;
     }
 

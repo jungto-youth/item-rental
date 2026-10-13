@@ -4,7 +4,8 @@ import { api, ApiError } from "../../../api/client";
 import { type Item } from "../../../types";
 import { type SessionUser } from "../../../context/session";
 import { navigate } from "../../../router";
-import { numberInputCss } from "../../../styles/controls";
+import { numberInputCss } from "../../../styles/ui";
+import { availableQty } from "../../../utils/stock";
 import "../../ui/button";
 import "../../ui/input";
 import "../../ui/notice";
@@ -31,11 +32,11 @@ export class ItemRentalForm extends LitElement {
     .box {
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg, 12px);
-      padding: 20px;
+      padding: var(--space-5, 20px);
       background: var(--color-surface);
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: var(--space-4, 16px);
       box-sizing: border-box;
     }
 
@@ -50,7 +51,7 @@ export class ItemRentalForm extends LitElement {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: var(--space-3, 12px);
     }
 
     .label {
@@ -69,8 +70,8 @@ export class ItemRentalForm extends LitElement {
     }
 
     .step-btn {
-      width: 38px;
-      height: 38px;
+      width: 44px;
+      height: 44px;
       border: none;
       background: transparent;
       color: var(--color-text);
@@ -107,7 +108,7 @@ export class ItemRentalForm extends LitElement {
       font-size: var(--text-body, 15px);
       font-weight: 600;
       color: var(--color-text);
-      padding: 6px 14px;
+      padding: var(--space-2, 8px) var(--space-3-5, 14px);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md, 8px);
       background: var(--color-bg);
@@ -116,8 +117,8 @@ export class ItemRentalForm extends LitElement {
     .success-actions {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      margin-top: 6px;
+      gap: var(--space-2, 8px);
+      margin-top: var(--space-2, 8px);
     }
 
     .msg {
@@ -131,7 +132,7 @@ export class ItemRentalForm extends LitElement {
     }
 
     .msg.success {
-      color: var(--color-success);
+      color: var(--tone-success-text, var(--color-success));
     }
 
     /* 메모는 항상 노출 — 접이식은 손이 많이 감 */
@@ -144,18 +145,16 @@ export class ItemRentalForm extends LitElement {
     .memo-field {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: var(--space-2, 8px);
+    }
+    .title.success-title {
+      color: var(--tone-success-text, var(--color-success));
     }
   `,
   ];
 
-  private get rentableQty(): number {
-    if (!this.item) return 0;
-    return this.item.rentable_qty ?? (this.item.total_qty - (this.item.qty_broken ?? 0));
-  }
-
   private get availableNow(): number {
-    return Math.max(0, this.rentableQty - (this.item?.active_now ?? 0));
+    return this.item ? availableQty(this.item) : 0;
   }
 
   private handleDec() {
@@ -233,7 +232,7 @@ export class ItemRentalForm extends LitElement {
     if (this.isSuccess) {
       return html`
         <div class="box">
-          <h3 class="title" style="color: var(--color-success)">🎉 대여 완료</h3>
+          <h3 class="title success-title">🎉 대여 완료</h3>
           <p class="msg">
             <b>${this.item.name}</b> 대여가 접수되었어요. 사용 후 대여 내역에서 반납해 주세요.
           </p>

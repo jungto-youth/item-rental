@@ -2,9 +2,10 @@ import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { type Item } from "../../../types";
 import { navigate } from "../../../router";
+import { availableQty, badgeFor, handleImgFallback, rentableQty } from "../../../utils/stock";
 import "../../ui/badge";
 
-// 미니멀 물품 카드
+// 미니멀 물품 카드 — 발견(찾기) 전용. 수정 진입은 통합 목록의 관리자 행에서.
 @customElement("item-card")
 export class ItemCard extends LitElement {
   @property({ type: Object }) item!: Item;
@@ -65,8 +66,8 @@ export class ItemCard extends LitElement {
     .content {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      padding: 12px 14px;
+      gap: var(--space-2, 8px);
+      padding: var(--space-3, 12px) var(--space-3-5, 14px);
       flex: 1;
     }
 
@@ -80,13 +81,31 @@ export class ItemCard extends LitElement {
       white-space: nowrap;
     }
 
+    /* 보관 위치 — 대여 전에 "어디서 챙길지"를 알 수 있는 유일한 힌트 */
+    .loc {
+      font-size: var(--text-caption, 13px);
+      line-height: 1.4;
+      color: var(--color-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .meta {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
-      gap: 8px;
+      justify-content: space-between;
+      gap: var(--space-2, 8px);
       margin-top: auto;
-      padding-top: 4px;
+      padding-top: var(--space-1, 4px);
+    }
+
+    /* 대여품만 수량을 보여준다 — 소모품은 빌리는 게 아니고 배지로도 충분하다 */
+    .qty {
+      flex-shrink: 0;
+      font-size: var(--text-caption, 13px);
+      line-height: 1.4;
+      color: var(--color-muted);
     }
   `;
 
@@ -99,35 +118,15 @@ export class ItemCard extends LitElement {
     navigate(`/items/${this.item.id}${location.search}`);
   }
 
-  private handleImgError(e: Event) {
-    const img = e.target as HTMLImageElement;
-    img.style.display = "none";
-  }
+  // 깨진 이미지는 공용 폴백(utils/stock)으로 — 빈 상자 대신 물품 아이콘
+  private handleImgError = handleImgFallback;
 
   render() {
     if (!this.item) return html``;
 
     const it = this.item;
-    const rentable = it.rentable_qty ?? (it.total_qty - (it.qty_broken ?? 0));
-    const available = Math.max(0, rentable - (it.active_now ?? 0));
-    const isOutOfStock = it.kind !== "consumable" && available === 0;
-
-    let badgeKind = "available";
-    let badgeLabel = "대여 가능";
-
-    if (it.kind === "consumable") {
-      badgeKind = "neutral";
-      badgeLabel = "소모품";
-    } else if (it.status !== "active" || (it.qty_broken ?? 0) >= it.total_qty) {
-      badgeKind = "repair";
-      badgeLabel = "수리중";
-    } else if (available === 0) {
-      badgeKind = "rented";
-      badgeLabel = "대여 중";
-    } else if (rentable > 1) {
-      badgeKind = "available";
-      badgeLabel = `${available}개 가능`;
-    }
+    const { kind: badgeKind, label: badgeLabel } = badgeFor(it);
+    const isOutOfStock = it.kind !== "consumable" && badgeKind !== "available";
 
     return html`
       <a class="card ${isOutOfStock ? "out-of-stock" : ""}" href="/items/${it.id}" @click=${this.handleClick}>
@@ -139,12 +138,18 @@ export class ItemCard extends LitElement {
                 loading="lazy"
                 @error=${this.handleImgError}
               />`
-            : "📦"}
+            : html`<span aria-hidden="true">📦</span>`}
         </div>
         <div class="content">
           <div class="name" title=${it.name}>${it.name}</div>
+          ${it.location ? html`<div class="loc" title=${it.location}>${it.location}</div>` : ""}
           <div class="meta">
             <x-badge kind=${badgeKind} label=${badgeLabel}></x-badge>
+            ${it.kind === "consumable"
+              ? ""
+              : html`<span class="qty"
+                  >${availableQty(it)}/${rentableQty(it)}</span
+                >`}
           </div>
         </div>
       </a>

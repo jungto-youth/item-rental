@@ -2,29 +2,62 @@ import { LitElement, html, css } from "lit";
 import { confirmDialog } from "../../utils/confirm";
 import { customElement, state } from "lit/decorators.js";
 import { api, ApiError } from "../../api/client";
-import "../../components/ui/badge";
-import type { AdminMember, Role } from "../../types";
+import type { AdminMember, AllowedEmail, Role } from "../../types";
 import { reduceMotion } from "../../styles/motion";
+import { formCss, searchFieldCss } from "../../styles/ui";
+import { rowsCss } from "../../components/ui/rows";
 import "../../components/admin/admin-page";
 import "../../components/ui/empty";
 import "../../components/ui/button";
-import "../../components/ui/chip-filter";
-import { rowsCss } from "../../components/ui/rows";
+import "../../components/ui/input";
+import "../../components/ui/badge";
+import "../../components/ui/chip";
+import "../../components/common/reservation-row";
 
-// 회원 관리: 목록·탈퇴·역할 지정/해제 모두 admin 전용
-// 역할 변경 보호장치는 서버가 강제: 마지막 관리자 해임 불가
+// 회원 관리: 회원 목록·역할·탈퇴 + 허용 이메일 탭. 모두 admin 전용.
+// 역할 변경 보호장치는 서버가 강제: 마지막 관리자 해임 불가.
+// 허용 이메일(@jungto.org 외 계정 로그인 허용)은 빈도가 낮아 단독 화면 대신 탭으로 둔다.
 @customElement("page-admin-members")
 export class PageAdminMembers extends LitElement {
+  @state() private tab: "members" | "emails" = "members";
+
+  // ===== 회원 목록 =====
   @state() private members: AdminMember[] = [];
   @state() private loading = true; /* 초기 로드 전 — "없어요" 깜빡임 방지 */
-  @state() private busy = false;
+  @state() private q = "";
+  // 처리 중인 행 — "회원id:동작" 키. 해당 행의 컨트롤만 잠그고 나머지는 살린다
+  @state() private processingKey: string | null = null;
+
+  // ===== 허용 이메일 =====
+  @state() private emails: AllowedEmail[] = [];
+  @state() private emailsLoading = true;
+  @state() private emailValue = "";
+  @state() private noteValue = "";
+  @state() private emailBusy = false;
+
   @state() private message = "";
+  // 성공/실패 구분 — 실패 문구가 성공과 같은 파란색으로 나오면 안 된다
+  @state() private messageTone: "info" | "success" | "error" = "info";
   @state() private error = "";
 
   static styles = [
     reduceMotion,
+    searchFieldCss,
+    formCss,
     rowsCss,
     css`
+      x-chip.tab {
+        display: block;
+        margin-bottom: var(--space-4, 16px);
+      }
+      .search-input {
+        margin-bottom: var(--space-3, 12px);
+      }
+      .count {
+        margin: 0 0 var(--space-2, 8px);
+        font-size: var(--text-caption, 13px);
+        color: var(--color-muted);
+      }
       /* 이메일이 길 수 있어 줄바꿈 허용 */
       .meta {
         word-break: break-all;
@@ -34,7 +67,7 @@ export class PageAdminMembers extends LitElement {
 
   async connectedCallback() {
     super.connectedCallback();
-    await this.reload();
+    await Promise.all([this.reload(), this.reloadEmails()]);
   }
 
   private async reload() {
@@ -49,10 +82,42 @@ export class PageAdminMembers extends LitElement {
     }
   }
 
-  // 탈퇴 처리 — 활성 회원을 탈퇴시킨다. 약관이 '탈퇴는 관리자에게 요청'이라 안내하는데
-  // 처리 수단이 없어 신설했다. 소프트 삭제 — 대여 이력은 남고, 복구 경로는 없다.
+  private async reloadEmails() {
+    try {
+      const res = await api<{ allowedEmails: AllowedEmail[] }>(
+        "/api/admin/allowed-emails",
+      );
+      this.emails = res.allowedEmails;
+    } catch {
+      // 회원 목록은 보여주고 이메일 탭에서 안내한다
+      this.emails = [];
+    } finally {
+      this.emailsLoading = false;
+    }
+  }
+
+  private get filtered(): AdminMember[] {
+    const q = this.q.trim().toLowerCase();
+    if (!q) return this.members;
+    return this.members.filter((m) =>
+      `${m.name ?? ""} ${m.email} ${m.phone ?? ""}`.toLowerCase().includes(q),
+    );
+  }
+
+  private keyOf(m: AdminMember, kind: "role" | "withdraw"): string {
+    return `${m.id}:${kind}`;
+  }
+
+  private rowBusy(m: AdminMember, kind: "role" | "withdraw"): boolean {
+    if (!this.processingKey) return false;
+    return this.processingKey !== this.keyOf(m, kind);
+  }
+
+  // 탈퇴 처리 — 활성 회원을 탈퇴시킨다. 소프트 삭제 — 대여 이력은 남고, 복구 경로는 없다.
   // 마지막 관리자 보호는 서버가 409 로 거부한다.
   private async withdraw(m: AdminMember) {
+    // busy 확인은 다이얼로그보다 먼저 — 뒤에 두면 연타로 다이얼로그가 두 개 열린다
+    if (this.processingKey) return;
     const who = m.name || m.email || "이 회원";
     if (
       !(await confirmDialog(
@@ -61,11 +126,12 @@ export class PageAdminMembers extends LitElement {
       ))
     )
       return;
-    if (this.busy) return;
-    this.busy = true;
+    if (this.processingKey) return;
+    this.processingKey = this.keyOf(m, "withdraw");
     try {
       await api(`/api/admin/members/${m.id}/withdraw`, { method: "POST" });
       this.message = `${who}님을 탈퇴 처리했어요`;
+      this.messageTone = "success";
       await this.reload();
     } catch (e) {
       const code = e instanceof ApiError ? e.code : undefined;
@@ -73,15 +139,16 @@ export class PageAdminMembers extends LitElement {
         this.message = "마지막 관리자는 탈퇴 처리할 수 없어요";
       else if (e instanceof ApiError) this.message = e.message;
       else this.message = "탈퇴 처리 실패";
+      this.messageTone = "error";
       await this.reload();
     } finally {
-      this.busy = false;
+      this.processingKey = null;
     }
   }
 
   // 역할 변경 — admin이 회원의 역할을 지정 (서버도 requireAdmin으로 강제)
   private async setRole(m: AdminMember, role: Role) {
-    if (role === m.role) return;
+    if (role === m.role || this.processingKey) return;
     const label: Record<Role, string> = {
       user: "회원",
       admin: "관리자",
@@ -94,14 +161,15 @@ export class PageAdminMembers extends LitElement {
     ) {
       return; // 취소 — 칩은 제어 컴포넌트라 역할 상태가 안 바뀌면 제자리에 머문다
     }
-    if (this.busy) return;
-    this.busy = true;
+    if (this.processingKey) return;
+    this.processingKey = this.keyOf(m, "role");
     try {
       await api(`/api/admin/members/${m.id}/role`, {
         method: "PUT",
         body: JSON.stringify({ role }),
       });
       this.message = `${m.name || m.email}님의 역할을 '${label[role]}'(으)로 바꿨어요`;
+      this.messageTone = "success";
       await this.reload();
     } catch (e) {
       const code = e instanceof ApiError ? e.code : undefined;
@@ -109,70 +177,230 @@ export class PageAdminMembers extends LitElement {
         this.message = "마지막 관리자는 해임할 수 없어요";
       else if (e instanceof ApiError) this.message = e.message;
       else this.message = "역할 변경 실패";
+      this.messageTone = "error";
       await this.reload();
     } finally {
-      this.busy = false;
+      this.processingKey = null;
+    }
+  }
+
+  // ===== 허용 이메일 =====
+
+  private async addEmail() {
+    const email = this.emailValue.trim();
+    if (!email || !email.includes("@")) {
+      this.message = "이메일 형식을 확인해주세요";
+      this.messageTone = "error";
+      return;
+    }
+    if (this.emailBusy) return;
+    this.emailBusy = true;
+    try {
+      await api("/api/admin/allowed-emails", {
+        method: "POST",
+        body: JSON.stringify({ email, note: this.noteValue.trim() || undefined }),
+      });
+      this.message = `${email} 계정의 로그인을 허용했어요`;
+      this.messageTone = "success";
+      this.emailValue = "";
+      this.noteValue = "";
+      await this.reloadEmails();
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : undefined;
+      if (code === "duplicate") this.message = "이미 등록된 이메일이에요";
+      else if (e instanceof ApiError) this.message = e.message;
+      else this.message = "추가 실패";
+      this.messageTone = "error";
+    } finally {
+      this.emailBusy = false;
+    }
+  }
+
+  // remove 는 LitElement(HTMLElement)가 이미 가진 메서드라 덮어쓸 수 없다
+  private async removeEmail(m: AllowedEmail) {
+    if (
+      !(await confirmDialog(
+        `'${m.email}' 계정의 로그인을 허용 목록에서 제거할까요?\n제거 후 이 계정으로는 다시 로그인할 수 없어요.`,
+        { confirmLabel: "제거" },
+      ))
+    )
+      return;
+    if (this.emailBusy) return;
+    this.emailBusy = true;
+    try {
+      await api(`/api/admin/allowed-emails/${m.id}`, { method: "DELETE" });
+      this.message = `${m.email} 계정을 제거했어요`;
+      this.messageTone = "success";
+      await this.reloadEmails();
+    } catch (e) {
+      this.message = e instanceof ApiError ? e.message : "제거 실패";
+      this.messageTone = "error";
+      await this.reloadEmails();
+    } finally {
+      this.emailBusy = false;
     }
   }
 
   render() {
     return html`
       <admin-page
-        active="members"
         title="회원 관리"
         ?loading=${this.loading}
         .error=${this.error}
         .message=${this.message}
+        .messageTone=${this.messageTone}
         @retry=${() => void this.reload()}
       >
-        ${this.members.length === 0
-          ? html`<x-empty compact state="empty" text="아직 회원이 없어요"></x-empty>`
-          : this.renderCards()
-        }
+        <x-chip
+          class="tab"
+          ariaLabel="회원 관리 탭"
+          .value=${this.tab}
+          .options=${[
+            { value: "members", label: "회원 목록", count: this.members.length },
+            { value: "emails", label: "허용 이메일", count: this.emails.length },
+          ]}
+          @change=${(e: CustomEvent<{ value: string }>) =>
+            (this.tab = e.detail.value as "members" | "emails")}
+        ></x-chip>
+        ${this.tab === "members" ? this.renderMembers() : this.renderEmails()}
       </admin-page>
     `;
   }
 
-  private renderCards() {
+  private renderMembers() {
+    const list = this.filtered;
     return html`
-      <div class="rows">${this.members.map((m) => this.renderCard(m))}</div>
+      <input
+        class="search-input"
+        type="search"
+        aria-label="회원 검색"
+        placeholder="이름, 이메일, 연락처 검색…"
+        .value=${this.q}
+        @input=${(e: Event) => (this.q = (e.target as HTMLInputElement).value)}
+      />
+      ${list.length === 0
+        ? html`<x-empty
+            compact
+            state="empty"
+            text=${this.q ? `'${this.q}'로 찾은 회원이 없어요` : "아직 회원이 없어요"}
+          ></x-empty>`
+        : html`
+            <p class="count" role="status">${list.length}명</p>
+            <div>${list.map((m) => this.renderCard(m))}</div>
+          `}
     `;
   }
 
   private renderCard(m: AdminMember) {
+    const withdrawKey = this.keyOf(m, "withdraw");
     return html`
-      <div class="row">
-        <span class="head">
-          <span class="name">${m.name || "—"}</span>
-          ${!m.deactivated_at
-        ? html`<x-chip-filter
-                  ?disabled=${this.busy}
-                  ariaLabel="역할 지정"
-                  .value=${m.role}
-                  .options=${[
-            { value: "user", label: "회원" },
-            { value: "admin", label: "관리자" },
-          ]}
-                  @change=${(e: CustomEvent<{ value: string }>) =>
-            this.setRole(m, e.detail.value as Role)}
-                ></x-chip-filter>`
-        : html`<x-badge kind=${m.role}></x-badge>`
-      }
-          ${m.deactivated_at ? html`<x-badge kind="withdrawn"></x-badge>` : ""}
-          ${!m.deactivated_at
-        ? html`<x-button
-                  variant="danger"
-                  size="sm"
-                  ?disabled=${this.busy}
-                  @click=${() => this.withdraw(m)}
-                >
-                  탈퇴
-                </x-button>`
-        : ""
-      }
-          </span>
-        <span class="meta">${m.email} · ${m.phone ?? "연락처 미등록"}</span>
+      <reservation-row
+        title=${m.name || "—"}
+        badgeKind=${m.deactivated_at ? "withdrawn" : ""}
+      >
+        ${!m.deactivated_at
+          ? html`<x-chip
+              slot="actions"
+              ?disabled=${this.rowBusy(m, "role")}
+              ariaLabel="역할 지정"
+              .value=${m.role}
+              .options=${[
+                { value: "user", label: "회원" },
+                { value: "admin", label: "관리자" },
+              ]}
+              @change=${(e: CustomEvent<{ value: string }>) =>
+                this.setRole(m, e.detail.value as Role)}
+            ></x-chip>
+            <x-button
+              slot="actions"
+              variant="danger"
+              size="sm"
+              ?loading=${this.processingKey === withdrawKey}
+              ?disabled=${this.rowBusy(m, "withdraw")}
+              @click=${() => this.withdraw(m)}
+            >
+              탈퇴
+            </x-button>`
+          : html`<x-badge slot="actions" kind=${m.role}></x-badge>`}
+        <span style="overflow-wrap:anywhere">${m.email} · ${this.phoneLine(m)}</span>
+      </reservation-row>
+    `;
+  }
+
+  private phoneLine(m: AdminMember) {
+    return m.phone
+      ? html`<a href="tel:${m.phone.replace(/[^+\d]/g, "")}">${m.phone}</a>`
+      : "연락처 미등록";
+  }
+
+  private renderEmails() {
+    if (this.emailsLoading) return html`<x-empty state="loading"></x-empty>`;
+    return html`
+      <div class="form">
+        <x-input
+          label="이메일"
+          type="email"
+          placeholder="oper@example.com"
+          .value=${this.emailValue}
+          @input=${(e: Event) =>
+            (this.emailValue = (e.target as HTMLInputElement).value)}
+          @keydown=${(e: KeyboardEvent) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void this.addEmail();
+            }
+          }}
+        ></x-input>
+        <div class="form-row">
+          <x-input
+            label="메모 (선택)"
+            placeholder="누구 계정인지"
+            .value=${this.noteValue}
+            @input=${(e: Event) =>
+              (this.noteValue = (e.target as HTMLInputElement).value)}
+          ></x-input>
+          <!-- x-button 은 form-associated 가 아니어서 form submit 에 참여하지 못한다 — 클릭으로 처리 -->
+          <x-button
+            variant="primary"
+            ?loading=${this.emailBusy}
+            @click=${() => void this.addEmail()}
+          >
+            추가
+          </x-button>
+        </div>
       </div>
+      ${this.emails.length === 0
+        ? html`<x-empty compact state="empty" text="아직 등록된 이메일이 없어요"></x-empty>`
+        : html`
+            <div class="rows">
+              ${this.emails.map(
+                (m) => html`
+                  <div class="row">
+                    <span class="head">
+                      <span class="name">${m.email}</span>
+                      <x-button
+                        variant="danger"
+                        size="sm"
+                        ?disabled=${this.emailBusy}
+                        @click=${() => this.removeEmail(m)}
+                      >
+                        제거
+                      </x-button>
+                    </span>
+                    <span class="meta">
+                      ${[
+                        m.note,
+                        m.created_by ? `등록: ${m.created_by}` : null,
+                        new Date(m.created_at).toLocaleDateString("ko-KR"),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </div>
+                `,
+              )}
+            </div>
+          `}
     `;
   }
 }

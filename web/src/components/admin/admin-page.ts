@@ -1,27 +1,26 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import type { AdminTab } from "./admin-nav";
 import { reduceMotion } from "../../styles/motion";
-import "./admin-nav";
 import "../ui/empty";
 import "../ui/button";
 import "../ui/page-header";
 
-// 관리자 페이지 골격 — admin-nav → 페이지 헤더(+액션) → 툴바 → 결과 메시지 →
-// 로딩·에러 전용 렌더 또는 본문,의 순서를 셸 하나가 소유한다.
-// 페이지는 데이터와 본문(목록·빈 상태·폼)만 슬롯으로 넣는다. 골격을 각자 조립하던
-// 이전 패턴(헤더 위치·재시도 유무가 페이지마다 달랐던)을 구조적으로 막는 용도다.
+// 관리자 페이지 골격 — 제목 → 툴바 → 결과 메시지 → 로딩·에러 또는 본문.
+// 메뉴바는 없다 — 관리자 이동은 계정 메뉴(등록·대여관리·회원관리)와
+// 화면 내 버튼이 맡는다. 페이지는 데이터와 본문만 슬롯으로 넣는다.
 // - error: 로드 실패 — 재시도 버튼이 내장되고 @retry 이벤트를 발사한다
-// - message: 결과 안내(성공·작업 완료) — error와 역할이 다르다
+// - message: 결과 안내(성공·작업 완료·작업 실패) — error와 역할이 다르다(전체 페이지를
+//   대체하지 않고 목록 위에 얹힌다). messageTone으로 성공/실패를 시각·시맨틱으로 구분한다.
 // - 빈 목록 같은 본문 상태는 페이지 기본 슬롯의 책임으로 남긴다
 @customElement("admin-page")
 export class AdminPage extends LitElement {
-  @property({ reflect: true }) active: AdminTab = "dashboard";
   @property() title = "";
-  @property() subtitle = "";
   @property({ type: Boolean }) loading = false;
   @property() error = "";
   @property() message = "";
+  // message의 성격 — 실패를 message로 보낼 때 "error"를 같이 줘야 사용자가
+  // 성공과 구분할 수 있다(색만 다르게, 오류는 assertive로 읽는다)
+  @property() messageTone: "info" | "success" | "error" = "info";
 
   static styles = [
     reduceMotion,
@@ -32,8 +31,13 @@ export class AdminPage extends LitElement {
       .msg {
         color: var(--color-primary);
         font-size: var(--text-caption, 13px);
-        min-height: 1.2em;
         margin: 0 0 var(--space-2, 8px);
+      }
+      .msg.success {
+        color: var(--tone-success-text, var(--color-primary));
+      }
+      .msg.error {
+        color: var(--tone-danger-text, var(--color-danger));
       }
     `,
   ];
@@ -45,13 +49,18 @@ export class AdminPage extends LitElement {
   }
 
   render() {
+    const tone = this.messageTone;
     return html`
-      <admin-nav active=${this.active}></admin-nav>
-      <x-page-header title=${this.title} subtitle=${this.subtitle}>
-        <slot name="action" slot="action"></slot>
-      </x-page-header>
+      ${this.title ? html`<x-page-header title=${this.title}></x-page-header>` : ""}
       <slot name="toolbar"></slot>
-      <p class="msg" aria-live="polite">${this.message}</p>
+      ${this.message
+        ? html`<p
+            class="msg ${tone}"
+            role=${tone === "error" ? "alert" : "status"}
+          >
+            ${this.message}
+          </p>`
+        : ""}
       ${this.loading
         ? html`<x-empty compact state="loading"></x-empty>`
         : this.error

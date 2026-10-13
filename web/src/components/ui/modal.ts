@@ -77,7 +77,7 @@ export class XModal extends LitElement {
       z-index: 100;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: var(--space-4, 16px);
       box-sizing: border-box;
       backdrop-filter: blur(2px);
       animation: fadeIn 0.15s ease-out;
@@ -105,7 +105,7 @@ export class XModal extends LitElement {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 20px;
+      padding: var(--space-4, 16px) var(--space-5, 20px);
       border-bottom: 1px solid var(--color-border);
     }
 
@@ -117,7 +117,7 @@ export class XModal extends LitElement {
     }
 
     .body {
-      padding: 20px;
+      padding: var(--space-5, 20px);
       overflow-y: auto;
       flex: 1;
     }
@@ -126,8 +126,8 @@ export class XModal extends LitElement {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 8px;
-      padding: 14px 20px;
+      gap: var(--space-2, 8px);
+      padding: var(--space-3-5, 14px) var(--space-5, 20px);
       border-top: 1px solid var(--color-border);
       background: var(--color-surface);
     }

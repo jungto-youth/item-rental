@@ -88,8 +88,18 @@ export class CategoryTagsInput extends LitElement {
   private commit() {
     const t = this.draft.trim();
     if (!t) return;
-    if (!this.value.includes(t)) this.value = [...this.value, t];
     this.draft = "";
+    // 중복(이름 동일)은 목록 변화가 없으므로 change 를 내보내지 않는다
+    if (this.hasName(t)) return;
+    this.value = [...this.value, t];
+    this.emit();
+  }
+
+  // 이름은 DB 에 name UNIQUE 로 들어간다 — 대소문자만 다른 중복을 먼저 걸러
+  // 서버 409 를 방지한다(한글·숫자는 lowerCase 영향 없음).
+  private hasName(name: string): boolean {
+    const n = name.toLowerCase();
+    return this.value.some((v) => v.toLowerCase() === n);
   }
 
   private onKey(e: KeyboardEvent) {
@@ -109,6 +119,7 @@ export class CategoryTagsInput extends LitElement {
     const v = [...this.value];
     v.splice(i, 1);
     this.value = v;
+    this.emit();
   }
 
   render() {
@@ -129,7 +140,8 @@ export class CategoryTagsInput extends LitElement {
       )}
       <input
         list=${this.listId}
-        placeholder=${this.value.length === 0 ? this.placeholder : ""}
+        aria-label=${this.placeholder}
+        .placeholder=${this.value.length === 0 ? this.placeholder : "추가…"}
         .value=${this.draft}
         @input=${(e: InputEvent) => (this.draft = (e.target as HTMLInputElement).value)}
         @keydown=${this.onKey}

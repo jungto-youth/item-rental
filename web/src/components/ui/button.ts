@@ -1,7 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
-export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "danger";
 export type ButtonSize = "sm" | "md";
 
 @customElement("x-button")
@@ -65,17 +65,6 @@ export class XButton extends LitElement {
       border-color: var(--color-muted);
     }
 
-    /* Ghost: 테두리 없는 투명 */
-    .variant-ghost {
-      background: transparent;
-      color: var(--color-muted);
-      border: 1px solid transparent;
-    }
-    .variant-ghost:hover:not(:disabled) {
-      background: var(--color-surface);
-      color: var(--color-text);
-    }
-
     /* Danger: 파괴적 액션 — 취소와 같은 아웃라인 구조, 색만 위험색 */
     .variant-danger {
       background: transparent;
@@ -124,6 +113,11 @@ export class XButton extends LitElement {
       e.stopPropagation();
       return;
     }
+    // shadow DOM 내부 버튼은 외부 form과 form-associated 되지 않는다(HTML 스펙 —
+    // form owner는 같은 트리 안에서만 결정) — type="submit"이면 host 위치에서 폼을
+    // 찾아 네이티브 제출을 대신 수행한다. form 밖(모달 푸터 등)이면 no-op이라
+    // 폼을 직접 requestSubmit 하는 기존 우회와도 충돌하지 않는다.
+    if (this.type === "submit") this.closest("form")?.requestSubmit();
   }
 
   render() {

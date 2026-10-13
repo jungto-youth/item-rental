@@ -12,6 +12,11 @@ export type SessionUser = {
 
 class SessionStore {
   user: SessionUser | null = null;
+  // 역할 내재화용 단일 분기 — 화면의 isAdmin 분기는 전부 이걸 쓴다.
+  // 실제 권한은 서버 requireAdmin이 강제하므로 클라 분기는 순수 UX다.
+  get isAdmin(): boolean {
+    return this.user?.role === "admin";
+  }
   // 마지막 로드가 401이 아닌 실패(5xx·오프라인)로 끝났고 로그인 여부를 모를 때 true.
   // 라우트 가드가 '비로그인'으로 오판해 /login 으로 밀어내는 것을 막는 용도
   unreachable = false;

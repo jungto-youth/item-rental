@@ -6,7 +6,11 @@ import "../components/ui/button";
 
 export function confirmDialog(
   message: string,
-  opts: { confirmLabel?: string; danger?: boolean } = {},
+  opts: {
+    confirmLabel?: string;
+    cancelLabel?: string;
+    danger?: boolean;
+  } = {},
 ): Promise<boolean> {
   return new Promise((resolve) => {
     const host = document.createElement("div");
@@ -21,7 +25,7 @@ export function confirmDialog(
     const cancelBtn = document.createElement("x-button");
     cancelBtn.setAttribute("variant", "secondary");
     cancelBtn.setAttribute("slot", "footer");
-    cancelBtn.textContent = "취소";
+    cancelBtn.textContent = opts.cancelLabel ?? "취소";
     cancelBtn.addEventListener("click", () => done(false));
     const okBtn = document.createElement("x-button");
     okBtn.setAttribute("variant", opts.danger === false ? "primary" : "danger");
@@ -41,6 +45,9 @@ export function confirmDialog(
     const p = document.createElement("p");
     p.textContent = message;
     p.style.margin = "0";
+    // 긴 경고(탈퇴 후 재로그인 불가, 삭제 시 대여 이력 등)는 여러 줄로 읽히는데,
+    // 기본 white-space 는 \n 을 공백으로 뭉개 한 줄에 쑤셔 넣는다
+    p.style.whiteSpace = "pre-line";
     modal.append(p, cancelBtn, okBtn);
     // 닫기(×)·백드롭도 취소로 처리 — modal이 close 이벤트를 내면 위에서 done(false)
   });

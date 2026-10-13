@@ -1,46 +1,31 @@
 import { LitElement, html, css, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { api } from "../api/client";
 import { session, type SessionUser } from "../context/session";
-import "../components/ui/badge";
 import "../components/ui/button";
 import "../components/ui/empty";
 import "../components/ui/notice";
 import "../components/ui/page-header";
-import "../components/ui/input";
+import "../components/common/profile-form";
 import { reduceMotion } from "../styles/motion";
-import { sectionHeadingCss, linkButtonCss } from "../styles/sections";
+import { cardCss, sectionTitleCss } from "../styles/ui";
 
 // 내 정보 페이지: 계정 정보 (상단 배너 + 계정 정보 카드)
+// 수정 폼은 profile-form 공용 (온보딩과 동일 입력·검증·저장).
 @customElement("page-mypage")
 export class PageMypage extends LitElement {
   @state() private user: SessionUser | null = null;
   @state() private loading = true;
-  // 인라인 수정 — 카드 안에서 바로 수정 (온보딩용 /signup/profile 과 별개 흐름)
+  // 표시 모드 ↔ 수정 모드 전환
   @state() private editing = false;
-  @state() private formName = "";
-  @state() private formPhone = "";
-  @state() private formMessage = "";
-  @state() private busy = false;
   @state() private saved = false;
 
   static styles = [
     reduceMotion,
-    sectionHeadingCss,
-    linkButtonCss,
+    sectionTitleCss,
+    cardCss,
     css`
       :host {
         display: block;
-      }
-      .card {
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-lg, 12px);
-        padding: var(--space-4);
-        display: grid;
-        gap: var(--space-2);
-        font-size: var(--text-body);
-        line-height: 1.47;
       }
       .profile-card {
         margin-top: var(--space-3);
@@ -50,36 +35,33 @@ export class PageMypage extends LitElement {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
+        gap: var(--space-3, 12px);
       }
       /* 상단 안내 — 연락처 미등록일 때만 노출 (탈퇴 회원은 이 페이지에 도달할 수 없다) */
       x-notice {
         display: block;
         margin-bottom: var(--space-4, 16px);
       }
-      /* 인라인 수정 폼 — 카드 안 상태 전환 (표시 모드 ↔ 입력 모드) */
-      .edit-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: var(--space-2);
-        margin-top: 6px;
-      }
-      .form-msg {
-        color: var(--color-danger);
-        font-size: var(--text-fine, 12px);
-        margin: 0;
-        min-height: 1em;
-      }
       .profile-actions {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 8px;
-        margin-top: 4px;
+        gap: var(--space-2, 8px);
+        margin-top: var(--space-1, 4px);
       }
       .saved-msg {
-        color: var(--color-success);
+        color: var(--tone-success-text, var(--color-success));
         font-size: var(--text-fine, 12px);
+      }
+      .account-section {
+        margin-top: var(--space-2, 8px);
+      }
+      .sub {
+        color: var(--color-muted);
+        font-size: var(--text-fine, 12px);
+      }
+      profile-form {
+        margin-top: var(--space-3, 12px);
       }
     `,
   ];
@@ -90,41 +72,17 @@ export class PageMypage extends LitElement {
     this.loading = false;
   }
 
-  // 인라인 수정 시작 — 현재 값으로 폼 초기화 (표시 모드 → 입력 모드)
   private startEdit() {
     if (!this.user) return;
-    this.formName = this.user.name;
-    this.formPhone = this.user.phone ?? "";
-    this.formMessage = "";
     this.saved = false;
     this.editing = true;
   }
 
-  private cancelEdit() {
+  // profile-form이 저장·세션 갱신까지 끝냈다 — 표시 모드로 복귀만 한다
+  private onSaved() {
+    this.user = session.user;
     this.editing = false;
-    this.formMessage = "";
-  }
-
-  // 저장 후 세션 갱신 → 표시 모드 복귀. /signup/profile 과 동일한 API 사용
-  private async save(e: Event) {
-    e.preventDefault();
-    if (this.busy) return;
-    this.busy = true;
-    this.formMessage = "";
-    try {
-      await api("/api/me/profile", {
-        method: "PUT",
-        body: JSON.stringify({ name: this.formName, phone: this.formPhone }),
-      });
-      await session.refresh();
-      this.user = session.user;
-      this.editing = false;
-      this.saved = true;
-    } catch (err) {
-      this.formMessage = err instanceof Error ? err.message : "저장에 실패했어요.";
-    } finally {
-      this.busy = false;
-    }
+    this.saved = true;
   }
 
   // 상단 안내 — 연락처 미등록일 때만 노출
@@ -149,59 +107,36 @@ export class PageMypage extends LitElement {
         ? html`<x-notice>${this.banner}</x-notice>`
         : ""}
 
-      <!-- 계정 정보 카드 — 표시 모드(기본) / 인라인 수정 모드 전환 -->
-      <section style="margin-top: var(--space-6)">
+      <!-- 계정 정보 카드 — 표시 모드(기본) / 수정 모드 전환 -->
+      <section class="account-section">
         <h2>계정 정보</h2>
 
         ${this.editing
           ? html`
-              <form class="card profile-card" @submit=${this.save}>
-                <x-input
-                  label="이름"
-                  required
-                  .value=${this.formName}
-                  @input=${(e: Event) => (this.formName = (e.target as HTMLInputElement).value)}
-                ></x-input>
-                <x-input
-                  label="휴대폰 번호"
-                  type="tel"
-                  placeholder="010-1234-5678"
-                  required
-                  .value=${this.formPhone}
-                  @input=${(e: Event) => (this.formPhone = (e.target as HTMLInputElement).value)}
-                ></x-input>
-                <p class="form-msg" aria-live="polite">${this.formMessage}</p>
-                <div class="edit-actions">
-                  <x-button
-                    variant="secondary"
-                    size="md"
-                    type="button"
-                    ?disabled=${this.busy}
-                    @click=${this.cancelEdit}
-                  >
-                    취소
-                  </x-button>
-                  <x-button variant="primary" size="md" type="submit" ?loading=${this.busy}>
-                    저장
-                  </x-button>
-                </div>
-              </form>
+              <profile-form
+                hint=""
+                cancellable
+                .initialName=${this.user.name}
+                .initialPhone=${this.user.phone ?? ""}
+                @saved=${this.onSaved}
+                @cancel=${() => (this.editing = false)}
+              ></profile-form>
             `
           : html`
               <div class="card profile-card">
                 <div class="profile-row">
                   <div>
                     <b>${this.user.name || this.user.email}</b>
-                    <div style="color: var(--color-muted); font-size: var(--text-fine, 12px);">
+                    <div class="sub">
                       ${this.user.email} ${this.user.phone ? `· ${this.user.phone}` : ""}
                     </div>
                   </div>
                 </div>
                 <div class="profile-actions">
                   <span class="saved-msg" role="status" ?hidden=${!this.saved}>저장했어요</span>
-                  <button type="button" class="link-btn" @click=${this.startEdit}>
+                  <x-button variant="secondary" size="sm" type="button" @click=${this.startEdit}>
                     수정
-                  </button>
+                  </x-button>
                 </div>
               </div>
             `}

@@ -22,7 +22,6 @@
   --color-primary-text: #ffffff;
   --color-primary-focus: #0071e3;
   --color-primary-tint: rgba(0, 102, 204, 0.08);
-  --color-link-on-dark: #2997ff;
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger: #e11d48;
@@ -34,28 +33,21 @@
   --dot-rented: #71717a;
   --dot-repair: #f59e0b;
 
-  /* 상태 톤 토큰 */
-  --tone-success-bg: #ecfdf5;
-  --tone-success-text: #065f46;
+  /* 상태 톤 토큰 — 상태 표시용 팔레트(--color-success 등)가 아니라 "문장으로 읽히는"
+     피드백(성공/경고/오류)에 쓴다. 색을 상태색으로 두면 흰 배경에서 2.5:1로
+     WCAG AA(4.5:1)를 못 채우기 때문에 본문 판독용 톤을 따로 둔다. */
+  --tone-success-text: #047857; /* emerald-700 — 흰 배경 4.8:1 */
   --tone-warning-bg: #fffbeb;
   --tone-warning-text: #92400e;
   --tone-danger-bg: #fff1f2;
   --tone-danger-text: #9f1239;
-  --tone-info-bg: #f4f4f5;
-  --tone-info-text: #27272a;
-  --tone-violet-bg: #faf5ff;
-  --tone-violet-text: #581c87;
 
-  /* 라운드 스케일 — 컨트롤 8px / 카드 12px */
+  /* 라운드 스케일 — 컨트롤 8px / 카드 12px / 알약(pill)은 완전 둥글게.
+     raw px 반경 금지 — 셋 중 하나로만 쓴다. */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
-  /* 이전 코드 하위 호환 별칭 */
-  --radius: 12px;
-  --radius-pill: 8px;
-
-  /* 셀렉트 커스텀 체브런 — 사용처에서 background-image: var(--arrow-chevron) */
-  --arrow-chevron: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 4 L8 10 M12 4 L8 10' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --radius-pill: 999px;
 
   /* 간격 스케일 (4px 그리드) */
   --space-1: 4px;
@@ -72,7 +64,6 @@
   /* 20px */
   --text-page-title: 1.375rem;
   /* 22px — 페이지 대제목(x-page-header h1 등) */
-  --text-heading-lg: 1.25rem;
   --text-heading: 1.0625rem;
   /* 17px */
   --text-body: 0.9375rem;
@@ -108,7 +99,6 @@
     --color-primary-text: #ffffff;
     --color-primary-focus: #388bfd;
     --color-primary-tint: rgba(41, 151, 255, 0.15);
-    --color-link-on-dark: #2997ff;
     --color-success: #10b981;
     --color-warning: #f59e0b;
     --color-danger: #fb7185;
@@ -118,18 +108,11 @@
     --dot-rented: #8e8e93;
     --dot-repair: #f59e0b;
 
-    --tone-success-bg: #064e3b;
-    --tone-success-text: #a7f3d0;
+    --tone-success-text: #6ee7b7;
     --tone-warning-bg: #451a03;
     --tone-warning-text: #fde68a;
     --tone-danger-bg: #4c0519;
     --tone-danger-text: #fecdd3;
-    --tone-info-bg: #27272a;
-    --tone-info-text: #e4e4e7;
-    --tone-violet-bg: #3b0764;
-    --tone-violet-text: #e9d5ff;
-
-    --arrow-chevron: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 4 L8 10 M12 4 L8 10' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
 }
 
@@ -145,7 +128,6 @@
   --color-primary-text: #ffffff;
   --color-primary-focus: #388bfd;
   --color-primary-tint: rgba(41, 151, 255, 0.15);
-  --color-link-on-dark: #2997ff;
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger: #fb7185;
@@ -155,18 +137,11 @@
   --dot-rented: #8e8e93;
   --dot-repair: #f59e0b;
 
-  --tone-success-bg: #064e3b;
-  --tone-success-text: #a7f3d0;
+  --tone-success-text: #6ee7b7;
   --tone-warning-bg: #451a03;
   --tone-warning-text: #fde68a;
   --tone-danger-bg: #4c0519;
   --tone-danger-text: #fecdd3;
-  --tone-info-bg: #27272a;
-  --tone-info-text: #e4e4e7;
-  --tone-violet-bg: #3b0764;
-  --tone-violet-text: #e9d5ff;
-
-  --arrow-chevron: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 4 L8 10 M12 4 L8 10' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 body {

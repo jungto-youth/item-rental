@@ -4,12 +4,14 @@ import { api } from "../api/client";
 import { fmtKstDate } from "../utils/date";
 import { confirmDialog } from "../utils/confirm";
 import { session } from "../context/session";
-import "../components/ui/badge";
+import { navigate } from "../router";
+import "../components/ui/button";
 import "../components/ui/empty";
 import "../components/ui/page-header";
+import "../components/common/reservation-row";
 import type { MyReservation } from "../types";
 import { reduceMotion } from "../styles/motion";
-import { sectionHeadingCss, linkButtonCss } from "../styles/sections";
+import { sectionTitleCss } from "../styles/ui";
 
 // 대여 내역 페이지: 현재 대여 중 + 대여 이력 + 반납·취소
 @customElement("page-my-rentals")
@@ -18,11 +20,16 @@ export class PageMyRentals extends LitElement {
   @state() private reservations: MyReservation[] = [];
   @state() private busy = false;
   @state() private message = "";
+  // 성공/실패 구분 — "취소 실패"가 "취소했어요"와 같은 파란색으로 나오면 안 된다
+  @state() private messageTone: "info" | "success" | "error" = "info";
+  // 반납·취소 처리 중인 예약 — 어느 행이, 어느 동작이 걸려 있는지 알아야
+  // 그 행의 그 버튼에만 스피너를 띄울 수 있다
+  @state() private processing: { id: number; kind: "return" | "cancel" } | null =
+    null;
 
   static styles = [
     reduceMotion,
-    sectionHeadingCss,
-    linkButtonCss,
+    sectionTitleCss,
     css`
       :host {
         display: block;
@@ -30,51 +37,12 @@ export class PageMyRentals extends LitElement {
       .section-top {
         margin-top: var(--space-2);
       }
-      .card {
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md, 8px);
-        padding: var(--space-3) var(--space-4);
-        margin-bottom: var(--space-2);
-        transition: border-color 0.15s ease;
-      }
-      .card.active-card {
-        border-left: 3px solid var(--color-primary);
-      }
-      .row {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3);
-        font-size: var(--text-body);
-      }
-      .row .name {
-        font-weight: 600;
-        letter-spacing: var(--tracking-tight);
-      }
-      .row .dates {
-        color: var(--color-muted);
-        font-size: var(--text-caption);
-      }
-      .row .spacer {
-        flex: 1;
-      }
-      .action-group {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .note {
-        color: var(--color-muted);
-        font-size: var(--text-caption);
-        margin: 0;
-        padding-top: var(--space-1);
-      }
       .empty-box {
         text-align: center;
         padding: var(--space-5) var(--space-4);
         background: var(--color-surface);
         border: 1px dashed var(--color-border);
-        border-radius: var(--radius-md, 8px);
+        border-radius: var(--radius-lg, 12px);
         color: var(--color-muted);
         font-size: var(--text-caption);
       }
@@ -90,6 +58,12 @@ export class PageMyRentals extends LitElement {
         font-size: var(--text-caption);
         min-height: 1.2em;
         margin: 0 0 var(--space-2);
+      }
+      .msg.success {
+        color: var(--tone-success-text, var(--color-primary));
+      }
+      .msg.error {
+        color: var(--tone-danger-text, var(--color-danger));
       }
       details.history-details {
         margin-top: var(--space-5);
@@ -123,7 +97,8 @@ export class PageMyRentals extends LitElement {
       );
       this.reservations = res.reservations;
     } catch (e) {
-      this.message = e instanceof Error ? e.message : "오류";
+      this.message = e instanceof Error ? e.message : "대여 내역을 불러오지 못했어요";
+      this.messageTone = "error";
     }
   }
 
@@ -134,34 +109,43 @@ export class PageMyRentals extends LitElement {
   private async doCancel(r: MyReservation) {
     if (this.busy) return;
     this.busy = true;
+    this.processing = { id: r.id, kind: "cancel" };
     try {
       await api(`/api/reservations/${r.id}/cancel`, { method: "POST" });
       this.message = `${r.item_name} 대여를 취소했어요`;
+      this.messageTone = "success";
       await this.loadReservations();
     } catch (e) {
-      this.message = e instanceof Error ? e.message : "취소 실패";
+      this.message = e instanceof Error ? e.message : "취소하지 못했어요";
+      this.messageTone = "error";
     } finally {
       this.busy = false;
+      this.processing = null;
     }
   }
 
   private async doReturn(r: MyReservation) {
     if (this.busy) return;
     this.busy = true;
+    this.processing = { id: r.id, kind: "return" };
     try {
       await api(`/api/reservations/${r.id}/return`, { method: "POST" });
       this.message = `${r.item_name} 반납 완료 처리되었어요`;
+      this.messageTone = "success";
       await this.loadReservations();
     } catch (e) {
-      this.message = e instanceof Error ? e.message : "반납 실패";
+      this.message = e instanceof Error ? e.message : "반납 처리하지 못했어요";
+      this.messageTone = "error";
     } finally {
       this.busy = false;
+      this.processing = null;
     }
   }
 
   // 확인은 다른 화면과 같은 confirmDialog(모달)로 — 반납·취소는 되돌릴 수 있거나
   // 자기 신고라 위험 동작이 아니므로 확인 버튼은 기본(primary) 톤을 쓴다
   private async onReturn(r: MyReservation) {
+    // busy 확인은 다이얼로그보다 먼저 — 뒤에 두면 연타로 다이얼로그가 두 개 열린다
     if (this.busy) return;
     if (
       !(await confirmDialog(`'${r.item_name}'를 반납할까요?`, {
@@ -186,53 +170,63 @@ export class PageMyRentals extends LitElement {
   }
 
   private renderActiveRow(r: MyReservation) {
+    // 처리 중인 건만 스피너 — 목록 전체가 함께 잠기면 어느 건이 걸렸는지 모른다
+    const mine = this.processing?.id === r.id;
+    const blocked = this.busy && !mine;
     return html`
-      <div class="card active-card">
-        <div class="row">
-          <div>
-            <div class="name">
-              ${r.item_name} · ${r.qty}개
-            </div>
-            <div class="dates">${this.fmtDate(r.created_at)} 대여 신청</div>
-          </div>
-          <div class="spacer"></div>
-          <div class="action-group">
-            <button class="link-btn" ?disabled=${this.busy} @click=${() => this.onReturn(r)}>
-              반납하기
-            </button>
-            <button class="link-btn danger" ?disabled=${this.busy} @click=${() => this.onCancel(r)}>
-              취소
-            </button>
-          </div>
-        </div>
-        ${r.member_memo ? html`<p class="note">메모: ${r.member_memo}</p>` : ""}
-      </div>
+      <reservation-row active title="${r.item_name} · ${r.qty}개">
+        <x-button
+          slot="actions"
+          variant="primary"
+          size="md"
+          ?loading=${mine && this.processing?.kind === "return"}
+          ?disabled=${blocked}
+          @click=${() => this.onReturn(r)}
+        >
+          반납하기
+        </x-button>
+        <x-button
+          slot="actions"
+          variant="secondary"
+          size="md"
+          ?loading=${mine && this.processing?.kind === "cancel"}
+          ?disabled=${blocked}
+          @click=${() => this.onCancel(r)}
+        >
+          취소
+        </x-button>
+        <span>${this.fmtDate(r.created_at)} 대여 신청</span>
+        ${r.member_memo ? html`<span>메모: ${r.member_memo}</span>` : ""}
+      </reservation-row>
     `;
   }
 
   private renderHistoryRow(r: MyReservation) {
     return html`
-      <div class="card">
-        <div class="row">
-          <div>
-            <div class="name">
-              ${r.item_name} · ${r.qty}개
-            </div>
-            <div class="dates">
-              ${this.fmtDate(r.created_at)} 대여${r.status === "returned" ? html` → ${this.fmtDate(r.updated_at)} 반납` : ""}
-            </div>
-          </div>
-          <div class="spacer"></div>
-          <x-badge kind=${r.status}></x-badge>
-        </div>
-        ${r.member_memo ? html`<p class="note">메모: ${r.member_memo}</p>` : ""}
-      </div>
+      <reservation-row
+        title="${r.item_name} · ${r.qty}개"
+        badgeKind=${r.status}
+      >
+        <span>
+          ${this.fmtDate(r.created_at)} 대여${r.status === "returned" ? html` → ${this.fmtDate(r.updated_at)} 반납` : ""}
+        </span>
+        ${r.member_memo ? html`<span>메모: ${r.member_memo}</span>` : ""}
+      </reservation-row>
     `;
   }
 
   render() {
     if (this.loading) return html`<x-empty state="loading"></x-empty>`;
-    if (!session.user) return html`<x-empty state="empty" text="로그인이 필요해요"></x-empty>`;
+    // 방어적 분기 — 라우트 가드가 /login 으로 보내지만, 세션이 그 사이 만료되면
+    // "로그인이 필요해요"만으로는 사용자가 갈 곳을 알 수 없다
+    if (!session.user)
+      return html`
+        <x-empty state="empty" text="로그인이 필요해요">
+          <x-button variant="primary" size="md" @click=${() => navigate("/login")}>
+            로그인
+          </x-button>
+        </x-empty>
+      `;
 
     const rentedList = this.reservations.filter((r) => r.status === "rented");
     const historyList = this.reservations.filter(
@@ -242,7 +236,14 @@ export class PageMyRentals extends LitElement {
     return html`
       <x-page-header title="대여 내역"></x-page-header>
 
-      ${this.message ? html`<p class="msg" aria-live="polite">${this.message}</p>` : ""}
+      ${this.message
+        ? html`<p
+            class="msg ${this.messageTone}"
+            role=${this.messageTone === "error" ? "alert" : "status"}
+          >
+            ${this.message}
+          </p>`
+        : ""}
 
       <!-- 1순위: 현재 대여 중인 물품 -->
       <section class="section-top">

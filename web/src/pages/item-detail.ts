@@ -5,9 +5,11 @@ import { session, type SessionUser } from "../context/session";
 import { type Item } from "../types";
 import { reduceMotion } from "../styles/motion";
 import { navigate } from "../router";
+import { availableQty } from "../utils/stock";
 import "../components/ui/badge";
 import "../components/ui/button";
 import "../components/ui/empty";
+import "../components/ui/page-header";
 import "../components/features/item/item-gallery";
 import "../components/features/item/item-rental-form";
 
@@ -35,49 +37,17 @@ export class PageItemDetail extends LitElement {
       .top-nav {
         display: flex;
         align-items: center;
-        justify-content: flex-end; /* 액션은 오른쪽에 모은다 — 다이얼로그 푸터(취소→확인)와 동일 순서 */
+        justify-content: space-between;
         gap: var(--space-2, 8px);
         margin-bottom: var(--space-4, 16px);
       }
 
-      .content-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: var(--space-5, 24px);
-      }
-
-      @media (min-width: 768px) {
-        .content-grid {
-          grid-template-columns: 1.1fr 1fr;
-          align-items: start;
-        }
-      }
-
-      .info-col {
+      /* 단일 열 — 갤러리 → 정보 → 신청폼 순서로 쌓는다.
+         2열 분할은 720폭에서 양쪽이 다 비좁아지는だけ라 걷어냈다. */
+      .content-col {
         display: flex;
         flex-direction: column;
         gap: var(--space-4, 16px);
-      }
-
-      .header-area {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .title-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-      }
-
-      h1 {
-        font-size: var(--text-title, 20px);
-        font-weight: 600;
-        margin: 0;
-        line-height: 1.3;
-        color: var(--color-text);
       }
 
       .desc {
@@ -91,7 +61,7 @@ export class PageItemDetail extends LitElement {
       .tags {
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: var(--space-2, 8px);
       }
 
       .tag {
@@ -99,14 +69,14 @@ export class PageItemDetail extends LitElement {
         color: var(--color-text);
         background: var(--color-bg);
         border: 1px solid var(--color-border);
-        border-radius: 999px;
+        border-radius: var(--radius-pill, 999px);
         padding: 2px 10px;
       }
 
       .attrs {
         display: grid;
         grid-template-columns: 100px 1fr;
-        gap: 10px 12px;
+        gap: var(--space-2, 8px) var(--space-3, 12px);
         margin: 0;
         font-size: var(--text-caption, 13px);
         line-height: 1.5;
@@ -120,57 +90,6 @@ export class PageItemDetail extends LitElement {
       dd {
         margin: 0;
         color: var(--color-text);
-      }
-
-      .mobile-cta-bar {
-        display: none;
-      }
-
-      @media (max-width: 767px) {
-        :host {
-          padding-bottom: 72px;
-        }
-
-        .mobile-cta-bar {
-          display: flex;
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          background: var(--color-bg);
-          border-top: 1px solid var(--color-border);
-          padding: 10px var(--space-4, 16px);
-          gap: 12px;
-          align-items: center;
-          justify-content: space-between;
-          z-index: 20;
-          box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
-        }
-
-        .mobile-cta-text {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          min-width: 0;
-        }
-
-        .mobile-cta-name {
-          font-size: var(--text-caption, 13px);
-          font-weight: 600;
-          color: var(--color-text);
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .mobile-cta-status {
-          font-size: var(--text-fine, 12px);
-          color: var(--color-muted);
-        }
-
-        .mobile-cta-btn {
-          flex-shrink: 0;
-        }
       }
     `,
   ];
@@ -207,13 +126,18 @@ export class PageItemDetail extends LitElement {
     return this.user?.role === "admin";
   }
 
-  private get rentableQty(): number {
-    if (!this.item) return 0;
-    return this.item.rentable_qty ?? (this.item.total_qty - (this.item.qty_broken ?? 0));
+  // 목록으로 돌아가기 — 이 앱 안에서 왔으면 히스토리 한 칸 뒤로, 새 탭·공유
+  // 링크로 진입했으면(뒤로가기가 앱 밖으로 나가는 경우) 목록으로 직행한다
+  private goBack() {
+    if (window.history.state) {
+      history.back();
+      return;
+    }
+    navigate(location.search ? `/${location.search}` : "/");
   }
 
   private get availableNow(): number {
-    return Math.max(0, this.rentableQty - (this.item?.active_now ?? 0));
+    return this.item ? availableQty(this.item) : 0;
   }
 
   // 정보 행 — 재고/구분/위치를 하나의 dl 그리드로 통일
@@ -233,21 +157,42 @@ export class PageItemDetail extends LitElement {
     return pairs;
   }
 
+  // 상단 바 — 왼쪽은 "되돌아가기"(이동), 오른쪽은 화면 액션(관리자 수정).
+  // "취소"라는 라벨은 대여 신청을 취소하는 것처럼 읽혀서, 어디로 가는지
+  // 이름이 드러나는 "목록으로"로 바꾼다
+  private renderTopNav() {
+    const it = this.item;
+    return html`
+      <div class="top-nav">
+        <x-button variant="secondary" size="sm" @click=${this.goBack}>
+          ← 목록으로
+        </x-button>
+        ${it && this.isAdmin
+          ? html`
+              <x-button
+                variant="primary"
+                size="sm"
+                @click=${() => navigate(`/items/${it.id}/edit`)}
+              >
+                수정
+              </x-button>
+            `
+          : ""}
+      </div>
+    `;
+  }
+
   render() {
     if (this.error) {
       return html`
-        <div class="top-nav">
-          <x-button variant="secondary" size="sm" @click=${() => history.back()}>취소</x-button>
-        </div>
+        ${this.renderTopNav()}
         <x-empty state="error" text=${this.error}></x-empty>
       `;
     }
 
     if (this.loading || !this.item) {
       return html`
-        <div class="top-nav">
-          <x-button variant="secondary" size="sm" @click=${() => history.back()}>취소</x-button>
-        </div>
+        ${this.renderTopNav()}
         <x-empty state="loading"></x-empty>
       `;
     }
@@ -256,87 +201,47 @@ export class PageItemDetail extends LitElement {
     const attrs = this.attrPairs();
 
     return html`
-      <div class="top-nav">
-        <x-button variant="secondary" size="sm" @click=${() => history.back()}>취소</x-button>
-        ${this.isAdmin
+      ${this.renderTopNav()}
+
+      <div class="content-col">
+        <item-gallery .photos=${it.photos} .name=${it.name}></item-gallery>
+
+        <x-page-header title=${it.name}>
+          ${it.availability_badge
+            ? html`<x-badge slot="action" kind=${it.availability_badge}></x-badge>`
+            : ""}
+        </x-page-header>
+
+        ${it.description ? html`<p class="desc">${it.description}</p>` : ""}
+        ${it.categories?.length
           ? html`
-              <x-button variant="primary" size="sm" @click=${() => navigate(`/admin/items/${it.id}`)}>
-                수정
-              </x-button>
+              <div class="tags">
+                ${it.categories.map(
+                  (c) => html`<span class="tag">#${c.name}</span>`,
+                )}
+              </div>
             `
           : ""}
+        ${attrs.length > 0
+          ? html`
+              <dl class="attrs">
+                ${attrs.map(
+                  ([k, v]) => html`
+                    <dt>${k}</dt>
+                    <dd>${v}</dd>
+                  `,
+                )}
+              </dl>
+            `
+          : ""}
+
+        <item-rental-form
+          .item=${it}
+          .user=${this.user}
+          .userReady=${this.userReady}
+          @rented=${() => void this.load(true)}
+        ></item-rental-form>
       </div>
-
-      <div class="content-grid">
-        <div class="gallery-col">
-          <item-gallery .photos=${it.photos} .name=${it.name}></item-gallery>
-        </div>
-
-        <div class="info-col">
-          <div class="header-area">
-            <div class="title-row">
-              <h1>${it.name}</h1>
-              ${it.availability_badge
-                ? html`<x-badge kind=${it.availability_badge}></x-badge>`
-                : ""}
-            </div>
-            ${it.description ? html`<p class="desc">${it.description}</p>` : ""}
-            ${it.categories?.length
-              ? html`
-                  <div class="tags">
-                    ${it.categories.map(
-                      (c) => html`<span class="tag">#${c.name}</span>`,
-                    )}
-                  </div>
-                `
-              : ""}
-          </div>
-
-          ${attrs.length > 0
-            ? html`
-                <dl class="attrs">
-                  ${attrs.map(
-                    ([k, v]) => html`
-                      <dt>${k}</dt>
-                      <dd>${v}</dd>
-                    `,
-                  )}
-                </dl>
-              `
-            : ""}
-
-          <item-rental-form
-            .item=${it}
-            .user=${this.user}
-            .userReady=${this.userReady}
-            @rented=${() => void this.load(true)}
-          ></item-rental-form>
-        </div>
-      </div>
-
-      ${it.kind !== "consumable" && this.availableNow > 0
-        ? html`
-            <div class="mobile-cta-bar">
-              <div class="mobile-cta-text">
-                <span class="mobile-cta-name">${it.name}</span>
-                <span class="mobile-cta-status">${this.availableNow}개 대여 가능</span>
-              </div>
-              <div class="mobile-cta-btn">
-                <x-button
-                  variant="primary"
-                  size="md"
-                  @click=${() => {
-                    this.renderRoot
-                      .querySelector("item-rental-form")
-                      ?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                >
-                  대여하기
-                </x-button>
-              </div>
-            </div>
-          `
-        : ""}
     `;
   }
 }
