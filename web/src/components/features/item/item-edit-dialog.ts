@@ -353,6 +353,7 @@ export class ItemEditDialog extends LitElement {
           ></x-input>
 
           <photo-uploader
+            .active=${this.open}
             .disabled=${this.uploadingPhoto || this.saving}
             .entries=${this.photos.map((p) => ({ url: p.url, key: p.id }))}
             @upload=${this.onPhotoUpload}

@@ -1,5 +1,7 @@
 import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
+import type { CameraCaptureDialog } from "./camera-capture-dialog";
+import "./camera-capture-dialog";
 
 /** 등록/편집 다이얼로그 공용 사진 업로더.
     표시·선택·삭제 이벤트만 담당하고, 업로드/검증/저장은 각 다이얼로그가 처리한다.
@@ -14,10 +16,60 @@ export class PhotoUploader extends LitElement {
   @property({ type: Number }) max = 3;
   @property({ type: Boolean }) multiple = false;
   @property({ type: Boolean }) disabled = false;
+  @property({ type: Boolean }) active = true;
   @property({ type: String }) hint = "JPEG · PNG · WebP · 원본 용량 제한 없음 · 최대 3장 · 업로드 전 2MB 이하로 자동 축소";
+  @state() private cameraMessage = "";
+  private cameraDialog: CameraCaptureDialog | null = null;
+
+  private get canAdd() {
+    return this.active && !this.disabled && this.entries.length < this.max;
+  }
+
+  private openCamera() {
+    if (!this.canAdd || this.cameraDialog) return;
+    this.cameraMessage = "";
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      this.cameraMessage = !window.isSecureContext
+        ? "실시간 카메라는 HTTPS 또는 localhost에서 사용할 수 있어요. 여기서는 기기의 촬영/파일 선택 화면을 사용해요"
+        : "실시간 카메라를 지원하지 않는 브라우저예요. 기기의 촬영/파일 선택 화면을 사용해요";
+      this.openPicker("photo-camera");
+      return;
+    }
+    const dialog = document.createElement("camera-capture-dialog");
+    this.cameraDialog = dialog;
+    dialog.addEventListener("photo-captured", (e) => {
+      const { file } = (e as CustomEvent<{ file: File }>).detail;
+      this.closeCamera();
+      if (this.canAdd) this.dispatchUpload([file]);
+    });
+    dialog.addEventListener("close", () => this.closeCamera());
+    // Place above the item modal without propagating camera-close to the item form.
+    document.body.append(dialog);
+    dialog.open = true;
+  }
+
+  private closeCamera() {
+    const dialog = this.cameraDialog;
+    this.cameraDialog = null;
+    dialog?.remove();
+  }
+
+  protected updated(changed: Map<string | number | symbol, unknown>) {
+    super.updated(changed);
+    if (!this.canAdd) this.closeCamera();
+  }
+
+  disconnectedCallback() {
+    this.closeCamera();
+    super.disconnectedCallback();
+  }
+
+  private dispatchUpload(files: File[]) {
+    this.dispatchEvent(new CustomEvent("upload", { detail: { files }, bubbles: true, composed: true }));
+  }
 
   private openPicker(id: string) {
-    if (this.disabled || this.entries.length >= this.max) return;
+    if (!this.canAdd) return;
     this.renderRoot.querySelector<HTMLInputElement>(`#${id}`)?.click();
   }
 
@@ -25,10 +77,8 @@ export class PhotoUploader extends LitElement {
     const input = e.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     input.value = "";
-    if (this.disabled || files.length === 0) return;
-    this.dispatchEvent(
-      new CustomEvent("upload", { detail: { files }, bubbles: true, composed: true }),
-    );
+    if (!this.canAdd || files.length === 0) return;
+    this.dispatchUpload(files);
   }
 
   private handleRemove(key: string | number) {
@@ -227,7 +277,7 @@ export class PhotoUploader extends LitElement {
                   class="add-tile"
                   title="사진 촬영"
                   ?disabled=${this.disabled}
-                  @click=${() => this.openPicker("photo-camera")}
+                  @click=${this.openCamera}
                 >
                   <svg
                     class="add-icon"
@@ -271,6 +321,7 @@ export class PhotoUploader extends LitElement {
             : ""}
         </div>
         <p class="photo-hint">${this.hint}</p>
+        ${this.cameraMessage ? html`<p class="photo-hint" role="status">${this.cameraMessage}</p>` : ""}
       </div>
     `;
   }

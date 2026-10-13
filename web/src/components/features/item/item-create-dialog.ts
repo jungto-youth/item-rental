@@ -309,6 +309,7 @@ export class ItemCreateDialog extends LitElement {
 
           <photo-uploader
             multiple
+            .active=${this.open}
             .disabled=${this.processingPhotos || this.saving}
             .entries=${this.stagedUrls.map((u, i) => ({ url: u, key: i }))}
             @upload=${this.onPhotoUpload}
