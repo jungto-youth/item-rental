@@ -1,0 +1,11 @@
+// 스크립트의 타입 검사 — 이전의 `deno check --sloppy-imports server/scripts` 를 대체한다.
+// @cloudflare/workers-types 가 process 를 any 로 선언해(process: any) Node 전용 타입이
+// 뭉개진다. 스크립트는 워커 코드를 import 하지 않으므로 Node 타입만 켠다.
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["@types/node"],
+  },
+  "include": ["scripts"],
+}

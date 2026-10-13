@@ -6,6 +6,9 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
+    // Node 가 직접 로드하는 코드(server/tests·scripts)는 상대 경로에 .ts 를 붙여
+    // import 한다 — 번들러가 아니라 Node 리졸버가 해석하기 때문
+    "allowImportingTsExtensions": true,
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
   },

@@ -1,13 +1,13 @@
 // 의미 검색용 임베딩 헬퍼 — Workers AI @cf/baai/bge-m3 (다국어, 1024차원)
 // 생성은 물품 등록/수정 시 1회, 검색 시 쿼리 텍스트만 즉시 임베딩 ()
-// D1엔 pgvector가 없다 — 벡터는 BLOB(1024×f32 little-endian)로 저장하고 코사인은 JS로 계산한다 (PLAN §7.1)
+// D1엔 pgvector가 없다 — 벡터는 BLOB(1024×f32 little-endian)로 저장하고 코사인은 JS로 계산한다
 import type { Bindings } from './types'
 import { getDb, type Sql } from './db'
 
 const MODEL = '@cf/baai/bge-m3'
 
 // 임베딩 입력 텍스트 — 이름·설명·태그 (0021부터 태그 포함 — 뿓뿓 분류 키워드 의미 검색)
-export function itemEmbedText(name: string, description: string | null, tags = ''): string {
+function itemEmbedText(name: string, description: string | null, tags = ''): string {
   return [name, description ?? '', tags].filter(Boolean).join(' | ')
 }
 
@@ -23,7 +23,7 @@ export async function embed(env: Bindings, text: string): Promise<Float32Array> 
 }
 
 // Float32Array → little-endian f32 BLOB 파라미터. DataView로 명시 LE — 플랫폼 엔디안 가정 제거
-export function vecToBlob(v: Float32Array): Uint8Array {
+function vecToBlob(v: Float32Array): Uint8Array {
   const out = new Uint8Array(v.length * 4)
   const dv = new DataView(out.buffer)
   for (let i = 0; i < v.length; i++) dv.setFloat32(i * 4, v[i], true)
@@ -34,7 +34,7 @@ export function vecToBlob(v: Float32Array): Uint8Array {
 export type Vec = { v: Float32Array; norm: number };
 
 // D1 BLOB(ArrayBuffer) → 벡터 + 노름. 수천 건 전수 계산이라 노름을 저장해 둔다
-export function blobToVec(b: ArrayBuffer | Uint8Array): Vec {
+function blobToVec(b: ArrayBuffer | Uint8Array): Vec {
   const bytes = b instanceof Uint8Array ? b : new Uint8Array(b)
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const n = Math.floor(bytes.byteLength / 4)
@@ -47,7 +47,7 @@ export function blobToVec(b: ArrayBuffer | Uint8Array): Vec {
   return { v, norm: Math.sqrt(sum) }
 }
 
-// ===== isolate 벡터 캐시 (PLAN §7.2) =====
+// ===== isolate 벡터 캐시 =====
 // 최초 의미검색 때 전 물품 벡터를 한 번에 올린다(수백 개 ≈ 수백 KB). 이후 의미검색은 D1 왕복 0.
 // 이 isolate 안의 임베딩 생성/삭제가 캐시를 갱신한다 — 타 isolate의 변경은 isolate 수명(수 분) 안에 반영된다.
 const VEC_CACHE = new Map<number, Vec>()
@@ -63,12 +63,11 @@ export async function getVectorCache(db: Sql): Promise<Map<number, Vec>> {
   return VEC_CACHE
 }
 
-export function cacheVec(itemId: number, vec: Float32Array): void {
+function cacheVec(itemId: number, vec: Float32Array): void {
   let sum = 0
   for (let i = 0; i < vec.length; i++) sum += vec[i] * vec[i]
   VEC_CACHE.set(itemId, { v: vec, norm: Math.sqrt(sum) })
 }
-
 export function uncacheVec(itemId: number): void {
   VEC_CACHE.delete(itemId)
 }

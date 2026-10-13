@@ -2,6 +2,21 @@
   "name": "item-rental",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "npm run dev:api & npm run dev:web; wait",
+    "dev:web": "vite build --watch",
+    "dev:web:hmr": "vite",
+    "dev:api": "wrangler dev",
+    "build": "vite build",
+    "deploy": "vite build && wrangler deploy",
+    "check": "tsc --noEmit -p web && tsc --noEmit -p server && tsc --noEmit -p server/tsconfig.tests.json && tsc --noEmit -p server/tsconfig.scripts.json",
+    "test": "vitest run",
+    "db:seed": "node server/scripts/seed.ts",
+    "db:import-items": "node server/scripts/import-items.ts"
+  },
   "dependencies": {
     "@auth/core": "^0.41.3",
     "@lit-labs/router": "^0.1.4",
@@ -11,10 +26,10 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260918.1",
-    "@types/deno": "^2.7.0",
     "@types/node": "^24",
     "typescript": "^5",
     "vite": "^7",
+    "vitest": "^5.0.3",
     "wrangler": "^4.135.0"
   }
 }

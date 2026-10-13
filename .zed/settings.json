@@ -4,10 +4,10 @@
       "language_servers": ["!eslint", "..."],
     },
     "TypeScript": {
-      "language_servers": ["vtsls", "!deno", "!eslint", "..."],
+      "language_servers": ["vtsls", "!eslint", "..."],
     },
     "TSX": {
-      "language_servers": ["vtsls", "!deno", "!eslint", "..."],
+      "language_servers": ["vtsls", "!eslint", "..."],
     },
   },
 }

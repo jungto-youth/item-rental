@@ -11,16 +11,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: denoland/setup-deno@v2
+      - uses: actions/setup-node@v4
         with:
-          deno-version: v2.x
+          node-version: 24
 
-      # deno.lock 기준 설치 — check가 node_modules의 tsc/vite를 쓰므로 필요
+      # package-lock.json 기준 설치 — check가 node_modules의 tsc/vite를 쓰므로 필요
       - name: Install dependencies
-        run: deno install
+        run: npm ci
 
       - name: Typecheck (web + server + tests + scripts)
-        run: deno task check
+        run: npm run check
 
       - name: Unit tests (DB 불필요 — Sql 스텁)
-        run: deno task test
+        run: npm test

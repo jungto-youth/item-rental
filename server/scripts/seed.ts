@@ -1,13 +1,15 @@
-// 예시 데이터 시드 — deno task db:seed (PLAN §8)
+// 예시 데이터 시드 — npm run db:seed
 // 워커 밖 스크립트는 D1에 직접 연결할 수 없으므로 INSERT SQL을 생성하고
 // wrangler d1 execute 로 적용한다:
-//   deno task db:seed                                                    # out/seed.sql 생성
+//   npm run db:seed                                                      # out/seed.sql 생성
 //   npx wrangler d1 execute item-rental-db --local  --file=server/scripts/out/seed.sql
 //   npx wrangler d1 execute item-rental-db --remote --file=server/scripts/out/seed.sql
 //
 // 멱등: 같은 이름의 물품이 있으면 INSERT를 건너뛴다(NOT EXISTS) — 파일을 몇 번 적용해도 안전.
-// FTS: items_fts(rowid = items.id)에 검색 텍스트를 함께 넣는다(PLAN §7.3) — 기존 물품 중
+// FTS: items_fts(rowid = items.id)에 검색 텍스트를 함께 넣는다 — 기존 물품 중
 //      FTS 행이 없는 것도 여기서 같이 채워진다(가드가 중복을 막는다).
+
+import { mkdir, writeFile } from 'node:fs/promises';
 
 // --- 예시 물품 (v2.5 — 카테고리 없음, 탐색은 검색으로) ---
 const ITEMS = [
@@ -48,11 +50,11 @@ for (const it of ITEMS) {
 }
 
 const outDir = new URL('./out/', import.meta.url)
-await Deno.mkdir(outDir, { recursive: true })
+await mkdir(outDir, { recursive: true })
 const out = new URL('./out/seed.sql', import.meta.url)
-await Deno.writeTextFile(
+await writeFile(
   out,
-  `-- 시드 데이터 (deno task db:seed 생성) — 재적용 멱등\n\n` +
+  `-- 시드 데이터 (npm run db:seed 생성) — 재적용 멱등\n\n` +
     stmts.join('\n') +
     '\n',
 )

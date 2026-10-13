@@ -1,6 +1,6 @@
 // server·web 공유 API 계약 타입 — server/src/routes 가 응답으로 내리는 모양과
 // web 이 소비하는 모양을 한 곳에서 정의한다. 두 쪽 모두 상대 import 로 직접 참조한다
-// (tsc·Vite·wrangler·Deno 모두 추가 설정 불필요). 서버 서비스의 SQL row 타입은
+// (tsc·Vite·wrangler 모두 추가 설정 불필요). 서버 서비스의 SQL row 타입은
 // 이 타입들을 채택해 드리프트를 컴파일 타임에 잡는다.
 
 // API 응답 타입

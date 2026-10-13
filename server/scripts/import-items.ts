@@ -1,6 +1,6 @@
-// 물품리스트(구글시트) → D1 반영 SQL 생성 스크립트 (PLAN §8)
-//   deno task db:import-items                                      미리보기 + out/import-*.sql 생성
-//   deno run -A server/scripts/import-items.ts --file=xa-review.csv  다른 CSV 사용 (회관물품)
+// 물품리스트(구글시트) → D1 반영 SQL 생성 스크립트
+//   npm run db:import-items                                             미리보기 + out/import-*.sql 생성
+//   npm run db:import-items -- --file=xa-review.csv                    다른 CSV 사용 (회관물품)
 //   npx wrangler d1 execute item-rental-db --local  --file=server/scripts/out/import-review.sql
 //   npx wrangler d1 execute item-rental-db --remote --file=server/scripts/out/import-review.sql
 //
@@ -12,8 +12,10 @@
 //   --update 를 주면 기존 행도 갱신 문장에 넣는다(없으면 무시됨) — 이름·설명·수량·상태·위치.
 //
 // 주의: 워커 밖에선 Workers AI 를 부를 수 없어 임베딩이 만들어지지 않는다 — 적용 후
-//   POST /api/admin/reembed-all 을 반복 호출해 채운다(PLAN §8). 임베딩이 없어도
+//   POST /api/admin/reembed-all 을 반복 호출해 채운다. 임베딩이 없어도
 //   키워드 검색(FTS·LIKE)은 동작한다.
+
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 // --- CSV 파서 (따옴표·개행 포함 필드 지원, 의존성 없이) ---
 function parseCsv(text: string): string[][] {
@@ -62,7 +64,7 @@ type Plan = {
   location: string | null;
 };
 
-const args = new Set(Deno.args);
+const args = new Set(process.argv.slice(2));
 const UPDATE = args.has("--update");
 
 // --file=xa-review.csv — 시트별로 CSV 를 나눠 쓴다 (review.csv=청년물품, xa-review.csv=회관물품)
@@ -72,7 +74,7 @@ if (!/^[\w.-]+\.csv$/.test(csvName)) {
   console.error(
     `--file 값이 올바르지 않습니다: ${csvName} (예: --file=xa-review.csv)`,
   );
-  Deno.exit(1);
+  process.exit(1);
 }
 
 const ITEM_STATUS = ["active", "repair", "retired"] as const;
@@ -87,10 +89,10 @@ function toKind(name: string): "rental" | "consumable" {
 const csvPath = new URL(`../../data/sheet-import/${csvName}`, import.meta.url);
 let csvText: string;
 try {
-  csvText = await Deno.readTextFile(csvPath);
+  csvText = await readFile(csvPath, "utf8");
 } catch {
   console.error(`${csvName} 없음 — data/sheet-import/ 를 확인하세요`);
-  Deno.exit(1);
+  process.exit(1);
 }
 // utf-8-sig BOM 제거
 if (csvText.charCodeAt(0) === 0xfeff) csvText = csvText.slice(1);
@@ -98,7 +100,7 @@ if (csvText.charCodeAt(0) === 0xfeff) csvText = csvText.slice(1);
 const table = parseCsv(csvText);
 if (table.length < 2) {
   console.error("review.csv 에 데이터 행이 없습니다");
-  Deno.exit(1);
+  process.exit(1);
 }
 const header = table[0].map((h) => h.trim());
 const col = (row: string[], name: string) => {
@@ -148,7 +150,7 @@ if (errors.length) {
   console.error(`검증 실패 ${errors.length}건 — SQL을 생성하지 않습니다:`);
   for (const e of errors.slice(0, 40)) console.error(`  ✗ ${e}`);
   if (errors.length > 40) console.error(`  … 외 ${errors.length - 40}건`);
-  Deno.exit(1);
+  process.exit(1);
 }
 
 // --- SQL 생성 ---
@@ -189,11 +191,11 @@ for (const p of plan) {
 }
 
 const outDir = new URL("./out/", import.meta.url);
-await Deno.mkdir(outDir, { recursive: true });
+await mkdir(outDir, { recursive: true });
 const out = new URL(`./out/import-${csvName}`, import.meta.url);
-await Deno.writeTextFile(
+await writeFile(
   out,
-  `-- ${csvName} 시트 반영 (deno task db:import-items 생성${UPDATE ? ", --update" : ""}) — INSERT 는 멱등 가드\n\n` +
+  `-- ${csvName} 시트 반영 (npm run db:import-items 생성${UPDATE ? ", --update" : ""}) — INSERT 는 멱등 가드\n\n` +
     stmts.join("\n") +
     "\n",
 );

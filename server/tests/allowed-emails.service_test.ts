@@ -1,6 +1,6 @@
 // 허용 이메일 서비스 단위 테스트 — DB 없이 돌아간다 (Sql 스텁)
 /// <reference types="@cloudflare/workers-types" />
-import { assert, assertEquals } from "@std/assert";
+import { test, expect } from "vitest";
 import {
   addAllowedEmail,
   deleteAllowedEmail,
@@ -31,11 +31,11 @@ function stubSql(script: {
   return { db: db as unknown as Sql, calls };
 }
 
-Deno.test("normalizeEmail: 대문자와 앞뒤 공백을 정규화한다", () => {
-  assertEquals(normalizeEmail("  Admin@Example.COM "), "admin@example.com");
+test("normalizeEmail: 대문자와 앞뒤 공백을 정규화한다", () => {
+  expect(normalizeEmail("  Admin@Example.COM ")).toEqual("admin@example.com");
 });
 
-Deno.test("addAllowedEmail: 정규화된 이메일과 메모·등록자를 바인딩한다", async () => {
+test("addAllowedEmail: 정규화된 이메일과 메모·등록자를 바인딩한다", async () => {
   const { db, calls } = stubSql({ query: () => [{ id: "uuid-1" }] });
 
   const result = await addAllowedEmail(db, "  Admin@Example.COM ", {
@@ -43,45 +43,49 @@ Deno.test("addAllowedEmail: 정규화된 이메일과 메모·등록자를 바�
     createdBy: "boss@jungto.org",
   });
 
-  assertEquals(result, { ok: true });
-  assertEquals(calls[0].values, [
-    "admin@example.com",
-    "운영진 개인",
-    "boss@jungto.org",
-  ]);
+  expect(result).toEqual({ ok: true });
+  expect(
+    calls[0].values,
+  ).toEqual(
+    [
+      "admin@example.com",
+      "운영진 개인",
+      "boss@jungto.org",
+    ],
+  );
 });
 
-Deno.test("addAllowedEmail: INSERT가 0행이면 duplicate 을 돌려준다 (409)", async () => {
+test("addAllowedEmail: INSERT가 0행이면 duplicate 을 돌려준다 (409)", async () => {
   const { db } = stubSql({ query: () => [] });
 
   const result = await addAllowedEmail(db, "already@listed.com");
 
-  assertEquals(result, { error: "duplicate" });
+  expect(result).toEqual({ error: "duplicate" });
 });
 
-Deno.test("deleteAllowedEmail: 1행이면 성공", async () => {
+test("deleteAllowedEmail: 1행이면 성공", async () => {
   const { db } = stubSql({ query: () => [{ id: "uuid-1" }] });
 
   const result = await deleteAllowedEmail(db, "uuid-1");
 
-  assertEquals(result, { ok: true });
+  expect(result).toEqual({ ok: true });
 });
 
-Deno.test("deleteAllowedEmail: 0행이면 not_found (404)", async () => {
+test("deleteAllowedEmail: 0행이면 not_found (404)", async () => {
   const { db } = stubSql({ query: () => [] });
 
   const result = await deleteAllowedEmail(db, "missing-id");
 
-  assertEquals(result, { error: "not_found" });
+  expect(result).toEqual({ error: "not_found" });
 });
 
-Deno.test("listAllowedEmails: 최근 등록순 SELECT 를 발행한다", async () => {
+test("listAllowedEmails: 최근 등록순 SELECT 를 발행한다", async () => {
   const { db, calls } = stubSql({
     query: () => [{ id: "uuid-1", email: "a@b.com" }],
   });
 
   const rows = await listAllowedEmails(db);
 
-  assertEquals(rows.length, 1);
-  assert(calls[0].text.includes("ORDER BY created_at DESC"));
+  expect(rows.length).toEqual(1);
+  expect(calls[0].text.includes("ORDER BY created_at DESC")).toBe(true);
 });

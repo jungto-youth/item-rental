@@ -4,7 +4,7 @@ import { getDb, type Sql } from "../../db";
 import { requireAdmin } from "../../middleware/auth";
 import { embedItem } from "../../embedding";
 
-// 전 물품 임베딩 백필 (admin 전용, PLAN §8)
+// 전 물품 임베딩 백필 (admin 전용)
 // Workers AI는 워커 밖(스크립트)에서 호출할 수 없어 옛 scripts/reembed.ts를 대체한다.
 // 시트 일괄 반영(import-items.ts → SQL 적용) 뒤 이 엔드포인트를 반복 호출해 임베딩을 채운다.
 //
