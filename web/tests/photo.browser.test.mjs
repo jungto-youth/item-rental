@@ -12,7 +12,7 @@ const server = await createServer({
 let browser;
 try {
   await server.listen();
-  browser = await chromium.launch();
+  browser = await chromium.launch({ args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await page.route("**/photo-verification", r => r.fulfill({
     contentType: "text/html", body: "<html><body></body></html>",
@@ -154,9 +154,14 @@ try {
     uploader.multiple = true;
     document.body.append(uploader);
     window.uploadEvents = [];
-    uploader.addEventListener("upload", e => window.uploadEvents.push(e.detail.files.length));
+    uploader.addEventListener("upload", e => {
+      window.uploadEvents.push(e.detail.files.length);
+      window.lastUpload = e.detail.files;
+    });
     window.uploader = uploader;
     await uploader.updateComplete;
+    // Exercise the native capture fallback when live camera APIs are unavailable.
+    Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: undefined });
   });
   const chooserPromise = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "사진 촬영", exact: false }).click();
@@ -183,7 +188,101 @@ try {
     await window.uploader.updateComplete;
   });
   assert.equal(await page.getByRole("button", { name: "사진 촬영", exact: false }).count(), 0);
-  console.log("PASS rear-camera request, single capture, multiple gallery selection, cancellation, busy and maximum-photo controls");
+  console.log("PASS native capture fallback, multiple gallery selection, cancellation, busy and maximum-photo controls");
+
+  await page.evaluate(async () => {
+    delete navigator.mediaDevices;
+    window.uploader.disabled = false;
+    window.uploader.entries = [];
+    await window.uploader.updateComplete;
+  });
+  await page.getByRole("button", { name: "사진 촬영", exact: false }).click();
+  await page.locator("camera-capture-dialog video").waitFor();
+  await page.waitForFunction(() => {
+    const video = document.querySelector("camera-capture-dialog")?.shadowRoot?.querySelector("video");
+    return video?.videoWidth > 0 && video?.readyState >= 2;
+  });
+  await page.evaluate(() => {
+    window.captureStream = document.querySelector("camera-capture-dialog").shadowRoot.querySelector("video").srcObject;
+  });
+  await page.getByRole("button", { name: "촬영", exact: true }).click();
+  await page.locator("camera-capture-dialog").waitFor({ state: "detached" });
+  const liveCapture = await page.evaluate(async () => {
+    const file = window.lastUpload[0];
+    const image = await createImageBitmap(file);
+    const { processPhoto } = await import("/src/utils/photo.ts");
+    const processed = await processPhoto(file);
+    const result = {
+      events: window.uploadEvents, type: file.type,
+      width: image.width, height: image.height,
+      outputType: processed.type, outputBytes: processed.size,
+      tracksStopped: window.captureStream.getTracks().every(track => track.readyState === "ended"),
+    };
+    image.close();
+    return result;
+  });
+  assert.deepEqual(liveCapture.events, [1, 1]);
+  assert.equal(liveCapture.type, "image/png");
+  assert.ok(liveCapture.width > 0 && liveCapture.width <= 1600 && liveCapture.height > 0 && liveCapture.height <= 1600);
+  assert.equal(liveCapture.outputType, "image/webp");
+  assert.ok(liveCapture.outputBytes <= 2 * 1024 * 1024);
+  assert.equal(liveCapture.tracksStopped, true);
+  console.log("PASS live webcam preview and capture use the shared photo pipeline and stop the camera:", liveCapture);
+
+  // Closing the item modal must also close the separate camera modal and release tracks.
+  await page.getByRole("button", { name: "사진 촬영", exact: false }).click();
+  await page.waitForFunction(() => !!document.querySelector("camera-capture-dialog")?.shadowRoot?.querySelector("video")?.srcObject);
+  await page.evaluate(async () => {
+    window.cancelStream = document.querySelector("camera-capture-dialog").shadowRoot.querySelector("video").srcObject;
+    window.uploader.active = false;
+    await window.uploader.updateComplete;
+  });
+  assert.equal(await page.locator("camera-capture-dialog").count(), 0);
+  assert.equal(await page.evaluate(() => window.cancelStream.getTracks().every(track => track.readyState === "ended")), true);
+  await page.evaluate(async () => { window.uploader.active = true; await window.uploader.updateComplete; });
+
+  // Permission failures and missing cameras produce actionable messages without uploading.
+  await page.evaluate(() => {
+    window.originalGetUserMedia = navigator.mediaDevices.getUserMedia;
+    navigator.mediaDevices.getUserMedia = async () => { throw new DOMException("denied", "NotAllowedError"); };
+  });
+  await page.getByRole("button", { name: "사진 촬영", exact: false }).click();
+  await page.getByRole("alert").filter({ hasText: "카메라 사용 권한" }).waitFor();
+  await page.evaluate(() => {
+    navigator.mediaDevices.getUserMedia = async () => { throw new DOMException("missing", "NotFoundError"); };
+  });
+  await page.getByRole("button", { name: "다시 시도", exact: true }).click();
+  await page.getByRole("alert").filter({ hasText: "사용할 수 있는 카메라가 없어요" }).waitFor();
+  await page.getByRole("button", { name: "취소", exact: true }).click();
+  await page.evaluate(() => { navigator.mediaDevices.getUserMedia = window.originalGetUserMedia; });
+  assert.deepEqual(await page.evaluate(() => window.uploadEvents), [1, 1]);
+
+  // A permission request resolving after cancellation must not leave a camera running.
+  await page.evaluate(async () => {
+    window.lateStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    navigator.mediaDevices.getUserMedia = () => new Promise(resolve => window.resolvePermission = resolve);
+  });
+  await page.getByRole("button", { name: "사진 촬영", exact: false }).click();
+  await page.waitForFunction(() => !!window.resolvePermission);
+  await page.getByRole("button", { name: "취소", exact: true }).click();
+  await page.evaluate(() => {
+    window.resolvePermission(window.lateStream);
+    navigator.mediaDevices.getUserMedia = window.originalGetUserMedia;
+  });
+  await page.waitForFunction(() => window.lateStream.getTracks().every(track => track.readyState === "ended"));
+  assert.equal(await page.locator("camera-capture-dialog").count(), 0);
+  assert.deepEqual(await page.evaluate(() => window.uploadEvents), [1, 1]);
+
+  // Removing the uploader during a live preview must stop the stream as well.
+  await page.getByRole("button", { name: "사진 촬영", exact: false }).click();
+  await page.waitForFunction(() => !!document.querySelector("camera-capture-dialog")?.shadowRoot?.querySelector("video")?.srcObject);
+  await page.evaluate(() => {
+    window.disconnectStream = document.querySelector("camera-capture-dialog").shadowRoot.querySelector("video").srcObject;
+    window.uploader.remove();
+  });
+  assert.equal(await page.evaluate(() => window.disconnectStream.getTracks().every(track => track.readyState === "ended")), true);
+  assert.equal(await page.locator("camera-capture-dialog").count(), 0);
+  console.log("PASS item close, permission denial, missing camera, late permission cancellation, and component removal release streams without uploads");
 
   // Observe actual multipart payloads; API responses are stubbed to avoid remote writes.
   const uploads = [];
