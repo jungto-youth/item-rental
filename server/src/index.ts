@@ -14,39 +14,20 @@ import { adminAllowedEmailsRoute } from "./routes/admin/allowed-emails";
 import { adminReservationsRoute } from "./routes/admin/reservations";
 import { adminDashboardRoute } from "./routes/admin/dashboard";
 import { adminReembedRoute } from "./routes/admin/reembed";
-import { devLoginRoute } from "./routes/dev-login";
+import { apiSecurityHeaders, guardApiRequest, canonicalAuthRequest } from "./middleware/security";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // --- 공통 가드 ---
-// 세션은 쿠키(HttpOnly, SameSite=Lax)라 cross-site POST 에는 실리지 않지만,
-// SameSite 정책이 바뀌거나 서브도메인 경로에서 방어선이 하나 더 필요하다 —
-// 상태 변경 요청의 Origin 헤더가 같은 origin 이 아니면 거부한다.
-// /api/auth/* 는 Auth.js가 자체 CSRF 검증을 하므로 통과시킨다.
-app.use("/api/*", async (c, next) => {
-  if (!c.env.AUTH_SECRET) throw new Error("AUTH_SECRET 미설정 — 시크릿/환경변수를 확인하세요");
-  if (c.req.method !== "GET" && c.req.method !== "HEAD" && !c.req.path.startsWith("/api/auth/")) {
-    const origin = c.req.header("origin");
-    const host = c.req.header("host");
-    if (origin && host) {
-      try {
-        if (new URL(origin).host !== host) return c.json({ error: "bad_origin" }, 403);
-      } catch {
-        return c.json({ error: "bad_origin" }, 403);
-      }
-    }
-  }
-  await next();
-});
+app.use("/api/*", apiSecurityHeaders, guardApiRequest);
 
 // --- 헬스체크 ---
 app.get("/api/health", (c) => c.json({ ok: true }));
 
 // --- 인증 (Auth.js) ---
-app.route("/api/dev/login", devLoginRoute);
 // signin/callback/signout 전부 Auth.js가 처리 (full-page redirect 방식)
 // req를 넘겨 127.0.0.1 → localhost 정규화 (Google OAuth redirect_uri 등록 문제)
-app.all("/api/auth/*", (c) => Auth(c.req.raw, authConfig(c.env, c.req.raw)));
+app.all("/api/auth/*", (c) => Auth(canonicalAuthRequest(c.req.raw), authConfig(c.env, c.req.raw)));
 
 // --- 세션 ---
 // 401 대신 {user:null} 반환 — SPA가 로그인 상태를 판단
@@ -60,9 +41,10 @@ app.get("/api/me", async (c) => {
 // 사진도 매 요청에 최신 회원 상태를 확인한다. 로그아웃/탈퇴 이후 캐시로 우회하지 않는다.
 app.get("/api/photos/*", requireAuth, async (c) => {
   const key = c.req.path.slice("/api/photos/".length);
-  if (!key || key.includes("..")) return c.json({ error: "bad_key" }, 400);
+  if (!/^items\/[1-9]\d*\/[^/]+\.(jpg|png|webp)$/.test(key) || key.includes("..")) return c.json({ error: "bad_key" }, 400);
   const obj = await c.env.PHOTOS.get(key);
   if (!obj) return c.json({ error: "not_found" }, 404);
+  if (!["image/jpeg", "image/png", "image/webp"].includes(obj.httpMetadata?.contentType ?? "")) return c.json({ error: "not_found" }, 404);
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
   headers.set("etag", obj.httpEtag);

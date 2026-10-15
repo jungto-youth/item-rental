@@ -413,7 +413,9 @@ export class AppShell extends LitElement {
                       : ""}
                   </div>
                 `
-              : html`<a class="btn-login" href="/login">로그인</a>`}
+              : location.pathname !== "/login"
+                ? html`<a class="btn-login" href="/login">로그인</a>`
+                : null}
           </div>
         </div>
       </header>

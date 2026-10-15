@@ -1,6 +1,7 @@
 // 공유 타입 — Hono 앱 전역 바인딩/변수
 // API 응답 계약(Role 등)은 shared/api-types.ts 가 소유한다 — web 과 같은 정의.
 import type { Role } from "../../shared/api-types";
+import type { Context } from "hono";
 export type { Role };
 
 export type Bindings = {
@@ -29,4 +30,5 @@ export type SessionUser = {
 
 export type Variables = {
   user: SessionUser | null;
+  sessionUserResolver?: (c: Context<{ Bindings: Bindings; Variables: Variables }>) => Promise<SessionUser | null>;
 };

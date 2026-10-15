@@ -54,7 +54,7 @@ test("membership: admin withdrawal immediately revokes an existing session inclu
     expect(fixture.photoReads).toBe(0);
     expect(await (await request("/api/me", { headers: { cookie: user } })).json()).toEqual({ user: null });
     const signIn = authConfig(fixture.env).callbacks!.signIn!;
-    expect(await signIn({ user: { id: "google-user", email: "user@jungto.org" }, account: null })).toBe("/login?error=AccountDeactivated");
+    expect(await signIn({ user: { id: "google-user", email: "user@jungto.org" }, account: null, profile: { email_verified: true } })).toBe("/login?error=AccountDeactivated");
   } finally { db.close(); }
 });
 
@@ -80,7 +80,7 @@ test("registration removal: anonymizes inactive accounts, hides them from member
     const list = await (await request("/api/admin/members", { headers: { cookie: admin } })).json() as { members: { id: string }[] };
     expect(list.members.some(m => m.id === "reset")).toBe(false);
     const signIn = authConfig(fixture.env).callbacks!.signIn!;
-    expect(await signIn({ user: { id: "google-reset", email: "reset@jungto.org", name: "새 회원" }, account: null })).toBe(true);
+    expect(await signIn({ user: { id: "google-reset", email: "reset@jungto.org", name: "새 회원" }, account: null, profile: { email_verified: true } })).toBe(true);
     const fresh = db.prepare("SELECT id, role, phone, deactivated_at FROM members WHERE email = 'reset@jungto.org'").get();
     expect(fresh?.id).not.toBe("reset");
     expect(fresh?.role).toBe("user");

@@ -106,9 +106,17 @@ export class ProfileForm extends LitElement {
     this.dispatchEvent(new CustomEvent("cancel", { bubbles: true, composed: true }));
   }
 
+  // Shadow DOM inputs cannot implicitly submit their outer form.
+  private submitOnEnter(e: KeyboardEvent) {
+    if (e.key !== "Enter" || e.isComposing || e.defaultPrevented) return;
+    if (!(e.composedPath()[0] instanceof HTMLInputElement)) return;
+    e.preventDefault();
+    (e.currentTarget as HTMLFormElement).requestSubmit();
+  }
+
   render() {
     return html`
-      <form class="box" @submit=${this.submit}>
+      <form class="box" @submit=${this.submit} @keydown=${this.submitOnEnter}>
         ${this.title ? html`<h2>${this.title}</h2>` : ""}
         ${this.hint ? html`<p class="hint">${this.hint}</p>` : ""}
         <x-input
