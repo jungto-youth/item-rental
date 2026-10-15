@@ -21,7 +21,8 @@ const testsDir = fileURLToPath(new URL("./", import.meta.url).href);
 const schema =
   readFileSync(`${testsDir}../../migrations-d1/0001_baseline.sql`, "utf8") +
   "\n" +
-  readFileSync(`${testsDir}../../migrations-d1/0002_item_photos_item_id.sql`, "utf8");
+  readFileSync(`${testsDir}../../migrations-d1/0002_item_photos_item_id.sql`, "utf8") +
+  "\n" + readFileSync(`${testsDir}../../migrations-d1/0003_member_registration_deleted.sql`, "utf8");
 
 // node:sqlite를 Sql 어댑터로 — db.ts(getDb)와 같은 시그니처. 번호 파라미터(?1)는
 // 전달 순서대로 묶인다는 것이 D1 과 같다(본 파일 상단에서 실증).

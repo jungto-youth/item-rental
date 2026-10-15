@@ -11,7 +11,8 @@ export async function ensureLocalTestAdmin(db: Sql): Promise<string> {
     `INSERT INTO members (id, email, name, phone, role)
      VALUES (?1, ?2, ?3, ?4, 'admin')
      ON CONFLICT (id) DO UPDATE SET
-       name = excluded.name, phone = excluded.phone, role = 'admin', deactivated_at = NULL`,
+       email = excluded.email, name = excluded.name, phone = excluded.phone, role = 'admin',
+       deactivated_at = NULL, registration_deleted_at = NULL`,
     [LOCAL_TEST_ADMIN_ID, "photo-test-admin@example.invalid", "로컬 테스트 관리자", "010-0000-0000"],
   );
   return LOCAL_TEST_ADMIN_ID;
@@ -20,8 +21,10 @@ export async function ensureLocalTestAdmin(db: Sql): Promise<string> {
 // 목록 — 최근 가입순
 export async function listMembers(db: Sql): Promise<AdminMember[]> {
   return (await db.query(
-    `SELECT id, email, name, phone, role, deactivated_at, created_at
+    `SELECT id, email, name, phone, role, deactivated_at, created_at,
+            (SELECT COUNT(*) FROM reservations r WHERE r.member_id = members.id AND r.status = 'rented') AS active_rental_count
        FROM members
+       WHERE registration_deleted_at IS NULL
       ORDER BY created_at DESC`,
   )) as AdminMember[];
 }
@@ -34,7 +37,7 @@ export type WithdrawResult =
 
 // 탈퇴 처리 — 관리자가 활성 회원을 탈퇴시킨다. 약관이 회원에게 '탈퇴는 관리자에게 요청'이라
 // 안내하는데 처리 수단이 없어 신설. 소프트 삭제 — 대여 이력 보존 위해 행 삭제 대신
-// deactivated_at 기록(재가입 경로는 없고 복구도 안 함 — 탈퇴는 되돌릴 수 없다). 마지막 관리자
+// deactivated_at을 기록한다. 재가입 초기화는 별도의 등록 정보 삭제로 처리한다. 마지막 관리자
 // 보호는 역할 핸들러와 같은 기준.
 // 마지막 관리자 보호는 COUNT-then-UPDATE 두 쿼리로 나누면 동시 해임 레이스로 관리자가 0이 될 수
 // 있어, 가드를 UPDATE WHERE 절 안에 넣어 단일 문장으로 원자 판정한다 (대여 가드 INSERT와 같은 방식).
@@ -44,7 +47,7 @@ export async function withdrawMember(
 ): Promise<WithdrawResult> {
   const rows = (await db.query(
     `UPDATE members SET deactivated_at = ${SQL_NOW}
-      WHERE id = ?1
+       WHERE id = ?1 AND registration_deleted_at IS NULL
         AND (role <> 'admin'
              OR (SELECT COUNT(*) FROM members x
                   WHERE x.role = 'admin' AND x.deactivated_at IS NULL
@@ -53,11 +56,35 @@ export async function withdrawMember(
     [memberId],
   )) as { id: string }[];
   if (rows.length > 0) return { ok: true };
-  const found = (await db.query(`SELECT id FROM members WHERE id = ?1`, [
+  const found = (await db.query(`SELECT id FROM members WHERE id = ?1 AND registration_deleted_at IS NULL`, [
     memberId,
   ])) as { id: string }[];
   if (found.length === 0) return { error: "not_found" };
   return { error: "last_admin" };
+}
+
+export type DeleteRegistrationResult =
+  | { ok: true }
+  | { error: "not_found" | "active_member" | "has_active_rentals" };
+
+// 탈퇴 회원의 개인정보를 익명화하고 이메일을 해제한다. 내부 ID·대여/관리 이력은 보존한다.
+// 활성 대여 검사를 UPDATE 안에 두어 사전 검사와 변경 사이의 경쟁을 막는다.
+export async function deleteMemberRegistration(db: Sql, memberId: string): Promise<DeleteRegistrationResult> {
+  const anonymousEmail = `removed-${crypto.randomUUID()}@example.invalid`;
+  const deleted = await db.query<{ id: string }>(
+    `UPDATE members SET email = ?2, name = '삭제된 회원', phone = NULL, role = 'user',
+       registration_deleted_at = ${SQL_NOW}
+     WHERE id = ?1 AND deactivated_at IS NOT NULL AND registration_deleted_at IS NULL
+       AND NOT EXISTS (SELECT 1 FROM reservations r WHERE r.member_id = members.id AND r.status = 'rented')
+     RETURNING id`,
+    [memberId, anonymousEmail],
+  );
+  if (deleted.length) return { ok: true };
+  const [member] = await db.query<{ deactivated_at: string | null }>(
+    `SELECT deactivated_at FROM members WHERE id = ?1 AND registration_deleted_at IS NULL`, [memberId],
+  );
+  if (!member) return { error: "not_found" };
+  return { error: member.deactivated_at === null ? "active_member" : "has_active_rentals" };
 }
 
 // 역할 지정/해제 결과
@@ -75,7 +102,7 @@ export async function setMemberRole(
   role: Role,
 ): Promise<RoleResult> {
   const rows = (await db.query(
-    `UPDATE members SET role = ?1 WHERE id = ?2
+    `UPDATE members SET role = ?1 WHERE id = ?2 AND registration_deleted_at IS NULL
        AND (?1 = 'admin'
             OR role <> 'admin'
             OR (SELECT COUNT(*) FROM members x
@@ -85,7 +112,7 @@ export async function setMemberRole(
     [role, memberId],
   )) as { id: string }[];
   if (rows.length > 0) return { ok: true };
-  const found = (await db.query(`SELECT id FROM members WHERE id = ?1`, [
+  const found = (await db.query(`SELECT id FROM members WHERE id = ?1 AND registration_deleted_at IS NULL`, [
     memberId,
   ])) as { id: string }[];
   if (found.length === 0) return { error: "not_found" };

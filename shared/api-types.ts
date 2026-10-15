@@ -48,6 +48,7 @@ export type AdminMember = {
   role: Role;
   deactivated_at: string | null; // null = 활성, 값 있으면 탈퇴(소프트 삭제) 시각
   created_at: string;
+  active_rental_count?: number;
 };
 
 // 로그인 허용 예외 이메일 — @jungto.org 외 계정의 로그인을 어드민이 관리

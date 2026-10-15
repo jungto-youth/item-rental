@@ -16,7 +16,10 @@ function readSessionToken(
   const cookie = c.req.header("cookie") ?? "";
   for (const name of COOKIE_NAMES) {
     const m = cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
-    if (m) return { token: decodeURIComponent(m[1]), salt: name };
+    if (m) {
+      try { return { token: decodeURIComponent(m[1]), salt: name }; }
+      catch { return null; }
+    }
   }
   return null;
 }
@@ -49,7 +52,8 @@ export async function getSessionUser(
 
   const db: Sql = getDb(c.env);
   const rows = (await db.query(
-    `SELECT id, email, name, phone, role, deactivated_at FROM members WHERE id = ?1 AND deactivated_at IS NULL`,
+    `SELECT id, email, name, phone, role, deactivated_at FROM members
+     WHERE id = ?1 AND deactivated_at IS NULL AND registration_deleted_at IS NULL`,
     [payload.sub],
   )) as SessionUser[];
   return rows[0] ?? null;
@@ -59,6 +63,8 @@ export async function requireAuth(
   c: Context<{ Bindings: Bindings; Variables: Variables }>,
   next: Next,
 ) {
+  c.header("Cache-Control", "private, no-store");
+  c.header("Vary", "Cookie");
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: "unauthorized" }, 401);
   c.set("user", user);
@@ -70,6 +76,8 @@ export async function requireAdmin(
   c: Context<{ Bindings: Bindings; Variables: Variables }>,
   next: Next,
 ) {
+  c.header("Cache-Control", "private, no-store");
+  c.header("Vary", "Cookie");
   const user = await getSessionUser(c);
   if (!user) return c.json({ error: "unauthorized" }, 401);
   if (user.role !== "admin") return c.json({ error: "forbidden" }, 403);
