@@ -104,11 +104,11 @@ export class PageAdminMembers extends LitElement {
     );
   }
 
-  private keyOf(m: AdminMember, kind: "role" | "withdraw"): string {
+  private keyOf(m: AdminMember, kind: "role" | "withdraw" | "delete"): string {
     return `${m.id}:${kind}`;
   }
 
-  private rowBusy(m: AdminMember, kind: "role" | "withdraw"): boolean {
+  private rowBusy(m: AdminMember, kind: "role" | "withdraw" | "delete"): boolean {
     if (!this.processingKey) return false;
     return this.processingKey !== this.keyOf(m, kind);
   }
@@ -142,6 +142,34 @@ export class PageAdminMembers extends LitElement {
       this.messageTone = "error";
       await this.reload();
     } finally {
+      this.processingKey = null;
+    }
+  }
+
+  // 등록 정보 제거 — 먼저 탈퇴 처리하고, 대여 중인 물품이 없는 경우에만 허용한다.
+  private async deleteRegistration(m: AdminMember) {
+    if (this.processingKey) return;
+    const who = m.name || m.email;
+    if (!(await confirmDialog(
+      `'${who}'님의 등록 정보를 삭제할까요?\n대여 중인 물품이 없어야 해요. 이름·이메일·연락처는 제거하고 완료된 이력은 익명으로 보존해요.\n삭제 후에는 다시 로그인하여 새 일반 회원으로 등록할 수 있어요.`,
+      { confirmLabel: "등록 정보 삭제" },
+    ))) return;
+    if (this.processingKey) return;
+    this.processingKey = this.keyOf(m, "delete");
+    try {
+      await api(`/api/admin/members/${m.id}`, { method: "DELETE" });
+      this.message = `${who}님의 등록 정보를 삭제했어요`;
+      this.messageTone = "success";
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : undefined;
+      this.message = code === "has_active_rentals"
+        ? "대여 중인 물품이 있어 삭제할 수 없어요. 먼저 반납 또는 취소 처리해주세요"
+        : code === "active_member"
+          ? "활성 회원은 바로 삭제할 수 없어요. 먼저 탈퇴 처리해주세요"
+          : e instanceof Error ? e.message : "등록 정보 삭제에 실패했어요";
+      this.messageTone = "error";
+    } finally {
+      await this.reload();
       this.processingKey = null;
     }
   }
@@ -321,8 +349,14 @@ export class PageAdminMembers extends LitElement {
             >
               탈퇴
             </x-button>`
-          : html`<x-badge slot="actions" kind=${m.role}></x-badge>`}
+          : html`<x-badge slot="actions" kind=${m.role}></x-badge>
+              <x-button slot="actions" variant="danger" size="sm"
+                ?loading=${this.processingKey === this.keyOf(m, "delete")}
+                ?disabled=${this.rowBusy(m, "delete") || (m.active_rental_count ?? 0) > 0}
+                @click=${() => this.deleteRegistration(m)}>등록 정보 삭제</x-button>`}
         <span style="overflow-wrap:anywhere">${m.email} · ${this.phoneLine(m)}</span>
+        ${(m.active_rental_count ?? 0) > 0
+          ? html`<span>대여 중 ${m.active_rental_count}건 · 등록 정보 삭제 전 반납 또는 취소 처리가 필요해요</span>` : ""}
       </reservation-row>
     `;
   }

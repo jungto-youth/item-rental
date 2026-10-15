@@ -77,6 +77,10 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
         }
         try {
           const sql: Sql = db()
+          const [existing] = await sql.query<{ deactivated_at: string | null; registration_deleted_at: string | null }>(
+            'SELECT deactivated_at, registration_deleted_at FROM members WHERE email = ?1', [user.email],
+          )
+          if (existing?.deactivated_at || existing?.registration_deleted_at) return '/login?error=AccountDeactivated'
           await sql.query(
             `INSERT INTO members (email, name) VALUES (?1, ?2) ON CONFLICT (email) DO NOTHING`,
             [user.email, user.name ?? ''],

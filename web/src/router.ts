@@ -12,12 +12,11 @@ import { setUnauthorizedHandler } from "./api/client";
 // lit-labs/router의 enter()는 false로 취소만 할 뿐 리다이렉트를 지원하지 않는다.
 // 그래서 목적지로 먼저 이동시킨 뒤 false를 반환해 원래 내비게이션을 취소한다.
 const requireSession: RouteConfig["enter"] = async () => {
-  const user = await session.ensure();
+  const user = await session.refresh();
   if (!user) {
-    // 세션 확인 자체가 실패(5xx·오프라인)한 것이지 비로그인이 아니다 — /login 으로
-    // 밀어내면 로그인해도 같은 오류를 다시 만난다. 공개 페이지로 돌려 확인을 재시도하게 둔다
+    // 확인 실패를 비로그인으로 단정하지 않는다. 보호 데이터를 열지 않고 연결 문제를 안내한다.
     if (session.unreachable) {
-      navigate("/");
+      redirect("/login?error=SessionUnavailable");
       return false;
     }
     redirect("/login");
@@ -31,7 +30,7 @@ const requireAdmin: RouteConfig["enter"] = async () => {
   const user = await session.ensure();
   if (!user) {
     if (session.unreachable) {
-      navigate("/");
+      redirect("/login?error=SessionUnavailable");
       return false;
     }
     redirect("/login");
@@ -46,7 +45,7 @@ const requireAdmin: RouteConfig["enter"] = async () => {
 
 // 경로 파라미터는 render()가 컴포넌트 프로퍼티로 주입한다
 const routes: RouteConfig[] = [
-  { path: "/", render: () => html`<page-home></page-home>` },
+  { path: "/", render: () => html`<page-home></page-home>`, enter: requireSession },
   {
     // 물품 등록 — 상세 :id 매칭보다 먼저 둔다
     path: "/items/new",
@@ -71,6 +70,7 @@ const routes: RouteConfig[] = [
       void import("./pages/item-detail");
       return html`<page-item-detail .itemId=${params.id ?? ""}></page-item-detail>`;
     },
+    enter: requireSession,
   },
   {
     path: "/login",
