@@ -407,6 +407,90 @@ test("updateItem: 없는 물품 수정은 not_found — 부분 변경이 남지 
   );
 });
 
+// ===== 보유 수량 감소 가드 =====
+// 대여 가능 수량은 total_qty − qty_broken 이므로 이것이 현재 점유량보다 작아지면
+// 회수할 수 없는 대여가 생기고 목록에 '대여 가능 -1' 이 찍힌다.
+
+test("가드: 대여 중인 수량 아래로 보유를 줄이면 거부되고 값이 안 바뀐다", async () => {
+  const db = freshDb();
+  const itemId = addItem(db, { total_qty: 3 });
+  const memberId = addMember(db, "user");
+  rent(db, itemId, memberId, 2);
+
+  expect(await updateItem(sqliteSql(db), env, itemId, { total_qty: 1 })).toEqual({
+    error: "rented_qty_constraint",
+  });
+
+  const [row] = db.prepare("SELECT total_qty FROM items WHERE id = ?1").all(itemId) as {
+    total_qty: number;
+  }[];
+  expect(row.total_qty).toBe(3);
+});
+
+test("가드: 대여 중인 수량까지 줄이는 것은 허용된다", async () => {
+  const db = freshDb();
+  const itemId = addItem(db, { total_qty: 3 });
+  const memberId = addMember(db, "user");
+  rent(db, itemId, memberId, 2);
+
+  // 2개를 빌린 상태에서 보유를 2로 — 전부 나간 상태라 성립한다
+  expect(await updateItem(sqliteSql(db), env, itemId, { total_qty: 2 })).toEqual({ ok: true });
+  const [row] = db.prepare("SELECT total_qty FROM items WHERE id = ?1").all(itemId) as {
+    total_qty: number;
+  }[];
+  expect(row.total_qty).toBe(2);
+});
+
+test("가드: 사전 검사와 UPDATE 사이에 대여가 늘어나도 원자적으로 막는다", async () => {
+  const db = freshDb();
+  const itemId = addItem(db, { total_qty: 3 });
+  const memberId = addMember(db, "user");
+  rent(db, itemId, memberId, 1);
+
+  // 사전 검사가 'active_now = 1' 을 읽은 직후 다른 관리자가 남은 수량을 빌려버리는 상황.
+  // UPDATE 안의 가드가 조건을 다시 확인하므로 이 값은 저장돼서는 안 된다.
+  const base = sqliteSql(db);
+  let injected = false;
+  const spy = {
+    ...base,
+    query: async (text: string, params?: unknown[]) => {
+      const res = (await base.query(text, params)) as Record<string, unknown>[];
+      if (!injected && text.includes("SUM(qty)")) {
+        injected = true;
+        db.prepare(
+          "INSERT INTO reservations (item_id, member_id, qty, status) VALUES (?1, ?2, 2, 'rented')",
+        ).run(itemId, memberId);
+      }
+      return res;
+    },
+  } as Sql;
+
+  expect(await updateItem(spy, env, itemId, { total_qty: 2 })).toEqual({
+    error: "rented_qty_constraint",
+  });
+  const [row] = db.prepare("SELECT total_qty FROM items WHERE id = ?1").all(itemId) as {
+    total_qty: number;
+  }[];
+  expect(row.total_qty).toBe(3);
+});
+
+test("가드: 수량을 건드리지 않는 수정은 대여 검사를 걸지 않는다", async () => {
+  const db = freshDb();
+  const itemId = addItem(db, { total_qty: 3 });
+  const memberId = addMember(db, "user");
+  // 이미 잘못된 상태 — 보유 1인데 2개를 빌린 상태를 그대로 둔다
+  db.prepare("UPDATE items SET total_qty = 1 WHERE id = ?1").run(itemId);
+  rent(db, itemId, memberId, 2);
+
+  expect(await updateItem(sqliteSql(db), env, itemId, { name: "이름만 수정" })).toEqual({
+    ok: true,
+  });
+  const [row] = db.prepare("SELECT name FROM items WHERE id = ?1").all(itemId) as {
+    name: string;
+  }[];
+  expect(row.name).toBe("이름만 수정");
+});
+
 test("FTS 스모크: 등록된 물품이 trigram 매치로 검색된다", async () => {
   const db = freshDb();
   await createItem(sqliteSql(db), env, {

@@ -117,3 +117,59 @@ test("updateItem: DB CHECK 위반은 qty_constraint로 매핑한다", async () =
     { error: "qty_constraint" },
   );
 });
+
+// ===== 보유 수량을 대여 중인 수량보다 줄일 수 없게 하기 =====
+// 대여 가능 수량은 total_qty − qty_broken 이므로 이것이 현재 점유량보다 작아지면
+// 회수할 수 없는 대여가 생기고 목록에 '대여 가능 -1' 이 찍힌다.
+
+test("updateItem: 대여 중인 수량 아래로 보유를 줄이면 거부한다", async () => {
+  // 보유 3 중 2개를 빌린 상태에서 1개로 줄이는 시도
+  const { db } = stubSql({
+    query: (text) =>
+      text.includes("SUM(qty)") ? [{ active_now: 2 }] : [{ total_qty: 3, qty_broken: 0 }],
+    batch: () => [],
+  });
+
+  expect(await updateItem(db, env(), 1, { total_qty: 1 })).toEqual({
+    error: "rented_qty_constraint",
+  });
+});
+
+test("updateItem: 대여 중인 수량과 같아도 허용한다 (경계)", async () => {
+  // 2개를 빌린 상태에서 보유를 2로 줄이는 것은 가능해야 한다 — 전부 나간 상태
+  const { db } = stubSql({
+    query: (text) =>
+      text.includes("SUM(qty)") ? [{ active_now: 2 }] : [{ total_qty: 3, qty_broken: 0 }],
+    batch: () => [[{ id: 1 }]],
+  });
+
+  expect(await updateItem(db, env(), 1, { total_qty: 2 })).toEqual({ ok: true });
+});
+
+test("updateItem: 수량을 건드리지 않으면 대여 검사를 걸지 않는다", async () => {
+  // 이미 잘못된 상태인 물품(대여 2 / 보유 1)이 이름만 고쳐도 갇히면 안 된다
+  const { db } = stubSql({
+    query: (text) =>
+      text.includes("SUM(qty)") ? [{ active_now: 2 }] : [{ total_qty: 1, qty_broken: 0 }],
+    batch: () => [[{ id: 1 }]],
+  });
+
+  expect(await updateItem(db, env(), 1, { name: "새 이름" })).toEqual({ ok: true });
+});
+
+test("updateItem: 사전 검사 뒤 UPDATE 가드가 거절하면 rented_qty_constraint", async () => {
+  // 사전 검사(2 ≥ 2 → 통과)와 UPDATE 사이에 다른 관리자가 마지막 수량을 빌려버린 경우.
+  // UPDATE 가 0행을 반환하고 물품은 존재하므로 재고 음수가 아니라 대여 초과로 매핑한다.
+  const { db } = stubSql({
+    query: (text) => {
+      if (text.includes("SUM(qty)")) return [{ active_now: 1 }];
+      if (text.includes("SELECT id FROM items")) return [{ id: 1 }];
+      return [{ total_qty: 3, qty_broken: 0 }];
+    },
+    batch: () => [[]],
+  });
+
+  expect(await updateItem(db, env(), 1, { total_qty: 2 })).toEqual({
+    error: "rented_qty_constraint",
+  });
+});
