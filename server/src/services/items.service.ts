@@ -162,10 +162,12 @@ export async function createItem(
 }
 
 // 수정 결과 — qty_constraint: 수량 조합이 제약(qty_broken ≤ total_qty) 위반 (라우트가 400 응답)
+//                rented_qty_constraint: 대여 중인 수량 이하로 보유를 줄이려는 시도 (라우트가 400 응답)
 type UpdateItemResult =
   | { ok: true }
   | { error: "not_found" }
-  | { error: "qty_constraint" };
+  | { error: "qty_constraint" }
+  | { error: "rented_qty_constraint" };
 
 export async function updateItem(
   db: Sql,
@@ -180,17 +182,32 @@ export async function updateItem(
 
   // 수량 관련 필드가 바뀌면 결과 조합이 제약(qty_broken ≤ total_qty)을 지키는지 본다.
   // 한쪽만 보내는 경우가 흔하므로 현재 값을 읽어 합쳐서 판정한다 — 친절한 400 용 사전 검사이고,
-  // 검사와 UPDATE 사이 값이 바뀌어도 DB CHECK 가 아래 batch 를 원자 거절한다.
-  if ("qty_broken" in fields || "total_qty" in fields) {
+  // 검사와 UPDATE 사이 값이 바뀌어도 아래 UPDATE 가드의 조건부 갱신이 원자적으로 막는다.
+  const qtyTouched = "qty_broken" in fields || "total_qty" in fields;
+  let nextTotal = 0;
+  let nextBroken = 0;
+  if (qtyTouched) {
     const [cur] = (await db.query(
       `SELECT total_qty, qty_broken FROM items WHERE id = ?1`,
       [itemId],
     )) as { total_qty: number; qty_broken: number }[];
     if (!cur) return { error: "not_found" };
-    const nextTotal = (fields.total_qty as number | undefined) ?? cur.total_qty;
-    const nextBroken =
-      (fields.qty_broken as number | undefined) ?? cur.qty_broken;
+    nextTotal = (fields.total_qty as number | undefined) ?? cur.total_qty;
+    nextBroken = (fields.qty_broken as number | undefined) ?? cur.qty_broken;
     if (nextBroken > nextTotal) return { error: "qty_constraint" };
+
+    // 보유를 대여 중인 수량보다 줄이면 재고가 음수가 된다 — 대여 가능 수량은
+    // (total_qty − qty_broken) 이고, 이 값이 현재 점유량보다 작아지면 대여 중인 물품을
+    // 회수할 수 없는 물품이 생긴다. 수량을 안 건드리는 수정은 이 검사를 걸지 않는다 —
+    // 이미 잘못된 상태인 물품도 이름·위치·사진 편집으로 갇히면 안 된다.
+    const [active] = (await db.query(
+      `SELECT COALESCE(SUM(qty), 0) AS active_now FROM reservations
+        WHERE item_id = ?1 AND status = 'rented'`,
+      [itemId],
+    )) as { active_now: number }[];
+    if (nextTotal - nextBroken < active.active_now) {
+      return { error: "rented_qty_constraint" };
+    }
   }
   // 태그만 보낸 요청(keys 비움)은 UPDATE 문이 문법 오류가 되므로 컬럼 갱신을 건너뛴다 —
   // 이 경우 존재 여부는 조인 테이블 작업 전 가드 SELECT 로 확인한다.
@@ -206,10 +223,21 @@ export async function updateItem(
   if (keys.length > 0 || categoryIds !== undefined) {
     const stmts: { sql: string; params?: unknown[] }[] = [];
     if (keys.length > 0) {
+      // 수량 수정이면 UPDATE 안에 가드까지 넣는다. 위 사전 검사와 UPDATE 사이에 다른 관리자가
+      // 마지막 수량을 빌려갈 수 있고, 이때 가드가 없으면 재고가 음수가 그대로 저장된다.
+      // 조건부 UPDATE(0행면 거절)가 이 프로젝트의 원자 판정 방식이다(applyMemberRole 참조).
+      const guard = qtyTouched
+        ? ` AND ?${keys.length + 2} - ?${keys.length + 3} >=
+              (SELECT COALESCE(SUM(qty), 0) FROM reservations
+                WHERE item_id = ?1 AND status = 'rented')`
+        : "";
       const setSql = keys.map((k, i) => `${k} = ?${i + 2}`).join(", ");
       stmts.push({
-        sql: `UPDATE items SET ${setSql} WHERE id = ?1 RETURNING id`,
-        params: [itemId, ...keys.map((k) => itemFields[k])],
+        sql: `UPDATE items SET ${setSql} WHERE id = ?1${guard} RETURNING id`,
+        // 가드 바인딩은 수량을 건드렸을 때만 붙인다 — 쓰지 않는 매개변수를 보내지 않는다
+        params: qtyTouched
+          ? [itemId, ...keys.map((k) => itemFields[k]), nextTotal, nextBroken]
+          : [itemId, ...keys.map((k) => itemFields[k])],
       });
     }
     if (categoryIds !== undefined) {
@@ -245,6 +273,14 @@ export async function updateItem(
       // 컬럼 갱신이 있었는데 0행이면 물품이 없다 — 태그·FTS 문은 없는 물품에 no-op 이라
       // batch 가 부분 변경을 남기지 않는다
       if (keys.length > 0 && results[0].length === 0) {
+        // UPDATE 가드는 물품 부재와 대여 중 수량 초과 두 가지를 함께 막는다.
+        // 어느 쪽인지 한 번 더 물어 구분한다 — 어느 쪽이든 부분 변경은 남지 않는다.
+        if (qtyTouched) {
+          const [still] = (await db.query(`SELECT id FROM items WHERE id = ?1`, [
+            itemId,
+          ])) as { id: number }[];
+          if (still) return { error: "rented_qty_constraint" };
+        }
         return { error: "not_found" };
       }
     } catch (err) {
