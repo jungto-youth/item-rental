@@ -25,7 +25,7 @@
           "name": "Page Header",
           "width": "fill_container",
           "padding": [
-            16,
+            12,
             24
           ],
           "justifyContent": "space_between",
@@ -84,9 +84,9 @@
           "id": "J5dpt",
           "name": "Summary",
           "width": "fill_container",
-          "gap": 32,
+          "gap": 24,
           "padding": [
-            16,
+            12,
             24
           ],
           "alignItems": "center",
@@ -218,10 +218,9 @@
           "id": "xJsIr",
           "name": "Tabs",
           "width": "fill_container",
-          "stroke": "#E6E6E6",
-          "gap": 16,
+          "gap": 12,
           "padding": [
-            16,
+            12,
             24
           ],
           "children": [
@@ -229,7 +228,6 @@
               "type": "frame",
               "id": "bDglI",
               "name": "Tab 1",
-              "stroke": "#111111",
               "layout": "vertical",
               "padding": 4,
               "children": [
@@ -276,7 +274,7 @@
                   "id": "Cpj8h",
                   "name": "Tab Label",
                   "fill": "#9C9C9C",
-                  "content": "대여 가능 5",
+                  "content": "대여 가능 23",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 16,
                   "fontWeight": "normal"
@@ -292,23 +290,10 @@
           "width": "fill_container",
           "layout": "vertical",
           "padding": [
-            0,
+            12,
             24
           ],
           "children": [
-            {
-              "type": "text",
-              "id": "Oc4Zv",
-              "x": 0,
-              "y": 0,
-              "name": "Title",
-              "enabled": false,
-              "fill": "#111111",
-              "content": "대여 이력",
-              "fontFamily": "Noto Sans KR",
-              "fontSize": 16,
-              "fontWeight": "700"
-            },
             {
               "id": "Ifz33",
               "type": "ref",
@@ -629,7 +614,8 @@
                     },
                     "EX5YZ": {
                       "content": "—",
-                      "enabled": false
+                      "enabled": false,
+                      "fill": "$ink3"
                     }
                   }
                 },
@@ -3407,9 +3393,8 @@
           "type": "frame",
           "id": "utXwz",
           "name": "Login Card",
-          "width": "fill_container",
           "layout": "vertical",
-          "gap": 32,
+          "gap": 24,
           "alignItems": "center",
           "children": [
             {
@@ -3417,7 +3402,7 @@
               "id": "rxfU1",
               "name": "Brand Block",
               "layout": "vertical",
-              "gap": 8,
+              "gap": 12,
               "alignItems": "center",
               "children": [
                 {
@@ -3494,7 +3479,7 @@
               "type": "ref",
               "ref": "OlbcC",
               "name": "Login Button",
-              "width": 360,
+              "width": "fit_content",
               "y": 154,
               "height": "fit_content",
               "descendants": {
@@ -3529,7 +3514,7 @@
           "name": "Login Card",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 32,
+          "gap": 24,
           "children": [
             {
               "type": "frame",
@@ -3537,7 +3522,7 @@
               "name": "Brand Block",
               "width": "fill_container",
               "layout": "vertical",
-              "gap": 8,
+              "gap": 12,
               "alignItems": "center",
               "children": [
                 {
@@ -3623,7 +3608,7 @@
                   "type": "ref",
                   "ref": "OlbcC",
                   "name": "Login Button",
-                  "width": 240,
+                  "width": "fit_content",
                   "height": "fit_content",
                   "descendants": {
                     "Z6McK": {
@@ -3648,12 +3633,6 @@
       "width": 390,
       "fill": "#FFFFFF",
       "layout": "vertical",
-      "padding": [
-        0,
-        0,
-        81,
-        0
-      ],
       "children": [
         {
           "id": "Bkv80",
@@ -3678,7 +3657,10 @@
           "id": "J8mjp",
           "name": "Page Header",
           "width": "fill_container",
-          "padding": 16,
+          "padding": [
+            12,
+            24
+          ],
           "children": [
             {
               "type": "text",
@@ -3697,7 +3679,10 @@
           "id": "O6Y36",
           "name": "Summary",
           "width": "fill_container",
-          "padding": 16,
+          "padding": [
+            12,
+            24
+          ],
           "children": [
             {
               "type": "frame",
@@ -3860,17 +3845,90 @@
         },
         {
           "type": "frame",
+          "id": "R1EpCc",
+          "name": "Tabs",
+          "width": "fill_container",
+          "gap": 16,
+          "padding": [
+            12,
+            24
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "E5YZwR",
+              "name": "M Tab 1",
+              "layout": "vertical",
+              "padding": 4,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "zJsgx",
+                  "name": "Tab Label",
+                  "fill": "#111111",
+                  "content": "전체 10",
+                  "fontFamily": "Noto Sans KR",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "wYYcv",
+              "name": "M Tab 2",
+              "layout": "vertical",
+              "padding": 4,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "S28Fx3",
+                  "name": "Tab Label",
+                  "fill": "#9C9C9C",
+                  "content": "대여 중 5",
+                  "fontFamily": "Noto Sans KR",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "id5Oh",
+              "name": "M Tab 3",
+              "layout": "vertical",
+              "padding": 4,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "wv7FV",
+                  "name": "Tab Label",
+                  "fill": "#9C9C9C",
+                  "content": "대여 가능 23",
+                  "fontFamily": "Noto Sans KR",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
           "id": "XEUZ3",
           "name": "Search Row",
           "width": "fill_container",
-          "padding": 16,
+          "padding": [
+            12,
+            24
+          ],
           "children": [
             {
               "id": "JPiJG",
               "type": "ref",
               "ref": "Om7uh",
-              "x": 16,
-              "y": 16,
+              "x": 24,
+              "y": 12,
               "width": "fill_container",
               "height": "fit_content",
               "justifyContent": "start",
@@ -3885,1059 +3943,31 @@
           "width": "fill_container",
           "layout": "vertical",
           "padding": [
-            0,
-            16
+            12,
+            24
           ],
           "alignItems": "center",
           "children": [
             {
-              "type": "text",
-              "id": "QRSRD",
+              "id": "XX1bo",
+              "type": "ref",
+              "ref": "m6cqIV",
               "x": 24,
-              "y": 12,
-              "name": "Section Title",
-              "enabled": false,
-              "fill": "#111111",
-              "content": "대여 이력",
-              "fontFamily": "Noto Sans KR",
-              "fontSize": 16,
-              "fontWeight": "700"
+              "y": 12
             },
             {
-              "id": "UJT2J",
+              "id": "IHWTS",
               "type": "ref",
               "ref": "m6cqIV",
-              "name": "Card 1",
-              "width": "fill_container",
-              "layout": "vertical",
-              "descendants": {
-                "CCxjC": {
-                  "type": "frame",
-                  "id": "O5NgdR",
-                  "name": "Card Head Row",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "N8go4D",
-                      "name": "Item Thumb",
-                      "width": 56,
-                      "height": 56,
-                      "fill": "$line",
-                      "cornerRadius": 6,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "rK9Dg",
-                          "name": "Thumb Icon",
-                          "width": 22,
-                          "height": 22,
-                          "icon": "image",
-                          "library": "lucide",
-                          "fill": "$ink3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "bKifa",
-                      "name": "Card Head",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "n3NTE",
-                          "name": "Item Name",
-                          "fill": "$ink",
-                          "content": "프로젝터 (Epson EF-12)",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-16",
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "RtC4f",
-                          "name": "Meta Line",
-                          "fill": "$ink3",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "대여품 · 회의 장비 · 3층 자료실",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "a8Mra2",
-                          "name": "Rental Line",
-                          "fill": "$primary",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "1/2",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "700"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "teoSC": {
-                  "type": "frame",
-                  "id": "UD7ft",
-                  "x": 0,
-                  "y": 56,
-                  "name": "Card Body",
-                  "enabled": false,
-                  "width": 100,
-                  "height": 0,
-                  "layout": "vertical",
-                  "gap": 4,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "GrKdK",
-                      "name": "Meta Line",
-                      "fill": "$ink3",
-                      "content": "대여품 · 회의장비 · 3층 자료실",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "bcNWq",
-                      "name": "Rental Line",
-                      "fill": "$primary",
-                      "content": "대여 중 1/2 · 김민수 · 7. 14 (월)",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "600"
-                    }
-                  ]
-                }
-              }
+              "x": 24,
+              "y": 105
             },
             {
-              "id": "T9DkQe",
+              "id": "UaWQ8",
               "type": "ref",
               "ref": "m6cqIV",
-              "name": "Card 2",
-              "width": "fill_container",
-              "layout": "vertical",
-              "descendants": {
-                "CCxjC": {
-                  "type": "frame",
-                  "id": "k5wFVs",
-                  "name": "Card Head Row",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "b0yns",
-                      "name": "Item Thumb",
-                      "width": 56,
-                      "height": 56,
-                      "fill": "$line",
-                      "cornerRadius": 6,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "q0p80",
-                          "name": "Thumb Icon",
-                          "width": 22,
-                          "height": 22,
-                          "icon": "image",
-                          "library": "lucide",
-                          "fill": "$ink3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "RlrZE",
-                      "name": "Card Head",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "IdqMX",
-                          "name": "Item Name",
-                          "fill": "$ink",
-                          "content": "맥북 에어 M2",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-16",
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "POBAp",
-                          "name": "Meta Line",
-                          "fill": "$ink3",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "대여품 · 노트북 · 2층 서버실",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "sp5U9",
-                          "name": "Rental Line",
-                          "fill": "$primary",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "1/3",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "700"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "teoSC": {
-                  "type": "frame",
-                  "id": "PUhD2",
-                  "x": 0,
-                  "y": 56,
-                  "name": "Card Body",
-                  "enabled": false,
-                  "width": 100,
-                  "height": 0,
-                  "layout": "vertical",
-                  "gap": 4,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "y3b1Ct",
-                      "name": "Meta Line",
-                      "fill": "$ink3",
-                      "content": "대여품 · 노트북 · 2층 서버실",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "b9CPm7",
-                      "name": "Rental Line",
-                      "fill": "$primary",
-                      "content": "대여 중 1/3 · 이서연 · 7. 18 (금)",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "600"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "id": "Vfu1w",
-              "type": "ref",
-              "ref": "m6cqIV",
-              "name": "Card 3",
-              "width": "fill_container",
-              "layout": "vertical",
-              "descendants": {
-                "CCxjC": {
-                  "type": "frame",
-                  "id": "ZRknO",
-                  "name": "Card Head Row",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "e0Kjz",
-                      "name": "Item Thumb",
-                      "width": 56,
-                      "height": 56,
-                      "fill": "$line",
-                      "cornerRadius": 6,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "iBL8f",
-                          "name": "Thumb Icon",
-                          "width": 22,
-                          "height": 22,
-                          "icon": "image",
-                          "library": "lucide",
-                          "fill": "$ink3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "Nx4Dg",
-                      "name": "Card Head",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "cGwzV",
-                          "name": "Item Name",
-                          "fill": "$ink",
-                          "content": "무선 발표기",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-16",
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "SAXBE",
-                          "name": "Meta Line",
-                          "fill": "$ink3",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "대여품 · 회의 장비 · 3층 자료실",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "v7rIXn",
-                          "name": "Rental Line",
-                          "fill": "$primary",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "1/1",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "700"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "teoSC": {
-                  "type": "frame",
-                  "id": "QFULx",
-                  "x": 0,
-                  "y": 56,
-                  "name": "Card Body",
-                  "enabled": false,
-                  "width": 100,
-                  "height": 0,
-                  "layout": "vertical",
-                  "gap": 4,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "ghhkY",
-                      "name": "Meta Line",
-                      "fill": "$ink3",
-                      "content": "대여품 · 회의장비 · 3층 자료실",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "kxX2k",
-                      "name": "Rental Line",
-                      "fill": "$ink3",
-                      "content": "대여 가능 · — · —",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "id": "Bb5DL",
-              "type": "ref",
-              "ref": "m6cqIV",
-              "name": "Card 4",
-              "width": "fill_container",
-              "layout": "vertical",
-              "descendants": {
-                "CCxjC": {
-                  "type": "frame",
-                  "id": "X9CvHr",
-                  "name": "Card Head Row",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "pkx5a",
-                      "name": "Item Thumb",
-                      "width": 56,
-                      "height": 56,
-                      "fill": "$line",
-                      "cornerRadius": 6,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "tGbF6",
-                          "name": "Thumb Icon",
-                          "width": 22,
-                          "height": 22,
-                          "icon": "image",
-                          "library": "lucide",
-                          "fill": "$ink3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "h5iB8",
-                      "name": "Card Head",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "sJXsa",
-                          "name": "Item Name",
-                          "fill": "$ink",
-                          "content": "서버랙 공구 세트",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-16",
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "Tcz5h",
-                          "name": "Meta Line",
-                          "fill": "$ink3",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "대여품 · 공구 · 1층 창고",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "ckef6",
-                          "name": "Rental Line",
-                          "fill": "$ink2",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "0/1",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "teoSC": {
-                  "enabled": false,
-                  "width": 100,
-                  "height": 0
-                }
-              }
-            },
-            {
-              "id": "F1cf67",
-              "type": "ref",
-              "ref": "m6cqIV",
-              "name": "Card 5",
-              "width": "fill_container",
-              "layout": "vertical",
-              "descendants": {
-                "CCxjC": {
-                  "type": "frame",
-                  "id": "z2A6JE",
-                  "name": "Card Head Row",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "lyBtm",
-                      "name": "Item Thumb",
-                      "width": 56,
-                      "height": 56,
-                      "fill": "$line",
-                      "cornerRadius": 6,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "U7DlX5",
-                          "name": "Thumb Icon",
-                          "width": 22,
-                          "height": 22,
-                          "icon": "image",
-                          "library": "lucide",
-                          "fill": "$ink3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "SLTIO",
-                      "name": "Card Head",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "c71FT",
-                          "name": "Item Name",
-                          "fill": "$ink",
-                          "content": "캠코더 (Sony FDR)",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-16",
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "oeW0n",
-                          "name": "Meta Line",
-                          "fill": "$ink3",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "대여품 · 촬영장비 · 3층 자료실",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "uEPRU",
-                          "name": "Rental Line",
-                          "fill": "$primary",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "1/1",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "700"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "teoSC": {
-                  "type": "frame",
-                  "id": "saETo",
-                  "x": 0,
-                  "y": 56,
-                  "name": "Card Body",
-                  "enabled": false,
-                  "width": 100,
-                  "height": 0,
-                  "layout": "vertical",
-                  "gap": 4,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "ZzcRW",
-                      "name": "Meta Line",
-                      "fill": "$ink3",
-                      "content": "대여품 · 촬영장비 · 3층 자료실",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "r2Eqw",
-                      "name": "Rental Line",
-                      "fill": "$primary",
-                      "content": "대여 중 1/1 · 박지훈 · 7. 15 (화)",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "600"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "id": "GxCJj",
-              "type": "ref",
-              "ref": "m6cqIV",
-              "name": "Card 7",
-              "width": "fill_container",
-              "layout": "vertical",
-              "descendants": {
-                "CCxjC": {
-                  "type": "frame",
-                  "id": "dILs6",
-                  "name": "Card Head Row",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "MajYI",
-                      "name": "Item Thumb",
-                      "width": 56,
-                      "height": 56,
-                      "fill": "$line",
-                      "cornerRadius": 6,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "bUT1n",
-                          "name": "Thumb Icon",
-                          "width": 22,
-                          "height": 22,
-                          "icon": "image",
-                          "library": "lucide",
-                          "fill": "$ink3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "vtB7G",
-                      "name": "Card Head",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "j53jd",
-                          "name": "Item Name",
-                          "fill": "$ink",
-                          "content": "화상회의 스피커",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-16",
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "x38Iz",
-                          "name": "Meta Line",
-                          "fill": "$ink3",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "대여품 · 회의 장비 · 4층 회의실 B",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "rZpy5",
-                          "name": "Rental Line",
-                          "fill": "$primary",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "1/1",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "700"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "teoSC": {
-                  "enabled": false,
-                  "width": 100,
-                  "height": 0
-                }
-              }
-            },
-            {
-              "id": "JFJFm",
-              "type": "ref",
-              "ref": "m6cqIV",
-              "name": "Card 6",
-              "width": "fill_container",
-              "layout": "vertical",
-              "descendants": {
-                "CCxjC": {
-                  "type": "frame",
-                  "id": "D0tFj9",
-                  "name": "Card Head Row",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "H1uBsd",
-                      "name": "Item Thumb",
-                      "width": 56,
-                      "height": 56,
-                      "fill": "$line",
-                      "cornerRadius": 6,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "HsxDZ",
-                          "name": "Thumb Icon",
-                          "width": 22,
-                          "height": 22,
-                          "icon": "image",
-                          "library": "lucide",
-                          "fill": "$ink3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "j4fgR0",
-                      "name": "Card Head",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "C0XMS",
-                          "name": "Item Name",
-                          "fill": "$ink",
-                          "content": "촬영용 삼각대",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-16",
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "vWfsQ",
-                          "name": "Meta Line",
-                          "fill": "$ink3",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "대여품 · 촬영장비 · 3층 자료실",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "ELRP4",
-                          "name": "Rental Line",
-                          "fill": "$primary",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "2/2",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "700"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "teoSC": {
-                  "enabled": false,
-                  "width": 100,
-                  "height": 0
-                }
-              }
-            },
-            {
-              "id": "dFND4",
-              "type": "ref",
-              "ref": "m6cqIV",
-              "name": "Card 8",
-              "width": "fill_container",
-              "layout": "vertical",
-              "descendants": {
-                "CCxjC": {
-                  "type": "frame",
-                  "id": "PpFP9",
-                  "name": "Card Head Row",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "ftknv",
-                      "name": "Item Thumb",
-                      "width": 56,
-                      "height": 56,
-                      "fill": "$line",
-                      "cornerRadius": 6,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "N8F9s",
-                          "name": "Thumb Icon",
-                          "width": 22,
-                          "height": 22,
-                          "icon": "image",
-                          "library": "lucide",
-                          "fill": "$ink3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "e33a0",
-                      "name": "Card Head",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "anWIr",
-                          "name": "Item Name",
-                          "fill": "$ink",
-                          "content": "외장 SSD 2TB",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-16",
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "JdCZe",
-                          "name": "Meta Line",
-                          "fill": "$ink3",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "대여품 · 저장장치 · 2층 서버실",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "v7LJiQ",
-                          "name": "Rental Line",
-                          "fill": "$primary",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "1/2 · 7.13 (일)",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "700"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "teoSC": {
-                  "enabled": false,
-                  "width": 100,
-                  "height": 0
-                }
-              }
-            },
-            {
-              "id": "OWS2P",
-              "type": "ref",
-              "ref": "m6cqIV",
-              "name": "Card 9",
-              "width": "fill_container",
-              "layout": "vertical",
-              "descendants": {
-                "CCxjC": {
-                  "type": "frame",
-                  "id": "VXOUm",
-                  "name": "Card Head Row",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "WOG2e",
-                      "name": "Item Thumb",
-                      "width": 56,
-                      "height": 56,
-                      "fill": "$line",
-                      "cornerRadius": 6,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "y4jRC",
-                          "name": "Thumb Icon",
-                          "width": 22,
-                          "height": 22,
-                          "icon": "image",
-                          "library": "lucide",
-                          "fill": "$ink3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "wUD5k",
-                      "name": "Card Head",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "OuhIt",
-                          "name": "Item Name",
-                          "fill": "$ink",
-                          "content": "노트북 거치대",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-16",
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "tDfDw",
-                          "name": "Meta Line",
-                          "fill": "$ink3",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "대여품 · 주변기기 · 2층 서버실",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "Pbjeu",
-                          "name": "Rental Line",
-                          "fill": "$primary",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "1/1",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "700"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "teoSC": {
-                  "enabled": false,
-                  "width": 100,
-                  "height": 0
-                }
-              }
-            },
-            {
-              "id": "yqC8D",
-              "type": "ref",
-              "ref": "m6cqIV",
-              "name": "Card 10",
-              "width": "fill_container",
-              "layout": "vertical",
-              "descendants": {
-                "CCxjC": {
-                  "type": "frame",
-                  "id": "HgA0N",
-                  "name": "Card Head Row",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "SioMO",
-                      "name": "Item Thumb",
-                      "width": 56,
-                      "height": 56,
-                      "fill": "$line",
-                      "cornerRadius": 6,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "BVoUg",
-                          "name": "Thumb Icon",
-                          "width": 22,
-                          "height": 22,
-                          "icon": "image",
-                          "library": "lucide",
-                          "fill": "$ink3"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "EQNQI",
-                      "name": "Card Head",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "vNpKd",
-                          "name": "Item Name",
-                          "fill": "$ink",
-                          "content": "레이저 측정기",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-16",
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "upZP5",
-                          "name": "Meta Line",
-                          "fill": "$ink3",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "대여품 · 공구 · 1층 창고",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "oKTC9",
-                          "name": "Rental Line",
-                          "fill": "$ink2",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "수리 중",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": "$fs-12",
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "teoSC": {
-                  "enabled": false,
-                  "width": 100,
-                  "height": 0
-                }
-              }
+              "x": 24,
+              "y": 198
             },
             {
               "type": "frame",
@@ -4952,48 +3982,71 @@
                   "id": "gc80v",
                   "type": "ref",
                   "ref": "Yfy4M",
-                  "x": 120.5,
+                  "x": 112.5,
                   "y": 0
                 }
               ]
             },
             {
               "type": "frame",
-              "id": "u6U7yc",
+              "id": "Y2heg",
               "layoutPosition": "absolute",
-              "x": 318,
-              "y": 953,
-              "name": "FAB",
-              "width": 48,
-              "height": 48,
-              "fill": "#EA580C",
-              "cornerRadius": 999,
-              "justifyContent": "center",
-              "alignItems": "center",
+              "x": 0,
+              "y": 1276,
+              "name": "Bottom",
+              "width": "fill_container(390)",
+              "layout": "vertical",
               "children": [
                 {
-                  "type": "icon",
-                  "id": "uQw8L",
-                  "name": "Icon",
-                  "width": 24,
-                  "height": 24,
-                  "icon": "plus",
-                  "library": "lucide",
-                  "fill": "#FFFFFF"
+                  "type": "frame",
+                  "id": "svW9x",
+                  "name": "Fab Row",
+                  "width": "fill_container",
+                  "padding": [
+                    12,
+                    24
+                  ],
+                  "justifyContent": "end",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "u6U7yc",
+                      "name": "FAB",
+                      "width": 48,
+                      "height": 48,
+                      "fill": "#EA580C",
+                      "cornerRadius": 999,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "uQw8L",
+                          "name": "Icon",
+                          "width": 24,
+                          "height": 24,
+                          "icon": "plus",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "Ym7OM",
+                  "type": "ref",
+                  "ref": "x8VbkY",
+                  "name": "Tab Bar",
+                  "x": 0,
+                  "y": 72,
+                  "enabled": true,
+                  "width": "fill_container"
                 }
               ]
             }
           ]
-        },
-        {
-          "id": "Ym7OM",
-          "type": "ref",
-          "ref": "x8VbkY",
-          "name": "Tab Bar",
-          "layoutPosition": "absolute",
-          "x": 0,
-          "y": 1333,
-          "enabled": true
         }
       ]
     },
@@ -7036,7 +6089,7 @@
       "width": 1440,
       "fill": "#FFFFFF",
       "layout": "vertical",
-      "gap": 16,
+      "gap": 24,
       "padding": 24,
       "children": [
         {
@@ -7055,7 +6108,7 @@
           "name": "S 색상",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 16,
+          "gap": 12,
           "children": [
             {
               "type": "text",
@@ -7072,7 +6125,7 @@
               "id": "A971Ul",
               "name": "Swatches",
               "width": "fill_container",
-              "gap": 16,
+              "gap": 12,
               "children": [
                 {
                   "type": "frame",
@@ -7080,7 +6133,7 @@
                   "name": "C bg",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "frame",
@@ -7121,7 +6174,7 @@
                   "name": "C ink",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "frame",
@@ -7161,7 +6214,7 @@
                   "name": "C ink2",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "frame",
@@ -7201,7 +6254,7 @@
                   "name": "C ink3",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "frame",
@@ -7241,7 +6294,7 @@
                   "name": "C line",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "frame",
@@ -7281,7 +6334,7 @@
                   "name": "C surface",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "frame",
@@ -7322,7 +6375,7 @@
                   "name": "C field",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "frame",
@@ -7363,7 +6416,7 @@
                   "name": "C primary",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "frame",
@@ -7403,7 +6456,7 @@
                   "name": "C primary-tint",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "frame",
@@ -7443,7 +6496,7 @@
                   "name": "C danger",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "frame",
@@ -7483,7 +6536,7 @@
                   "name": "C danger-tint",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "frame",
@@ -7527,7 +6580,7 @@
           "name": "S 타이포",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 16,
+          "gap": 12,
           "children": [
             {
               "type": "text",
@@ -7857,7 +6910,7 @@
           "name": "S 간격",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 16,
+          "gap": 12,
           "children": [
             {
               "type": "text",
@@ -7873,7 +6926,7 @@
               "type": "frame",
               "id": "Z2kTYK",
               "name": "SP Row 1",
-              "gap": 16,
+              "gap": 12,
               "alignItems": "end",
               "children": [
                 {
@@ -7998,7 +7051,7 @@
               "type": "frame",
               "id": "d0ifsh",
               "name": "SP Row 2",
-              "gap": 16,
+              "gap": 12,
               "alignItems": "end",
               "children": [
                 {
@@ -8123,7 +7176,7 @@
               "type": "frame",
               "id": "zpz7M",
               "name": "SP Row 3",
-              "gap": 16,
+              "gap": 12,
               "alignItems": "end",
               "children": [
                 {
@@ -8248,7 +7301,7 @@
               "type": "frame",
               "id": "gwI9a",
               "name": "SP Row 4",
-              "gap": 16,
+              "gap": 12,
               "alignItems": "end",
               "children": [
                 {
@@ -8373,7 +7426,7 @@
               "type": "frame",
               "id": "uMAWf",
               "name": "SP Row 5",
-              "gap": 16,
+              "gap": 12,
               "alignItems": "end",
               "children": [
                 {
@@ -8502,7 +7555,7 @@
           "name": "S 크기 단위",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 16,
+          "gap": 12,
           "children": [
             {
               "type": "text",
@@ -8516,624 +7569,633 @@
             },
             {
               "type": "frame",
-              "id": "NTjkI",
-              "name": "SZ Row 1",
-              "gap": 16,
+              "id": "b1wwe7",
+              "name": "SZ Rows",
+              "gap": 12,
               "alignItems": "end",
               "children": [
                 {
                   "type": "frame",
-                  "id": "YtNeP",
-                  "name": "SZ s-4",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
+                  "id": "NTjkI",
+                  "name": "SZ Row 1",
+                  "gap": 12,
+                  "alignItems": "end",
                   "children": [
                     {
                       "type": "frame",
-                      "id": "UgXHs",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 4,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
+                      "id": "YtNeP",
+                      "name": "SZ s-4",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "UgXHs",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 4,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "Q823b",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-4",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
                     {
-                      "type": "text",
-                      "id": "Q823b",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-4",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
+                      "type": "frame",
+                      "id": "faWme",
+                      "name": "SZ s-8",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "U4wN5",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 8,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "aAmGs",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-8",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Onnkz",
+                      "name": "SZ s-12",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "R2w7o",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 12,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "X74YD",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-12",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Enjp1",
+                      "name": "SZ s-16",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Y4uUAD",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 16,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "P4h8r",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-16",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
                   "type": "frame",
-                  "id": "faWme",
-                  "name": "SZ s-8",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
+                  "id": "RM93G",
+                  "name": "SZ Row 2",
+                  "gap": 12,
+                  "alignItems": "end",
                   "children": [
                     {
                       "type": "frame",
-                      "id": "U4wN5",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 8,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
+                      "id": "FudmV",
+                      "name": "SZ s-20",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "yzek0",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 20,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "Q5Aaj",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-20",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
                     {
-                      "type": "text",
-                      "id": "aAmGs",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-8",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
+                      "type": "frame",
+                      "id": "OAUW3",
+                      "name": "SZ s-24",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Gn5fb",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 24,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "TWA3H",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-24",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NlCHd",
+                      "name": "SZ s-28",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "oBVup",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 28,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "Dwrc5",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-28",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "m7PLwn",
+                      "name": "SZ s-32",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Efbn0",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 32,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "L4FwH",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-32",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
                   "type": "frame",
-                  "id": "Onnkz",
-                  "name": "SZ s-12",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
+                  "id": "w6RdUH",
+                  "name": "SZ Row 3",
+                  "gap": 12,
+                  "alignItems": "end",
                   "children": [
                     {
                       "type": "frame",
-                      "id": "R2w7o",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 12,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
+                      "id": "gBAdL",
+                      "name": "SZ s-36",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "aEAc2",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 36,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "w8Q8r9",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-36",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
                     {
-                      "type": "text",
-                      "id": "X74YD",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-12",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
+                      "type": "frame",
+                      "id": "S1Tmk",
+                      "name": "SZ s-40",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "NuI9w",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 40,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "OnzYh",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-40",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "sQfkz",
+                      "name": "SZ s-44",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "nYGk1",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 44,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "oY8kG",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-44",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "MWZPA",
+                      "name": "SZ s-48",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "OMLxB",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 48,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "p8EfI",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-48",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
                   "type": "frame",
-                  "id": "Enjp1",
-                  "name": "SZ s-16",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
+                  "id": "eCBLu",
+                  "name": "SZ Row 4",
+                  "gap": 12,
+                  "alignItems": "end",
                   "children": [
                     {
                       "type": "frame",
-                      "id": "Y4uUAD",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 16,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
+                      "id": "h71Oli",
+                      "name": "SZ s-52",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "rxash",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 52,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "a6qUZ3",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-52",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
-                    {
-                      "type": "text",
-                      "id": "P4h8r",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-16",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "RM93G",
-              "name": "SZ Row 2",
-              "gap": 16,
-              "alignItems": "end",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "FudmV",
-                  "name": "SZ s-20",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
                     {
                       "type": "frame",
-                      "id": "yzek0",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 20,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
+                      "id": "o641RO",
+                      "name": "SZ s-56",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Mc6eV",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 56,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "Wrbpv",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-56",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
-                    {
-                      "type": "text",
-                      "id": "Q5Aaj",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-20",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "OAUW3",
-                  "name": "SZ s-24",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
                     {
                       "type": "frame",
-                      "id": "Gn5fb",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 24,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
+                      "id": "X6v6R",
+                      "name": "SZ s-60",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "yvepv",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 60,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "VFjFu",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-60",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
-                    {
-                      "type": "text",
-                      "id": "TWA3H",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-24",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "NlCHd",
-                  "name": "SZ s-28",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
                     {
                       "type": "frame",
-                      "id": "oBVup",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 28,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
-                    },
-                    {
-                      "type": "text",
-                      "id": "Dwrc5",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-28",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "m7PLwn",
-                  "name": "SZ s-32",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "Efbn0",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 32,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
-                    },
-                    {
-                      "type": "text",
-                      "id": "L4FwH",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-32",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "w6RdUH",
-              "name": "SZ Row 3",
-              "gap": 16,
-              "alignItems": "end",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "gBAdL",
-                  "name": "SZ s-36",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "aEAc2",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 36,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
-                    },
-                    {
-                      "type": "text",
-                      "id": "w8Q8r9",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-36",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
+                      "id": "sX3OB",
+                      "name": "SZ s-64",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Fa4y2",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 64,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "D1x0j",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-64",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     }
                   ]
                 },
                 {
                   "type": "frame",
-                  "id": "S1Tmk",
-                  "name": "SZ s-40",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
+                  "id": "gSexe",
+                  "name": "SZ Row 5",
+                  "gap": 12,
+                  "alignItems": "end",
                   "children": [
                     {
                       "type": "frame",
-                      "id": "NuI9w",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 40,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
+                      "id": "A78HxJ",
+                      "name": "SZ s-68",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "A4WEkM",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 68,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "dZzDh",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-68",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
-                    {
-                      "type": "text",
-                      "id": "OnzYh",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-40",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "sQfkz",
-                  "name": "SZ s-44",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
                     {
                       "type": "frame",
-                      "id": "nYGk1",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 44,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
+                      "id": "kUN7U",
+                      "name": "SZ s-72",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "lSFhR",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 72,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "g2IsB",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-72",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
-                    {
-                      "type": "text",
-                      "id": "oY8kG",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-44",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "MWZPA",
-                  "name": "SZ s-48",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
                     {
                       "type": "frame",
-                      "id": "OMLxB",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 48,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
+                      "id": "f7d8NG",
+                      "name": "SZ s-76",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "EF5fV",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 76,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "v1AHw",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-76",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
-                    {
-                      "type": "text",
-                      "id": "p8EfI",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-48",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "eCBLu",
-              "name": "SZ Row 4",
-              "gap": 16,
-              "alignItems": "end",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "h71Oli",
-                  "name": "SZ s-52",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
                     {
                       "type": "frame",
-                      "id": "rxash",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 52,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
-                    },
-                    {
-                      "type": "text",
-                      "id": "a6qUZ3",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-52",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "o641RO",
-                  "name": "SZ s-56",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "Mc6eV",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 56,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
-                    },
-                    {
-                      "type": "text",
-                      "id": "Wrbpv",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-56",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "X6v6R",
-                  "name": "SZ s-60",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "yvepv",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 60,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
-                    },
-                    {
-                      "type": "text",
-                      "id": "VFjFu",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-60",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "sX3OB",
-                  "name": "SZ s-64",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "Fa4y2",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 64,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
-                    },
-                    {
-                      "type": "text",
-                      "id": "D1x0j",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-64",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "gSexe",
-              "name": "SZ Row 5",
-              "gap": 16,
-              "alignItems": "end",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "A78HxJ",
-                  "name": "SZ s-68",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "A4WEkM",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 68,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
-                    },
-                    {
-                      "type": "text",
-                      "id": "dZzDh",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-68",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "kUN7U",
-                  "name": "SZ s-72",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "lSFhR",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 72,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
-                    },
-                    {
-                      "type": "text",
-                      "id": "g2IsB",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-72",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "f7d8NG",
-                  "name": "SZ s-76",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "EF5fV",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 76,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
-                    },
-                    {
-                      "type": "text",
-                      "id": "v1AHw",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-76",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "weNp1",
-                  "name": "SZ s-80",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "ujJAg",
-                      "name": "Bar",
-                      "width": 8,
-                      "height": 80,
-                      "fill": "#EA580C",
-                      "cornerRadius": 2
-                    },
-                    {
-                      "type": "text",
-                      "id": "nfZ9F",
-                      "name": "SZ Label",
-                      "fill": "#9C9C9C",
-                      "content": "s-80",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
+                      "id": "weNp1",
+                      "name": "SZ s-80",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ujJAg",
+                          "name": "Bar",
+                          "width": 8,
+                          "height": 80,
+                          "fill": "#EA580C",
+                          "cornerRadius": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "nfZ9F",
+                          "name": "SZ Label",
+                          "fill": "#9C9C9C",
+                          "content": "s-80",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -23963,7 +23025,7 @@
       "width": 1440,
       "fill": "#FFFFFF",
       "layout": "vertical",
-      "gap": 16,
+      "gap": 24,
       "padding": 24,
       "children": [
         {
@@ -23981,7 +23043,7 @@
           "id": "C0mbly",
           "name": "Logo",
           "layout": "vertical",
-          "gap": 16,
+          "gap": 12,
           "children": [
             {
               "type": "text",
@@ -24078,7 +23140,7 @@
           "id": "C9JVXr",
           "name": "Buttons",
           "layout": "vertical",
-          "gap": 16,
+          "gap": 12,
           "children": [
             {
               "type": "text",
@@ -24098,7 +23160,7 @@
               "fill": "$primary",
               "cornerRadius": 6,
               "padding": [
-                16,
+                12,
                 24
               ],
               "justifyContent": "center",
@@ -24124,7 +23186,7 @@
               "fill": "$line",
               "cornerRadius": 6,
               "padding": [
-                16,
+                12,
                 24
               ],
               "justifyContent": "center",
@@ -24199,11 +23261,11 @@
               "width": "fit_content",
               "fill": "#00000000",
               "padding": [
-                16,
+                12,
                 24
               ],
               "x": 0,
-              "y": 267,
+              "y": 231,
               "cornerRadius": 6,
               "stroke": "$line",
               "strokeLinecap": "butt",
@@ -24231,7 +23293,7 @@
               "fill": "#00000000",
               "cornerRadius": 6,
               "padding": [
-                16,
+                12,
                 24
               ],
               "justifyContent": "center",
@@ -24261,8 +23323,7 @@
                       "fill": "$ink2",
                       "content": "더보기",
                       "fontFamily": "Noto Sans KR",
-                      "fontSize": "$fs-16",
-                      "fontWeight": "700"
+                      "fontSize": "$fs-16"
                     }
                   ]
                 }
@@ -24275,7 +23336,7 @@
           "id": "aK5ro",
           "name": "List",
           "layout": "vertical",
-          "gap": 16,
+          "gap": 12,
           "children": [
             {
               "type": "text",
@@ -24292,49 +23353,48 @@
               "id": "m6cqIV",
               "name": "List Card",
               "reusable": true,
-              "width": 358,
+              "width": "fill_container",
               "stroke": "$line",
               "strokeWidth": {
                 "bottom": 1
               },
-              "layout": "vertical",
-              "gap": 8,
+              "gap": 12,
               "padding": [
-                16,
+                12,
                 0
               ],
               "children": [
                 {
                   "type": "frame",
-                  "id": "CCxjC",
-                  "name": "Card Head Row",
-                  "width": "fill_container",
-                  "gap": 8,
+                  "id": "FwK5H",
+                  "name": "Item Thumb",
+                  "width": 48,
+                  "height": 48,
+                  "fill": "$line",
+                  "cornerRadius": 4,
+                  "justifyContent": "center",
                   "alignItems": "center",
                   "children": [
                     {
-                      "type": "frame",
-                      "id": "FwK5H",
-                      "name": "Item Thumb",
-                      "width": 32,
-                      "height": 32,
-                      "fill": "$line",
-                      "cornerRadius": 4,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "tTiHs",
-                          "name": "Thumb Icon",
-                          "width": 16,
-                          "height": 16,
-                          "icon": "image",
-                          "library": "lucide",
-                          "fill": "$ink3"
-                        }
-                      ]
-                    },
+                      "type": "icon",
+                      "id": "tTiHs",
+                      "name": "Thumb Icon",
+                      "width": 24,
+                      "height": 24,
+                      "icon": "image",
+                      "library": "lucide",
+                      "fill": "$ink3"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "CCxjC",
+                  "name": "Card Head Row",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
                     {
                       "type": "frame",
                       "id": "d9i1m",
@@ -24373,24 +23433,12 @@
                           ]
                         }
                       ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "teoSC",
-                  "name": "Card Body",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 8,
-                  "children": [
+                    },
                     {
                       "type": "text",
                       "id": "K8CpR",
                       "name": "Meta",
                       "fill": "$ink3",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
                       "content": "메타 정보",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": "$fs-12",
@@ -24401,8 +23449,6 @@
                       "id": "jWa3e",
                       "name": "Rental Info",
                       "fill": "$primary",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
                       "content": "대여 정보",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": "$fs-12",
@@ -24509,7 +23555,7 @@
                 "bottom": 1
               },
               "padding": [
-                16,
+                12,
                 0
               ],
               "alignItems": "center",
@@ -24637,7 +23683,7 @@
           "name": "S 아이콘",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 16,
+          "gap": 12,
           "children": [
             {
               "type": "text",
@@ -24655,7 +23701,7 @@
               "name": "Icons",
               "width": "fill_container",
               "height": 98,
-              "gap": 16,
+              "gap": 12,
               "children": [
                 {
                   "type": "frame",
@@ -24950,7 +23996,7 @@
               "name": "Icons",
               "width": "fill_container",
               "height": 98,
-              "gap": 16,
+              "gap": 12,
               "children": [
                 {
                   "type": "frame",
@@ -25244,7 +24290,7 @@
               "id": "e3HV3",
               "name": "Icons",
               "width": "fill_container",
-              "gap": 16,
+              "gap": 12,
               "children": [
                 {
                   "type": "frame",
@@ -25640,7 +24686,7 @@
           "id": "tcViD",
           "name": "Calendar",
           "layout": "vertical",
-          "gap": 16,
+          "gap": 12,
           "children": [
             {
               "type": "text",
@@ -25663,7 +24709,7 @@
               "stroke": "#E6E6E6",
               "strokeWidth": 1,
               "layout": "vertical",
-              "gap": 8,
+              "gap": 6,
               "padding": 12,
               "children": [
                 {
@@ -25671,7 +24717,7 @@
                   "id": "YY3F9",
                   "name": "Cal Head",
                   "width": "fill_container",
-                  "gap": 8,
+                  "gap": 6,
                   "alignItems": "center",
                   "children": [
                     {
@@ -25714,7 +24760,7 @@
                   "id": "MgAzv",
                   "name": "Cal Weekdays",
                   "width": "fill_container",
-                  "gap": 4,
+                  "gap": 3,
                   "children": [
                     {
                       "type": "text",
@@ -25814,7 +24860,7 @@
                   "id": "MNBMA",
                   "name": "Cal Week",
                   "width": "fill_container",
-                  "gap": 4,
+                  "gap": 3,
                   "children": [
                     {
                       "id": "oY0t3",
@@ -25907,7 +24953,7 @@
                   "id": "Pt5w6",
                   "name": "Cal Week",
                   "width": "fill_container",
-                  "gap": 4,
+                  "gap": 3,
                   "children": [
                     {
                       "id": "AR5HA",
@@ -26000,7 +25046,7 @@
                   "id": "WO4Yt",
                   "name": "Cal Week",
                   "width": "fill_container",
-                  "gap": 4,
+                  "gap": 3,
                   "children": [
                     {
                       "id": "zyd2R",
@@ -26093,7 +25139,7 @@
                   "id": "vuSGl",
                   "name": "Cal Week",
                   "width": "fill_container",
-                  "gap": 4,
+                  "gap": 3,
                   "children": [
                     {
                       "id": "BLtBV",
@@ -26201,7 +25247,7 @@
                   "id": "n4EScp",
                   "name": "Cal Week",
                   "width": "fill_container",
-                  "gap": 4,
+                  "gap": 3,
                   "children": [
                     {
                       "id": "g9Tke5",
@@ -26337,7 +25383,7 @@
           "name": "Navigation",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 16,
+          "gap": 12,
           "children": [
             {
               "type": "text",
@@ -26356,7 +25402,10 @@
               "reusable": true,
               "width": "fill_container",
               "stroke": "#E6E6E6",
-              "padding": 16,
+              "padding": [
+                12,
+                24
+              ],
               "justifyContent": "space_between",
               "alignItems": "center",
               "children": [
@@ -26364,7 +25413,7 @@
                   "type": "frame",
                   "id": "R2JYX",
                   "name": "Brand",
-                  "gap": 32,
+                  "gap": 24,
                   "alignItems": "center",
                   "children": [
                     {
@@ -26498,7 +25547,10 @@
               "width": 390,
               "fill": "#FFFFFF",
               "stroke": "#E6E6E6",
-              "padding": 16,
+              "padding": [
+                12,
+                24
+              ],
               "justifyContent": "center",
               "children": [
                 {
@@ -26641,7 +25693,7 @@
           "cornerRadius": 8,
           "layout": "vertical",
           "gap": "$sp-12",
-          "padding": 16,
+          "padding": 24,
           "children": [
             {
               "type": "text",
@@ -26673,7 +25725,7 @@
               },
               "layout": "vertical",
               "gap": 16,
-              "padding": 16,
+              "padding": 24,
               "alignItems": "center",
               "children": [
                 {
@@ -26729,7 +25781,7 @@
                   "id": "mO6ph",
                   "name": "Dialog Actions",
                   "width": "fill_container",
-                  "gap": 8,
+                  "gap": 12,
                   "justifyContent": "center",
                   "children": [
                     {
@@ -26769,7 +25821,7 @@
           "name": "S 에러 상태",
           "cornerRadius": 8,
           "layout": "vertical",
-          "gap": 16,
+          "gap": 12,
           "children": [
             {
               "type": "text",
@@ -26785,21 +25837,21 @@
               "type": "frame",
               "id": "jdr4g",
               "name": "Samples",
-              "gap": 16,
+              "gap": 6,
               "children": [
                 {
                   "type": "frame",
                   "id": "s4qtJm",
                   "name": "Col",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 12,
                   "children": [
                     {
                       "type": "frame",
                       "id": "M6T67W",
                       "name": "Input Error Field",
                       "layout": "vertical",
-                      "gap": 4,
+                      "gap": 3,
                       "children": [
                         {
                           "type": "frame",
@@ -26809,9 +25861,9 @@
                           "cornerRadius": 6,
                           "stroke": "#9F1239",
                           "strokeWidth": 1.5,
-                          "gap": 8,
+                          "gap": 6,
                           "padding": [
-                            16,
+                            12,
                             24
                           ],
                           "alignItems": "center",
@@ -26857,8 +25909,8 @@
                       "width": "fill_container",
                       "fill": "#F2E0E5",
                       "cornerRadius": 8,
-                      "gap": 16,
-                      "padding": 16,
+                      "gap": 12,
+                      "padding": 12,
                       "alignItems": "center",
                       "children": [
                         {
@@ -26877,7 +25929,7 @@
                           "name": "Col",
                           "width": "fill_container",
                           "layout": "vertical",
-                          "gap": 4,
+                          "gap": 6,
                           "children": [
                             {
                               "type": "text",
