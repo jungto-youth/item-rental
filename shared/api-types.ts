@@ -86,6 +86,14 @@ export type AdminReservation = MyReservation & {
   admin_name: string | null;
   // 반납은 회원도 직접 할 수 있다 — true 면 회원이 스스로 반납한 건(자기 신고)
   returned_by_member: boolean;
+  // 대여 시점의 물품 표기 — 물품이 개명·이동해도 이 값은 바뀌지 않는다.
+  // item_name 이 이미 스냅샷 우선으로 계산되므로 화면은 보통 item_name 만 쓴다.
+  item_name_snapshot: string | null;
+  item_location_snapshot: string | null;
+  // 반납 시각 — 반납된 건에서만 채워진다. updated_at 과 달리 반납 전용이다.
+  returned_at: string | null;
+  // 관리자가 반납 처리할 때 남기는 메모 — 지금은 writer 가 없어 null 이다.
+  admin_memo: string | null;
 };
 
 // 관리자 대시보드 () — /api/admin/dashboard
