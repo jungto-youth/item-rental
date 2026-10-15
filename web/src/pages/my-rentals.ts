@@ -161,7 +161,7 @@ export class PageMyRentals extends LitElement {
     if (this.busy) return;
     if (
       !(await confirmDialog(`'${r.item_name}' 대여를 취소할까요?`, {
-        confirmLabel: "취소",
+        confirmLabel: "대여 취소",
         danger: false,
       }))
     )
