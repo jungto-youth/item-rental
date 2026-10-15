@@ -18,6 +18,11 @@ try {
     contentType: "text/html", body: "<html><body></body></html>",
   }));
   await page.route("**/api/categories", r => r.fulfill({ json: { categories: [] } }));
+  await page.route("**/api/me", r => r.fulfill({ json: { user: { id: "photo-fixture", name: "사진 테스트", email: "photo@example.invalid", phone: "010-0000-0000", role: "admin", deactivated_at: null } } }));
+  await page.route("**/api/items", r => r.fulfill({ json: { items: [], total: 0, available_total: 0, hasMore: false } }));
+  await page.route("**/api/admin/items?*", r => r.fulfill({ json: { items: [], hasMore: false } }));
+  await page.route("**/api/admin/dashboard", r => r.fulfill({ json: { items: [] } }));
+  await page.route("**/api/photos/**", r => r.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64") }));
   await page.goto(`${server.resolvedUrls.local[0]}photo-verification`);
 
   const compression = await page.evaluate(async () => {

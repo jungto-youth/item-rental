@@ -1,15 +1,16 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
 import { getDb, type Sql } from "../db";
-import { getSessionUser } from "../middleware/auth";
+import { requireAuth } from "../middleware/auth";
 import { searchHybrid, listItems } from "../services/search.service";
 import { getItemDetail } from "../services/items.service";
 
-// GET /api/items, /api/items/:id (전체 열람 가능)
+// GET /api/items, /api/items/:id (활성 회원 전용)
 export const itemsRoute = new Hono<{
   Bindings: Bindings;
   Variables: Variables;
 }>();
+itemsRoute.use("*", requireAuth);
 
 // 쿼리 파라미터 클램프 — LIMIT/OFFSET 을 SQL 에 그대로 넣기 전에 정수로 한정한다
 function clampInt(
@@ -23,7 +24,7 @@ function clampInt(
   return Math.min(Math.max(Math.trunc(n), min), max);
 }
 
-// 검색 레이트 리밋 — 의미 검색은 공개 엔드포인트에서 Workers AI 를 부르므로 로테이션
+// 검색 레이트 리밋 — 의미 검색은 Workers AI 를 부르므로 로테이션
 // 쿼리로 무료 한도를 태우는 걸 막는다. isolate 로컬 고정창(분당)이라 정확한 계정당
 // 제한은 아니지만 비용 폭주를 잡는 1차 방어로 충분하다. 초과 시 429.
 const SEARCH_WINDOW_MS = 60_000;
@@ -51,9 +52,9 @@ itemsRoute.get("/", async (c) => {
   const q = (c.req.query("q") ?? "").trim();
 
   // 관리자 세션이면 행에 카테고리를 얹고 카테고리 필터를 허용한다 —
-  // 회원·비로그인 응답은 관리 목록 통합 이전과 같은 모양을 유지한다
-  const user = await getSessionUser(c);
-  const isAdmin = user?.role === "admin";
+  // 일반 회원 응답은 관리 목록 통합 이전과 같은 모양을 유지한다
+  const user = c.get("user")!;
+  const isAdmin = user.role === "admin";
 
   // 검색 — 키워드+의미를 RRF 로 융합한 상위 30개. 검색에는 페이지네이션이 없다:
   // 퍼지 매치의 꼬리는 노이즈라 "페이지 2"를 보여줘도 아무도 안 본다

@@ -66,7 +66,7 @@ export async function getItemDetail(
       items.kind, items.location,
       items.qty_broken,
       (items.total_qty - items.qty_broken) AS rentable_qty,
-      (SELECT json_group_array(json_object('id', p.id, 'url', '/api/photos/' || p.r2_key))
+      (SELECT json_group_array(json_object('id', p.id, 'url', '/api/photos/' || p.r2_key || '?access=members'))
        FROM (SELECT p.id, p.r2_key FROM item_photos p
               WHERE p.item_id = items.id ORDER BY p.sort_order) p) AS photos,
       (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
@@ -346,7 +346,7 @@ export async function addPhoto(
     await db.query(`DELETE FROM item_photos WHERE id = ?1`, [photoId]);
     throw err;
   }
-  return { ok: true, id: photoId, url: `/api/photos/${key}` };
+  return { ok: true, id: photoId, url: `/api/photos/${key}?access=members` };
 }
 
 // 사진 삭제 — 행 먼저 지우고 R2 오브젝트를 지운다. R2 삭제가 실패해도 남는 건

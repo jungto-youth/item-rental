@@ -12,7 +12,7 @@ export async function getDashboard(db: Sql) {
     db.query(
       `SELECT items.id, items.name, items.kind, items.status, items.total_qty, items.qty_broken,
               (items.total_qty - items.qty_broken) AS rentable_qty,
-              (SELECT '/api/photos/' || p.r2_key FROM item_photos p
+              (SELECT '/api/photos/' || p.r2_key || '?access=members' FROM item_photos p
                 WHERE p.item_id = items.id ORDER BY p.sort_order LIMIT 1) AS photo,
               (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
                 WHERE r.item_id = items.id AND r.status = 'rented') AS active_now

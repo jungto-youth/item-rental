@@ -16,6 +16,7 @@
     "check": "tsc --noEmit -p web && tsc --noEmit -p server && tsc --noEmit -p server/tsconfig.tests.json && tsc --noEmit -p server/tsconfig.scripts.json",
     "test": "vitest run",
     "test:photos": "node web/tests/photo.browser.test.mjs",
+    "test:members": "node web/tests/member-access.browser.test.mjs",
     "db:seed": "node server/scripts/seed.ts",
     "db:import-items": "node server/scripts/import-items.ts"
   },

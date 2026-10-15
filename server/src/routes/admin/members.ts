@@ -6,6 +6,7 @@ import {
   listMembers,
   withdrawMember,
   setMemberRole,
+  deleteMemberRegistration,
 } from "../../services/members.service";
 
 // 회원 관리 (admin 전용)
@@ -29,6 +30,13 @@ adminMembersRoute.post("/:id/withdraw", async (c) => {
   if (result.error === "last_admin")
     return c.json({ error: "last_admin" }, 409);
   return c.json({ error: "not_found" }, 404);
+});
+
+// 등록 정보 삭제: 탈퇴 계정의 개인정보를 익명화한다. 활성 대여가 있으면 거부한다.
+adminMembersRoute.delete("/:id", async (c) => {
+  const result = await deleteMemberRegistration(getDb(c.env), c.req.param("id"));
+  if ("ok" in result) return c.json({ ok: true });
+  return c.json({ error: result.error }, result.error === "not_found" ? 404 : 409);
 });
 
 // 역할 지정/해제 — admin 전용: admin ↔ user 전환 (v3.2, 2단계)

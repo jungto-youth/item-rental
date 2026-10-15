@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { Auth } from "@auth/core";
 import type { Bindings, Variables } from "./types";
 import { authConfig } from "./auth";
-import { getSessionUser } from "./middleware/auth";
+import { getSessionUser, requireAuth } from "./middleware/auth";
 import { itemsRoute } from "./routes/items";
 import { categoriesRoute } from "./routes/categories";
 import { meRoute } from "./routes/me";
@@ -51,13 +51,14 @@ app.all("/api/auth/*", (c) => Auth(c.req.raw, authConfig(c.env, c.req.raw)));
 // --- 세션 ---
 // 401 대신 {user:null} 반환 — SPA가 로그인 상태를 판단
 app.get("/api/me", async (c) => {
+  c.header("Cache-Control", "private, no-store");
   const user = await getSessionUser(c);
   return c.json({ user });
 });
 
 // --- 사진 서빙 (R2) ---
-// 키에 UUID가 포함되어 불변 → 1년 캐시. /api/*는 run_worker_first로 워커가 처리 ()
-app.get("/api/photos/*", async (c) => {
+// 사진도 매 요청에 최신 회원 상태를 확인한다. 로그아웃/탈퇴 이후 캐시로 우회하지 않는다.
+app.get("/api/photos/*", requireAuth, async (c) => {
   const key = c.req.path.slice("/api/photos/".length);
   if (!key || key.includes("..")) return c.json({ error: "bad_key" }, 400);
   const obj = await c.env.PHOTOS.get(key);
@@ -65,7 +66,8 @@ app.get("/api/photos/*", async (c) => {
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
   headers.set("etag", obj.httpEtag);
-  headers.set("cache-control", "public, max-age=31536000, immutable");
+  headers.set("cache-control", "private, no-store");
+  headers.set("vary", "Cookie");
   headers.set("x-content-type-options", "nosniff");
   headers.set("content-disposition", "inline");
   return new Response(obj.body, { headers });

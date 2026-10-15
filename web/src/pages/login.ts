@@ -21,6 +21,12 @@ export class PageLogin extends LitElement {
     if (params.get("error") === "AccessDenied") {
       this.message = "정토회 계정(@jungto.org)으로 로그인해주세요";
       history.replaceState(null, "", window.location.pathname); // 새로고침 시 재표시 방지
+    } else if (params.get("error") === "AccountDeactivated") {
+      this.message = "탈퇴 처리된 계정이에요. 관리자에게 문의해주세요";
+      history.replaceState(null, "", window.location.pathname);
+    } else if (params.get("error") === "SessionUnavailable") {
+      this.message = "로그인 상태를 확인할 수 없어요. 연결 상태를 확인하고 다시 시도해주세요";
+      history.replaceState(null, "", window.location.pathname);
     }
   }
 

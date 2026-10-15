@@ -24,6 +24,7 @@ async function withFlag(flag: boolean | undefined, run: () => Promise<void>) {
 function fixture() {
   const db = new DatabaseSync(":memory:");
   db.exec(readFileSync(new URL("../../migrations-d1/0001_baseline.sql", import.meta.url), "utf8"));
+  db.exec(readFileSync(new URL("../../migrations-d1/0003_member_registration_deleted.sql", import.meta.url), "utf8"));
   const env = {
     AUTH_SECRET: "local-test-fixture-secret-not-used-outside-tests",
     DB: {
