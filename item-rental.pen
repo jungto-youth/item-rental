@@ -324,18 +324,29 @@
                     "kSZAl": {
                       "content": "프로젝터 (Epson EF-12)"
                     },
-                    "l8O9D": {
-                      "content": "대여품"
-                    },
                     "pGnRI": {
                       "content": "회의장비"
                     },
                     "J2Fdn": {
                       "content": "3층 자료실"
                     },
-                    "f6Zds": {
-                      "content": "1/2",
-                      "fill": "$primary"
+                    "r1Y6B2": {
+                      "content": "대여 가능 1",
+                      "enabled": true
+                    },
+                    "D274no": {
+                      "enabled": true
+                    },
+                    "Es032": {
+                      "content": "대여 중 1",
+                      "enabled": true
+                    },
+                    "GCYcZ": {
+                      "enabled": true
+                    },
+                    "hysgd": {
+                      "content": "수리중 1",
+                      "enabled": true
                     },
                     "EX5YZ": {
                       "content": "7. 14 (월)",
@@ -353,17 +364,29 @@
                     "kSZAl": {
                       "content": "맥북 에어 M2"
                     },
-                    "l8O9D": {
-                      "content": "대여품"
-                    },
                     "pGnRI": {
                       "content": "노트북"
                     },
                     "J2Fdn": {
                       "content": "2층 서버실"
                     },
-                    "f6Zds": {
-                      "content": "1/3"
+                    "r1Y6B2": {
+                      "content": "대여 가능 2",
+                      "enabled": true
+                    },
+                    "D274no": {
+                      "enabled": true
+                    },
+                    "Es032": {
+                      "content": "대여 중 1",
+                      "enabled": true
+                    },
+                    "GCYcZ": {
+                      "enabled": false
+                    },
+                    "hysgd": {
+                      "content": "수리중 0",
+                      "enabled": false
                     },
                     "EX5YZ": {
                       "content": "7. 18 (금)",
@@ -381,20 +404,29 @@
                     "kSZAl": {
                       "content": "무선 발표기"
                     },
-                    "l8O9D": {
-                      "content": "대여품"
-                    },
                     "pGnRI": {
                       "content": "회의장비"
                     },
                     "J2Fdn": {
                       "content": "3층 자료실"
                     },
-                    "f6Zds": {
-                      "content": "1/1",
-                      "fill": "$primary",
-                      "fontWeight": "700",
-                      "fontStyle": "normal"
+                    "r1Y6B2": {
+                      "content": "대여 가능 0",
+                      "enabled": false
+                    },
+                    "D274no": {
+                      "enabled": false
+                    },
+                    "Es032": {
+                      "content": "대여 중 1",
+                      "enabled": true
+                    },
+                    "GCYcZ": {
+                      "enabled": false
+                    },
+                    "hysgd": {
+                      "content": "수리중 0",
+                      "enabled": false
                     },
                     "EX5YZ": {
                       "content": "—",
@@ -413,20 +445,29 @@
                     "kSZAl": {
                       "content": "서버랙 공구 세트"
                     },
-                    "l8O9D": {
-                      "content": "대여품"
-                    },
                     "pGnRI": {
                       "content": "공구"
                     },
                     "J2Fdn": {
                       "content": "1층 창고"
                     },
-                    "f6Zds": {
-                      "content": "0/1",
-                      "fill": "$ink2",
-                      "fontWeight": "400",
-                      "fontStyle": "normal"
+                    "r1Y6B2": {
+                      "content": "대여 가능 1",
+                      "enabled": true
+                    },
+                    "D274no": {
+                      "enabled": false
+                    },
+                    "Es032": {
+                      "content": "대여 중 0",
+                      "enabled": false
+                    },
+                    "GCYcZ": {
+                      "enabled": false
+                    },
+                    "hysgd": {
+                      "content": "수리중 0",
+                      "enabled": false
                     },
                     "EX5YZ": {
                       "content": "—",
@@ -445,17 +486,29 @@
                     "kSZAl": {
                       "content": "캠코더 (Sony FDR)"
                     },
-                    "l8O9D": {
-                      "content": "대여품"
-                    },
                     "pGnRI": {
                       "content": "촬영장비"
                     },
                     "J2Fdn": {
                       "content": "3층 자료실"
                     },
-                    "f6Zds": {
-                      "content": "1/1"
+                    "r1Y6B2": {
+                      "content": "대여 가능 0",
+                      "enabled": false
+                    },
+                    "D274no": {
+                      "enabled": false
+                    },
+                    "Es032": {
+                      "content": "대여 중 1",
+                      "enabled": true
+                    },
+                    "GCYcZ": {
+                      "enabled": false
+                    },
+                    "hysgd": {
+                      "content": "수리중 0",
+                      "enabled": false
                     },
                     "EX5YZ": {
                       "content": "7. 15 (화)",
@@ -473,20 +526,29 @@
                     "kSZAl": {
                       "content": "화상회의 스피커"
                     },
-                    "l8O9D": {
-                      "content": "대여품"
-                    },
                     "pGnRI": {
                       "content": "회의장비"
                     },
                     "J2Fdn": {
                       "content": "4층 회의실 B"
                     },
-                    "f6Zds": {
-                      "content": "1/1",
-                      "fill": "$primary",
-                      "fontWeight": "700",
-                      "fontStyle": "normal"
+                    "r1Y6B2": {
+                      "content": "대여 가능 0",
+                      "enabled": false
+                    },
+                    "D274no": {
+                      "enabled": false
+                    },
+                    "Es032": {
+                      "content": "대여 중 1",
+                      "enabled": true
+                    },
+                    "GCYcZ": {
+                      "enabled": false
+                    },
+                    "hysgd": {
+                      "content": "수리중 0",
+                      "enabled": false
                     },
                     "EX5YZ": {
                       "content": "—",
@@ -505,20 +567,29 @@
                     "kSZAl": {
                       "content": "촬영용 삼각대"
                     },
-                    "l8O9D": {
-                      "content": "대여품"
-                    },
                     "pGnRI": {
                       "content": "촬영장비"
                     },
                     "J2Fdn": {
                       "content": "3층 자료실"
                     },
-                    "f6Zds": {
-                      "content": "2/2",
-                      "fill": "$primary",
-                      "fontWeight": "700",
-                      "fontStyle": "normal"
+                    "r1Y6B2": {
+                      "content": "대여 가능 0",
+                      "enabled": false
+                    },
+                    "D274no": {
+                      "enabled": false
+                    },
+                    "Es032": {
+                      "content": "대여 중 2",
+                      "enabled": true
+                    },
+                    "GCYcZ": {
+                      "enabled": false
+                    },
+                    "hysgd": {
+                      "content": "수리중 0",
+                      "enabled": false
                     },
                     "EX5YZ": {
                       "content": "—",
@@ -537,17 +608,29 @@
                     "kSZAl": {
                       "content": "외장 SSD 2TB"
                     },
-                    "l8O9D": {
-                      "content": "대여품"
-                    },
                     "pGnRI": {
                       "content": "저장장치"
                     },
                     "J2Fdn": {
                       "content": "2층 서버실"
                     },
-                    "f6Zds": {
-                      "content": "1/2"
+                    "r1Y6B2": {
+                      "content": "대여 가능 1",
+                      "enabled": true
+                    },
+                    "D274no": {
+                      "enabled": true
+                    },
+                    "Es032": {
+                      "content": "대여 중 1",
+                      "enabled": true
+                    },
+                    "GCYcZ": {
+                      "enabled": false
+                    },
+                    "hysgd": {
+                      "content": "수리중 0",
+                      "enabled": false
                     },
                     "EX5YZ": {
                       "content": "7. 13 (일)",
@@ -565,20 +648,29 @@
                     "kSZAl": {
                       "content": "노트북 거치대"
                     },
-                    "l8O9D": {
-                      "content": "대여품"
-                    },
                     "pGnRI": {
                       "content": "주변기기"
                     },
                     "J2Fdn": {
                       "content": "2층 서버실"
                     },
-                    "f6Zds": {
-                      "content": "1/1",
-                      "fill": "$primary",
-                      "fontWeight": "700",
-                      "fontStyle": "normal"
+                    "r1Y6B2": {
+                      "content": "대여 가능 0",
+                      "enabled": false
+                    },
+                    "D274no": {
+                      "enabled": false
+                    },
+                    "Es032": {
+                      "content": "대여 중 1",
+                      "enabled": true
+                    },
+                    "GCYcZ": {
+                      "enabled": false
+                    },
+                    "hysgd": {
+                      "content": "수리중 0",
+                      "enabled": false
                     },
                     "EX5YZ": {
                       "content": "—",
@@ -597,20 +689,29 @@
                     "kSZAl": {
                       "content": "레이저 측정기"
                     },
-                    "l8O9D": {
-                      "content": "대여품"
-                    },
                     "pGnRI": {
                       "content": "공구"
                     },
                     "J2Fdn": {
                       "content": "1층 창고"
                     },
-                    "f6Zds": {
-                      "content": "수리 중",
-                      "fill": "$ink2",
-                      "fontStyle": "normal",
-                      "fontWeight": "400"
+                    "r1Y6B2": {
+                      "content": "대여 가능 0",
+                      "enabled": false
+                    },
+                    "D274no": {
+                      "enabled": false
+                    },
+                    "Es032": {
+                      "content": "대여 중 0",
+                      "enabled": false
+                    },
+                    "GCYcZ": {
+                      "enabled": false
+                    },
+                    "hysgd": {
+                      "content": "수리중 1",
+                      "enabled": true
                     },
                     "EX5YZ": {
                       "content": "—",
@@ -625,7 +726,6 @@
                   "name": "More",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 10,
                   "alignItems": "center",
                   "children": [
                     {
@@ -3975,7 +4075,6 @@
               "name": "More",
               "width": "fill_container",
               "layout": "vertical",
-              "gap": 10,
               "alignItems": "center",
               "children": [
                 {
@@ -23323,7 +23422,8 @@
                       "fill": "$ink2",
                       "content": "더보기",
                       "fontFamily": "Noto Sans KR",
-                      "fontSize": "$fs-16"
+                      "fontSize": "$fs-16",
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -23484,18 +23584,6 @@
                 },
                 {
                   "type": "text",
-                  "id": "Vb2Xx",
-                  "name": "H 구분",
-                  "fill": "$ink3",
-                  "textGrowth": "fixed-width",
-                  "width": 60,
-                  "content": "구분",
-                  "fontFamily": "Noto Sans KR",
-                  "fontSize": 12,
-                  "fontWeight": "normal"
-                },
-                {
-                  "type": "text",
                   "id": "MHxOU",
                   "name": "H 분류",
                   "fill": "$ink3",
@@ -23524,7 +23612,7 @@
                   "name": "H 상태",
                   "fill": "$ink3",
                   "textGrowth": "fixed-width",
-                  "width": 130,
+                  "width": 300,
                   "content": "상태",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 12,
@@ -23607,18 +23695,6 @@
                 },
                 {
                   "type": "text",
-                  "id": "l8O9D",
-                  "name": "C 구분",
-                  "fill": "$ink2",
-                  "textGrowth": "fixed-width",
-                  "width": 60,
-                  "content": "구분",
-                  "fontFamily": "Noto Sans KR",
-                  "fontSize": 16,
-                  "fontWeight": "normal"
-                },
-                {
-                  "type": "text",
                   "id": "pGnRI",
                   "name": "C 분류",
                   "fill": "$ink2",
@@ -23645,19 +23721,59 @@
                   "type": "frame",
                   "id": "nTGwT",
                   "name": "C Status",
-                  "width": 130,
-                  "gap": 8,
+                  "width": 300,
+                  "gap": 6,
                   "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
-                      "id": "f6Zds",
-                      "name": "Status Text",
-                      "fill": "$primary",
-                      "content": "상태",
+                      "id": "r1Y6B2",
+                      "name": "Status Avail",
+                      "fill": "$ink2",
+                      "content": "대여 가능 1",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 16,
-                      "fontWeight": "700"
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "D274no",
+                      "name": "Status Sep 1",
+                      "fill": "$ink3",
+                      "content": "·",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Es032",
+                      "name": "Status Rent",
+                      "fill": "$primary",
+                      "content": "대여 중 1",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "GCYcZ",
+                      "name": "Status Sep 2",
+                      "fill": "$ink3",
+                      "content": "·",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 16,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "hysgd",
+                      "name": "Status Repair",
+                      "fill": "$ink3",
+                      "content": "수리중 1",
+                      "fontFamily": "Noto Sans KR",
+                      "fontSize": 16,
+                      "fontWeight": "500"
                     }
                   ]
                 },
@@ -26186,5 +26302,5 @@
       "value": 80
     }
   },
-  "fileToken": "0a046ed0-37c5-4c72-938e-1e16871ddb72"
+  "fileToken": "5a05f6a6-54a9-4222-ace9-ff4bfaa25481"
 }
