@@ -10,7 +10,7 @@ import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { test, expect } from "vitest";
-import { createReservation } from "../src/services/reservations.service.ts";
+import { createReservation, cancelReservation, returnReservation, listReservations } from "../src/services/reservations.service.ts";
 import { withdrawMember, setMemberRole } from "../src/services/members.service.ts";
 import { createItem, updateItem } from "../src/services/items.service.ts";
 import { listItems } from "../src/services/search.service.ts";
@@ -22,7 +22,9 @@ const schema =
   readFileSync(`${testsDir}../../migrations-d1/0001_baseline.sql`, "utf8") +
   "\n" +
   readFileSync(`${testsDir}../../migrations-d1/0002_item_photos_item_id.sql`, "utf8") +
-  "\n" + readFileSync(`${testsDir}../../migrations-d1/0003_member_registration_deleted.sql`, "utf8");
+  "\n" + readFileSync(`${testsDir}../../migrations-d1/0003_member_registration_deleted.sql`, "utf8") +
+  "\n" +
+  readFileSync(`${testsDir}../../migrations-d1/0004_rental_history.sql`, "utf8");
 
 // node:sqlite를 Sql 어댑터로 — db.ts(getDb)와 같은 시그니처. 번호 파라미터(?1)는
 // 전달 순서대로 묶인다는 것이 D1 과 같다(본 파일 상단에서 실증).
@@ -89,6 +91,74 @@ test("가드 INSERT: 여유 수량 안이면 대여되고 rented 상태다", asy
   expect(result).toEqual({ ok: true, id: (result as { id: number }).id });
   const rows = db.prepare("SELECT qty, status FROM reservations").all() as { qty: number; status: string }[];
   expect(rows).toEqual([{ qty: 1, status: "rented" }]);
+});
+
+// ===== 대여 이력 보존 (0004_rental_history) =====
+
+test("이력 보존: 대여 시점의 물품명·위치가 스냅샷으로 남는다", async () => {
+  const db = freshDb();
+  const itemId = addItem(db);
+  const memberId = addMember(db, "user");
+  db.prepare("UPDATE items SET name = '프로젝터', location = '3층 자료실' WHERE id = ?1").run(itemId);
+
+  await createReservation(sqliteSql(db), { itemId, memberId, memo: null, qty: 1 });
+
+  const row = db
+    .prepare("SELECT item_name_snapshot, item_location_snapshot FROM reservations WHERE item_id = ?1")
+    .get(itemId) as { item_name_snapshot: string | null; item_location_snapshot: string | null };
+  expect(row).toEqual({ item_name_snapshot: "프로젝터", item_location_snapshot: "3층 자료실" });
+});
+
+test("이력 보존: 물품이 개명돼도 이미 쌓인 대여 행의 스냅샷은 안 바뀐다", async () => {
+  const db = freshDb();
+  const itemId = addItem(db);
+  const memberId = addMember(db, "user");
+  const nameAtRent = (db.prepare("SELECT name FROM items WHERE id = ?1").get(itemId) as { name: string }).name;
+
+  await createReservation(sqliteSql(db), { itemId, memberId, memo: null, qty: 1 });
+  db.prepare("UPDATE items SET name = '프로젝터 (Epson EF-12)', location = '4층' WHERE id = ?1").run(itemId);
+
+  // 이력 화면이 읽는 값(스냅샷 우선)은 대여 당시 이름 그대로이고, 현재 값만 바뀌어야 한다
+  const list = await listReservations(sqliteSql(db), null);
+  expect(list.reservations[0].item_name).toBe(nameAtRent);
+  expect(list.reservations[0].item_location_snapshot).toBeNull();
+
+  const [cur] = (await sqliteSql(db).query<{ name: string }>("SELECT name FROM items WHERE id = ?1", [itemId]));
+  expect(cur.name).toBe("프로젝터 (Epson EF-12)");
+});
+
+test("이력 보존: 반납 시각은 returned_at 에만 담긴다", async () => {
+  const db = freshDb();
+  const itemId = addItem(db);
+  const memberId = addMember(db, "user");
+  const adminId = addMember(db, "admin");
+
+  const created = await createReservation(sqliteSql(db), { itemId, memberId, memo: null, qty: 1 });
+  const resId = (created as { id: number }).id;
+  const sql = sqliteSql(db);
+  const read = () => db.prepare("SELECT status, returned_at FROM reservations WHERE id = ?1").get(resId) as
+    { status: string; returned_at: string | null };
+
+  expect(read()).toEqual({ status: "rented", returned_at: null });
+
+  expect(await returnReservation(sql, resId, adminId)).toEqual({ ok: true });
+  const after = read();
+  expect(after.status).toBe("returned");
+  expect(after.returned_at).toBeTruthy();
+});
+
+test("이력 보존: 취소는 반납이므로 returned_at 이 채워지지 않는다", async () => {
+  const db = freshDb();
+  const itemId = addItem(db);
+  const memberId = addMember(db, "user");
+
+  const created = await createReservation(sqliteSql(db), { itemId, memberId, memo: null, qty: 1 });
+  const resId = (created as { id: number }).id;
+
+  expect(await cancelReservation(sqliteSql(db), resId, memberId)).toEqual({ ok: true });
+  const after = db.prepare("SELECT status, returned_at FROM reservations WHERE id = ?1").get(resId) as
+    { status: string; returned_at: string | null };
+  expect(after).toEqual({ status: "cancelled", returned_at: null });
 });
 
 test("가드 INSERT: 재고를 넘으면 사전검사 too_many — 행이 남지 않는다", async () => {

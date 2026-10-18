@@ -89,8 +89,14 @@ export async function createReservation(
       // 현재 대여 중(rented) 수량의 합 + 신청 수량이 대여가능 수량을 넘지 않아야 INSERT.
       // 반납(returned)·취소(cancelled)는 점유에서 빠진다 — 그 수량은 다시 빌려줄 수 있다.
       {
-        sql: `INSERT INTO reservations (item_id, member_id, member_memo, qty, status)
-           SELECT ?1, ?2, ?3, ?4, 'rented'
+        // 스냅샷 2개 — 이력은 '그 시점의 물품명·위치'를 남겨야 한다. 물품이 개명되거나 보관
+        // 위치가 바뀌어도 과거 행의 표기는 그대로여야 한다(0004_rental_history.sql).
+        // 쓰기 경로가 이 INSERT 하나뿐이라 트리거 없이 여기서 세팅한다.
+        sql: `INSERT INTO reservations (item_id, member_id, member_memo, qty, status,
+                                        item_name_snapshot, item_location_snapshot)
+           SELECT ?1, ?2, ?3, ?4, 'rented',
+                  (SELECT name     FROM items WHERE items.id = ?1),
+                  (SELECT location FROM items WHERE items.id = ?1)
            WHERE ?4 <= (SELECT total_qty - qty_broken FROM items WHERE items.id = ?1)
              AND EXISTS (SELECT 1 FROM items
                           WHERE items.id = ?1 AND status = 'active' AND kind <> 'consumable')
@@ -201,7 +207,7 @@ export async function returnReservationByMember(
     db,
     reservationId,
     memberId,
-    `UPDATE reservations SET status = 'returned', updated_at = ${SQL_NOW}
+    `UPDATE reservations SET status = 'returned', returned_at = ${SQL_NOW}, updated_at = ${SQL_NOW}
       WHERE id = ?1 AND member_id = ?2 AND status = 'rented'
       RETURNING id`,
   );
@@ -241,7 +247,12 @@ export async function listReservations(
   status: string | null,
 ): Promise<{ reservations: AdminReservation[]; truncated: boolean }> {
   const rows = await db.query(
-    `SELECT r.id, r.item_id, items.name AS item_name, items.total_qty,
+    `SELECT r.id, r.item_id,
+            -- 이력 표기는 스냅샷을 우선한다 — 물품이 개명돼도 이 표는 그 시점의 이름이다.
+            -- 스냅샷이 비어 있으면(마이그레이션 이전 행 등) 현재 이름으로 물러난다.
+            COALESCE(r.item_name_snapshot, items.name) AS item_name,
+            r.item_name_snapshot, r.item_location_snapshot, r.returned_at,
+            items.total_qty,
             r.qty,
             r.member_id, m.name AS member_name, m.email AS member_email, m.phone AS member_phone,
             r.status, r.member_memo,
@@ -276,7 +287,7 @@ export async function returnReservation(
   return transition(
     db,
     reservationId,
-    `UPDATE reservations SET status = 'returned', admin_id = ?2, updated_at = ${SQL_NOW}
+    `UPDATE reservations SET status = 'returned', returned_at = ${SQL_NOW}, admin_id = ?2, updated_at = ${SQL_NOW}
       WHERE id = ?1 AND status = 'rented' RETURNING id`,
     [reservationId, adminId],
   );
