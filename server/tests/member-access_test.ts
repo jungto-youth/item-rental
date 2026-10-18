@@ -143,3 +143,33 @@ test("registration removal: active rentals block all profile changes until retur
     expect((await request("/api/admin/members/cancelled", { method: "DELETE", headers })).status).toBe(200);
   } finally { db.close(); }
 });
+
+test("item quantity: a PUT that would drop stock below what is already rented is refused with a readable 400", async () => {
+  // 라우트 매핑 검증 — 서비스가 rented_qty_constraint 를 뱉었을 때 400 과 사람이 읽는
+  // 메시지로 내려가는지, 그리고 거절 후 물품 값이 그대로인지 본다.
+  const { db, request, member } = httpFixture();
+  try {
+    const admin = await member("admin", "admin");
+    await member("borrower", "user", true);
+    db.exec("INSERT INTO items (id, name, total_qty) VALUES (1, '대여 중 물품', 3); INSERT INTO reservations (item_id, member_id, status, qty) VALUES (1, 'borrower', 'rented', 2);");
+    const headers = { origin: TEST_ORIGIN, cookie: admin };
+
+    const blocked = await request("/api/admin/items/1", {
+      method: "PUT",
+      headers: { ...headers, "content-type": "application/json" },
+      body: JSON.stringify({ total_qty: 1 }),
+    });
+    expect(blocked.status).toBe(400);
+    expect(await blocked.json()).toEqual({ error: "대여 중인 물품 수량보다 적게 줄일 수 없어요" });
+    expect(db.prepare("SELECT total_qty FROM items WHERE id = 1").get()?.total_qty).toBe(3);
+
+    // 경계값 — 대여 중인 수량까지 줄이는 것은 통과한다
+    const allowed = await request("/api/admin/items/1", {
+      method: "PUT",
+      headers: { ...headers, "content-type": "application/json" },
+      body: JSON.stringify({ total_qty: 2 }),
+    });
+    expect(allowed.status).toBe(200);
+    expect(db.prepare("SELECT total_qty FROM items WHERE id = 1").get()?.total_qty).toBe(2);
+  } finally { db.close(); }
+});

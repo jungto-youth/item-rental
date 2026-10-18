@@ -198,6 +198,9 @@ adminItemsRoute.put("/:id", async (c) => {
   const result = await updateItem(db, c.env, id, fields);
   if ("ok" in result) return c.json({ ok: true });
   if (result.error === "not_found") return c.json({ error: "not_found" }, 404);
+  if (result.error === "rented_qty_constraint") {
+    return c.json({ error: "대여 중인 물품 수량보다 적게 줄일 수 없어요" }, 400);
+  }
   return c.json({ error: "qty_broken은 total_qty 이하" }, 400);
 });
 
