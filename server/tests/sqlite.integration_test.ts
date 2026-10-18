@@ -12,7 +12,8 @@ import { fileURLToPath } from "node:url";
 import { test, expect } from "vitest";
 import { createReservation, cancelReservation, returnReservation, listReservations } from "../src/services/reservations.service.ts";
 import { withdrawMember, setMemberRole } from "../src/services/members.service.ts";
-import { createItem, updateItem } from "../src/services/items.service.ts";
+import { createItem, updateItem, deleteItem } from "../src/services/items.service.ts";
+import { renameCategory, deleteCategory } from "../src/services/categories.service.ts";
 import { listItems } from "../src/services/search.service.ts";
 import type { Sql } from "../src/db.ts";
 
@@ -459,6 +460,79 @@ test("updateItem: 태그만 바꿔도 FTS 가 갱신되고, 컬럼은 그대로�
   expect(ftsRow(db, id)?.tags).toEqual("겨울");
   const item = (db.prepare("SELECT name, total_qty FROM items WHERE id = ?1").all(id) as { name: string; total_qty: number }[])[0];
   expect(item).toEqual({ name: "이름", total_qty: 3 });
+});
+
+test("deleteItem: 물품을 지우면 FTS 행도 함께 사라진다 — 색인에 고아가 남지 않는다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const id = await createItem(sql, env, {
+    name: "버너",
+    status: "active",
+    total_qty: 1,
+    attrs: {},
+  });
+  expect(ftsRow(db, id)).not.toBeNull();
+
+  expect(await deleteItem(sql, env, id)).toEqual({ ok: true });
+
+  expect(ftsRow(db, id)).toBeNull();
+  expect(
+    (db.prepare("SELECT COUNT(*) n FROM items").all() as { n: number }[])[0].n,
+  ).toEqual(0);
+});
+
+// ===== 카테고리 이름변경·삭제 — 검색 색인 재동기화 =====
+
+// MATCH 는 trigram 색인이라 3글자 이상만 걸린다 — 실제 검색과 같은 조건으로 확인한다
+function ftsHits(db: DatabaseSync, term: string): number[] {
+  return (db.prepare(
+    `SELECT rowid FROM items_fts WHERE items_fts MATCH ?1 ORDER BY rowid`,
+  ).all(`"${term}"`) as { rowid: number }[]).map((r) => r.rowid);
+}
+
+test("renameCategory: 붙은 물품의 FTS 태그가 새 이름으로 바뀌어 새 이름으로 검색된다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const c1 = addCategory(db, "캠핑용");
+  const id = await createItem(sql, env, {
+    name: "버너",
+    status: "active",
+    total_qty: 1,
+    attrs: { category_ids: [c1] },
+  });
+  expect(ftsHits(db, "캠핑용")).toEqual([id]);
+
+  expect(await renameCategory(sql, c1, "등산용")).toEqual({ ok: true, id: c1 });
+
+  // 조인 행과 색인이 같은 이름을 들고 있어야 한다 — 색인이 옛 이름을 들고 있으면
+  // 새 이름으로 검색해도 물품이 안 나온다 (이름만 고치던 때의 증상)
+  expect(categoryRows(db, id)).toEqual(["등산용"]);
+  expect(ftsRow(db, id)?.tags).toEqual("등산용");
+  expect(ftsHits(db, "등산용")).toEqual([id]);
+  expect(ftsHits(db, "캠핑용")).toEqual([]);
+});
+
+test("deleteCategory: 물품은 남고 FTS 태그에서만 빠진다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const c1 = addCategory(db, "캠핑용");
+  const id = await createItem(sql, env, {
+    name: "버너",
+    status: "active",
+    total_qty: 1,
+    attrs: { category_ids: [c1] },
+  });
+
+  expect(await deleteCategory(sql, c1)).toEqual({ ok: true });
+
+  // 조인 행은 CASCADE 로 사라지지만 색인은 따로 있다 — 옛 이름으로 검색해도 유령이
+  // 남지 않아야 하고, 물품 행 자체는 그대로 남아야 한다
+  expect(categoryRows(db, id)).toEqual([]);
+  expect(ftsRow(db, id)?.tags).toEqual("");
+  expect(ftsHits(db, "캠핑용")).toEqual([]);
+  expect(
+    (db.prepare("SELECT COUNT(*) n FROM items").all() as { n: number }[])[0].n,
+  ).toEqual(1);
 });
 
 test("updateItem: 없는 물품 수정은 not_found — 부분 변경이 남지 않는다", async () => {
