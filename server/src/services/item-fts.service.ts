@@ -12,7 +12,8 @@ export function ftsDeleteSql(rowidPredicate: string): string {
 
 export function ftsInsertSql(idPredicate: string): string {
   return `INSERT INTO items_fts (rowid, name, description, location, tags)
-        SELECT i.id, i.name, COALESCE(i.description, ''), COALESCE(i.location, ''),
+        SELECT i.id, i.name, COALESCE(i.description, ''),
+               COALESCE((SELECT l.name FROM locations l WHERE l.id = i.location_id), ''),
                COALESCE((SELECT group_concat(c.name, ' ')
                   FROM (SELECT c.name FROM item_categories ic
                          JOIN categories c ON c.id = ic.category_id

@@ -49,7 +49,7 @@ test("dashboard: 물품별 대여자 목록과 수량 분포를 준다", async (
     const admin = await member("admin", "admin");
     await member("borrower", "user");
     db.exec(`
-      INSERT INTO items (id, name, kind, total_qty, qty_broken) VALUES
+      INSERT INTO items (id, name, kind, total_qty, qty_repair) VALUES
         (1, '빔 프로젝터', 'rental', 3, 1),
         (2, '등산 배낭', 'rental', 1, 0);
       INSERT INTO reservations (item_id, member_id, status, qty)
@@ -60,13 +60,13 @@ test("dashboard: 물품별 대여자 목록과 수량 분포를 준다", async (
     expect(res.status).toBe(200);
     const { items } = await res.json() as {
       items: {
-        id: number; name: string; total_qty: number; qty_broken: number;
+        id: number; name: string; total_qty: number; qty_repair: number;
         rentable_qty: number; active_now: number; photo: string | null;
         current_renters: { member_name: string; member_phone: string | null; qty: number }[];
       }[];
     };
     const projector = items.find((i) => i.id === 1)!;
-    // 대여 가능 = total_qty − qty_broken = 3 − 1 = 2, 대여 중 = 2
+    // 대여 가능 = total_qty − qty_repair = 3 − 1 = 2, 대여 중 = 2
     expect(projector.rentable_qty).toBe(2);
     expect(projector.active_now).toBe(2);
     expect(projector.current_renters).toEqual([
@@ -80,11 +80,11 @@ test("dashboard: 폐기 물품도 내려온다 — 현재 상태를 전부 보�
   const { db, request, member } = httpFixture();
   try {
     const admin = await member("admin", "admin");
-    db.exec("INSERT INTO items (id, name, status) VALUES (1, '폐기된 물품', 'retired');");
+    db.exec("INSERT INTO items (id, name, lifecycle) VALUES (1, '폐기된 물품', 'retired');");
     const res = await request("/api/admin/dashboard", { headers: { cookie: admin, ...get } });
-    const { items } = await res.json() as { items: { id: number; status: string }[] };
+    const { items } = await res.json() as { items: { id: number; lifecycle: string }[] };
     expect(items).toHaveLength(1);
-    expect(items[0].status).toBe("retired");
+    expect(items[0].lifecycle).toBe("retired");
   } finally { db.close(); }
 });
 
@@ -248,5 +248,58 @@ test("admin categories: 삭제하면 물품은 남고 FTS 태그에서만 빠진
     expect(fts.tags).toBe("");
     expect((db.prepare("SELECT COUNT(*) AS n FROM items").get() as { n: number }).n).toBe(1);
     expect((db.prepare("SELECT COUNT(*) AS n FROM item_categories").get() as { n: number }).n).toBe(0);
+  } finally { db.close(); }
+});
+// ===== /api/admin/items — 위치 정규화·생애주기 (0005) =====
+
+test("admin items: 등록 시 위치 이름이 locations 로 정규화되고 단건 조회가 이름으로 돌아온다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const admin = await member("admin", "admin");
+    const created = await request("/api/admin/items", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+      body: JSON.stringify({
+        name: "버너",
+        // 예전 status: 'repair' 는 수량 축(qty_repair)으로 내려갔다
+        lifecycle: "active",
+        total_qty: 3,
+        qty_repair: 1,
+        location: "B창고",
+        kind: "rental",
+      }),
+    });
+    expect(created.status).toBe(201);
+    const { id } = await created.json() as { id: number };
+
+    // 위치는 이름이 아니라 사전 행을 가리킨다 — API 는 다시 이름으로 풀어 내려준다
+    const row = db.prepare("SELECT location_id, qty_repair, lifecycle FROM items WHERE id = ?1").get(id) as
+      { location_id: number; qty_repair: number; lifecycle: string };
+    expect(row.lifecycle).toBe("active");
+    expect(row.qty_repair).toBe(1);
+    expect(
+      (db.prepare("SELECT name FROM locations WHERE id = ?1").get(row.location_id) as { name: string }).name,
+    ).toBe("B창고");
+
+    const detail = await request(`/api/admin/items/${id}`, { headers: { cookie: admin, ...get } });
+    expect(detail.status).toBe(200);
+    const { item } = await detail.json() as {
+      item: { location: string | null; lifecycle: string; qty_repair: number; rentable_qty?: number };
+    };
+    expect(item.location).toBe("B창고");
+    expect(item.lifecycle).toBe("active");
+    expect(item.qty_repair).toBe(1);
+
+    // 같은 위치 이름으로 수정해도 사전에 중복 행이 생기지 않는다
+    const updated = await request(`/api/admin/items/${id}`, {
+      method: "PUT",
+      headers: { cookie: admin, ...json },
+      body: JSON.stringify({ location: "B창고", lifecycle: "retired", qty_repair: 0 }),
+    });
+    expect(updated.status).toBe(200);
+    expect((db.prepare("SELECT COUNT(*) AS n FROM locations").get() as { n: number }).n).toBe(1);
+    expect(
+      (db.prepare("SELECT lifecycle FROM items WHERE id = ?1").get(id) as { lifecycle: string }).lifecycle,
+    ).toBe("retired");
   } finally { db.close(); }
 });

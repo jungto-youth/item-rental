@@ -279,9 +279,9 @@ export class ItemRentalForm extends LitElement {
       `;
     }
 
-    if (this.item.status !== "active") {
+    if (this.item.lifecycle !== "active") {
       return html`
-        <x-notice tone="warning">현재 점검 또는 수리 중인 물품이에요.</x-notice>
+        <x-notice tone="warning">더 이상 대여하지 않는 물품이에요.</x-notice>
       `;
     }
 

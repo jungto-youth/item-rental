@@ -16,10 +16,10 @@ import { stubSql, type Query } from "./_stub.ts";
 // 대여 가능한 물품 (재고 2, 수리중 0)
 const RENTAL_ITEM: ReserveItem = {
   id: 1,
-  status: "active",
+  lifecycle: "active",
   kind: "rental",
   total_qty: 2,
-  qty_broken: 0,
+  qty_repair: 0,
 };
 
 function params(overrides: Partial<CreateReservationParams> = {}): CreateReservationParams {
@@ -160,7 +160,7 @@ test("validateReservation: 통과 — 재고 2 중 1개", () => {
 });
 
 test("validateReservation: 수리중을 뺀 재고로 수량을 본다", () => {
-  const broken: ReserveItem = { ...RENTAL_ITEM, total_qty: 5, qty_broken: 3 };
+  const broken: ReserveItem = { ...RENTAL_ITEM, total_qty: 5, qty_repair: 3 };
   expect(validateReservation(broken, { qty: 2 })).toEqual({ ok: true });
   expect(
     validateReservation(broken, { qty: 3 }),
@@ -174,7 +174,7 @@ test("validateReservation: 수리중을 뺀 재고로 수량을 본다", () => {
 
 test("validateReservation: 비활성 물품·소모품을 거른다", () => {
   expect(
-    validateReservation({ ...RENTAL_ITEM, status: "inactive" }, { qty: 1 }),
+    validateReservation({ ...RENTAL_ITEM, lifecycle: "retired" }, { qty: 1 }),
   ).toEqual(
     { error: "item_not_active" },
   );

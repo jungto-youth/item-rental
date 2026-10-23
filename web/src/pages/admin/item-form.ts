@@ -5,7 +5,7 @@ import { confirmDialog } from "../../utils/confirm";
 import { getCategories, resolveCategoryIds } from "../../utils/categories";
 import { processPhoto } from "../../utils/photo";
 import { navigate } from "../../router";
-import { type Item, type ItemKind, type ItemStatus, type Photo } from "../../types";
+import { type Item, type ItemKind, type ItemLifecycle, type Photo } from "../../types";
 import { reduceMotion } from "../../styles/motion";
 import "../../components/admin/admin-page";
 import "../../components/ui/button";
@@ -22,8 +22,8 @@ type ItemFormModel = {
   name: string;
   kind: ItemKind;
   total_qty: number;
-  qty_broken: number;
-  status: ItemStatus;
+  qty_repair: number;
+  lifecycle: ItemLifecycle;
   location: string;
   description: string;
 };
@@ -32,8 +32,8 @@ const EMPTY_FORM: ItemFormModel = {
   name: "",
   kind: "rental",
   total_qty: 1,
-  qty_broken: 0,
-  status: "active",
+  qty_repair: 0,
+  lifecycle: "active",
   location: "",
   description: "",
 };
@@ -44,8 +44,8 @@ type AdminItemDetail = {
   name: string;
   kind?: ItemKind;
   total_qty?: number;
-  qty_broken?: number;
-  status?: ItemStatus;
+  qty_repair?: number;
+  lifecycle?: ItemLifecycle;
   location?: string | null;
   description?: string | null;
   categories?: { id: number; name: string }[];
@@ -304,8 +304,8 @@ export class PageAdminItemForm extends LitElement {
         name: it.name,
         kind: it.kind ?? "rental",
         total_qty: it.total_qty ?? 1,
-        qty_broken: it.qty_broken ?? 0,
-        status: it.status ?? "active",
+        qty_repair: it.qty_repair ?? 0,
+        lifecycle: it.lifecycle ?? "active",
         location: it.location ?? "",
         description: it.description ?? "",
       };
@@ -435,7 +435,7 @@ export class PageAdminItemForm extends LitElement {
       return;
     }
     // 수리중 수량이 보유 수량을 넘으면 대여 가능 계산이 음수가 된다
-    if (this.form.kind === "rental" && this.form.qty_broken > this.form.total_qty) {
+    if (this.form.kind === "rental" && this.form.qty_repair > this.form.total_qty) {
       this.setError("수리중 수량은 보유 수량보다 클 수 없어요");
       return;
     }
@@ -593,14 +593,13 @@ export class PageAdminItemForm extends LitElement {
                   <x-chip
                     size="lg"
                     ariaLabel="상태"
-                    .value=${f.status}
+                    .value=${f.lifecycle}
                     .options=${[
-                      { value: "active", label: "정상" },
-                      { value: "repair", label: "수리중" },
+                      { value: "active", label: "사용" },
                       { value: "retired", label: "폐기" },
                     ]}
                     @change=${(e: CustomEvent<{ value: string }>) =>
-                      this.set("status", e.detail.value as ItemStatus)}
+                      this.set("lifecycle", e.detail.value as ItemLifecycle)}
                   ></x-chip>
                 </span>
               </div>
@@ -625,9 +624,9 @@ export class PageAdminItemForm extends LitElement {
                         type="number"
                         inputmode="numeric"
                         min="0"
-                        .value=${String(f.qty_broken)}
+                        .value=${String(f.qty_repair)}
                         @input=${(e: Event) =>
-                          this.set("qty_broken", Number((e.target as HTMLInputElement).value))}
+                          this.set("qty_repair", Number((e.target as HTMLInputElement).value))}
                       ></x-input>
                     `
                   : ""}

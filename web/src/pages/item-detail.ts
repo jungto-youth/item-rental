@@ -151,7 +151,7 @@ export class PageItemDetail extends LitElement {
     } else {
       pairs.push(["대여 가능", `${this.availableNow}개`]);
       pairs.push(["전체 보유", `${it.total_qty}개`]);
-      if ((it.qty_broken ?? 0) > 0) pairs.push(["수리중", `${it.qty_broken}개`]);
+      if ((it.qty_repair ?? 0) > 0) pairs.push(["수리중", `${it.qty_repair}개`]);
     }
     if (it.location) pairs.push(["보관 위치", it.location]);
     return pairs;

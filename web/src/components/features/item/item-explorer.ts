@@ -559,7 +559,7 @@ export class ItemExplorer extends LitElement {
     const cats = it.categories ?? [];
     const qty: string[] = [`보유 ${it.total_qty}`];
     if ((it.active_now ?? 0) > 0) qty.push(`대여 중 ${it.active_now}`);
-    if ((it.qty_broken ?? 0) > 0) qty.push(`수리 ${it.qty_broken}`);
+    if ((it.qty_repair ?? 0) > 0) qty.push(`수리 ${it.qty_repair}`);
     const rents = this.renters.get(it.id) ?? [];
     // 이름 클릭도 수정폼으로 — 공개 미리보기는 수정폼의 "공개 보기"에서
     const editHref = `/items/${it.id}/edit`;

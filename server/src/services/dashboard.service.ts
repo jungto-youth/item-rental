@@ -10,8 +10,8 @@ export async function getDashboard(db: Sql) {
   // Q1 전체 물품(폐기 포함) + Q2 현재 대여자 — D1 도 쿼리당 왕복이라 병렬 실행
   const [itemsRaw, rentersRaw] = await Promise.all([
     db.query(
-      `SELECT items.id, items.name, items.kind, items.status, items.total_qty, items.qty_broken,
-              (items.total_qty - items.qty_broken) AS rentable_qty,
+      `SELECT items.id, items.name, items.kind, items.lifecycle, items.total_qty, items.qty_repair,
+              (items.total_qty - items.qty_repair) AS rentable_qty,
               (SELECT '/api/photos/' || p.r2_key || '?access=members' FROM item_photos p
                 WHERE p.item_id = items.id ORDER BY p.sort_order LIMIT 1) AS photo,
               (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r

@@ -37,7 +37,7 @@ adminReembedRoute.post("/", async (c) => {
   const db: Sql = getDb(c.env);
   const targets = (await db.query(
     `SELECT id FROM items
-      WHERE id > ?1 AND status <> 'retired' ${body.all ? "" : "AND embedding IS NULL"}
+      WHERE id > ?1 AND lifecycle <> 'retired' ${body.all ? "" : "AND embedding IS NULL"}
       ORDER BY id LIMIT ${EMBEDS_PER_CALL}`,
     [after],
   )) as { id: number }[];

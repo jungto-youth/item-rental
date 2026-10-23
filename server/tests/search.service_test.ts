@@ -15,10 +15,10 @@ function row(overrides: Partial<ListItemRow> = {}): ListItemRow {
     name: "텐트",
     description: null,
     total_qty: 2,
-    status: "active",
+    lifecycle: "active",
     kind: "rental",
     location: null,
-    qty_broken: 0,
+    qty_repair: 0,
     rentable_qty: 2,
     active_now: 0,
     photos: [],
@@ -30,9 +30,11 @@ const cases: Array<[Partial<ListItemRow>, ListItemWithBadge["availability_badge"
   [{}, "available"],
   [{ active_now: 1, rentable_qty: 2 }, "available"],
   [{ active_now: 2, rentable_qty: 2 }, "rented"],
-  [{ status: "repair", rentable_qty: 2 }, "repair"],
+  // 수리중은 수량 축이다 — 보유 전부가 수리중이면 대여 가능 수량이 0 이라 repair
+  [{ qty_repair: 2, rentable_qty: 0 }, "repair"],
   [{ rentable_qty: 0 }, "repair"],
-  [{ qty_broken: 2, rentable_qty: 0 }, "repair"],
+  // 폐기는 수량과 무관하게 retired — 관리자 목록에서만 내려온다
+  [{ lifecycle: "retired" }, "retired"],
   [{ kind: "consumable" }, null],
 ];
 
