@@ -1,6 +1,6 @@
 // 물품(Item) 도메인 서비스 — 목록/상세/가용성/CRUD/사진의 SQL 을 직접 소유
 // 검색 외 물품 조회·관리에 필요한 모든 쿼리
-import type { Sql } from "../db";
+import { SQL_NOW, type Sql } from "../db";
 import type { Bindings } from "../types";
 import type { Item } from "../../../shared/api-types";
 import { embedItem, uncacheVec } from "../embedding";
@@ -13,16 +13,17 @@ export function parseJsonCol<T>(v: unknown): T {
 }
 
 // D1 에선 BLOB(ArrayBuffer)이 c.json 에서 {} 로 직렬화된다 — 응답에 임베딩을 싣지 않게
-// items.* 대신 컬럼을 명시한다 (web 은 embedding 필드를 읽지 않는다)
-const ADMIN_ITEM_COLUMNS = `items.id, items.name, items.description, items.status, items.total_qty,
-            items.qty_broken, items.kind, items.location, items.created_at`;
+// items.* 대신 컬럼을 명시한다 (web 은 embedding 필드를 읽지 않는다).
+// 위치는 locations 참조로 정규화됐지만(0005) API 계약은 계속 이름 문자열이라 join 으로 푼다.
+const ADMIN_ITEM_COLUMNS = `items.id, items.name, items.description, items.lifecycle, items.total_qty,
+            items.qty_repair, items.kind, l.name AS location, items.created_at`;
 
 // ===== 행 타입 =====
 
 type ItemAttrs = {
   kind: "rental" | "consumable";
   location: string | null;
-  qty_broken: number;
+  qty_repair: number;
 };
 
 export type ListItemRow = ItemAttrs & {
@@ -31,7 +32,7 @@ export type ListItemRow = ItemAttrs & {
   description: string | null;
   total_qty: number;
   rentable_qty: number;
-  status: "active" | "repair" | "retired";
+  lifecycle: "active" | "retired";
   photos: { id: number; url: string }[];
   active_now: number;
   // 관리자 목록·검색 응답에만 채운다 — 회원 응답에는 없다 (shared Item.categories? 참조)
@@ -47,9 +48,9 @@ export type AdminItemRow = {
   id: number;
   name: string;
   description: string | null;
-  status: string;
+  lifecycle: string;
   total_qty: number;
-  qty_broken: number;
+  qty_repair: number;
   kind: string;
   location: string | null;
   categories: { id: number; name: string }[];
@@ -63,10 +64,10 @@ export async function getItemDetail(
   itemId: number,
 ): Promise<ListItemRow | null> {
   const rows = (await db.query(
-    `SELECT items.id, items.name, items.description, items.total_qty, items.status,
-      items.kind, items.location,
-      items.qty_broken,
-      (items.total_qty - items.qty_broken) AS rentable_qty,
+    `SELECT items.id, items.name, items.description, items.total_qty, items.lifecycle,
+      items.kind, l.name AS location,
+      items.qty_repair,
+      (items.total_qty - items.qty_repair) AS rentable_qty,
       (SELECT json_group_array(json_object('id', p.id, 'url', '/api/photos/' || p.r2_key || '?access=members'))
        FROM (SELECT p.id, p.r2_key FROM item_photos p
               WHERE p.item_id = items.id ORDER BY p.sort_order) p) AS photos,
@@ -77,6 +78,7 @@ export async function getItemDetail(
               JOIN categories c ON c.id = ic.category_id
               WHERE ic.item_id = items.id ORDER BY c.name) c) AS categories
      FROM items
+     LEFT JOIN locations l ON l.id = items.location_id
     WHERE items.id = ?1`,
     [itemId],
   )) as ListItemRow[];
@@ -102,15 +104,38 @@ export async function getAdminItem(
              FROM (SELECT c.id, c.name FROM item_categories ic
                     JOIN categories c ON c.id = ic.category_id
                     WHERE ic.item_id = items.id ORDER BY c.name) c) AS categories
-     FROM items WHERE items.id = ?1`,
+     FROM items
+     LEFT JOIN locations l ON l.id = items.location_id
+    WHERE items.id = ?1`,
     [itemId],
   )) as (AdminItemRow & { categories: unknown })[];
   if (rows.length === 0) return null;
   return { ...rows[0], categories: parseJsonCol(rows[0].categories) };
 }
 
+// 위치 이름 → locations.id. 없으면 만든다. 빈 값이면 null(위치 미지정).
+// 0005 에서 items.location 텍스트가 locations 참조로 바뀌었지만 폼·API 계약은 이름 문자열
+// 그대로다 — 이 함수가 그 경계를 맡는다. 두 문장 사이에 실패하면 쓰이지 않은 위치 행이
+// 남을 수 있지만 물품은 저장되지 않고, 그 한 줄은 다음 등록에서 재사용된다.
+async function resolveLocationId(
+  db: Sql,
+  name: string | null | undefined,
+): Promise<number | null> {
+  if (!name) return null;
+  await db.query(
+    `INSERT INTO locations (name) VALUES (?1) ON CONFLICT (name) DO NOTHING`,
+    [name],
+  );
+  const [row] = (await db.query(
+    `SELECT id FROM locations WHERE name = ?1`,
+    [name],
+  )) as { id: number }[];
+  return row?.id ?? null;
+}
+
 // 등록 — 입력 검증은 라우트, SQL·임베딩은 서비스
 // attrs.category_ids (배열, 0개 허용)는 items 컬럼이 아니라 조인 테이블에 넣는다.
+// attrs.location (이름 문자열)은 locations 로 upsert 해 location_id 로 바꾼다.
 // 물품 + 태그 + FTS 행을 batch 한 장으로 — 중간 실패로 태그 없는 물품이나 FTS 미갱신 같은
 // 부분 상태가 남지 않는다. 이후 문장들은 새 물품 id 를 (SELECT MAX(id) FROM items) 로 참조한다 —
 // batch 는 하나의 트랜잭션이라 도중에 다른 쓰기가 끼어들 수 없고 INSERT 직후라 MAX(id) 는
@@ -121,24 +146,36 @@ export async function createItem(
   env: Bindings,
   input: {
     name: string;
-    status: string;
+    lifecycle: string;
     total_qty: number;
     attrs: Record<string, unknown>;
   },
 ): Promise<number> {
-  const { category_ids, ...itemAttrs } = input.attrs;
+  const { category_ids, location, ...itemAttrs } = input.attrs;
+  const hasLocation = "location" in input.attrs;
   const categoryIds = (category_ids as number[] | undefined) ?? [];
-  const cols = ["name", "status", "total_qty", ...Object.keys(itemAttrs)];
+  const cols = ["name", "lifecycle", "total_qty", ...Object.keys(itemAttrs)];
   const vals = [
     input.name,
-    input.status,
+    input.lifecycle,
     input.total_qty,
     ...Object.values(itemAttrs),
   ];
+  const placeholders = cols.map((_, i) => `?${i + 1}`);
+  if (hasLocation) {
+    cols.push("location_id");
+    vals.push(await resolveLocationId(db, location as string | null));
+    placeholders.push(`?${vals.length}`);
+  }
+  // updated_at 은 ADD COLUMN 이 strftime 기본값을 받지 않아 DEFAULT 가 없다(0005) —
+  // 등록 시점에는 created_at 과 같은 값이 되도록 여기서 채운다.
+  cols.push("updated_at");
+  placeholders.push(SQL_NOW);
+
   const results = await db.batch<{ id: number }>([
     {
       sql: `INSERT INTO items (${cols.join(", ")})
-            VALUES (${cols.map((_, i) => `?${i + 1}`).join(", ")}) RETURNING id`,
+            VALUES (${placeholders.join(", ")}) RETURNING id`,
       params: vals,
     },
     {
@@ -156,7 +193,7 @@ export async function createItem(
   return id;
 }
 
-// 수정 결과 — qty_constraint: 수량 조합이 제약(qty_broken ≤ total_qty) 위반 (라우트가 400 응답)
+// 수정 결과 — qty_constraint: 수량 조합이 제약(qty_repair ≤ total_qty) 위반 (라우트가 400 응답)
 //                rented_qty_constraint: 대여 중인 수량 이하로 보유를 줄이려는 시도 (라우트가 400 응답)
 type UpdateItemResult =
   | { ok: true }
@@ -172,27 +209,33 @@ export async function updateItem(
 ): Promise<UpdateItemResult> {
   // 태그는 items 컬럼이 아니므로 SET 절에서 빼 조인 테이블을 교체한다 (매개변수는 교체 의미론)
   const categoryIds = fields.category_ids as number[] | undefined;
-  const { category_ids: _tags, ...itemFields } = fields;
+  const { category_ids: _tags, location, ...rest } = fields;
+  const itemFields: Record<string, unknown> = { ...rest };
+  // 위치는 이름 문자열로 오고 컬럼은 location_id 다 — 있으면 사전을 upsert 해 id 로 바꾼다.
+  // null/'' 는 위치 해제다.
+  if ("location" in fields) {
+    itemFields.location_id = await resolveLocationId(db, location as string | null);
+  }
   const keys = Object.keys(itemFields);
 
-  // 수량 관련 필드가 바뀌면 결과 조합이 제약(qty_broken ≤ total_qty)을 지키는지 본다.
+  // 수량 관련 필드가 바뀌면 결과 조합이 제약(qty_repair ≤ total_qty)을 지키는지 본다.
   // 한쪽만 보내는 경우가 흔하므로 현재 값을 읽어 합쳐서 판정한다 — 친절한 400 용 사전 검사이고,
   // 검사와 UPDATE 사이 값이 바뀌어도 아래 UPDATE 가드의 조건부 갱신이 원자적으로 막는다.
-  const qtyTouched = "qty_broken" in fields || "total_qty" in fields;
+  const qtyTouched = "qty_repair" in fields || "total_qty" in fields;
   let nextTotal = 0;
-  let nextBroken = 0;
+  let nextRepair = 0;
   if (qtyTouched) {
     const [cur] = (await db.query(
-      `SELECT total_qty, qty_broken FROM items WHERE id = ?1`,
+      `SELECT total_qty, qty_repair FROM items WHERE id = ?1`,
       [itemId],
-    )) as { total_qty: number; qty_broken: number }[];
+    )) as { total_qty: number; qty_repair: number }[];
     if (!cur) return { error: "not_found" };
     nextTotal = (fields.total_qty as number | undefined) ?? cur.total_qty;
-    nextBroken = (fields.qty_broken as number | undefined) ?? cur.qty_broken;
-    if (nextBroken > nextTotal) return { error: "qty_constraint" };
+    nextRepair = (fields.qty_repair as number | undefined) ?? cur.qty_repair;
+    if (nextRepair > nextTotal) return { error: "qty_constraint" };
 
     // 보유를 대여 중인 수량보다 줄이면 재고가 음수가 된다 — 대여 가능 수량은
-    // (total_qty − qty_broken) 이고, 이 값이 현재 점유량보다 작아지면 대여 중인 물품을
+    // (total_qty − qty_repair) 이고, 이 값이 현재 점유량보다 작아지면 대여 중인 물품을
     // 회수할 수 없는 물품이 생긴다. 수량을 안 건드리는 수정은 이 검사를 걸지 않는다 —
     // 이미 잘못된 상태인 물품도 이름·위치·사진 편집으로 갇히면 안 된다.
     const [active] = (await db.query(
@@ -200,7 +243,7 @@ export async function updateItem(
         WHERE item_id = ?1 AND status = 'rented'`,
       [itemId],
     )) as { active_now: number }[];
-    if (nextTotal - nextBroken < active.active_now) {
+    if (nextTotal - nextRepair < active.active_now) {
       return { error: "rented_qty_constraint" };
     }
   }
@@ -228,10 +271,11 @@ export async function updateItem(
         : "";
       const setSql = keys.map((k, i) => `${k} = ?${i + 2}`).join(", ");
       stmts.push({
-        sql: `UPDATE items SET ${setSql} WHERE id = ?1${guard} RETURNING id`,
+        // updated_at 은 수정 경로에서만 갱신한다 — 등록 시엔 created_at 과 같은 값이다
+        sql: `UPDATE items SET ${setSql}, updated_at = ${SQL_NOW} WHERE id = ?1${guard} RETURNING id`,
         // 가드 바인딩은 수량을 건드렸을 때만 붙인다 — 쓰지 않는 매개변수를 보내지 않는다
         params: qtyTouched
-          ? [itemId, ...keys.map((k) => itemFields[k]), nextTotal, nextBroken]
+          ? [itemId, ...keys.map((k) => itemFields[k]), nextTotal, nextRepair]
           : [itemId, ...keys.map((k) => itemFields[k])],
       });
     }

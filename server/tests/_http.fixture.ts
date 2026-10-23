@@ -12,7 +12,7 @@ export const PNG = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC
 
 export function httpFixture(app: Hono<{ Bindings: Bindings; Variables: Variables }> = productionApp) {
   const db = new DatabaseSync(":memory:");
-  for (const name of ["0001_baseline.sql", "0002_item_photos_item_id.sql", "0003_member_registration_deleted.sql", "0004_rental_history.sql"]) {
+  for (const name of ["0001_baseline.sql", "0002_item_photos_item_id.sql", "0003_member_registration_deleted.sql", "0004_rental_history.sql", "0005_item_quantity_state.sql"]) {
     db.exec(readFileSync(new URL(`../../migrations-d1/${name}`, import.meta.url), "utf8"));
   }
   const statements: string[] = [];

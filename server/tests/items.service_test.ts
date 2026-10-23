@@ -62,7 +62,7 @@ test("updateItem: 컬럼 필드와 태그를 함께 보내면 UPDATE 가 batch �
 
   expect(result).toEqual({ ok: true });
   const upd = stmts[0];
-  expect(upd.sql).toMatch(/UPDATE items SET name = \?2 WHERE id = \?1/);
+  expect(upd.sql).toMatch(/UPDATE items SET name = \?2, updated_at = .* WHERE id = \?1/);
   expect(upd.params).toEqual([1, "새 이름"]);
   expect(
     stmts.map((s) => s.sql).join("\n"),
@@ -105,14 +105,14 @@ test("updateItem: DB CHECK 위반은 qty_constraint로 매핑한다", async () =
   // 사전 검사는 통과(3 ≤ 5)하지만 batch 사이 값이 바뀌어 CHECK 가 거절한 상황 —
   // 500 이 아니라 친절한 400(qty_constraint)으로 매핑된다
   const { db } = stubSql({
-    query: () => [{ total_qty: 5, qty_broken: 0 }],
+    query: () => [{ total_qty: 5, qty_repair: 0 }],
     batch: () => {
-      throw new Error("CHECK constraint failed: qty_broken <= total_qty");
+      throw new Error("CHECK constraint failed: qty_repair <= total_qty");
     },
   });
 
   expect(
-    await updateItem(db, env(), 1, { total_qty: 5, qty_broken: 3 }),
+    await updateItem(db, env(), 1, { total_qty: 5, qty_repair: 3 }),
   ).toEqual(
     { error: "qty_constraint" },
   );

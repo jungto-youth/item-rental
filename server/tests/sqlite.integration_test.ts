@@ -25,7 +25,9 @@ const schema =
   readFileSync(`${testsDir}../../migrations-d1/0002_item_photos_item_id.sql`, "utf8") +
   "\n" + readFileSync(`${testsDir}../../migrations-d1/0003_member_registration_deleted.sql`, "utf8") +
   "\n" +
-  readFileSync(`${testsDir}../../migrations-d1/0004_rental_history.sql`, "utf8");
+  readFileSync(`${testsDir}../../migrations-d1/0004_rental_history.sql`, "utf8") +
+  "\n" +
+  readFileSync(`${testsDir}../../migrations-d1/0005_item_quantity_state.sql`, "utf8");
 
 // node:sqlite를 Sql 어댑터로 — db.ts(getDb)와 같은 시그니처. 번호 파라미터(?1)는
 // 전달 순서대로 묶인다는 것이 D1 과 같다(본 파일 상단에서 실증).
@@ -65,12 +67,20 @@ function addMember(db: DatabaseSync, role: "user" | "admin", deactivated = false
   return id;
 }
 
-function addItem(db: DatabaseSync, opts: { total_qty?: number; qty_broken?: number; status?: string; kind?: string } = {}) {
+function addItem(db: DatabaseSync, opts: { total_qty?: number; qty_repair?: number; lifecycle?: string; kind?: string } = {}) {
   const r = db.prepare(
-    `INSERT INTO items (name, status, total_qty, qty_broken, kind)
+    `INSERT INTO items (name, lifecycle, total_qty, qty_repair, kind)
      VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id`,
-  ).all(`물품${++seq}`, opts.status ?? "active", opts.total_qty ?? 2, opts.qty_broken ?? 0, opts.kind ?? "rental");
+  ).all(`물품${++seq}`, opts.lifecycle ?? "active", opts.total_qty ?? 2, opts.qty_repair ?? 0, opts.kind ?? "rental");
   return Number((r as unknown as { id: number }[])[0].id);
+}
+
+// 위치는 0005 부터 locations 참조다 — 이름으로 사전을 upsert 하고 물품에 붙인다
+function setLocation(db: DatabaseSync, itemId: number, name: string) {
+  db.prepare("INSERT INTO locations (name) VALUES (?1) ON CONFLICT (name) DO NOTHING").run(name);
+  db.prepare(
+    "UPDATE items SET location_id = (SELECT id FROM locations WHERE name = ?1) WHERE id = ?2",
+  ).run(name, itemId);
 }
 
 function rent(db: DatabaseSync, itemId: number, memberId: string, qty = 1, status = "rented") {
@@ -100,7 +110,8 @@ test("이력 보존: 대여 시점의 물품명·위치가 스냅샷으로 남�
   const db = freshDb();
   const itemId = addItem(db);
   const memberId = addMember(db, "user");
-  db.prepare("UPDATE items SET name = '프로젝터', location = '3층 자료실' WHERE id = ?1").run(itemId);
+  db.prepare("UPDATE items SET name = '프로젝터' WHERE id = ?1").run(itemId);
+  setLocation(db, itemId, "3층 자료실");
 
   await createReservation(sqliteSql(db), { itemId, memberId, memo: null, qty: 1 });
 
@@ -117,7 +128,8 @@ test("이력 보존: 물품이 개명돼도 이미 쌓인 대여 행의 스냅�
   const nameAtRent = (db.prepare("SELECT name FROM items WHERE id = ?1").get(itemId) as { name: string }).name;
 
   await createReservation(sqliteSql(db), { itemId, memberId, memo: null, qty: 1 });
-  db.prepare("UPDATE items SET name = '프로젝터 (Epson EF-12)', location = '4층' WHERE id = ?1").run(itemId);
+  db.prepare("UPDATE items SET name = '프로젝터 (Epson EF-12)' WHERE id = ?1").run(itemId);
+  setLocation(db, itemId, "4층");
 
   // 이력 화면이 읽는 값(스냅샷 우선)은 대여 당시 이름 그대로이고, 현재 값만 바뀌어야 한다
   const list = await listReservations(sqliteSql(db), null);
@@ -219,9 +231,9 @@ test("가드 INSERT: 반납·취소된 수량은 점유에서 빠진다", async 
   expect("ok" in result).toEqual(true);
 });
 
-test("가드 INSERT: 수리중(qty_broken) 수량은 빌려줄 재고가 아니다", async () => {
+test("가드 INSERT: 수리중(qty_repair) 수량은 빌려줄 재고가 아니다", async () => {
   const db = freshDb();
-  const itemId = addItem(db, { total_qty: 3, qty_broken: 2 });
+  const itemId = addItem(db, { total_qty: 3, qty_repair: 2 });
   const memberId = addMember(db, "user");
   const sql = sqliteSql(db);
 
@@ -240,10 +252,11 @@ test("가드 INSERT: 수리중(qty_broken) 수량은 빌려줄 재고가 아니�
   );
 });
 
-test("가드 INSERT: 폐기·수리 물품과 소모품은 상태 코드로 거절된다", async () => {
+test("가드 INSERT: 폐기 물품은 item_not_active, 수리 소진 물품은 수량 부족으로 거절된다", async () => {
   const db = freshDb();
-  const retired = addItem(db, { status: "retired" });
-  const repair = addItem(db, { status: "repair" });
+  const retired = addItem(db, { lifecycle: "retired" });
+  // '수리중'은 이제 생애주기가 아니라 수량 축이다 — 보유 전부가 수리중이면 빌려줄 수량이 0
+  const repair = addItem(db, { total_qty: 2, qty_repair: 2 });
   const consumable = addItem(db, { kind: "consumable" });
   const memberId = addMember(db, "user");
   const sql = sqliteSql(db);
@@ -256,7 +269,7 @@ test("가드 INSERT: 폐기·수리 물품과 소모품은 상태 코드로 거�
   expect(
     await createReservation(sql, { itemId: repair, memberId, memo: null, qty: 1 }),
   ).toEqual(
-    { error: "item_not_active" },
+    { error: "too_many", rentable: 0 },
   );
   expect(
     await createReservation(sql, { itemId: consumable, memberId, memo: null, qty: 1 }),
@@ -359,7 +372,7 @@ test("createItem: 물품 + 태그 + FTS 행이 한 번에 생긴다 — 태그�
 
   const id = await createItem(sqliteSql(db), env, {
     name: "4인용 텐트",
-    status: "active",
+    lifecycle: "active",
     total_qty: 2,
     attrs: { location: "A창고", category_ids: [c1, c2] },
   });
@@ -383,7 +396,7 @@ test("createItem: 존재하지 않는 태그 id면 batch 전체가 롤백된다 
   try {
     await createItem(sqliteSql(db), env, {
       name: "고아 물품",
-      status: "active",
+      lifecycle: "active",
       total_qty: 1,
       attrs: { category_ids: [9999] },
     });
@@ -415,7 +428,7 @@ test("updateItem: 컬럼 + 태그 수정이 반영되고 FTS 도 새 텍스트�
   const c2 = addCategory(db, "물놀이");
   const id = await createItem(sqliteSql(db), env, {
     name: "구식 이름",
-    status: "active",
+    lifecycle: "active",
     total_qty: 1,
     attrs: { location: "B창고", category_ids: [c1] },
   });
@@ -444,7 +457,7 @@ test("updateItem: 태그만 바꿔도 FTS 가 갱신되고, 컬럼은 그대로�
   const c1 = addCategory(db, "캠핑");
   const id = await createItem(sqliteSql(db), env, {
     name: "이름",
-    status: "active",
+    lifecycle: "active",
     total_qty: 3,
     attrs: { category_ids: [c1] },
   });
@@ -467,7 +480,7 @@ test("deleteItem: 물품을 지우면 FTS 행도 함께 사라진다 — 색인�
   const sql = sqliteSql(db);
   const id = await createItem(sql, env, {
     name: "버너",
-    status: "active",
+    lifecycle: "active",
     total_qty: 1,
     attrs: {},
   });
@@ -496,7 +509,7 @@ test("renameCategory: 붙은 물품의 FTS 태그가 새 이름으로 바뀌어 
   const c1 = addCategory(db, "캠핑용");
   const id = await createItem(sql, env, {
     name: "버너",
-    status: "active",
+    lifecycle: "active",
     total_qty: 1,
     attrs: { category_ids: [c1] },
   });
@@ -518,7 +531,7 @@ test("deleteCategory: 물품은 남고 FTS 태그에서만 빠진다", async () 
   const c1 = addCategory(db, "캠핑용");
   const id = await createItem(sql, env, {
     name: "버너",
-    status: "active",
+    lifecycle: "active",
     total_qty: 1,
     attrs: { category_ids: [c1] },
   });
@@ -552,7 +565,7 @@ test("updateItem: 없는 물품 수정은 not_found — 부분 변경이 남지 
 });
 
 // ===== 보유 수량 감소 가드 =====
-// 대여 가능 수량은 total_qty − qty_broken 이므로 이것이 현재 점유량보다 작아지면
+// 대여 가능 수량은 total_qty − qty_repair 이므로 이것이 현재 점유량보다 작아지면
 // 회수할 수 없는 대여가 생기고 목록에 '대여 가능 -1' 이 찍힌다.
 
 test("가드: 대여 중인 수량 아래로 보유를 줄이면 거부되고 값이 안 바뀐다", async () => {
@@ -635,17 +648,62 @@ test("가드: 수량을 건드리지 않는 수정은 대여 검사를 걸지 �
   expect(row.name).toBe("이름만 수정");
 });
 
+// ===== 위치 정규화 (0005 §9.1) =====
+
+test("위치: 등록·수정 시 locations 로 정규화되고 같은 이름은 재사용된다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const id = await createItem(sql, env, {
+    name: "버너",
+    lifecycle: "active",
+    total_qty: 1,
+    attrs: { location: "B창고" },
+  });
+
+  const locIdOf = (itemId: number) =>
+    (db.prepare("SELECT location_id FROM items WHERE id = ?1").get(itemId) as { location_id: number | null }).location_id;
+  const locationRows = () =>
+    db.prepare("SELECT id, name FROM locations ORDER BY id").all() as { id: number; name: string }[];
+
+  // 등록 — 이름이 사전에 생기고 물품이 그 id 를 가리킨다. FTS 위치도 이름으로 채워진다
+  const bId = locIdOf(id);
+  expect(locationRows()).toEqual([{ id: bId, name: "B창고" }]);
+  expect(ftsRow(db, id)?.location).toEqual("B창고");
+
+  // 다른 물품이 같은 이름을 쓰면 새 행을 만들지 않는다
+  const second = await createItem(sql, env, {
+    name: "랜턴",
+    lifecycle: "active",
+    total_qty: 1,
+    attrs: { location: "B창고" },
+  });
+  expect(locIdOf(second)).toEqual(bId);
+  expect(locationRows()).toHaveLength(1);
+
+  // 수정 — 새 이름이면 사전에 추가되고, FTS 위치도 따라간다
+  expect(await updateItem(sql, env, id, { location: "C창고" })).toEqual({ ok: true });
+  const cId = locIdOf(id);
+  expect(cId).not.toEqual(bId);
+  expect(locationRows().map((l) => l.name)).toEqual(["B창고", "C창고"]);
+  expect(ftsRow(db, id)?.location).toEqual("C창고");
+
+  // null 로 지우면 위치 미지정 — 물품 행은 남는다
+  expect(await updateItem(sql, env, id, { location: null })).toEqual({ ok: true });
+  expect(locIdOf(id)).toBeNull();
+  expect(ftsRow(db, id)?.location).toEqual("");
+});
+
 test("FTS 스모크: 등록된 물품이 trigram 매치로 검색된다", async () => {
   const db = freshDb();
   await createItem(sqliteSql(db), env, {
     name: "등산용 배낭 40L",
-    status: "active",
+    lifecycle: "active",
     total_qty: 1,
     attrs: {},
   });
   await createItem(sqliteSql(db), env, {
     name: "코퉈",
-    status: "active",
+    lifecycle: "active",
     total_qty: 1,
     attrs: {},
   });
@@ -682,7 +740,7 @@ test("listItems: 카테고리 필터가 행과 카운트에 함께 적용된다"
   const tagged = addItem(db);
   const untagged = addItem(db);
   tagItem(db, tagged, catId);
-  addItem(db, { status: "retired" }); // 폐기는 필터와 무관하게 항상 제외
+  addItem(db, { lifecycle: "retired" }); // 폐기는 필터와 무관하게 항상 제외
 
   const inCat = await listItems(sql, { limit: 10, offset: 0, available: false, category: String(catId) });
   expect(inCat.items.map((i) => i.id)).toEqual([tagged]);
@@ -702,7 +760,7 @@ test("listItems: 카테고리 + 대여가능 필터를 같이 건다", async () 
   const sql = sqliteSql(db);
   const catId = addCategory(db, "청소");
   const rentable = addItem(db);
-  const broken = addItem(db, { total_qty: 1, qty_broken: 1 });
+  const broken = addItem(db, { total_qty: 1, qty_repair: 1 });
   tagItem(db, rentable, catId);
   tagItem(db, broken, catId);
 
@@ -721,7 +779,7 @@ test("listItems: includeRetired 는 폐기 물품을 행과 카운트에 포함�
   const db = freshDb();
   const sql = sqliteSql(db);
   const active = addItem(db);
-  const retired = addItem(db, { status: "retired" });
+  const retired = addItem(db, { lifecycle: "retired" });
 
   const base = await listItems(sql, { limit: 10, offset: 0, available: false });
   expect(base.items.map((i) => i.id)).toEqual([active]);
@@ -736,4 +794,24 @@ test("listItems: includeRetired 는 폐기 물품을 행과 카운트에 포함�
   });
   expect(all.items.map((i) => i.id)).toEqual([retired, active]);
   expect(all.total).toEqual(2);
+});
+
+test("listItems: q 는 정규화된 위치 이름도 본다 — 행과 카운트에 함께 적용", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const inStorage = addItem(db);
+  const elsewhere = addItem(db);
+  setLocation(db, inStorage, "3층 자료실");
+
+  const res = await listItems(sql, {
+    limit: 10,
+    offset: 0,
+    available: false,
+    q: "자료실",
+  });
+  expect(res.items.map((i) => i.id)).toEqual([inStorage]);
+  expect(res.total).toEqual(1);
+  // 다른 물품은 여전히 보인다 — 조인이 행을 잃지 않는다
+  const all = await listItems(sql, { limit: 10, offset: 0, available: false });
+  expect(all.items.map((i) => i.id).sort()).toEqual([inStorage, elsewhere].sort());
 });

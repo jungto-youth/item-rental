@@ -13,10 +13,10 @@ import type {
 // 대여 가능 아이템 조회 (사전 검사용)
 export type ReserveItem = {
   id: number;
-  status: string;
+  lifecycle: string;
   kind: string;
   total_qty: number;
-  qty_broken: number;
+  qty_repair: number;
 };
 
 // 대여 생성 파라미터 — 날짜가 없으므로 수량과 메모만 받는다
@@ -42,7 +42,7 @@ async function getItemForReservation(
   itemId: number,
 ): Promise<ReserveItem | null> {
   const [row] = (await db.query(
-    `SELECT id, status, kind, total_qty, qty_broken FROM items WHERE id = ?1`,
+    `SELECT id, lifecycle, kind, total_qty, qty_repair FROM items WHERE id = ?1`,
     [itemId],
   )) as ReserveItem[];
   return row ?? null;
@@ -57,10 +57,11 @@ export function validateReservation(
   | { error: "item_not_active" }
   | { error: "consumable" }
   | { error: "too_many"; rentable: number } {
-  if (item.status !== "active") return { error: "item_not_active" };
+  // 폐기(lifecycle='retired')면 대여 불가. '수리중'은 아래 수량(rentable)에서 걸러진다
+  if (item.lifecycle !== "active") return { error: "item_not_active" };
   // 소모품은 대여 대상이 아니다 ()
   if (item.kind === "consumable") return { error: "consumable" };
-  const rentable = item.total_qty - item.qty_broken;
+  const rentable = item.total_qty - item.qty_repair;
   if (params.qty > rentable) return { error: "too_many", rentable };
   return { ok: true };
 }
@@ -91,18 +92,20 @@ export async function createReservation(
       {
         // 스냅샷 2개 — 이력은 '그 시점의 물품명·위치'를 남겨야 한다. 물품이 개명되거나 보관
         // 위치가 바뀌어도 과거 행의 표기는 그대로여야 한다(0004_rental_history.sql).
+        // 위치는 0005 부터 locations 참조라 이름을 join 으로 풀어 스냅샷에 넣는다.
         // 쓰기 경로가 이 INSERT 하나뿐이라 트리거 없이 여기서 세팅한다.
         sql: `INSERT INTO reservations (item_id, member_id, member_memo, qty, status,
                                         item_name_snapshot, item_location_snapshot)
            SELECT ?1, ?2, ?3, ?4, 'rented',
-                  (SELECT name     FROM items WHERE items.id = ?1),
-                  (SELECT location FROM items WHERE items.id = ?1)
-           WHERE ?4 <= (SELECT total_qty - qty_broken FROM items WHERE items.id = ?1)
+                  (SELECT name FROM items WHERE items.id = ?1),
+                  (SELECT l.name FROM locations l
+                     JOIN items i ON i.location_id = l.id WHERE i.id = ?1)
+           WHERE ?4 <= (SELECT total_qty - qty_repair FROM items WHERE items.id = ?1)
              AND EXISTS (SELECT 1 FROM items
-                          WHERE items.id = ?1 AND status = 'active' AND kind <> 'consumable')
+                          WHERE items.id = ?1 AND lifecycle = 'active' AND kind <> 'consumable')
              AND ?4 + COALESCE((SELECT SUM(r.qty) FROM reservations r
                                  WHERE r.item_id = ?1 AND r.status = 'rented'), 0)
-                 <= (SELECT total_qty - qty_broken FROM items WHERE items.id = ?1)
+                 <= (SELECT total_qty - qty_repair FROM items WHERE items.id = ?1)
            RETURNING id`,
         params: [itemId, memberId, memo, qty],
       },
@@ -122,12 +125,12 @@ export async function createReservation(
 
   // 0행 — 가드가 거절했다(재고·상태 변경 또는 물품 삭제). 재조회로 원인을 가려
   const [cur] = (await db.query(
-    `SELECT status, kind, total_qty, qty_broken FROM items WHERE id = ?1`,
+    `SELECT lifecycle, kind, total_qty, qty_repair FROM items WHERE id = ?1`,
     [itemId],
   )) as ReserveItem[];
 
   if (!cur) return { error: "not_found" };
-  if (cur.status !== "active") return { error: "item_not_active" };
+  if (cur.lifecycle !== "active") return { error: "item_not_active" };
   if (cur.kind === "consumable") return { error: "consumable" };
   return { error: "no_availability" };
 }
@@ -252,6 +255,7 @@ export async function listReservations(
             -- 스냅샷이 비어 있으면(마이그레이션 이전 행 등) 현재 이름으로 물러난다.
             COALESCE(r.item_name_snapshot, items.name) AS item_name,
             r.item_name_snapshot, r.item_location_snapshot, r.returned_at,
+            r.due_at,
             items.total_qty,
             r.qty,
             r.member_id, m.name AS member_name, m.email AS member_email, m.phone AS member_phone,

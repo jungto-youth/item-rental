@@ -6,9 +6,12 @@
 // API 응답 타입
 export type Photo = { id: number; url: string };
 
-export type ItemStatus = "active" | "repair" | "retired";
-// 날짜 개념이 없어져 '예약 있음'(reserved)이 사라졌다 — 대여 중이거나 아니거나 둘 중 하나다
-export type AvailabilityBadge = "available" | "rented" | "repair";
+// 물품 단위 생애주기 — '수리중'은 생애주기가 아니라 수량 상태(qty_repair)다.
+// status(active/repair/retired)를 두 축에 나눠 담던 것을 0005 에서 분리했다 (이슈 #12 §3.1).
+export type ItemLifecycle = "active" | "retired";
+// 날짜 개념이 없어져 '예약 있음'(reserved)이 사라졌다 — 대여 중이거나 아니거나 둘 중 하나다.
+// retired 는 관리자 목록에서만 보인다 — 공개 목록은 폐기 물품을 내리지 않는다.
+export type AvailabilityBadge = "available" | "rented" | "repair" | "retired";
 
 // 대여품/소모품  — 소모품은 재고가 줄기만 하고 대여 기간 개념이 없다
 export type ItemKind = "rental" | "consumable";
@@ -19,12 +22,14 @@ export type Category = { id: number; name: string; item_count: number };
 export type Item = {
   id: number;
   name: string;
-  status: ItemStatus;
+  lifecycle: ItemLifecycle;
   total_qty: number;
-  // 대여가능 수량 = total_qty - qty_broken (서버가 계산해 내려줌)
+  // 대여가능 수량 = total_qty - qty_repair (서버가 계산해 내려줌)
   rentable_qty?: number;
-  qty_broken?: number;
+  qty_repair?: number;
   kind?: ItemKind;
+  // 위치는 DB 에서 locations 참조로 정규화됐지만(0005) API 는 계속 이름 문자열을 내려준다 —
+  // 화면 표시부는 정규화 전과 같은 모양을 읽는다.
   location?: string | null;
   description?: string | null;
   // 태그 id 목록 — 관리자 단건 조회(/api/admin/items/:id)가 채운다. 공개 상세에는 없다
@@ -90,6 +95,9 @@ export type AdminReservation = MyReservation & {
   // item_name 이 이미 스냅샷 우선으로 계산되므로 화면은 보통 item_name 만 쓴다.
   item_name_snapshot: string | null;
   item_location_snapshot: string | null;
+  // 반납 기한 — 0005 에서 추가됐다. OVERDUE 상태는 저장하지 않고 `due_at < now` 로 파생한다.
+  // 관리자 대여 기록에서만 표시한다 (경고·알림 없음 — 이슈 #12 §6.3).
+  due_at: string | null;
   // 반납 시각 — 반납된 건에서만 채워진다. updated_at 과 달리 반납 전용이다.
   returned_at: string | null;
   // 관리자가 반납 처리할 때 남기는 메모 — 지금은 writer 가 없어 null 이다.
@@ -110,10 +118,10 @@ export type DashboardItem = {
   id: number;
   name: string;
   kind: ItemKind;
-  status: ItemStatus;
+  lifecycle: ItemLifecycle;
   total_qty: number;
-  qty_broken: number;
-  // 대여가능 수량 = total_qty - qty_broken (서버가 계산해 내려줌)
+  qty_repair: number;
+  // 대여가능 수량 = total_qty - qty_repair (서버가 계산해 내려줌)
   rentable_qty: number;
   // 현재 대여 중인 수량 합 — 가용성 판정의 유일한 근거
   active_now: number;

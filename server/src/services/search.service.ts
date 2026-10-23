@@ -8,6 +8,7 @@ import type { AvailabilityBadge } from "../../../shared/api-types";
 import type { ListItemRow } from "./items.service";
 import { parseJsonCol } from "./items.service";
 import { embed, getVectorCache } from "../embedding";
+import { availabilityBadgeOf } from "../../../shared/stock";
 
 // 배지까지 계산된 목록 행 — 화면(web/src/types.ts Item)과 같은 모양
 export type ListItemWithBadge = ListItemRow & {
@@ -15,11 +16,12 @@ export type ListItemWithBadge = ListItemRow & {
 };
 
 // 목록 SELECT 공용 — 전체 목록/키워드/의미가 같은 컬럼을 내려준다 (where 절만 다름)
-// json 집계는 SQLite가 ORDER BY를 지원하지 않아 정렬용 서브쿼리로 감싼다
-const LIST_COLUMNS = `SELECT items.id, items.name, items.description, items.total_qty, items.status,
-            items.kind, items.location,
-            items.qty_broken,
-            (items.total_qty - items.qty_broken) AS rentable_qty,
+// json 집계는 SQLite가 ORDER BY를 지원하지 않아 정렬용 서브쿼리로 감싼다.
+// 위치는 locations 참조로 정규화됐지만(0005) API 계약은 이름 문자열이라 join 으로 푼다.
+const LIST_COLUMNS = `SELECT items.id, items.name, items.description, items.total_qty, items.lifecycle,
+            items.kind, l.name AS location,
+            items.qty_repair,
+            (items.total_qty - items.qty_repair) AS rentable_qty,
              (SELECT json_group_array(json_object('id', p.id, 'url', '/api/photos/' || p.r2_key || '?access=members'))
              FROM (SELECT p.id, p.r2_key FROM item_photos p
                     WHERE p.item_id = items.id ORDER BY p.sort_order) p) AS photos,
@@ -45,10 +47,11 @@ function buildListSql(
   withCategories = false,
   includeRetired = false,
 ): string {
-  const statusFilter = includeRetired ? "" : "items.status <> 'retired' AND ";
+  const lifecycleFilter = includeRetired ? "" : "items.lifecycle <> 'retired' AND ";
   return `${LIST_COLUMNS}${withCategories ? `,\n            ${CATEGORIES_COLUMN}` : ""}
      FROM items
-     WHERE ${statusFilter}1=1 ${where}
+     LEFT JOIN locations l ON l.id = items.location_id
+     WHERE ${lifecycleFilter}1=1 ${where}
      ORDER BY items.id DESC`;
 }
 
@@ -65,11 +68,11 @@ function categoryWhere(category: string | null | undefined): string {
   return "";
 }
 
-// 대여 가능 조건 — 홈 화면 isItemAvailable(web/src/pages/home.ts)과 같은 규칙.
-// 소모품은 대여 대상이 아니므로 항상 "가능". repair 상태와 수량 0은 제외.
+// 대여 가능 조건 — shared/stock.isItemAvailable 과 같은 규칙 (유일한 차이는 SQL 표현).
+// 소모품은 대여 대상이 아니므로 항상 "가능". 폐기(lifecycle)와 수리 소진·재고 0은 제외.
 const AVAILABLE_SQL = `(items.kind = 'consumable'
-   OR (items.status = 'active'
-       AND (items.total_qty - items.qty_broken) > (SELECT COALESCE(SUM(r.qty), 0)
+   OR (items.lifecycle = 'active'
+       AND (items.total_qty - items.qty_repair) > (SELECT COALESCE(SUM(r.qty), 0)
              FROM reservations r
              WHERE r.item_id = items.id AND r.status = 'rented')))`;
 
@@ -90,7 +93,7 @@ function textFilter(q: string | null | undefined): { sql: string; params: string
   if (!q) return { sql: "", params: [] };
   return {
     sql: ` AND (items.name LIKE '%' || ?1 || '%' ESCAPE '\\'
-          OR (COALESCE(items.location, '')) LIKE '%' || ?1 || '%' ESCAPE '\\'
+          OR (COALESCE(l.name, '')) LIKE '%' || ?1 || '%' ESCAPE '\\'
           OR EXISTS (SELECT 1 FROM item_categories ic
                       JOIN categories c ON c.id = ic.category_id
                       WHERE ic.item_id = items.id
@@ -133,7 +136,8 @@ export async function listItems(
     db.query(
       `SELECT COUNT(*) AS total,
               COALESCE(SUM(CASE WHEN ${AVAILABLE_SQL} THEN 1 ELSE 0 END), 0) AS available_total
-       FROM items WHERE ${retired ? "" : "status <> 'retired' AND "}1=1${categoryWhere(opts.category)}${tf.sql}`,
+       FROM items LEFT JOIN locations l ON l.id = items.location_id
+      WHERE ${retired ? "" : "items.lifecycle <> 'retired' AND "}1=1${categoryWhere(opts.category)}${tf.sql}`,
       tf.params,
     ),
   ])) as [ListItemRow[], { total: number; available_total: number }[]];
@@ -192,7 +196,7 @@ function likeScoreExpr(tokens: string[]): { expr: string; params: string[] } {
     const tag = `?${++p}`;
     const desc = `?${++p}`;
     return `(3 * (items.name LIKE '%' || ${name} || '%' ESCAPE '\\')
-        + 2 * ((COALESCE(items.location, '')) LIKE '%' || ${loc} || '%' ESCAPE '\\')
+        + 2 * ((COALESCE(l.name, '')) LIKE '%' || ${loc} || '%' ESCAPE '\\')
         + 2 * (EXISTS (SELECT 1 FROM item_categories ic
                         JOIN categories c ON c.id = ic.category_id
                         WHERE ic.item_id = items.id
@@ -214,7 +218,8 @@ async function searchLikeRankedIds(db: Sql, tokens: string[]): Promise<number[]>
   const rows = (await db.query(
     `SELECT items.id AS rowid, ${expr} AS score
      FROM items
-     WHERE items.status <> 'retired' AND ${expr} > 0
+     LEFT JOIN locations l ON l.id = items.location_id
+     WHERE items.lifecycle <> 'retired' AND ${expr} > 0
      ORDER BY score DESC, items.id DESC
      LIMIT ${KEYWORD_CAP}`,
     params,
@@ -283,20 +288,10 @@ async function semanticRankIds(
 }
 
 // ===== 가용 배지 =====
-// 키워드·의미·전체 목록이 같은 라벨을 쓴다 (상세도 같은 규칙: routes/items.ts)
-// 날짜 개념이 없어져 '예약 있음'(reserved)은 사라졌다 — 대여 중이거나 아니거나 둘 중 하나다
+// 키워드·의미·전체 목록이 같은 라벨을 쓴다. 판정 자체는 shared/stock 이 단일 출처다 —
+// 예전엔 web/src/utils/stock.ts·이 함수·routes/items.ts 세 곳에 같은 규칙이 복사돼 있었다.
 export function withAvailabilityBadge(r: ListItemRow): ListItemWithBadge {
-  return {
-    ...r,
-    availability_badge:
-      r.kind === "consumable"
-        ? null
-        : r.status === "repair" || r.rentable_qty <= 0
-          ? "repair"
-          : r.active_now >= r.rentable_qty
-            ? "rented"
-            : "available",
-  };
+  return { ...r, availability_badge: availabilityBadgeOf(r) };
 }
 
 // ===== 하이브리드 검색 =====

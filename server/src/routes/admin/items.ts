@@ -23,7 +23,7 @@ export const adminItemsRoute = new Hono<{
 }>();
 adminItemsRoute.use("*", requireAdmin);
 
-const ITEM_STATUS = ["active", "repair", "retired"] as const;
+const ITEM_LIFECYCLE = ["active", "retired"] as const;
 const ITEM_KIND = ["rental", "consumable"] as const;
 
 // 쿼리 파라미터 클램프 — LIMIT/OFFSET 을 SQL 에 그대로 넣기 전에 정수로 한정한다
@@ -66,12 +66,12 @@ function readAttrs(
     }
     attrs.kind = body.kind;
   }
-  if ("qty_broken" in body) {
-    const n = Number(body.qty_broken);
+  if ("qty_repair" in body) {
+    const n = Number(body.qty_repair);
     if (!Number.isInteger(n) || n < 0) {
-      return { error: "qty_broken은 0 이상 정수" };
+      return { error: "qty_repair는 0 이상 정수" };
     }
-    attrs.qty_broken = n;
+    attrs.qty_repair = n;
   }
   if ("category_ids" in body) {
     const v = body.category_ids;
@@ -136,8 +136,8 @@ adminItemsRoute.post("/", async (c) => {
   const name = typeof body.name === "string" ? body.name.trim().slice(0, 200) : "";
   if (!name) return c.json({ error: "name 필수" }, 400);
   const total_qty = Number(body.total_qty ?? 1);
-  const status = ITEM_STATUS.includes(body.status as never)
-    ? (body.status as string)
+  const lifecycle = ITEM_LIFECYCLE.includes(body.lifecycle as never)
+    ? (body.lifecycle as string)
     : "active";
   if (!Number.isInteger(total_qty) || total_qty < 1 || total_qty > 100000) {
     return c.json({ error: "total_qty는 1 이상" }, 400);
@@ -146,15 +146,15 @@ adminItemsRoute.post("/", async (c) => {
   const parsed = readAttrs(body);
   if ("error" in parsed) return c.json({ error: parsed.error }, 400);
   const attrs = parsed.attrs;
-  const broken = (attrs.qty_broken as number | undefined) ?? 0;
-  if (broken > total_qty) {
-    return c.json({ error: "qty_broken은 total_qty 이하" }, 400);
+  const repair = (attrs.qty_repair as number | undefined) ?? 0;
+  if (repair > total_qty) {
+    return c.json({ error: "수리중 수량은 보유 수량 이하" }, 400);
   }
 
   const db: Sql = getDb(c.env);
   const id = await createItem(db, c.env, {
     name,
-    status,
+    lifecycle,
     total_qty,
     attrs,
   });
@@ -183,25 +183,25 @@ adminItemsRoute.put("/:id", async (c) => {
     }
     fields.total_qty = total_qty;
   }
-  if ("status" in body) {
-    if (!ITEM_STATUS.includes(body.status as never)) {
-      return c.json({ error: "status 오류" }, 400);
+  if ("lifecycle" in body) {
+    if (!ITEM_LIFECYCLE.includes(body.lifecycle as never)) {
+      return c.json({ error: "lifecycle은 'active' 또는 'retired'" }, 400);
     }
-    fields.status = body.status;
+    fields.lifecycle = body.lifecycle;
   }
   if (Object.keys(fields).length === 0) {
     return c.json({ error: "변경할 필드 없음" }, 400);
   }
 
   const db: Sql = getDb(c.env);
-  // qty_constraint(수량 조합이 qty_broken ≤ total_qty 위반)·not_found 구분은 서비스가 한다
+  // qty_constraint(수리중 수량 > 보유 수량)·not_found 구분은 서비스가 한다
   const result = await updateItem(db, c.env, id, fields);
   if ("ok" in result) return c.json({ ok: true });
   if (result.error === "not_found") return c.json({ error: "not_found" }, 404);
   if (result.error === "rented_qty_constraint") {
     return c.json({ error: "대여 중인 물품 수량보다 적게 줄일 수 없어요" }, 400);
   }
-  return c.json({ error: "qty_broken은 total_qty 이하" }, 400);
+  return c.json({ error: "수리중 수량은 보유 수량 이하" }, 400);
 });
 
 // 삭제 — 대여 이력이 있으면 거부 (폐기 상태로 전환 권장)

@@ -4,6 +4,7 @@ import { getDb, type Sql } from "../db";
 import { requireAuth } from "../middleware/auth";
 import { searchHybrid, listItems } from "../services/search.service";
 import { getItemDetail } from "../services/items.service";
+import { availabilityBadgeOf } from "../../../shared/stock";
 
 // GET /api/items, /api/items/:id (활성 회원 전용)
 export const itemsRoute = new Hono<{
@@ -99,17 +100,9 @@ itemsRoute.get("/:id", async (c) => {
   const item = await getItemDetail(db, id);
   if (!item) return c.json({ error: "not_found" }, 404);
 
-  // 목록과 같은 기준의 가용 배지 — 상세도 같은 라벨을 쓴다. 소모품은 대여 대상이 아니라 null 을 내려
-  // 화면이 '대여 가능/대여 중' 배지를 아예 안 그리게 한다 ().
-  // 날짜 개념이 없어져 '예약 있음'(reserved)은 사라졌다 — 대여 중이거나 아니거나 둘 중 하나다.
-  const availabilityBadge =
-    item.kind === "consumable"
-      ? null
-      : item.status === "repair" || item.rentable_qty <= 0
-        ? "repair"
-        : item.active_now >= item.rentable_qty
-          ? "rented"
-          : "available";
+  // 목록과 같은 기준의 가용 배지 — 상세도 같은 라벨을 쓴다. 판정은 shared/stock 단일 출처.
+  // 소모품은 대여 대상이 아니라 null 을 내려 화면이 '대여 가능/대여 중' 배지를 아예 안 그리게 한다.
+  const availability_badge = availabilityBadgeOf(item);
 
-  return c.json({ item: { ...item, availability_badge: availabilityBadge } });
+  return c.json({ item: { ...item, availability_badge } });
 });
