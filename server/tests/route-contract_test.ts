@@ -221,10 +221,32 @@ test("admin categories: 이름을 고치면 물품의 FTS 태그도 따라간다
       body: JSON.stringify({ name: "새이름" }),
     });
     expect(res.status).toBe(200);
-    // renameCategory 는 categories 만 UPDATE 하고 items_fts 는 건드리지 않는다.
-    // 태그는 FTS 텍스트의 일부이므로 여기서 어긋나면 그 이름을 검색해도 물품이 안 나온다.
-    // (수정이 필요한 지점 — 현재는 옛 이름이 남는다)
+    // 색인 태그는 그 시점 카테고리 이름의 복사본이다 — 이름만 고치면 새 이름으로 검색해도
+    // 물품이 안 나온다. renameCategory 가 같은 batch 에서 색인까지 다시 만든다.
     const fts = db.prepare("SELECT tags FROM items_fts WHERE rowid = 1").get() as { tags: string };
-    expect(fts.tags).toBe("옛이름");
+    expect(fts.tags).toBe("새이름");
+  } finally { db.close(); }
+});
+
+test("admin categories: 삭제하면 물품은 남고 FTS 태그에서만 빠진다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const admin = await member("admin", "admin");
+    db.exec("INSERT INTO categories (id, name) VALUES (1, '캠핑');");
+    db.exec("INSERT INTO items (id, name) VALUES (1, '버너');");
+    db.exec("INSERT INTO item_categories (item_id, category_id) VALUES (1, 1);");
+    db.exec("INSERT INTO items_fts (rowid, name, description, location, tags) VALUES (1, '버너', '', '', '캠핑');");
+
+    const res = await request("/api/admin/categories/1", {
+      method: "DELETE",
+      headers: { cookie: admin, ...json },
+    });
+    expect(res.status).toBe(200);
+    // 조인 행은 CASCADE 로 사라지지만 items_fts 는 남는다 — 삭제 전에 확보한 물품 id 로
+    // 색인에서도 이름을 빼야 옛 이름으로 검색했을 때 유령이 남지 않는다
+    const fts = db.prepare("SELECT tags FROM items_fts WHERE rowid = 1").get() as { tags: string };
+    expect(fts.tags).toBe("");
+    expect((db.prepare("SELECT COUNT(*) AS n FROM items").get() as { n: number }).n).toBe(1);
+    expect((db.prepare("SELECT COUNT(*) AS n FROM item_categories").get() as { n: number }).n).toBe(0);
   } finally { db.close(); }
 });

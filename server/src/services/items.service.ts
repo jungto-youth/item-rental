@@ -4,6 +4,7 @@ import type { Sql } from "../db";
 import type { Bindings } from "../types";
 import type { Item } from "../../../shared/api-types";
 import { embedItem, uncacheVec } from "../embedding";
+import { ftsDeleteSql, ftsInsertSql, ftsResyncByIds } from "./item-fts.service";
 
 // D1 의 json_group_array 는 TEXT 를 돌려준다 — Postgres 드라이버는 json 타입을 파싱해 줬으므로
 // 그 자리를 이 헬퍼가 대신한다 (문자열이 아니면 이미 파싱된 값으로 간주)
@@ -145,15 +146,9 @@ export async function createItem(
             SELECT (SELECT MAX(id) FROM items), j.value FROM json_each(?1) j`,
       params: [JSON.stringify(categoryIds)],
     },
-    {
-      sql: `INSERT INTO items_fts (rowid, name, description, location, tags)
-            SELECT i.id, i.name, COALESCE(i.description, ''), COALESCE(i.location, ''),
-                   COALESCE((SELECT group_concat(c.name, ' ')
-                      FROM (SELECT c.name FROM item_categories ic
-                             JOIN categories c ON c.id = ic.category_id
-                            WHERE ic.item_id = i.id ORDER BY c.name) c), '')
-              FROM items i WHERE i.id = (SELECT MAX(id) FROM items)`,
-    },
+    // 색인 문장은 item-fts.service 가 만든다 — 이 경로는 아직 id 를 모르므로 batch 안에서
+    // MAX(id) 로 방금 넣은 행을 가리킨다 (id 를 아는 수정·카테고리 경로와 조건식만 다르다)
+    { sql: ftsInsertSql(`i.id = (SELECT MAX(id) FROM items)`) },
   ]);
   const id = results[0][0].id;
   // 등록 즉시 의미 검색용 임베딩 생성 (실패해도 등록은 성공 — 키워드 검색은 계속 동작)
@@ -254,20 +249,8 @@ export async function updateItem(
         params: [itemId, JSON.stringify(categoryIds)],
       });
     }
-    stmts.push({
-      sql: `DELETE FROM items_fts WHERE rowid = ?1`,
-      params: [itemId],
-    });
-    stmts.push({
-      sql: `INSERT INTO items_fts (rowid, name, description, location, tags)
-            SELECT i.id, i.name, COALESCE(i.description, ''), COALESCE(i.location, ''),
-                   COALESCE((SELECT group_concat(c.name, ' ')
-                      FROM (SELECT c.name FROM item_categories ic
-                             JOIN categories c ON c.id = ic.category_id
-                            WHERE ic.item_id = i.id ORDER BY c.name) c), '')
-              FROM items i WHERE i.id = ?1`,
-      params: [itemId],
-    });
+    // 색인 행 재생성 (삭제 → 생성) — 태그가 바뀌었을 수 있어 항상 다시 만든다
+    stmts.push(...ftsResyncByIds([itemId]));
     try {
       const results = await db.batch<{ id: number }>(stmts);
       // 컬럼 갱신이 있었는데 0행이면 물품이 없다 — 태그·FTS 문은 없는 물품에 no-op 이라
@@ -324,7 +307,7 @@ export async function deleteItem(
   // 물품 + FTS 행을 한 트랜잭션으로 — FTS 에 고아가 남지 않는다
   const results = await db.batch<{ id: number }>([
     { sql: `DELETE FROM items WHERE id = ?1 RETURNING id`, params: [itemId] },
-    { sql: `DELETE FROM items_fts WHERE rowid = ?1`, params: [itemId] },
+    { sql: ftsDeleteSql("?1"), params: [itemId] },
   ]);
   if (results[0].length === 0) return { error: "not_found" };
   uncacheVec(itemId);
