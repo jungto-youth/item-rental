@@ -134,7 +134,7 @@
                   "id": "PnEAD",
                   "name": "Value",
                   "fill": "#111111",
-                  "content": "28",
+                  "content": "16",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -164,7 +164,7 @@
                   "id": "l0AIO",
                   "name": "Value",
                   "fill": "#EA580C",
-                  "content": "5",
+                  "content": "9",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -194,7 +194,7 @@
                   "id": "SzRqQ",
                   "name": "Value",
                   "fill": "#111111",
-                  "content": "23",
+                  "content": "5",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -255,7 +255,7 @@
                   "id": "FEi5V",
                   "name": "Tab Label",
                   "fill": "#9C9C9C",
-                  "content": "대여 중 5",
+                  "content": "대여 중 9",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 16,
                   "fontWeight": "normal"
@@ -274,7 +274,7 @@
                   "id": "Cpj8h",
                   "name": "Tab Label",
                   "fill": "#9C9C9C",
-                  "content": "대여 가능 23",
+                  "content": "대여 가능 5",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 16,
                   "fontWeight": "normal"
@@ -307,435 +307,445 @@
               }
             },
             {
+              "id": "dIrqW",
+              "type": "ref",
+              "ref": "LL25I",
+              "name": "Row 프로젝터 (Epson EF-12)",
+              "width": "fill_container",
+              "x": 24,
+              "y": 53,
+              "descendants": {
+                "kSZAl": {
+                  "content": "프로젝터 (Epson EF-12)"
+                },
+                "pGnRI": {
+                  "content": "회의장비"
+                },
+                "J2Fdn": {
+                  "content": "3층 자료실"
+                },
+                "r1Y6B2": {
+                  "content": "대여 가능 1",
+                  "enabled": true
+                },
+                "D274no": {
+                  "enabled": true
+                },
+                "Es032": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "GCYcZ": {
+                  "enabled": true
+                },
+                "hysgd": {
+                  "content": "수리중 1",
+                  "enabled": true
+                },
+                "EX5YZ": {
+                  "content": "7. 14 (월)",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "JOFpM",
+              "type": "ref",
+              "ref": "LL25I",
+              "name": "Row 맥북 에어 M2",
+              "width": "fill_container",
+              "x": 24,
+              "y": 125,
+              "descendants": {
+                "kSZAl": {
+                  "content": "맥북 에어 M2"
+                },
+                "pGnRI": {
+                  "content": "노트북"
+                },
+                "J2Fdn": {
+                  "content": "2층 서버실"
+                },
+                "r1Y6B2": {
+                  "content": "대여 가능 2",
+                  "enabled": true
+                },
+                "D274no": {
+                  "enabled": true
+                },
+                "Es032": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "GCYcZ": {
+                  "enabled": false
+                },
+                "hysgd": {
+                  "content": "수리중 0",
+                  "enabled": false
+                },
+                "EX5YZ": {
+                  "content": "7. 18 (금)",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "OlQki",
+              "type": "ref",
+              "ref": "LL25I",
+              "name": "Row 무선 발표기",
+              "width": "fill_container",
+              "x": 24,
+              "y": 197,
+              "descendants": {
+                "kSZAl": {
+                  "content": "무선 발표기"
+                },
+                "pGnRI": {
+                  "content": "회의장비"
+                },
+                "J2Fdn": {
+                  "content": "3층 자료실"
+                },
+                "r1Y6B2": {
+                  "content": "대여 가능 0",
+                  "enabled": false
+                },
+                "D274no": {
+                  "enabled": false
+                },
+                "Es032": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "GCYcZ": {
+                  "enabled": false
+                },
+                "hysgd": {
+                  "content": "수리중 0",
+                  "enabled": false
+                },
+                "EX5YZ": {
+                  "content": "—",
+                  "fill": "#9C9C9C",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "VFAgh",
+              "type": "ref",
+              "ref": "LL25I",
+              "name": "Row 서버랙 공구 세트",
+              "width": "fill_container",
+              "x": 24,
+              "y": 269,
+              "descendants": {
+                "kSZAl": {
+                  "content": "서버랙 공구 세트"
+                },
+                "pGnRI": {
+                  "content": "공구"
+                },
+                "J2Fdn": {
+                  "content": "1층 창고"
+                },
+                "r1Y6B2": {
+                  "content": "대여 가능 1",
+                  "enabled": true
+                },
+                "D274no": {
+                  "enabled": false
+                },
+                "Es032": {
+                  "content": "대여 중 0",
+                  "enabled": false
+                },
+                "GCYcZ": {
+                  "enabled": false
+                },
+                "hysgd": {
+                  "content": "수리중 0",
+                  "enabled": false
+                },
+                "EX5YZ": {
+                  "content": "—",
+                  "fill": "#9C9C9C",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "u5PZq1",
+              "type": "ref",
+              "ref": "LL25I",
+              "name": "Row 캠코더 (Sony FDR)",
+              "width": "fill_container",
+              "x": 24,
+              "y": 341,
+              "descendants": {
+                "kSZAl": {
+                  "content": "캠코더 (Sony FDR)"
+                },
+                "pGnRI": {
+                  "content": "촬영장비"
+                },
+                "J2Fdn": {
+                  "content": "3층 자료실"
+                },
+                "r1Y6B2": {
+                  "content": "대여 가능 0",
+                  "enabled": false
+                },
+                "D274no": {
+                  "enabled": false
+                },
+                "Es032": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "GCYcZ": {
+                  "enabled": false
+                },
+                "hysgd": {
+                  "content": "수리중 0",
+                  "enabled": false
+                },
+                "EX5YZ": {
+                  "content": "7. 15 (화)",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "shBnb",
+              "type": "ref",
+              "ref": "LL25I",
+              "name": "Row 화상회의 스피커",
+              "width": "fill_container",
+              "x": 24,
+              "y": 413,
+              "descendants": {
+                "kSZAl": {
+                  "content": "화상회의 스피커"
+                },
+                "pGnRI": {
+                  "content": "회의장비"
+                },
+                "J2Fdn": {
+                  "content": "4층 회의실 B"
+                },
+                "r1Y6B2": {
+                  "content": "대여 가능 0",
+                  "enabled": false
+                },
+                "D274no": {
+                  "enabled": false
+                },
+                "Es032": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "GCYcZ": {
+                  "enabled": false
+                },
+                "hysgd": {
+                  "content": "수리중 0",
+                  "enabled": false
+                },
+                "EX5YZ": {
+                  "content": "—",
+                  "fill": "#9C9C9C",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "knZLP",
+              "type": "ref",
+              "ref": "LL25I",
+              "name": "Row 촬영용 삼각대",
+              "width": "fill_container",
+              "x": 24,
+              "y": 485,
+              "descendants": {
+                "kSZAl": {
+                  "content": "촬영용 삼각대"
+                },
+                "pGnRI": {
+                  "content": "촬영장비"
+                },
+                "J2Fdn": {
+                  "content": "3층 자료실"
+                },
+                "r1Y6B2": {
+                  "content": "대여 가능 0",
+                  "enabled": false
+                },
+                "D274no": {
+                  "enabled": false
+                },
+                "Es032": {
+                  "content": "대여 중 2",
+                  "enabled": true
+                },
+                "GCYcZ": {
+                  "enabled": false
+                },
+                "hysgd": {
+                  "content": "수리중 0",
+                  "enabled": false
+                },
+                "EX5YZ": {
+                  "content": "—",
+                  "fill": "#9C9C9C",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "ENIRx",
+              "type": "ref",
+              "ref": "LL25I",
+              "name": "Row 외장 SSD 2TB",
+              "width": "fill_container",
+              "x": 24,
+              "y": 557,
+              "descendants": {
+                "kSZAl": {
+                  "content": "외장 SSD 2TB"
+                },
+                "pGnRI": {
+                  "content": "저장장치"
+                },
+                "J2Fdn": {
+                  "content": "2층 서버실"
+                },
+                "r1Y6B2": {
+                  "content": "대여 가능 1",
+                  "enabled": true
+                },
+                "D274no": {
+                  "enabled": true
+                },
+                "Es032": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "GCYcZ": {
+                  "enabled": false
+                },
+                "hysgd": {
+                  "content": "수리중 0",
+                  "enabled": false
+                },
+                "EX5YZ": {
+                  "content": "7. 13 (일)",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "kY3Kc",
+              "type": "ref",
+              "ref": "LL25I",
+              "name": "Row 노트북 거치대",
+              "width": "fill_container",
+              "x": 24,
+              "y": 629,
+              "descendants": {
+                "kSZAl": {
+                  "content": "노트북 거치대"
+                },
+                "pGnRI": {
+                  "content": "주변기기"
+                },
+                "J2Fdn": {
+                  "content": "2층 서버실"
+                },
+                "r1Y6B2": {
+                  "content": "대여 가능 0",
+                  "enabled": false
+                },
+                "D274no": {
+                  "enabled": false
+                },
+                "Es032": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "GCYcZ": {
+                  "enabled": false
+                },
+                "hysgd": {
+                  "content": "수리중 0",
+                  "enabled": false
+                },
+                "EX5YZ": {
+                  "content": "—",
+                  "fill": "#9C9C9C",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "pJ04Z",
+              "type": "ref",
+              "ref": "LL25I",
+              "name": "Row 레이저 측정기",
+              "width": "fill_container",
+              "x": 24,
+              "y": 701,
+              "descendants": {
+                "kSZAl": {
+                  "content": "레이저 측정기"
+                },
+                "pGnRI": {
+                  "content": "공구"
+                },
+                "J2Fdn": {
+                  "content": "1층 창고"
+                },
+                "r1Y6B2": {
+                  "content": "대여 가능 0",
+                  "enabled": false
+                },
+                "D274no": {
+                  "enabled": false
+                },
+                "Es032": {
+                  "content": "대여 중 0",
+                  "enabled": false
+                },
+                "GCYcZ": {
+                  "enabled": false
+                },
+                "hysgd": {
+                  "content": "수리중 1",
+                  "enabled": true
+                },
+                "EX5YZ": {
+                  "content": "—",
+                  "enabled": false,
+                  "fill": "$ink3"
+                }
+              }
+            },
+            {
               "type": "frame",
-              "id": "tfrBr",
-              "name": "Body",
+              "id": "g0q4p",
+              "name": "More",
               "width": "fill_container",
               "layout": "vertical",
               "alignItems": "center",
               "children": [
                 {
-                  "id": "dIrqW",
+                  "id": "VAL4K",
                   "type": "ref",
-                  "ref": "LL25I",
-                  "name": "Row 프로젝터 (Epson EF-12)",
-                  "width": "fill_container",
-                  "descendants": {
-                    "kSZAl": {
-                      "content": "프로젝터 (Epson EF-12)"
-                    },
-                    "pGnRI": {
-                      "content": "회의장비"
-                    },
-                    "J2Fdn": {
-                      "content": "3층 자료실"
-                    },
-                    "r1Y6B2": {
-                      "content": "대여 가능 1",
-                      "enabled": true
-                    },
-                    "D274no": {
-                      "enabled": true
-                    },
-                    "Es032": {
-                      "content": "대여 중 1",
-                      "enabled": true
-                    },
-                    "GCYcZ": {
-                      "enabled": true
-                    },
-                    "hysgd": {
-                      "content": "수리중 1",
-                      "enabled": true
-                    },
-                    "EX5YZ": {
-                      "content": "7. 14 (월)",
-                      "enabled": false
-                    }
-                  }
-                },
-                {
-                  "id": "JOFpM",
-                  "type": "ref",
-                  "ref": "LL25I",
-                  "name": "Row 맥북 에어 M2",
-                  "width": "fill_container",
-                  "descendants": {
-                    "kSZAl": {
-                      "content": "맥북 에어 M2"
-                    },
-                    "pGnRI": {
-                      "content": "노트북"
-                    },
-                    "J2Fdn": {
-                      "content": "2층 서버실"
-                    },
-                    "r1Y6B2": {
-                      "content": "대여 가능 2",
-                      "enabled": true
-                    },
-                    "D274no": {
-                      "enabled": true
-                    },
-                    "Es032": {
-                      "content": "대여 중 1",
-                      "enabled": true
-                    },
-                    "GCYcZ": {
-                      "enabled": false
-                    },
-                    "hysgd": {
-                      "content": "수리중 0",
-                      "enabled": false
-                    },
-                    "EX5YZ": {
-                      "content": "7. 18 (금)",
-                      "enabled": false
-                    }
-                  }
-                },
-                {
-                  "id": "OlQki",
-                  "type": "ref",
-                  "ref": "LL25I",
-                  "name": "Row 무선 발표기",
-                  "width": "fill_container",
-                  "descendants": {
-                    "kSZAl": {
-                      "content": "무선 발표기"
-                    },
-                    "pGnRI": {
-                      "content": "회의장비"
-                    },
-                    "J2Fdn": {
-                      "content": "3층 자료실"
-                    },
-                    "r1Y6B2": {
-                      "content": "대여 가능 0",
-                      "enabled": false
-                    },
-                    "D274no": {
-                      "enabled": false
-                    },
-                    "Es032": {
-                      "content": "대여 중 1",
-                      "enabled": true
-                    },
-                    "GCYcZ": {
-                      "enabled": false
-                    },
-                    "hysgd": {
-                      "content": "수리중 0",
-                      "enabled": false
-                    },
-                    "EX5YZ": {
-                      "content": "—",
-                      "fill": "#9C9C9C",
-                      "enabled": false
-                    }
-                  }
-                },
-                {
-                  "id": "VFAgh",
-                  "type": "ref",
-                  "ref": "LL25I",
-                  "name": "Row 서버랙 공구 세트",
-                  "width": "fill_container",
-                  "descendants": {
-                    "kSZAl": {
-                      "content": "서버랙 공구 세트"
-                    },
-                    "pGnRI": {
-                      "content": "공구"
-                    },
-                    "J2Fdn": {
-                      "content": "1층 창고"
-                    },
-                    "r1Y6B2": {
-                      "content": "대여 가능 1",
-                      "enabled": true
-                    },
-                    "D274no": {
-                      "enabled": false
-                    },
-                    "Es032": {
-                      "content": "대여 중 0",
-                      "enabled": false
-                    },
-                    "GCYcZ": {
-                      "enabled": false
-                    },
-                    "hysgd": {
-                      "content": "수리중 0",
-                      "enabled": false
-                    },
-                    "EX5YZ": {
-                      "content": "—",
-                      "fill": "#9C9C9C",
-                      "enabled": false
-                    }
-                  }
-                },
-                {
-                  "id": "u5PZq1",
-                  "type": "ref",
-                  "ref": "LL25I",
-                  "name": "Row 캠코더 (Sony FDR)",
-                  "width": "fill_container",
-                  "descendants": {
-                    "kSZAl": {
-                      "content": "캠코더 (Sony FDR)"
-                    },
-                    "pGnRI": {
-                      "content": "촬영장비"
-                    },
-                    "J2Fdn": {
-                      "content": "3층 자료실"
-                    },
-                    "r1Y6B2": {
-                      "content": "대여 가능 0",
-                      "enabled": false
-                    },
-                    "D274no": {
-                      "enabled": false
-                    },
-                    "Es032": {
-                      "content": "대여 중 1",
-                      "enabled": true
-                    },
-                    "GCYcZ": {
-                      "enabled": false
-                    },
-                    "hysgd": {
-                      "content": "수리중 0",
-                      "enabled": false
-                    },
-                    "EX5YZ": {
-                      "content": "7. 15 (화)",
-                      "enabled": false
-                    }
-                  }
-                },
-                {
-                  "id": "shBnb",
-                  "type": "ref",
-                  "ref": "LL25I",
-                  "name": "Row 화상회의 스피커",
-                  "width": "fill_container",
-                  "descendants": {
-                    "kSZAl": {
-                      "content": "화상회의 스피커"
-                    },
-                    "pGnRI": {
-                      "content": "회의장비"
-                    },
-                    "J2Fdn": {
-                      "content": "4층 회의실 B"
-                    },
-                    "r1Y6B2": {
-                      "content": "대여 가능 0",
-                      "enabled": false
-                    },
-                    "D274no": {
-                      "enabled": false
-                    },
-                    "Es032": {
-                      "content": "대여 중 1",
-                      "enabled": true
-                    },
-                    "GCYcZ": {
-                      "enabled": false
-                    },
-                    "hysgd": {
-                      "content": "수리중 0",
-                      "enabled": false
-                    },
-                    "EX5YZ": {
-                      "content": "—",
-                      "fill": "#9C9C9C",
-                      "enabled": false
-                    }
-                  }
-                },
-                {
-                  "id": "knZLP",
-                  "type": "ref",
-                  "ref": "LL25I",
-                  "name": "Row 촬영용 삼각대",
-                  "width": "fill_container",
-                  "descendants": {
-                    "kSZAl": {
-                      "content": "촬영용 삼각대"
-                    },
-                    "pGnRI": {
-                      "content": "촬영장비"
-                    },
-                    "J2Fdn": {
-                      "content": "3층 자료실"
-                    },
-                    "r1Y6B2": {
-                      "content": "대여 가능 0",
-                      "enabled": false
-                    },
-                    "D274no": {
-                      "enabled": false
-                    },
-                    "Es032": {
-                      "content": "대여 중 2",
-                      "enabled": true
-                    },
-                    "GCYcZ": {
-                      "enabled": false
-                    },
-                    "hysgd": {
-                      "content": "수리중 0",
-                      "enabled": false
-                    },
-                    "EX5YZ": {
-                      "content": "—",
-                      "fill": "#9C9C9C",
-                      "enabled": false
-                    }
-                  }
-                },
-                {
-                  "id": "ENIRx",
-                  "type": "ref",
-                  "ref": "LL25I",
-                  "name": "Row 외장 SSD 2TB",
-                  "width": "fill_container",
-                  "descendants": {
-                    "kSZAl": {
-                      "content": "외장 SSD 2TB"
-                    },
-                    "pGnRI": {
-                      "content": "저장장치"
-                    },
-                    "J2Fdn": {
-                      "content": "2층 서버실"
-                    },
-                    "r1Y6B2": {
-                      "content": "대여 가능 1",
-                      "enabled": true
-                    },
-                    "D274no": {
-                      "enabled": true
-                    },
-                    "Es032": {
-                      "content": "대여 중 1",
-                      "enabled": true
-                    },
-                    "GCYcZ": {
-                      "enabled": false
-                    },
-                    "hysgd": {
-                      "content": "수리중 0",
-                      "enabled": false
-                    },
-                    "EX5YZ": {
-                      "content": "7. 13 (일)",
-                      "enabled": false
-                    }
-                  }
-                },
-                {
-                  "id": "kY3Kc",
-                  "type": "ref",
-                  "ref": "LL25I",
-                  "name": "Row 노트북 거치대",
-                  "width": "fill_container",
-                  "descendants": {
-                    "kSZAl": {
-                      "content": "노트북 거치대"
-                    },
-                    "pGnRI": {
-                      "content": "주변기기"
-                    },
-                    "J2Fdn": {
-                      "content": "2층 서버실"
-                    },
-                    "r1Y6B2": {
-                      "content": "대여 가능 0",
-                      "enabled": false
-                    },
-                    "D274no": {
-                      "enabled": false
-                    },
-                    "Es032": {
-                      "content": "대여 중 1",
-                      "enabled": true
-                    },
-                    "GCYcZ": {
-                      "enabled": false
-                    },
-                    "hysgd": {
-                      "content": "수리중 0",
-                      "enabled": false
-                    },
-                    "EX5YZ": {
-                      "content": "—",
-                      "fill": "#9C9C9C",
-                      "enabled": false
-                    }
-                  }
-                },
-                {
-                  "id": "pJ04Z",
-                  "type": "ref",
-                  "ref": "LL25I",
-                  "name": "Row 레이저 측정기",
-                  "width": "fill_container",
-                  "descendants": {
-                    "kSZAl": {
-                      "content": "레이저 측정기"
-                    },
-                    "pGnRI": {
-                      "content": "공구"
-                    },
-                    "J2Fdn": {
-                      "content": "1층 창고"
-                    },
-                    "r1Y6B2": {
-                      "content": "대여 가능 0",
-                      "enabled": false
-                    },
-                    "D274no": {
-                      "enabled": false
-                    },
-                    "Es032": {
-                      "content": "대여 중 0",
-                      "enabled": false
-                    },
-                    "GCYcZ": {
-                      "enabled": false
-                    },
-                    "hysgd": {
-                      "content": "수리중 1",
-                      "enabled": true
-                    },
-                    "EX5YZ": {
-                      "content": "—",
-                      "enabled": false,
-                      "fill": "$ink3"
-                    }
-                  }
-                },
-                {
-                  "type": "frame",
-                  "id": "g0q4p",
-                  "name": "More",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "id": "VAL4K",
-                      "type": "ref",
-                      "ref": "Yfy4M",
-                      "x": 637.5,
-                      "y": 0
-                    }
-                  ]
+                  "ref": "Yfy4M",
+                  "x": 637.5,
+                  "y": 0
                 }
               ]
             }
@@ -768,12 +778,10 @@
           "name": "Detail Wrap",
           "width": "fill_container",
           "height": "fill_container",
-          "gap": 32,
+          "gap": 24,
           "padding": [
-            8,
-            60,
-            60,
-            60
+            12,
+            24
           ],
           "children": [
             {
@@ -789,7 +797,7 @@
                   "id": "Xv7RV",
                   "name": "Detail Head",
                   "width": "fill_container",
-                  "gap": 32,
+                  "gap": 24,
                   "alignItems": "center",
                   "children": [
                     {
@@ -821,7 +829,7 @@
                       "name": "Title Col",
                       "width": "fill_container",
                       "layout": "vertical",
-                      "gap": 8,
+                      "gap": 6,
                       "children": [
                         {
                           "type": "frame",
@@ -897,10 +905,10 @@
                       "name": "Spec 구분",
                       "width": "fill_container",
                       "stroke": "#E6E6E6",
-                      "gap": 16,
+                      "gap": 12,
                       "padding": [
                         12,
-                        20
+                        24
                       ],
                       "children": [
                         {
@@ -935,10 +943,10 @@
                       "name": "Spec 분류",
                       "width": "fill_container",
                       "stroke": "#E6E6E6",
-                      "gap": 16,
+                      "gap": 12,
                       "padding": [
                         12,
-                        20
+                        24
                       ],
                       "children": [
                         {
@@ -973,10 +981,10 @@
                       "name": "Spec 보관 위치",
                       "width": "fill_container",
                       "stroke": "#E6E6E6",
-                      "gap": 16,
+                      "gap": 12,
                       "padding": [
                         12,
-                        20
+                        24
                       ],
                       "children": [
                         {
@@ -1011,10 +1019,10 @@
                       "name": "Spec 등록일",
                       "width": "fill_container",
                       "stroke": "#E6E6E6",
-                      "gap": 16,
+                      "gap": 12,
                       "padding": [
                         12,
-                        20
+                        24
                       ],
                       "children": [
                         {
@@ -1048,10 +1056,10 @@
                       "id": "TtTQM",
                       "name": "Spec 비고",
                       "width": "fill_container",
-                      "gap": 16,
+                      "gap": 12,
                       "padding": [
                         12,
-                        16
+                        24
                       ],
                       "children": [
                         {
@@ -1102,80 +1110,15 @@
                     },
                     {
                       "type": "frame",
-                      "id": "QypA0",
-                      "name": "Head",
-                      "width": "fill_container",
-                      "stroke": "#E6E6E6",
-                      "strokeWidth": {
-                        "bottom": 1
-                      },
-                      "padding": [
-                        8,
-                        0
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "JJAQB",
-                          "name": "HH User",
-                          "fill": "#9C9C9C",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "대여자",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "jUmYK",
-                          "name": "HH Start",
-                          "fill": "#9C9C9C",
-                          "textGrowth": "fixed-width",
-                          "width": 150,
-                          "content": "대여일",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "mr5uu",
-                          "name": "HH End",
-                          "fill": "#9C9C9C",
-                          "textGrowth": "fixed-width",
-                          "width": 150,
-                          "content": "반납일",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "ubExI",
-                          "name": "HH State",
-                          "fill": "#9C9C9C",
-                          "textGrowth": "fixed-width",
-                          "width": 90,
-                          "content": "상태",
-                          "fontFamily": "Noto Sans KR",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "m7eo4q",
-                      "name": "Body",
-                      "width": "fill_container",
+                      "id": "gAuZp",
+                      "name": "Items",
+                      "width": 916.0924398618304,
                       "layout": "vertical",
                       "children": [
                         {
                           "type": "frame",
-                          "id": "fKjaU",
-                          "name": "Hist Row 김민수 (개발팀)2025. 7. 10",
+                          "id": "QypA0",
+                          "name": "Head",
                           "width": "fill_container",
                           "stroke": "#E6E6E6",
                           "strokeWidth": {
@@ -1189,311 +1132,386 @@
                           "children": [
                             {
                               "type": "text",
-                              "id": "UdpAq",
-                              "name": "H User",
-                              "fill": "#111111",
+                              "id": "JJAQB",
+                              "name": "HH User",
+                              "fill": "#9C9C9C",
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
-                              "content": "김민수",
+                              "content": "대여자",
                               "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "FB48t",
-                              "name": "H Start",
-                              "fill": "#6B6B6B",
-                              "textGrowth": "fixed-width",
-                              "width": 150,
-                              "content": "2025. 7. 10",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
+                              "fontSize": 12,
                               "fontWeight": "normal"
                             },
                             {
                               "type": "text",
-                              "id": "Toxlv",
-                              "name": "H End",
-                              "fill": "#EA580C",
+                              "id": "jUmYK",
+                              "name": "HH Start",
+                              "fill": "#9C9C9C",
                               "textGrowth": "fixed-width",
                               "width": 150,
-                              "content": "—",
+                              "content": "대여일",
                               "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
+                              "fontSize": 12,
                               "fontWeight": "normal"
                             },
                             {
                               "type": "text",
-                              "id": "H3ZrIq",
-                              "name": "H State",
-                              "fill": "#EA580C",
+                              "id": "mr5uu",
+                              "name": "HH End",
+                              "fill": "#9C9C9C",
+                              "textGrowth": "fixed-width",
+                              "width": 150,
+                              "content": "반납일",
+                              "fontFamily": "Noto Sans KR",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "ubExI",
+                              "name": "HH State",
+                              "fill": "#9C9C9C",
                               "textGrowth": "fixed-width",
                               "width": 90,
-                              "content": "대여 중",
+                              "content": "상태",
                               "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
+                              "fontSize": 12,
                               "fontWeight": "normal"
                             }
                           ]
                         },
                         {
                           "type": "frame",
-                          "id": "mgahS",
-                          "name": "Hist Row 이서연 (기획팀)2025. 6. 23",
+                          "id": "m7eo4q",
+                          "name": "Body",
+                          "rotation": -0.02255523717625239,
                           "width": "fill_container",
-                          "stroke": "#E6E6E6",
-                          "strokeWidth": {
-                            "bottom": 1
-                          },
-                          "padding": [
-                            12,
-                            0
-                          ],
-                          "alignItems": "center",
+                          "layout": "vertical",
                           "children": [
                             {
-                              "type": "text",
-                              "id": "UT0p1",
-                              "name": "H User",
-                              "fill": "#111111",
-                              "textGrowth": "fixed-width",
+                              "type": "frame",
+                              "id": "fKjaU",
+                              "name": "Hist Row 김민수 (개발팀)2025. 7. 10",
                               "width": "fill_container",
-                              "content": "이서연",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
+                              "stroke": "#E6E6E6",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "padding": [
+                                12,
+                                0
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "UdpAq",
+                                  "name": "H User",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "김민수",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "FB48t",
+                                  "name": "H Start",
+                                  "fill": "#6B6B6B",
+                                  "textGrowth": "fixed-width",
+                                  "width": 150,
+                                  "content": "2025. 7. 10",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Toxlv",
+                                  "name": "H End",
+                                  "fill": "#EA580C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 150,
+                                  "content": "—",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "H3ZrIq",
+                                  "name": "H State",
+                                  "fill": "#EA580C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 90,
+                                  "content": "대여 중",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             },
                             {
-                              "type": "text",
-                              "id": "ltAZm",
-                              "name": "H Start",
-                              "fill": "#6B6B6B",
-                              "textGrowth": "fixed-width",
-                              "width": 150,
-                              "content": "2025. 6. 23",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "text",
-                              "id": "QrP4D",
-                              "name": "H End",
-                              "fill": "#6B6B6B",
-                              "textGrowth": "fixed-width",
-                              "width": 150,
-                              "content": "2025. 6. 27",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "text",
-                              "id": "ta3O3",
-                              "name": "H State",
-                              "fill": "#9C9C9C",
-                              "textGrowth": "fixed-width",
-                              "width": 90,
-                              "content": "정상 반납",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Mz3p4",
-                          "name": "Hist Row 김민수 (개발팀)2025. 6. 2",
-                          "width": "fill_container",
-                          "stroke": "#E6E6E6",
-                          "strokeWidth": {
-                            "bottom": 1
-                          },
-                          "padding": [
-                            12,
-                            0
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "rabAF",
-                              "name": "H User",
-                              "fill": "#111111",
-                              "textGrowth": "fixed-width",
+                              "type": "frame",
+                              "id": "mgahS",
+                              "name": "Hist Row 이서연 (기획팀)2025. 6. 23",
                               "width": "fill_container",
-                              "content": "김민수",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
+                              "stroke": "#E6E6E6",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "padding": [
+                                12,
+                                0
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "UT0p1",
+                                  "name": "H User",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "이서연",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "ltAZm",
+                                  "name": "H Start",
+                                  "fill": "#6B6B6B",
+                                  "textGrowth": "fixed-width",
+                                  "width": 150,
+                                  "content": "2025. 6. 23",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "QrP4D",
+                                  "name": "H End",
+                                  "fill": "#6B6B6B",
+                                  "textGrowth": "fixed-width",
+                                  "width": 150,
+                                  "content": "2025. 6. 27",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "ta3O3",
+                                  "name": "H State",
+                                  "fill": "#9C9C9C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 90,
+                                  "content": "정상 반납",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             },
                             {
-                              "type": "text",
-                              "id": "mv8Te",
-                              "name": "H Start",
-                              "fill": "#6B6B6B",
-                              "textGrowth": "fixed-width",
-                              "width": 150,
-                              "content": "2025. 6. 2",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "text",
-                              "id": "BVX1O",
-                              "name": "H End",
-                              "fill": "#6B6B6B",
-                              "textGrowth": "fixed-width",
-                              "width": 150,
-                              "content": "2025. 6. 9",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "text",
-                              "id": "IiT59",
-                              "name": "H State",
-                              "fill": "#9C9C9C",
-                              "textGrowth": "fixed-width",
-                              "width": 90,
-                              "content": "정상 반납",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Yz5Gb",
-                          "name": "Hist Row 박지훈 (디자인팀)2025. 5. 12",
-                          "width": "fill_container",
-                          "stroke": "#E6E6E6",
-                          "strokeWidth": {
-                            "bottom": 1
-                          },
-                          "padding": [
-                            12,
-                            0
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "zBltj",
-                              "name": "H User",
-                              "fill": "#111111",
-                              "textGrowth": "fixed-width",
+                              "type": "frame",
+                              "id": "Mz3p4",
+                              "name": "Hist Row 김민수 (개발팀)2025. 6. 2",
                               "width": "fill_container",
-                              "content": "박지훈",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
+                              "stroke": "#E6E6E6",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "padding": [
+                                12,
+                                0
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "rabAF",
+                                  "name": "H User",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "김민수",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "mv8Te",
+                                  "name": "H Start",
+                                  "fill": "#6B6B6B",
+                                  "textGrowth": "fixed-width",
+                                  "width": 150,
+                                  "content": "2025. 6. 2",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "BVX1O",
+                                  "name": "H End",
+                                  "fill": "#6B6B6B",
+                                  "textGrowth": "fixed-width",
+                                  "width": 150,
+                                  "content": "2025. 6. 9",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "IiT59",
+                                  "name": "H State",
+                                  "fill": "#9C9C9C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 90,
+                                  "content": "정상 반납",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             },
                             {
-                              "type": "text",
-                              "id": "dXmKK",
-                              "name": "H Start",
-                              "fill": "#6B6B6B",
-                              "textGrowth": "fixed-width",
-                              "width": 150,
-                              "content": "2025. 5. 12",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "text",
-                              "id": "Y9v5N",
-                              "name": "H End",
-                              "fill": "#6B6B6B",
-                              "textGrowth": "fixed-width",
-                              "width": 150,
-                              "content": "2025. 5. 16",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "text",
-                              "id": "J91sqh",
-                              "name": "H State",
-                              "fill": "#9C9C9C",
-                              "textGrowth": "fixed-width",
-                              "width": 90,
-                              "content": "정상 반납",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "xDvO3",
-                          "name": "Hist Row 정우진 (인프라팀)2025. 4. 28",
-                          "width": "fill_container",
-                          "stroke": "#E6E6E6",
-                          "strokeWidth": {
-                            "bottom": 1
-                          },
-                          "padding": [
-                            12,
-                            0
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "GBkos",
-                              "name": "H User",
-                              "fill": "#111111",
-                              "textGrowth": "fixed-width",
+                              "type": "frame",
+                              "id": "Yz5Gb",
+                              "name": "Hist Row 박지훈 (디자인팀)2025. 5. 12",
                               "width": "fill_container",
-                              "content": "정우진",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
+                              "stroke": "#E6E6E6",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "padding": [
+                                12,
+                                0
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "zBltj",
+                                  "name": "H User",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "박지훈",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "dXmKK",
+                                  "name": "H Start",
+                                  "fill": "#6B6B6B",
+                                  "textGrowth": "fixed-width",
+                                  "width": 150,
+                                  "content": "2025. 5. 12",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Y9v5N",
+                                  "name": "H End",
+                                  "fill": "#6B6B6B",
+                                  "textGrowth": "fixed-width",
+                                  "width": 150,
+                                  "content": "2025. 5. 16",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "J91sqh",
+                                  "name": "H State",
+                                  "fill": "#9C9C9C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 90,
+                                  "content": "정상 반납",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             },
                             {
-                              "type": "text",
-                              "id": "Xn6PZ",
-                              "name": "H Start",
-                              "fill": "#6B6B6B",
-                              "textGrowth": "fixed-width",
-                              "width": 150,
-                              "content": "2025. 4. 28",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "text",
-                              "id": "gJhMT",
-                              "name": "H End",
-                              "fill": "#6B6B6B",
-                              "textGrowth": "fixed-width",
-                              "width": 150,
-                              "content": "2025. 4. 30",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "text",
-                              "id": "v8hVqu",
-                              "name": "H State",
-                              "fill": "#9C9C9C",
-                              "textGrowth": "fixed-width",
-                              "width": 90,
-                              "content": "지연 반납",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "normal"
+                              "type": "frame",
+                              "id": "xDvO3",
+                              "name": "Hist Row 정우진 (인프라팀)2025. 4. 28",
+                              "width": "fill_container",
+                              "stroke": "#E6E6E6",
+                              "strokeWidth": {
+                                "bottom": 1
+                              },
+                              "padding": [
+                                12,
+                                0
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "GBkos",
+                                  "name": "H User",
+                                  "fill": "#111111",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "정우진",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Xn6PZ",
+                                  "name": "H Start",
+                                  "fill": "#6B6B6B",
+                                  "textGrowth": "fixed-width",
+                                  "width": 150,
+                                  "content": "2025. 4. 28",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "gJhMT",
+                                  "name": "H End",
+                                  "fill": "#6B6B6B",
+                                  "textGrowth": "fixed-width",
+                                  "width": 150,
+                                  "content": "2025. 4. 30",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "v8hVqu",
+                                  "name": "H State",
+                                  "fill": "#9C9C9C",
+                                  "textGrowth": "fixed-width",
+                                  "width": 90,
+                                  "content": "지연 반납",
+                                  "fontFamily": "Noto Sans KR",
+                                  "fontSize": 16,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -1513,7 +1531,7 @@
               "cornerRadius": 8,
               "stroke": "#00000000",
               "layout": "vertical",
-              "gap": 16,
+              "gap": 12,
               "padding": 24,
               "children": [
                 {
@@ -1571,7 +1589,7 @@
                   "name": "Qty Field",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "text",
@@ -1681,7 +1699,8 @@
                   "name": "Period Field",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
+                  "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
@@ -1694,951 +1713,11 @@
                       "fontWeight": "normal"
                     },
                     {
-                      "type": "frame",
-                      "id": "FmJcu",
-                      "name": "Calendar",
-                      "width": "fill_container",
-                      "fill": "#FFFFFF",
-                      "cornerRadius": 6,
-                      "stroke": "#E6E6E6",
-                      "strokeWidth": 1,
-                      "layout": "vertical",
-                      "gap": 8,
-                      "padding": 12,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "K34FQj",
-                          "name": "Cal Head",
-                          "width": "fill_container",
-                          "gap": 8,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon",
-                              "id": "o5d2Pd",
-                              "name": "Prev Icon",
-                              "width": 16,
-                              "height": 16,
-                              "icon": "chevron-left",
-                              "library": "lucide",
-                              "fill": "#6B6B6B"
-                            },
-                            {
-                              "type": "text",
-                              "id": "pJzND",
-                              "name": "Cal Month",
-                              "fill": "#111111",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "2025년 7월",
-                              "textAlign": "center",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 16,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "icon",
-                              "id": "B22UI",
-                              "name": "Next Icon",
-                              "width": 16,
-                              "height": 16,
-                              "icon": "chevron-right",
-                              "library": "lucide",
-                              "fill": "#6B6B6B"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Sishg",
-                          "name": "Cal Weekdays",
-                          "width": "fill_container",
-                          "gap": 4,
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "P2IfSu",
-                              "name": "WD",
-                              "fill": "#9F1239",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "일",
-                              "textAlign": "center",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 12,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "J14GmQ",
-                              "name": "WD",
-                              "fill": "#9C9C9C",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "월",
-                              "textAlign": "center",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 12,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "GvFaF",
-                              "name": "WD",
-                              "fill": "#9C9C9C",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "화",
-                              "textAlign": "center",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 12,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "hYTMi",
-                              "name": "WD",
-                              "fill": "#9C9C9C",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "수",
-                              "textAlign": "center",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 12,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "afKYf",
-                              "name": "WD",
-                              "fill": "#9C9C9C",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "목",
-                              "textAlign": "center",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 12,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "gjywB",
-                              "name": "WD",
-                              "fill": "#9C9C9C",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "금",
-                              "textAlign": "center",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 12,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "zMdZ0",
-                              "name": "WD",
-                              "fill": "#9C9C9C",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "토",
-                              "textAlign": "center",
-                              "fontFamily": "Noto Sans KR",
-                              "fontSize": 12,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "E8x3E",
-                          "name": "Cal Week",
-                          "width": "fill_container",
-                          "gap": 4,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "zCjlY",
-                              "name": "Cell Empty",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "eDXgq",
-                              "name": "Cell Empty",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "SJSwX",
-                              "name": "Cell Empty",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "GWzZU",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "It1Fe",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "1",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "hxlMw",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "zHHd1",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "2",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "XYlpe",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "RyziB",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "3",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "stjvs",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "M9gmjY",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "4",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "o7lOHw",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "O0ZEY",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "5",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "xt32C",
-                          "name": "Cal Week",
-                          "width": "fill_container",
-                          "gap": 4,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "yplKY",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "jQQv0",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "6",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "Q4Us9Z",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "Ja0bI",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "7",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "Jt7Vz",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "PALTe",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "8",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "mEyOM",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "ZK76c",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "9",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "phARw",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "SpvSh",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "10",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "qSman",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "e5KR2",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "11",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "t0dJOL",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "dIsct",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "12",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "cO8BI",
-                          "name": "Cal Week",
-                          "width": "fill_container",
-                          "gap": 4,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "FmpQ4",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#EA580C",
-                              "cornerRadius": [
-                                6,
-                                0,
-                                0,
-                                6
-                              ],
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "pxFxn",
-                                  "name": "Day",
-                                  "fill": "#FFFFFF",
-                                  "content": "13",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "700"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "T09ss",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#FFEDD5",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "A2tO0",
-                                  "name": "Day",
-                                  "fill": "#EA580C",
-                                  "content": "14",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "D31Sq",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#FFEDD5",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "HMesS",
-                                  "name": "Day",
-                                  "fill": "#EA580C",
-                                  "content": "15",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "xiY2U",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#FFEDD5",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "LQIay",
-                                  "name": "Day",
-                                  "fill": "#EA580C",
-                                  "content": "16",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "XtmM0",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#FFEDD5",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "b3BZlB",
-                                  "name": "Day",
-                                  "fill": "#EA580C",
-                                  "content": "17",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "UGaUo",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#FFEDD5",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "VS4qe",
-                                  "name": "Day",
-                                  "fill": "#EA580C",
-                                  "content": "18",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "zfjff",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#FFEDD5",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "EX9K3",
-                                  "name": "Day",
-                                  "fill": "#EA580C",
-                                  "content": "19",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "e3Nau",
-                          "name": "Cal Week",
-                          "width": "fill_container",
-                          "gap": 4,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "JhZCq",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#EA580C",
-                              "cornerRadius": [
-                                0,
-                                6,
-                                6,
-                                0
-                              ],
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "lfY81",
-                                  "name": "Day",
-                                  "fill": "#FFFFFF",
-                                  "content": "20",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "700"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "snp9k",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "L5pH5k",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "21",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "Z1FU6",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "eJY4o",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "22",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "bCYVB",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "YqsVm",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "23",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "Qt8RJ",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "Bz6VQ",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "24",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "gE4eU",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "C8dYJ0",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "25",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "n2kl6X",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "LvVFL",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "26",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "uo5OY",
-                          "name": "Cal Week",
-                          "width": "fill_container",
-                          "gap": 4,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "hSn0z",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "WZGLD",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "27",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "m1xt7",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "le5xl",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "28",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "SdFg9",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "IW12b",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "29",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "x6Rrub",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "gFuNn",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "30",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "JJlD3",
-                              "name": "Cell",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "Qf8vy",
-                                  "name": "Day",
-                                  "fill": "#111111",
-                                  "content": "31",
-                                  "fontFamily": "Noto Sans KR",
-                                  "fontSize": 16,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "JJsvD",
-                              "name": "Cell Empty",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center"
-                            },
-                            {
-                              "type": "frame",
-                              "id": "VHGqz",
-                              "name": "Cell Empty",
-                              "width": "fill_container",
-                              "height": 36,
-                              "fill": "#00000000",
-                              "justifyContent": "center",
-                              "alignItems": "center"
-                            }
-                          ]
-                        }
-                      ]
+                      "id": "iZNxN",
+                      "type": "ref",
+                      "ref": "KH385",
+                      "x": 1,
+                      "y": 29
                     },
                     {
                       "type": "text",
@@ -3494,7 +2573,7 @@
           "id": "utXwz",
           "name": "Login Card",
           "layout": "vertical",
-          "gap": 24,
+          "gap": 12,
           "alignItems": "center",
           "children": [
             {
@@ -3502,7 +2581,7 @@
               "id": "rxfU1",
               "name": "Brand Block",
               "layout": "vertical",
-              "gap": 12,
+              "gap": 6,
               "alignItems": "center",
               "children": [
                 {
@@ -3580,7 +2659,7 @@
               "ref": "OlbcC",
               "name": "Login Button",
               "width": "fit_content",
-              "y": 154,
+              "y": 130,
               "height": "fit_content",
               "descendants": {
                 "Z6McK": {
@@ -3614,7 +2693,7 @@
           "name": "Login Card",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 24,
+          "gap": 12,
           "children": [
             {
               "type": "frame",
@@ -3622,7 +2701,7 @@
               "name": "Brand Block",
               "width": "fill_container",
               "layout": "vertical",
-              "gap": 12,
+              "gap": 6,
               "alignItems": "center",
               "children": [
                 {
@@ -3840,7 +2919,7 @@
                   "id": "u7mmMh",
                   "name": "Value",
                   "fill": "#111111",
-                  "content": "28",
+                  "content": "16",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -3882,7 +2961,7 @@
                   "id": "UYyLZ",
                   "name": "Value",
                   "fill": "#EA580C",
-                  "content": "5",
+                  "content": "9",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -3924,7 +3003,7 @@
                   "id": "KKYZx",
                   "name": "Value",
                   "fill": "#111111",
-                  "content": "23",
+                  "content": "5",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -3940,6 +3019,29 @@
                   "fontWeight": "normal"
                 }
               ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "XEUZ3",
+          "name": "Search Row",
+          "width": "fill_container",
+          "padding": [
+            12,
+            24
+          ],
+          "children": [
+            {
+              "id": "JPiJG",
+              "type": "ref",
+              "ref": "Om7uh",
+              "x": 24,
+              "y": 12,
+              "width": "fill_container",
+              "height": "fit_content",
+              "justifyContent": "start",
+              "alignItems": "start"
             }
           ]
         },
@@ -3985,7 +3087,7 @@
                   "id": "S28Fx3",
                   "name": "Tab Label",
                   "fill": "#9C9C9C",
-                  "content": "대여 중 5",
+                  "content": "대여 중 9",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 14,
                   "fontWeight": "normal"
@@ -4004,35 +3106,12 @@
                   "id": "wv7FV",
                   "name": "Tab Label",
                   "fill": "#9C9C9C",
-                  "content": "대여 가능 23",
+                  "content": "대여 가능 5",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 14,
                   "fontWeight": "normal"
                 }
               ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "XEUZ3",
-          "name": "Search Row",
-          "width": "fill_container",
-          "padding": [
-            12,
-            24
-          ],
-          "children": [
-            {
-              "id": "JPiJG",
-              "type": "ref",
-              "ref": "Om7uh",
-              "x": 24,
-              "y": 12,
-              "width": "fill_container",
-              "height": "fit_content",
-              "justifyContent": "start",
-              "alignItems": "start"
             }
           ]
         },
@@ -4053,95 +3132,421 @@
               "type": "ref",
               "ref": "m6cqIV",
               "x": 24,
-              "y": 12
+              "y": 12,
+              "name": "Card 1",
+              "descendants": {
+                "hfHBc": {
+                  "content": "프로젝터 (Epson EF-12)"
+                },
+                "twqaE": {
+                  "enabled": false
+                },
+                "O1rjB": {
+                  "content": "대여 가능 1"
+                },
+                "K8CpR": {
+                  "content": "회의장비 · 3층 자료실"
+                },
+                "h8OxKX": {
+                  "enabled": true
+                },
+                "Y5PVg": {
+                  "content": "대여 가능 1"
+                },
+                "JBnfP": {
+                  "enabled": true
+                },
+                "CHp6R": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "N4Etfu": {
+                  "enabled": true
+                },
+                "tednL": {
+                  "content": "수리중 1",
+                  "enabled": true
+                }
+              }
             },
             {
               "id": "IHWTS",
               "type": "ref",
               "ref": "m6cqIV",
               "x": 24,
-              "y": 105
+              "y": 105,
+              "name": "Card 2",
+              "descendants": {
+                "hfHBc": {
+                  "content": "맥북 에어 M2"
+                },
+                "twqaE": {
+                  "enabled": false
+                },
+                "O1rjB": {
+                  "content": "대여 가능 2"
+                },
+                "K8CpR": {
+                  "content": "노트북 · 2층 서버실"
+                },
+                "h8OxKX": {
+                  "enabled": true
+                },
+                "Y5PVg": {
+                  "content": "대여 가능 2"
+                },
+                "JBnfP": {
+                  "enabled": true
+                },
+                "CHp6R": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "N4Etfu": {
+                  "enabled": false
+                },
+                "tednL": {
+                  "content": "수리중 0",
+                  "enabled": false
+                }
+              }
             },
             {
               "id": "UaWQ8",
               "type": "ref",
               "ref": "m6cqIV",
               "x": 24,
-              "y": 198
+              "y": 198,
+              "name": "Card 3",
+              "descendants": {
+                "hfHBc": {
+                  "content": "무선 발표기"
+                },
+                "twqaE": {
+                  "enabled": false
+                },
+                "O1rjB": {
+                  "content": "대여 가능 0"
+                },
+                "K8CpR": {
+                  "content": "회의장비 · 3층 자료실"
+                },
+                "h8OxKX": {
+                  "enabled": true
+                },
+                "Y5PVg": {
+                  "content": "대여 가능 0"
+                },
+                "JBnfP": {
+                  "enabled": true
+                },
+                "CHp6R": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "N4Etfu": {
+                  "enabled": false
+                },
+                "tednL": {
+                  "content": "수리중 0",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "mrrpx",
+              "type": "ref",
+              "ref": "m6cqIV",
+              "name": "Card 4",
+              "descendants": {
+                "hfHBc": {
+                  "content": "서버랙 공구 세트"
+                },
+                "twqaE": {
+                  "enabled": false
+                },
+                "O1rjB": {
+                  "content": "대여 가능 1"
+                },
+                "K8CpR": {
+                  "content": "공구 · 1층 창고"
+                },
+                "h8OxKX": {
+                  "enabled": true
+                },
+                "Y5PVg": {
+                  "content": "대여 가능 1"
+                },
+                "JBnfP": {
+                  "enabled": false
+                },
+                "CHp6R": {
+                  "content": "대여 중 0",
+                  "enabled": false
+                },
+                "N4Etfu": {
+                  "enabled": false
+                },
+                "tednL": {
+                  "content": "수리중 0",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "VAo7g",
+              "type": "ref",
+              "ref": "m6cqIV",
+              "name": "Card 5",
+              "descendants": {
+                "hfHBc": {
+                  "content": "캠코더 (Sony FDR)"
+                },
+                "twqaE": {
+                  "enabled": false
+                },
+                "O1rjB": {
+                  "content": "대여 가능 0"
+                },
+                "K8CpR": {
+                  "content": "촬영장비 · 3층 자료실"
+                },
+                "h8OxKX": {
+                  "enabled": true
+                },
+                "Y5PVg": {
+                  "content": "대여 가능 0"
+                },
+                "JBnfP": {
+                  "enabled": true
+                },
+                "CHp6R": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "N4Etfu": {
+                  "enabled": false
+                },
+                "tednL": {
+                  "content": "수리중 0",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "JNz9E",
+              "type": "ref",
+              "ref": "m6cqIV",
+              "name": "Card 6",
+              "descendants": {
+                "hfHBc": {
+                  "content": "화상회의 스피커"
+                },
+                "twqaE": {
+                  "enabled": false
+                },
+                "O1rjB": {
+                  "content": "대여 가능 0"
+                },
+                "K8CpR": {
+                  "content": "회의장비 · 4층 회의실 B"
+                },
+                "h8OxKX": {
+                  "enabled": true
+                },
+                "Y5PVg": {
+                  "content": "대여 가능 0"
+                },
+                "JBnfP": {
+                  "enabled": true
+                },
+                "CHp6R": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "N4Etfu": {
+                  "enabled": false
+                },
+                "tednL": {
+                  "content": "수리중 0",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "ZbSWG",
+              "type": "ref",
+              "ref": "m6cqIV",
+              "name": "Card 7",
+              "descendants": {
+                "hfHBc": {
+                  "content": "촬영용 삼각대"
+                },
+                "twqaE": {
+                  "enabled": false
+                },
+                "O1rjB": {
+                  "content": "대여 가능 0"
+                },
+                "K8CpR": {
+                  "content": "촬영장비 · 3층 자료실"
+                },
+                "h8OxKX": {
+                  "enabled": true
+                },
+                "Y5PVg": {
+                  "content": "대여 가능 0"
+                },
+                "JBnfP": {
+                  "enabled": true
+                },
+                "CHp6R": {
+                  "content": "대여 중 2",
+                  "enabled": true
+                },
+                "N4Etfu": {
+                  "enabled": false
+                },
+                "tednL": {
+                  "content": "수리중 0",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "f8mvvM",
+              "type": "ref",
+              "ref": "m6cqIV",
+              "name": "Card 8",
+              "descendants": {
+                "hfHBc": {
+                  "content": "외장 SSD 2TB"
+                },
+                "twqaE": {
+                  "enabled": false
+                },
+                "O1rjB": {
+                  "content": "대여 가능 1"
+                },
+                "K8CpR": {
+                  "content": "저장장치 · 2층 서버실"
+                },
+                "h8OxKX": {
+                  "enabled": true
+                },
+                "Y5PVg": {
+                  "content": "대여 가능 1"
+                },
+                "JBnfP": {
+                  "enabled": true
+                },
+                "CHp6R": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "N4Etfu": {
+                  "enabled": false
+                },
+                "tednL": {
+                  "content": "수리중 0",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "b1FAh",
+              "type": "ref",
+              "ref": "m6cqIV",
+              "name": "Card 9",
+              "descendants": {
+                "hfHBc": {
+                  "content": "노트북 거치대"
+                },
+                "twqaE": {
+                  "enabled": false
+                },
+                "O1rjB": {
+                  "content": "대여 가능 0"
+                },
+                "K8CpR": {
+                  "content": "주변기기 · 2층 서버실"
+                },
+                "h8OxKX": {
+                  "enabled": true
+                },
+                "Y5PVg": {
+                  "content": "대여 가능 0"
+                },
+                "JBnfP": {
+                  "enabled": true
+                },
+                "CHp6R": {
+                  "content": "대여 중 1",
+                  "enabled": true
+                },
+                "N4Etfu": {
+                  "enabled": false
+                },
+                "tednL": {
+                  "content": "수리중 0",
+                  "enabled": false
+                }
+              }
+            },
+            {
+              "id": "IfuPG",
+              "type": "ref",
+              "ref": "m6cqIV",
+              "name": "Card 10",
+              "descendants": {
+                "hfHBc": {
+                  "content": "레이저 측정기"
+                },
+                "twqaE": {
+                  "enabled": false
+                },
+                "O1rjB": {
+                  "content": "대여 가능 0"
+                },
+                "K8CpR": {
+                  "content": "공구 · 1층 창고"
+                },
+                "h8OxKX": {
+                  "enabled": true
+                },
+                "Y5PVg": {
+                  "content": "대여 가능 0"
+                },
+                "JBnfP": {
+                  "enabled": false
+                },
+                "CHp6R": {
+                  "content": "대여 중 0",
+                  "enabled": false
+                },
+                "N4Etfu": {
+                  "enabled": false
+                },
+                "tednL": {
+                  "content": "수리중 1",
+                  "enabled": true
+                }
+              }
             },
             {
               "type": "frame",
-              "id": "sipLy",
+              "id": "F8loSw",
               "name": "More",
               "width": "fill_container",
               "layout": "vertical",
               "alignItems": "center",
               "children": [
                 {
-                  "id": "gc80v",
+                  "id": "NLr5J",
                   "type": "ref",
                   "ref": "Yfy4M",
                   "x": 112.5,
                   "y": 0
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "Y2heg",
-              "layoutPosition": "absolute",
-              "x": 0,
-              "y": 1276,
-              "name": "Bottom",
-              "width": "fill_container(390)",
-              "layout": "vertical",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "svW9x",
-                  "name": "Fab Row",
-                  "width": "fill_container",
-                  "padding": [
-                    12,
-                    24
-                  ],
-                  "justifyContent": "end",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "u6U7yc",
-                      "name": "FAB",
-                      "width": 48,
-                      "height": 48,
-                      "fill": "#EA580C",
-                      "cornerRadius": 999,
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "uQw8L",
-                          "name": "Icon",
-                          "width": 24,
-                          "height": 24,
-                          "icon": "plus",
-                          "library": "lucide",
-                          "fill": "#FFFFFF"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "id": "Ym7OM",
-                  "type": "ref",
-                  "ref": "x8VbkY",
-                  "name": "Tab Bar",
-                  "x": 0,
-                  "y": 72,
-                  "enabled": true,
-                  "width": "fill_container"
                 }
               ]
             }
@@ -5686,10 +5091,6 @@
                   "descendants": {
                     "hfHBc": {
                       "content": "김민수"
-                    },
-                    "o4tSg": {
-                      "content": "대여 중",
-                      "fill": "#EA580C"
                     }
                   }
                 },
@@ -5707,10 +5108,6 @@
                   "descendants": {
                     "hfHBc": {
                       "content": "이서연"
-                    },
-                    "o4tSg": {
-                      "content": "정상 반납",
-                      "fill": "#9C9C9C"
                     }
                   }
                 },
@@ -5728,10 +5125,6 @@
                   "descendants": {
                     "hfHBc": {
                       "content": "김민수"
-                    },
-                    "o4tSg": {
-                      "content": "정상 반납",
-                      "fill": "#9C9C9C"
                     }
                   }
                 },
@@ -5749,10 +5142,6 @@
                   "descendants": {
                     "hfHBc": {
                       "content": "박지훈"
-                    },
-                    "o4tSg": {
-                      "content": "정상 반납",
-                      "fill": "#9C9C9C"
                     }
                   }
                 },
@@ -5770,10 +5159,6 @@
                   "descendants": {
                     "hfHBc": {
                       "content": "정우진"
-                    },
-                    "o4tSg": {
-                      "content": "지연 반납",
-                      "fill": "#9C9C9C"
                     }
                   }
                 },
@@ -6010,9 +5395,15 @@
                 "hfHBc": {
                   "content": "프로젝터 (Epson EF-12)"
                 },
-                "o4tSg": {
+                "twqaE": {
+                  "enabled": true
+                },
+                "O1rjB": {
                   "content": "대여 중",
                   "fill": "#EA580C"
+                },
+                "h8OxKX": {
+                  "enabled": false
                 }
               }
             },
@@ -6026,9 +5417,15 @@
                 "hfHBc": {
                   "content": "외장 SSD 2TB"
                 },
-                "o4tSg": {
+                "twqaE": {
+                  "enabled": true
+                },
+                "O1rjB": {
                   "content": "대여 중",
                   "fill": "#EA580C"
+                },
+                "h8OxKX": {
+                  "enabled": false
                 }
               }
             },
@@ -6042,9 +5439,15 @@
                 "hfHBc": {
                   "content": "캠코더 (Sony FDR)"
                 },
-                "o4tSg": {
+                "twqaE": {
+                  "enabled": true
+                },
+                "O1rjB": {
                   "content": "반납 완료",
                   "fill": "#9C9C9C"
+                },
+                "h8OxKX": {
+                  "enabled": false
                 }
               }
             },
@@ -6058,9 +5461,15 @@
                 "hfHBc": {
                   "content": "맥북 에어 M2"
                 },
-                "o4tSg": {
+                "twqaE": {
+                  "enabled": true
+                },
+                "O1rjB": {
                   "content": "반납 완료",
                   "fill": "#9C9C9C"
+                },
+                "h8OxKX": {
+                  "enabled": false
                 }
               }
             },
@@ -6074,9 +5483,15 @@
                 "hfHBc": {
                   "content": "레이저 측정기"
                 },
-                "o4tSg": {
+                "twqaE": {
+                  "enabled": true
+                },
+                "O1rjB": {
                   "content": "반납 완료",
                   "fill": "#9C9C9C"
+                },
+                "h8OxKX": {
+                  "enabled": false
                 }
               }
             },
@@ -6090,9 +5505,15 @@
                 "hfHBc": {
                   "content": "무선 발표기"
                 },
-                "o4tSg": {
+                "twqaE": {
+                  "enabled": true
+                },
+                "O1rjB": {
                   "content": "반납 완료",
                   "fill": "#9C9C9C"
+                },
+                "h8OxKX": {
+                  "enabled": false
                 }
               }
             },
@@ -9898,7 +9319,10 @@
                 "hfHBc": {
                   "content": "김민수"
                 },
-                "o4tSg": {
+                "twqaE": {
+                  "enabled": true
+                },
+                "O1rjB": {
                   "content": "활동 중",
                   "fill": "#EA580C"
                 }
@@ -9914,7 +9338,10 @@
                 "hfHBc": {
                   "content": "이서연"
                 },
-                "o4tSg": {
+                "twqaE": {
+                  "enabled": true
+                },
+                "O1rjB": {
                   "content": "활동 중",
                   "fill": "#EA580C"
                 }
@@ -9930,7 +9357,10 @@
                 "hfHBc": {
                   "content": "박지훈"
                 },
-                "o4tSg": {
+                "twqaE": {
+                  "enabled": true
+                },
+                "O1rjB": {
                   "content": "활동 중",
                   "fill": "#EA580C"
                 }
@@ -9946,7 +9376,10 @@
                 "hfHBc": {
                   "content": "최은서"
                 },
-                "o4tSg": {
+                "twqaE": {
+                  "enabled": true
+                },
+                "O1rjB": {
                   "content": "활동 중",
                   "fill": "#EA580C"
                 }
@@ -9962,7 +9395,10 @@
                 "hfHBc": {
                   "content": "정우진"
                 },
-                "o4tSg": {
+                "twqaE": {
+                  "enabled": true
+                },
+                "O1rjB": {
                   "content": "활동 중",
                   "fill": "#EA580C"
                 }
@@ -9978,7 +9414,10 @@
                 "hfHBc": {
                   "content": "한도윤"
                 },
-                "o4tSg": {
+                "twqaE": {
+                  "enabled": true
+                },
+                "O1rjB": {
                   "content": "활동 중",
                   "fill": "#EA580C"
                 }
@@ -13703,10 +13142,6 @@
                   "descendants": {
                     "hfHBc": {
                       "content": "김민수"
-                    },
-                    "o4tSg": {
-                      "content": "대여 중",
-                      "fill": "#EA580C"
                     }
                   }
                 },
@@ -13724,10 +13159,6 @@
                   "descendants": {
                     "hfHBc": {
                       "content": "이서연"
-                    },
-                    "o4tSg": {
-                      "content": "정상 반납",
-                      "fill": "#9C9C9C"
                     }
                   }
                 },
@@ -13745,10 +13176,6 @@
                   "descendants": {
                     "hfHBc": {
                       "content": "김민수"
-                    },
-                    "o4tSg": {
-                      "content": "정상 반납",
-                      "fill": "#9C9C9C"
                     }
                   }
                 },
@@ -13766,10 +13193,6 @@
                   "descendants": {
                     "hfHBc": {
                       "content": "박지훈"
-                    },
-                    "o4tSg": {
-                      "content": "정상 반납",
-                      "fill": "#9C9C9C"
                     }
                   }
                 },
@@ -13787,10 +13210,6 @@
                   "descendants": {
                     "hfHBc": {
                       "content": "정우진"
-                    },
-                    "o4tSg": {
-                      "content": "지연 반납",
-                      "fill": "#9C9C9C"
                     }
                   }
                 },
@@ -23515,14 +22934,17 @@
                         },
                         {
                           "type": "frame",
-                          "id": "RuBKL",
+                          "id": "twqaE",
+                          "x": 0,
+                          "y": 0,
                           "name": "Status Badge",
+                          "enabled": false,
                           "gap": 8,
                           "alignItems": "center",
                           "children": [
                             {
                               "type": "text",
-                              "id": "o4tSg",
+                              "id": "O1rjB",
                               "name": "Status Text",
                               "fill": "$primary",
                               "content": "상태",
@@ -23545,14 +22967,63 @@
                       "fontWeight": "normal"
                     },
                     {
-                      "type": "text",
-                      "id": "jWa3e",
+                      "type": "frame",
+                      "id": "h8OxKX",
                       "name": "Rental Info",
-                      "fill": "$primary",
-                      "content": "대여 정보",
-                      "fontFamily": "Noto Sans KR",
-                      "fontSize": "$fs-12",
-                      "fontWeight": "normal"
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Y5PVg",
+                          "name": "Status Avail",
+                          "fill": "$primary",
+                          "content": "대여 가능 1",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": "$fs-12",
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "JBnfP",
+                          "name": "Status Sep 1",
+                          "fill": "$ink3",
+                          "content": "·",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": "$fs-12",
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "CHp6R",
+                          "name": "Status Rent",
+                          "fill": "$ink2",
+                          "content": "대여 중 1",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": "$fs-12",
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "N4Etfu",
+                          "name": "Status Sep 2",
+                          "fill": "$ink3",
+                          "content": "·",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": "$fs-12",
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "tednL",
+                          "name": "Status Repair",
+                          "fill": "$ink3",
+                          "content": "수리중 1",
+                          "fontFamily": "Noto Sans KR",
+                          "fontSize": "$fs-12",
+                          "fontWeight": "normal"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -23729,7 +23200,7 @@
                       "type": "text",
                       "id": "r1Y6B2",
                       "name": "Status Avail",
-                      "fill": "$ink2",
+                      "fill": "$primary",
                       "content": "대여 가능 1",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 16,
@@ -23749,7 +23220,7 @@
                       "type": "text",
                       "id": "Es032",
                       "name": "Status Rent",
-                      "fill": "$primary",
+                      "fill": "$ink2",
                       "content": "대여 중 1",
                       "fontFamily": "Noto Sans KR",
                       "fontSize": 16,
@@ -24819,13 +24290,13 @@
               "id": "KH385",
               "name": "Calendar",
               "reusable": true,
-              "width": 292,
+              "width": 330,
               "fill": "#FFFFFF",
               "cornerRadius": 6,
               "stroke": "#E6E6E6",
               "strokeWidth": 1,
               "layout": "vertical",
-              "gap": 6,
+              "gap": 8,
               "padding": 12,
               "children": [
                 {
@@ -24833,15 +24304,15 @@
                   "id": "YY3F9",
                   "name": "Cal Head",
                   "width": "fill_container",
-                  "gap": 6,
+                  "gap": 4,
                   "alignItems": "center",
                   "children": [
                     {
                       "type": "icon",
                       "id": "njCyr",
                       "name": "Prev Icon",
-                      "width": 16,
-                      "height": 16,
+                      "width": 24,
+                      "height": 24,
                       "icon": "chevron-left",
                       "library": "lucide",
                       "fill": "#6B6B6B"
@@ -24856,15 +24327,15 @@
                       "content": "2025년 7월",
                       "textAlign": "center",
                       "fontFamily": "Noto Sans KR",
-                      "fontSize": 12,
+                      "fontSize": 16,
                       "fontWeight": "700"
                     },
                     {
                       "type": "icon",
                       "id": "bZVlF",
                       "name": "Next Icon",
-                      "width": 16,
-                      "height": 16,
+                      "width": 24,
+                      "height": 24,
                       "icon": "chevron-right",
                       "library": "lucide",
                       "fill": "#6B6B6B"
@@ -24876,7 +24347,7 @@
                   "id": "MgAzv",
                   "name": "Cal Weekdays",
                   "width": "fill_container",
-                  "gap": 3,
+                  "gap": 4,
                   "children": [
                     {
                       "type": "text",
@@ -24976,7 +24447,7 @@
                   "id": "MNBMA",
                   "name": "Cal Week",
                   "width": "fill_container",
-                  "gap": 3,
+                  "gap": 4,
                   "children": [
                     {
                       "id": "oY0t3",
@@ -25069,7 +24540,7 @@
                   "id": "Pt5w6",
                   "name": "Cal Week",
                   "width": "fill_container",
-                  "gap": 3,
+                  "gap": 4,
                   "children": [
                     {
                       "id": "AR5HA",
@@ -25162,7 +24633,7 @@
                   "id": "WO4Yt",
                   "name": "Cal Week",
                   "width": "fill_container",
-                  "gap": 3,
+                  "gap": 4,
                   "children": [
                     {
                       "id": "zyd2R",
@@ -25255,7 +24726,7 @@
                   "id": "vuSGl",
                   "name": "Cal Week",
                   "width": "fill_container",
-                  "gap": 3,
+                  "gap": 4,
                   "children": [
                     {
                       "id": "BLtBV",
@@ -25363,7 +24834,7 @@
                   "id": "n4EScp",
                   "name": "Cal Week",
                   "width": "fill_container",
-                  "gap": 3,
+                  "gap": 4,
                   "children": [
                     {
                       "id": "g9Tke5",
@@ -25473,8 +24944,8 @@
               "id": "o2lKaj",
               "name": "Calendar Day",
               "reusable": true,
-              "width": 32,
-              "height": 32,
+              "width": 40,
+              "height": 40,
               "fill": "#00000000",
               "justifyContent": "center",
               "alignItems": "center",
@@ -25486,7 +24957,7 @@
                   "fill": "#111111",
                   "content": "1",
                   "fontFamily": "Noto Sans KR",
-                  "fontSize": "$fs-12",
+                  "fontSize": 16,
                   "fontWeight": "normal"
                 }
               ]
@@ -25840,7 +25311,7 @@
                 "blur": 24
               },
               "layout": "vertical",
-              "gap": 16,
+              "gap": 24,
               "padding": 24,
               "alignItems": "center",
               "children": [
@@ -26080,6 +25551,65 @@
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Y2heg",
+      "layoutPosition": "absolute",
+      "x": 3470,
+      "y": 1227,
+      "name": "Bottom",
+      "width": "fill_container(390)",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "svW9x",
+          "name": "Fab Row",
+          "width": "fill_container",
+          "padding": [
+            12,
+            24
+          ],
+          "justifyContent": "end",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "u6U7yc",
+              "name": "FAB",
+              "width": 48,
+              "height": 48,
+              "fill": "#EA580C",
+              "cornerRadius": 999,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "uQw8L",
+                  "name": "Icon",
+                  "width": 24,
+                  "height": 24,
+                  "icon": "plus",
+                  "library": "lucide",
+                  "fill": "#FFFFFF"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "Ym7OM",
+          "type": "ref",
+          "ref": "x8VbkY",
+          "name": "Tab Bar",
+          "x": 0,
+          "y": 72,
+          "enabled": true,
+          "width": "fill_container"
         }
       ]
     }
