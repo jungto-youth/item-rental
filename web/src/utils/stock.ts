@@ -4,11 +4,13 @@ export {
   availableQty,
   availabilityBadgeOf,
   badgeFor,
+  catalogSummary,
   groupKey,
   isItemAvailable,
   rentableQty,
+  statusParts,
 } from "../../../shared/stock";
-export type { StockGroup, StockLike } from "../../../shared/stock";
+export type { StatusPart, StatusPartKey, StockGroup, StockLike } from "../../../shared/stock";
 
 // 깨진 이미지는 빈 상자 대신 물품 아이콘으로 — display:none만 하면
 // 회색 빈 상자만 남아 "이미지 없음"과 구분되지 않는다

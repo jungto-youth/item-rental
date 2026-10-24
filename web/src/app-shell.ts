@@ -1,4 +1,4 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { createRouter, navigate } from "./router";
 import { session, type SessionUser } from "./context/session";
@@ -18,6 +18,37 @@ function preloadAdminChunks() {
     void import("./pages/admin/members");
   });
 }
+
+type NavItem = { href: string; label: string; icon: TemplateResult };
+
+// 아이콘 — .pen 의 lucide 세트(package·history·users·user-round·plus)를 인라인 SVG 로.
+const ICONS = {
+  package: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="m7.5 4.27 9 5.15" />
+    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+    <path d="m3.3 7 8.7 5 8.7-5" />
+    <path d="M12 22V12" />
+  </svg>`,
+  history: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <path d="M3 3v5h5" />
+    <path d="M12 7v5l4 2" />
+  </svg>`,
+  users: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>`,
+  user: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="8" r="5" />
+    <path d="M20 21a8 8 0 0 0-16 0" />
+  </svg>`,
+  plus: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M5 12h14" />
+    <path d="M12 5v14" />
+  </svg>`,
+};
 
 @customElement("app-shell")
 export class AppShell extends LitElement {
@@ -39,50 +70,33 @@ export class AppShell extends LitElement {
         background: var(--color-bg);
         border-bottom: 1px solid var(--color-border);
       }
-      .row-main {
+      .bar {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: var(--space-3);
+        gap: var(--space-5, 24px);
         box-sizing: border-box;
-        height: 56px;
-        max-width: 720px;
+        height: 48px;
+        max-width: 1440px;
         margin: 0 auto;
-        padding: 0 var(--space-4);
+        padding: 0 var(--space-5, 24px);
       }
       .brand {
         display: flex;
         align-items: center;
-        gap: var(--space-2);
         flex-shrink: 0;
         text-decoration: none;
-        color: var(--color-text);
       }
       .brand img {
         display: block;
-        width: 26px;
-        height: 26px;
+        width: 24px;
+        height: 24px;
         border-radius: var(--radius-sm, 6px);
       }
-      .brand-title {
-        font-size: var(--text-body, 15px);
-        font-weight: 600;
-        letter-spacing: var(--tracking-tight);
-      }
-      .actions {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        flex: 1;
-        min-width: 0;
-        justify-content: flex-end;
-      }
-      /* 주 메뉴 — 헤더 우측 inline 링크 (모바일은 가로 스크롤) */
+      /* 주 메뉴 — .pen Top Bar: 로고 옆 텍스트 링크 */
       .nav {
         display: flex;
         align-items: center;
-        gap: var(--space-1, 4px);
-        flex: 1;
+        gap: var(--space-5, 24px);
         min-width: 0;
         overflow-x: auto;
         scrollbar-width: none;
@@ -91,32 +105,60 @@ export class AppShell extends LitElement {
         display: none;
       }
       .nav a {
-        display: inline-flex;
-        align-items: center;
         flex-shrink: 0;
-        height: 32px;
-        padding: 0 var(--space-2, 8px);
-        border-radius: var(--radius-md, 8px);
-        color: var(--color-muted);
+        color: var(--color-ink-3, #9c9c9c);
         text-decoration: none;
-        font-size: var(--text-caption, 13px);
-        font-weight: 500;
-        letter-spacing: var(--tracking-tight);
+        font-size: 1rem;
+        font-weight: 400;
         white-space: nowrap;
-        transition: color 0.15s ease, background-color 0.15s ease;
+        transition: color 0.15s ease;
       }
       .nav a:hover {
         color: var(--color-text);
-        background: var(--color-surface);
       }
       .nav a.active {
-        color: var(--tone-primary-text);
-        font-weight: 600;
+        color: var(--color-text);
+        font-weight: 700;
       }
-      /* 계정 메뉴 — 아바타 칩 + 드롭다운 (내 정보·로그아웃) */
       .account {
         position: relative;
         flex-shrink: 0;
+        margin-left: auto;
+      }
+      .account-btn {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        padding: 0;
+        border: none;
+        background: none;
+        font-family: inherit;
+        cursor: pointer;
+        border-radius: var(--radius-pill, 999px);
+      }
+      .avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--color-primary-soft, #ffedd5);
+        color: var(--color-primary);
+        font-size: var(--text-fine, 12px);
+        font-weight: 700;
+      }
+      .account-name {
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--color-ink-3, #9c9c9c);
+        font-size: 1rem;
+      }
+      .account-btn:focus-visible {
+        outline: 2px solid var(--color-primary-focus);
+        outline-offset: 2px;
       }
       .menu {
         position: absolute;
@@ -156,10 +198,10 @@ export class AppShell extends LitElement {
       .btn-login {
         display: flex;
         align-items: center;
-        height: 32px;
+        height: 36px;
         padding: 0 var(--space-3);
         border: 1px solid var(--color-primary);
-        border-radius: var(--radius-md, 8px);
+        border-radius: var(--radius-sm, 6px);
         background: transparent;
         color: var(--tone-primary-text);
         text-decoration: none;
@@ -168,75 +210,24 @@ export class AppShell extends LitElement {
         font-weight: 600;
         letter-spacing: var(--tracking-tight);
         cursor: pointer;
-        transition: transform 0.15s ease;
       }
-      .btn-login:active {
-        transform: scale(0.95);
-      }
-      .chip {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        flex-shrink: 0;
-        height: 32px;
-        padding: 2px 10px 2px 3px;
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md, 8px);
-        background: var(--color-surface);
-        cursor: pointer;
-        font-family: inherit;
-        text-decoration: none;
-        transition: background-color 0.15s ease, transform 0.15s ease;
-      }
-      .chip:hover {
-        background: var(--color-bg);
-      }
-      .chip:active {
-        transform: scale(0.96);
-      }
-      .chip.active {
-        border-color: var(--color-primary);
-      }
-      .avatar {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        border-radius: var(--radius-sm, 6px);
-        background: var(--color-primary);
-        color: var(--color-primary-text);
-        font-size: var(--text-fine, 12px);
-        font-weight: 600;
-      }
-      .chip-name {
-        max-width: 100px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        color: var(--color-text);
-        font-size: var(--text-caption);
-        font-weight: 500;
-        letter-spacing: var(--tracking-tight);
-      }
-      @media (max-width: 560px) {
-        .chip-name {
-          display: none;
-        }
-        .chip {
-          padding-right: 3px;
-        }
-        .brand-title {
-          display: none;
-        }
-      }
+
       main {
-        max-width: 720px;
+        max-width: 1440px;
         margin: 0 auto;
-        padding: var(--space-4);
+        padding: var(--space-5, 24px);
         padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
         font-size: var(--text-body);
         line-height: 1.47;
+      }
+      /* 로그인은 .pen 처럼 헤더·여백 없는 전체 화면 — 셸이 방해하지 않는다 */
+      main.plain {
+        max-width: none;
+        padding: 0;
+      }
+      /* 목록 화면은 .pen 처럼 헤더 바로 아래 12px에서 시작한다 (Page Header padding-top) */
+      main.flush {
+        padding-top: 0;
       }
       /* 코드 스플릿 청크 로딩 구간 — 아직 등록되지 않은 페이지 요소가 빈 화면으로
          깜빡이지 않게 스피너 영역을 보여준다 (사전 로드가 커버 못 하는 콜드 로드·
@@ -261,6 +252,79 @@ export class AppShell extends LitElement {
           transform: rotate(360deg);
         }
       }
+
+      /* ===== 모바일 하단 탭 바 + FAB (.pen Bottom) ===== */
+      .tabbar {
+        display: none;
+      }
+      .fab {
+        display: none;
+      }
+      @media (max-width: 767px) {
+        .bar {
+          padding: 0 var(--space-4, 16px);
+          gap: var(--space-3, 12px);
+        }
+        .nav {
+          display: none;
+        }
+        main {
+          padding: var(--space-4, 16px) var(--space-5, 24px);
+          padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+        }
+        .tabbar {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 20;
+          display: flex;
+          justify-content: center;
+          background: var(--color-bg);
+          border-top: 1px solid var(--color-border);
+          padding: var(--space-2, 8px) var(--space-4, 16px)
+            calc(var(--space-2, 8px) + env(safe-area-inset-bottom, 0px));
+        }
+        .tabbar a {
+          display: flex;
+          flex: 1;
+          flex-direction: column;
+          align-items: center;
+          gap: var(--space-1, 4px);
+          padding: var(--space-1, 4px);
+          color: var(--color-muted);
+          text-decoration: none;
+          font-size: var(--text-fine, 12px);
+          white-space: nowrap;
+        }
+        .tabbar a svg {
+          width: 20px;
+          height: 20px;
+        }
+        .tabbar a.active {
+          color: var(--color-primary);
+          font-weight: 700;
+        }
+        .fab {
+          position: fixed;
+          right: var(--space-5, 24px);
+          bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+          z-index: 21;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          border-radius: var(--radius-pill, 999px);
+          background: var(--color-primary);
+          color: var(--color-primary-text);
+          box-shadow: 0 6px 16px rgba(234, 88, 12, 0.35);
+        }
+        .fab svg {
+          width: 24px;
+          height: 24px;
+        }
+      }
     `,
   ];
 
@@ -280,31 +344,54 @@ export class AppShell extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.unsubscribe?.();
+    this.unsubscribe = null;
     window.removeEventListener("pointerdown", this.onGlobalPointerDown);
     window.removeEventListener("keydown", this.onGlobalKeydown);
     this.menuOpen = false;
   }
 
-  // 주 메뉴 — 업무 메뉴만 헤더에 직접 노출하고,
-  // 내 정보·로그아웃은 프로필 칩 드롭다운에 둔다
-  private get navItems(): Array<{ href: string; label: string }> {
+  // ===== 내비게이션 =====
+  // 데스크탑 Top Bar 와 모바일 Bottom Tab Bar 가 같은 목록을 공유한다.
+  // 관리자: 물품 현황 · 대여 기록(관리) · 회원 관리 / 회원: 물품 현황 · 대여 기록(내역)
+  private get navItems(): NavItem[] {
     if (!this.user) return [];
-    const items = [{ href: "/my/rentals", label: "대여 내역" }];
-    if (this.user.role === "admin") {
-      items.push(
-        { href: "/items/new", label: "물품 등록" },
-        { href: "/admin/reservations", label: "대여 관리" },
-        { href: "/admin/members", label: "회원 관리" },
-      );
-    }
-    return items;
+    const isAdmin = this.user.role === "admin";
+    return [
+      { href: "/", label: "물품 현황", icon: ICONS.package },
+      {
+        href: isAdmin ? "/admin/reservations" : "/my/rentals",
+        label: "대여 기록",
+        icon: ICONS.history,
+      },
+      ...(isAdmin
+        ? [{ href: "/admin/members", label: "회원 관리", icon: ICONS.users }]
+        : []),
+    ];
+  }
+
+  // 하단 탭은 내 정보까지 포함한다
+  private get tabItems(): NavItem[] {
+    if (!this.user) return [];
+    return [...this.navItems, { href: "/mypage", label: "내 정보", icon: ICONS.user }];
   }
 
   private isActive(href: string): boolean {
     const path = location.pathname;
-    if (href === "/my/rentals") return path.startsWith("/my/rentals");
-    if (href.startsWith("/admin")) return path.startsWith(href);
-    return path === href;
+    if (href === "/") return path === "/";
+    if (href === "/mypage") return path === "/mypage";
+    return path === href || path.startsWith(`${href}/`);
+  }
+
+  private get showFab(): boolean {
+    return this.user?.role === "admin" && location.pathname === "/";
+  }
+
+  private get isLogin(): boolean {
+    return location.pathname === "/login";
+  }
+
+  private get isHome(): boolean {
+    return location.pathname === "/";
   }
 
   // 계정 메뉴 — 외부 클릭이나 Esc로 닫는다
@@ -342,10 +429,6 @@ export class AppShell extends LitElement {
     navigate("/");
   }
 
-  private get isProfileActive(): boolean {
-    return location.pathname === "/mypage";
-  }
-
   private get accountLabel(): string {
     return this.user?.name || this.user?.email || "";
   }
@@ -354,72 +437,91 @@ export class AppShell extends LitElement {
   }
 
   render() {
+    const user = this.user;
     return html`
-      <header>
-        <div class="row-main">
-          <a href="/" class="brand" aria-label="홈 — 청년지부 물품 대여">
+      ${this.isLogin
+        ? ""
+        : html`<header>
+        <div class="bar">
+          <a href="/" class="brand" aria-label="물품 현황 — 홈">
             <img src="/logo.png" alt="" />
-            <span class="brand-title">물품 대여</span>
           </a>
 
-          <div class="actions">
-            ${this.user
-              ? html`
-                  <nav class="nav" aria-label="주 메뉴">
-                    ${this.navItems.map(
-                      (item) => html`
-                        <a
-                          href=${item.href}
-                          class=${this.isActive(item.href) ? "active" : ""}
-                          ?aria-current=${this.isActive(item.href) ? "page" : null}
-                        >
-                          ${item.label}
-                        </a>
-                      `,
-                    )}
-                  </nav>
-                  <div class="account">
-                    <button
-                      class="chip ${this.isProfileActive ? "active" : ""}"
-                      aria-haspopup="menu"
-                      aria-expanded=${this.menuOpen}
-                      ?aria-current=${this.isProfileActive ? "page" : null}
-                      aria-label="계정 메뉴 — ${this.accountLabel}"
-                      title="계정 메뉴"
-                      @click=${() => (this.menuOpen = !this.menuOpen)}
-                    >
-                      <span class="avatar" aria-hidden="true">${this.accountInitial}</span>
-                      <span class="chip-name">${this.accountLabel}</span>
-                    </button>
-                    ${this.menuOpen
-                      ? html`
-                          <div class="menu" role="menu">
-                            <a
-                              role="menuitem"
-                              href="/mypage"
-                              @click=${() => (this.menuOpen = false)}
-                            >
-                              내 정보
-                            </a>
-                            <button
-                              role="menuitem"
-                              class="menu-logout"
-                              @click=${this.signOut}
-                            >
-                              로그아웃
-                            </button>
-                          </div>
-                        `
-                      : ""}
-                  </div>
-                `
-              : location.pathname !== "/login"
-                ? html`<a class="btn-login" href="/login">로그인</a>`
-                : null}
-          </div>
+          ${user
+            ? html`
+                <nav class="nav" aria-label="주 메뉴">
+                  ${this.navItems.map(
+                    (item) => html`
+                      <a
+                        href=${item.href}
+                        class=${this.isActive(item.href) ? "active" : ""}
+                        ?aria-current=${this.isActive(item.href) ? "page" : null}
+                      >
+                        ${item.label}
+                      </a>
+                    `,
+                  )}
+                </nav>
+                <div class="account">
+                  <button
+                    class="account-btn"
+                    aria-haspopup="menu"
+                    aria-expanded=${this.menuOpen}
+                    aria-label="계정 메뉴 — ${this.accountLabel}"
+                    title="계정 메뉴"
+                    @click=${() => (this.menuOpen = !this.menuOpen)}
+                  >
+                    <span class="avatar" aria-hidden="true">${this.accountInitial}</span>
+                    <span class="account-name">${this.accountLabel}</span>
+                  </button>
+                  ${this.menuOpen
+                    ? html`
+                        <div class="menu" role="menu">
+                          <a
+                            role="menuitem"
+                            href="/mypage"
+                            @click=${() => (this.menuOpen = false)}
+                          >
+                            내 정보
+                          </a>
+                          <button role="menuitem" class="menu-logout" @click=${this.signOut}>
+                            로그아웃
+                          </button>
+                        </div>
+                      `
+                    : ""}
+                </div>
+              `
+            : location.pathname !== "/login"
+              ? html`<a class="btn-login" href="/login">로그인</a>`
+              : null}
         </div>
-      </header>
-      <main>${this.router.outlet()}</main>
+      </header>`}
+
+      <main class=${this.isLogin ? "plain" : this.isHome ? "flush" : ""}>${this.router.outlet()}</main>
+
+      ${this.showFab
+        ? html`<a class="fab" href="/items/new" aria-label="물품 등록">${ICONS.plus}</a>`
+        : ""}
+
+      ${user
+        ? html`
+            <nav class="tabbar" aria-label="하단 메뉴">
+              ${this.tabItems.map(
+                (item) => html`
+                  <a
+                    href=${item.href}
+                    class=${this.isActive(item.href) ? "active" : ""}
+                    ?aria-current=${this.isActive(item.href) ? "page" : null}
+                  >
+                    ${item.icon}
+                    <span>${item.label}</span>
+                  </a>
+                `,
+              )}
+            </nav>
+          `
+        : ""}
     `;
   }
 }

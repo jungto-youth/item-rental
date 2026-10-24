@@ -4,24 +4,21 @@ import { navigate, syncScrollKey } from "../router";
 import { session } from "../context/session";
 import { reduceMotion } from "../styles/motion";
 import { searchFieldCss } from "../styles/ui";
+import type { CatalogSummary } from "../types";
 import "../components/ui/button";
 import "../components/ui/notice";
-import "../components/ui/page-header";
-import type { ItemListState } from "../components/features/item/item-explorer";
 import "../components/features/item/item-explorer";
 
-// 물품 탐색 — 공개·관리자 통합 목록. 셸은 페이지 제목·검색창·URL 동기화를 소유하고
-// 목록 본체(모드 분기·데이터·패널)는 item-explorer가 소유한다.
-// explorer 가 카운트를 list-state 로 올려주므로 헤더·목록 카운트가 어긋나지 않는다.
+// 물품 현황 — .pen 의 Page Header(제목·검색·등록)와 Summary 를 소유한다.
+// 요약을 여기서 그리는 이유: 모바일은 [제목 → 요약 → 검색 → 탭] 순서인데
+// 데스크탑은 [제목+검색] 한 줄 → 요약 순서라, 검색 입력을 화면 폭에 따라
+// grid 로 옮겨야 한다. 검색을 하나만 두기 위해 요약 데이터만 explorer 가 올려준다.
 @customElement("page-home")
 export class PageHome extends LitElement {
   @state() private q = "";
   @state() private denied = false;
-  // explorer 가 올려주는 목록 스냅샷 — 로딩 전에는 undefined 라 카운트를 비워 둔다
-  @state() private list?: ItemListState;
-  // 목록 카운트와 별개로 관리자 여부는 세션이 유일한 근거다 —
-  // explorer 데이터와 무관하게 로그아웃 즉시 액션을 거둔다
   @state() private isAdmin = false;
+  @state() private summary: CatalogSummary = { types: 0, available: 0, rented: 0, repair: 0 };
   private unsub: (() => void) | null = null;
 
   static styles = [
@@ -32,24 +29,67 @@ export class PageHome extends LitElement {
         display: block;
       }
 
-      .top-bar {
-        display: flex;
+      /* ===== 레이아웃 — 데스크탑: [제목 | 검색 | 등록] / 요약 / 목록 ===== */
+      .page {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px auto;
+        grid-template-areas:
+          "title search add"
+          "summary summary summary"
+          "notice notice notice"
+          "list list list";
         align-items: center;
-        gap: var(--space-3, 12px);
-        margin-bottom: var(--space-4, 16px);
+        column-gap: var(--space-2, 8px);
+      }
+      .title {
+        grid-area: title;
+      }
+      .search-box {
+        grid-area: search;
+      }
+      x-button.add {
+        grid-area: add;
+      }
+      .summary {
+        grid-area: summary;
+      }
+      .notice {
+        grid-area: notice;
+      }
+      item-explorer {
+        grid-area: list;
+      }
+
+      h1 {
+        margin: 0;
+        padding: var(--space-3, 12px) 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: var(--tracking-tight);
+        line-height: 1.2;
+        color: var(--color-text);
       }
 
       .search-box {
-        flex: 1;
         position: relative;
         display: flex;
         align-items: center;
+        width: 100%;
+        padding: var(--space-3, 12px) 0;
+        box-sizing: border-box;
       }
 
-      /* .search — searchFieldCss 공용 조형 + 이 화면 전용 오버라이드(클리어 버튼 자리) */
+      /* .pen Input — 흰 배경 · 1px line · radius 6 · 16px · 좌우 24px */
       .search {
         width: 100%;
-        padding-right: 44px;
+        height: 44px;
+        padding: 0 44px 0 var(--space-5, 24px);
+        border-radius: var(--radius-sm, 6px);
+        background: var(--color-bg);
+        font-size: 1rem;
+      }
+      .search::placeholder {
+        color: var(--color-ink-3, #9c9c9c);
       }
 
       .clear-btn {
@@ -75,9 +115,81 @@ export class PageHome extends LitElement {
         color: var(--color-bg);
       }
 
+      /* 등록 버튼 — .pen Button Primary (radius 6 · 48px · 16/700) */
+      x-button.add {
+        --x-button-height: 48px;
+        --x-button-radius: var(--radius-sm, 6px);
+        --x-button-padding: 0 var(--space-5, 24px);
+        --x-button-font-size: 1rem;
+        --x-button-weight: 700;
+      }
+
+      /* ===== 요약 ===== */
+      .summary {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-5, 24px);
+        padding: var(--space-3, 12px) 0;
+      }
+      .stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-1, 4px);
+      }
+      .value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: var(--tracking-tight);
+        color: var(--color-text);
+      }
+      .value.primary {
+        color: var(--color-primary);
+      }
+      .label {
+        font-size: 1rem;
+        color: var(--color-ink-3, #9c9c9c);
+        white-space: nowrap;
+      }
+
+      .notice {
+        display: block;
+      }
+      .notice:empty {
+        display: none;
+      }
       x-notice {
         display: block;
         margin-bottom: var(--space-4, 16px);
+      }
+
+      /* ===== 좁은 화면 — 물품 현황 (M): 제목 → 요약 → 검색 → 목록 ===== */
+      @media (max-width: 859px) {
+        .page {
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-areas:
+            "title"
+            "summary"
+            "search"
+            "notice"
+            "list";
+        }
+        /* 등록은 하단 FAB 가 맡는다 (.pen 물품 현황 (M)) */
+        x-button.add {
+          display: none;
+        }
+        h1 {
+          font-size: 1.5rem;
+        }
+        .summary {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: var(--space-2, 8px);
+        }
+        .search {
+          padding-left: var(--space-4, 16px);
+        }
       }
     `,
   ];
@@ -112,6 +224,22 @@ export class PageHome extends LitElement {
     this.syncSearchUrl();
   }
 
+  // explorer 가 올려주는 요약 — 목록 데이터의 주인은 explorer 다
+  private onSummary(e: CustomEvent<CatalogSummary>) {
+    this.summary = e.detail;
+  }
+
+  private stats(): { label: string; value: number; tone?: string }[] {
+    const s = this.summary;
+    // 모두 종류 수 — 수량은 각 행의 상태 칸이 보여준다 (2026-10-24 개정)
+    return [
+      { label: "전체", value: s.types },
+      { label: "대여 가능", value: s.available },
+      { label: "대여 중", value: s.rented, tone: "primary" },
+      { label: "수리 중", value: s.repair },
+    ];
+  }
+
   // 검색어를 URL(?q=)에 반영 — 뒤로가기/새로고침/링크 공유 시 검색 상태 복원
   // 입력 중엔 히스토리를 늘리지 않도록 replaceState 사용
   private syncSearchUrl() {
@@ -127,64 +255,17 @@ export class PageHome extends LitElement {
     }
   }
 
-  // 목록 카운트를 헤더 부제로 — 목록 상단의 별도 카운트 줄을 대체한다.
-// 역할·로딩·필터를 모두 고려해 한 문장으로 닫는다.
-private subtitle(): string {
-    const s = this.list;
-    if (!s || s.loading) return "빌릴 물품을 찾아 보세요";
-    const isAdmin = this.isAdmin;
-    const n = (v: number) => `${v.toLocaleString("ko-KR")}개`;
-    if (isAdmin) {
-      const filtered = s.visible !== s.total;
-      const base = filtered ? `${n(s.total)} 중 ${n(s.visible)}` : n(s.total);
-      return s.truncated
-        ? `${base} 표시 (1000건까지만 불러왔어요)`
-        : `${base} · 대여 중인 물품의 대여자 명단이 함께 보여요`;
-    }
-    if (this.q) {
-      return `'${this.q}' 검색 결과 ${n(s.total)}${
-        s.available !== null ? ` · 지금 빌릴 수 있는 것 ${n(s.available)}` : ""
-      }`;
-    }
-    return s.available !== null
-      ? `전체 ${n(s.total)} · 지금 빌릴 수 있는 것 ${n(s.available)}`
-      : `전체 ${n(s.total)}`;
-  }
-
-  private onListState(e: CustomEvent<ItemListState>) {
-    this.list = e.detail;
-  }
-
   render() {
-    const isAdmin = this.isAdmin;
     return html`
-      <x-page-header
-        title=${this.q
-          ? `'${this.q}' 검색`
-          : isAdmin
-            ? "물품 관리"
-            : "물품 대여"}
-        subtitle=${this.subtitle()}
-      >
-        ${isAdmin
-          ? html`<x-button
-              slot="action"
-              variant="primary"
-              size="sm"
-              @click=${() => navigate("/items/new")}
-            >
-              물품 등록
-            </x-button>`
-          : ""}
-      </x-page-header>
+      <div class="page">
+        <h1 class="title">물품 현황</h1>
 
-      <div class="top-bar">
         <div class="search-box">
           <input
             class="search-input search"
             type="search"
             aria-label="물품 검색"
-            placeholder="물품명, 위치, 설명, 카테고리 검색…"
+            placeholder="물품 검색"
             .value=${this.q}
             @input=${this.onSearch}
             @keydown=${(e: KeyboardEvent) => {
@@ -209,17 +290,41 @@ private subtitle(): string {
               `
             : ""}
         </div>
+
+        ${this.isAdmin
+          ? html`<x-button
+              class="add"
+              variant="primary"
+              size="md"
+              @click=${() => navigate("/items/new")}
+            >
+              물품 등록
+            </x-button>`
+          : ""}
+
+        <section class="summary" aria-label="물품 요약">
+          ${this.stats().map(
+            (s) => html`
+              <div class="stat">
+                <span class="value ${s.tone ?? ""}">${s.value.toLocaleString("ko-KR")}</span>
+                <span class="label">${s.label}</span>
+              </div>
+            `,
+          )}
+        </section>
+
+        <div class="notice">
+          ${this.denied
+            ? html`
+                <x-notice tone="danger" alert>
+                  관리자 권한이 필요해요 — 일반 회원 계정으로는 관리자 화면에 접근할 수 없어요.
+                </x-notice>
+              `
+            : ""}
+        </div>
+
+        <item-explorer .q=${this.q} @summary-change=${this.onSummary}></item-explorer>
       </div>
-
-      ${this.denied
-        ? html`
-            <x-notice tone="danger" alert>
-              관리자 권한이 필요해요 — 일반 회원 계정으로는 관리자 화면에 접근할 수 없어요.
-            </x-notice>
-          `
-        : ""}
-
-      <item-explorer .q=${this.q} @list-state=${this.onListState}></item-explorer>
     `;
   }
 }

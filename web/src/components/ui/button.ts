@@ -23,7 +23,7 @@ export class XButton extends LitElement {
       gap: 6px;
       width: 100%;
       box-sizing: border-box;
-      border-radius: var(--radius-md, 8px);
+      border-radius: var(--x-button-radius, var(--radius-md, 8px));
       font-family: inherit;
       font-weight: 600;
       cursor: pointer;
@@ -34,8 +34,8 @@ export class XButton extends LitElement {
 
     /* 크기 스케일 (터치 타깃 44px) — 라벨 서체는 바깥에서 --x-button-* 로 덮는다 */
     .size-md {
-      height: 44px;
-      padding: 0 16px;
+      height: var(--x-button-height, 44px);
+      padding: var(--x-button-padding, 0 16px);
       font-size: var(--x-button-font-size, var(--text-body, 15px));
       font-weight: var(--x-button-weight, 600);
     }
