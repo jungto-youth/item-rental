@@ -2,36 +2,39 @@ import { css, html, LitElement, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
 import { session } from "../../../context/session";
-import { type Category, type DashboardItem, type DashboardRenter, type Item } from "../../../types";
+import { type CatalogSummary, type Item } from "../../../types";
 import { reduceMotion } from "../../../styles/motion";
-import { badgeFor, groupKey, isItemAvailable, type StockGroup } from "../../../utils/stock";
-import { getCategories } from "../../../utils/categories";
+import { availableQty, catalogSummary } from "../../../utils/stock";
 import "../../ui/button";
-import "../../ui/chip";
 import "../../ui/empty";
 import "../../ui/notice";
-import "../../common/item-row";
-import "./item-card";
+import "./item-list-row";
 
-// 통합 물품 탐색 — 공개 홈·관리자 물품관리·실시간현황 3화면을 하나로 합쳤다.
-// 역할 내재화: 같은 화면을 보고, 관리자(enabled by session.isAdmin)에만
-// 등록 버튼·수정 버튼·상태/범주 칩·대여자 패널이 붙는다. 실제 권한은 서버가
-// 강제하므로 클라 분기는 순수 UX다. 대여자 전화는 admin API에서만 오고,
-// isAdmin일 때만 fetch·렌더한다 (공개 DOM에 닿지 않음).
-const PAGE_SIZE = 24;
+// 물품 현황 목록 — .pen 의 데스크탑 표와 모바일 3줄 카드를 한 컴포넌트로 그린다.
+// 관리자와 회원이 같은 행 모양을 쓰고, 행 목적지만 다르다(수정 폼 / 상세).
+// 요약·탭·목록의 숫자 규칙은 이슈 #12 §6.2·§6.4 를 따른다:
+//   - 요약(총 종류·보유·대여 중·대여 가능)은 수량 합계다. 폐기는 어느 값에도 넣지 않는다.
+//   - 탭(전체·대여 중·대여 가능)은 같은 합계를 라벨로 쓴다. 행 수와 다를 수 있다.
+//   - 상태 칸은 shared/stock.statusParts 가 만든다 — 수량 0 인 항은 구분점까지 숨긴다.
+type TabKey = "all" | "rented" | "available";
 
-const GROUPS: { key: StockGroup; title: string }[] = [
-  { key: "rented", title: "대여 중" },
-  { key: "repair", title: "점검·수리 중" },
-  { key: "available", title: "대여 가능" },
-  { key: "consumable", title: "소모품" },
-  { key: "retired", title: "폐기" },
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "all", label: "전체" },
+  { key: "rented", label: "대여 중" },
+  { key: "available", label: "대여 가능" },
 ];
+
+
+// 목록은 한 번에 10건씩 — 회원은 서버 페이지, 관리자는 전체를 받아 두고 10건씩 펼친다.
+// '더보기'를 누를 때마다 같은 수만큼 더 보여준다 (.pen 물품 현황 / (M)).
+const PAGE_SIZE = 10;
 
 type BrowseResponse = {
   items: Item[];
   total: number;
   available_total: number;
+  matched: number;
+  summary: CatalogSummary;
   hasMore: boolean;
 };
 
@@ -41,58 +44,35 @@ type AdminListResponse = {
   hasMore: boolean;
 };
 
-// 목록 상태 — 셸(page-home)이 페이지 헤더(제목·카운트·관리자 액션)에 쓰는 스냅샷.
-// 목록 데이터는 explorer 가 소유하되 카운트까지 복제하면 어긋나므로 이벤트로 넘긴다.
-export type ItemListState = {
-  isAdmin: boolean;
-  loading: boolean;
-  error: string;
-  // 목록 전체 규모(검색 중이면 검색 결과 수)
-  total: number;
-  // 지금 빌릴 수 있는 물품 수 — 공개 모드만 서버 집계값을 쓴다
-  available: number | null;
-  // 필터 적용 후 화면에 그려지는 수
-  visible: number;
-  truncated: boolean;
-};
-
 @customElement("item-explorer")
 export class ItemExplorer extends LitElement {
-  // ===== 셸(home.ts)이 소유하는 상태 =====
   @property() q = "";
 
   @state() private isAdmin = false;
-  private unsub: (() => void) | null = null;
 
-  // ===== 공개 모드 (탐색+검색) =====
+  // ===== 회원 모드 =====
   @state() private items: Item[] = [];
   @state() private loading = true;
   @state() private error = "";
-  @state() private total = 0;
-  @state() private availTotal = 0;
+  @state() private summary: CatalogSummary | null = null;
   @state() private hasMore = false;
   @state() private loadingMore = false;
   @state() private noticeMsg = "";
-  @state() private availableOnly = false;
 
-  // ===== 관리자 모드 (스냅샷+클라 필터) =====
+  // ===== 관리자 모드 =====
   @state() private adminItems: Item[] = [];
   @state() private adminLoading = false;
   @state() private adminError = "";
   @state() private truncated = false;
-  @state() private group: StockGroup | "all" = "all";
-  @state() private categoryFilter = "all";
-  @state() private cats: Category[] = [];
-  // 대여자 명단 — itemId → renters. admin API에서만 오고 로그아웃·강등 시 파기.
-  @state() private renters = new Map<number, DashboardRenter[]>();
-  @state() private expandedId: number | null = null;
+  @state() private shown = PAGE_SIZE;
 
+  @state() private tab: TabKey = "all";
+
+  private unsub: (() => void) | null = null;
   // 세대 번호로 늦은 응답을 버린다
   private fetchGen = 0;
   private adminGen = 0;
   private searchTimer = 0;
-  private io: IntersectionObserver | null = null;
-  private observedEl: Element | null = null;
 
   static styles = [
     reduceMotion,
@@ -100,47 +80,119 @@ export class ItemExplorer extends LitElement {
       :host {
         display: block;
       }
-      .filters {
+      /* ===== 요약은 page-home 이 소유한다 (요약 → 검색 → 탭 순서를 화면별로 맞추기 위해) ===== */
+
+      /* ===== 탭 ===== */
+      .tabs {
         display: flex;
+        gap: var(--space-3, 12px);
+        padding: var(--space-3, 12px) 0;
+      }
+      .tab {
+        padding: var(--space-1, 4px) 0;
+        border: none;
+        background: none;
+        font-family: inherit;
+        font-size: 1rem;
+        color: var(--color-ink-3, #9c9c9c);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: color 0.15s ease;
+      }
+      .tab:hover {
+        color: var(--color-text);
+      }
+      .tab[aria-pressed="true"] {
+        color: var(--color-text);
+        font-weight: 700;
+      }
+      .tab:focus-visible {
+        outline: 2px solid var(--color-primary-focus);
+        outline-offset: 2px;
+        border-radius: var(--radius-sm, 6px);
+      }
+
+      /* ===== 표 머리 — 행(grid)과 같은 열 폭을 쓴다 ===== */
+      .head {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr) 110px 130px 300px;
+        column-gap: var(--space-4, 16px);
+        padding: var(--space-3, 12px) 0;
+        border-bottom: 1px solid var(--color-border);
+        font-size: var(--text-fine, 12px);
+        color: var(--color-ink-3, #9c9c9c);
+      }
+      /* .pen List Head: 물품명 라벨은 썸네일 위(= 열 맨 앞)에서 시작한다 */
+      .h-name {
+        grid-column: 1 / 3;
+      }
+      .h-cat {
+        grid-column: 3;
+      }
+      .h-loc {
+        grid-column: 4;
+      }
+      .h-status {
+        grid-column: 5;
+      }
+      .table {
+        border-bottom: 0;
+      }
+
+      /* ===== 더보기 ===== */
+      .more-row {
+        display: flex;
+        justify-content: center;
+        padding: var(--space-3, 12px) 0;
+      }
+      .more {
+        display: inline-flex;
         align-items: center;
         gap: var(--space-2, 8px);
-        margin-bottom: var(--space-4, 16px);
-      }
-      .filters x-chip {
-        flex: 1;
-        min-width: 0;
-      }
-      .subfilters {
-        margin: calc(var(--space-4, 16px) * -1 + var(--space-3, 12px)) 0 var(--space-4, 16px);
-      }
-      x-notice {
-        display: block;
-        margin-bottom: var(--space-4, 16px);
-      }
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: var(--space-3, 12px);
-      }
-      .sentinel {
-        height: 1px;
-      }
-      .more-loading {
-        padding: var(--space-4, 16px) 0;
-        text-align: center;
+        padding: var(--space-3, 12px) var(--space-5, 24px);
+        border: none;
+        border-radius: var(--radius-sm, 6px);
+        background: none;
         color: var(--color-muted);
+        font-family: inherit;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+      .more:hover {
+        background: var(--color-surface);
+      }
+      .more:focus-visible {
+        outline: 2px solid var(--color-primary-focus);
+        outline-offset: 2px;
+      }
+      .more[disabled] {
+        color: var(--color-muted);
+        cursor: default;
+      }
+      .more svg {
+        width: 16px;
+        height: 16px;
+      }
+      .truncated {
+        margin: 0 0 var(--space-2);
         font-size: var(--text-caption, 13px);
+        color: var(--color-muted);
       }
-      .renters {
-        display: grid;
-        gap: var(--space-1, 4px);
-      }
-      .renters a {
-        color: var(--tone-primary-text);
-        text-decoration: none;
-      }
-      .renters a:hover {
-        text-decoration: underline;
+
+      /* ===== 좁은 화면 — 물품 현황 (M) ===== */
+      @media (max-width: 859px) {
+        .tabs {
+          gap: var(--space-4, 16px);
+        }
+        .tab {
+          font-size: 0.875rem;
+        }
+        .head {
+          display: none;
+        }
+        .more {
+          font-size: var(--text-body, 15px);
+        }
       }
     `,
   ];
@@ -149,7 +201,6 @@ export class ItemExplorer extends LitElement {
     super.connectedCallback();
     this.unsub = session.subscribe(() => void this.syncRole());
     await session.ensure();
-    // ensure() 사이에 unmount되면 상태 반영하지 않음
     if (!this.isConnected) return;
     this.isAdmin = session.isAdmin;
     if (this.isAdmin) void this.loadAdmin();
@@ -161,67 +212,84 @@ export class ItemExplorer extends LitElement {
     this.unsub?.();
     this.unsub = null;
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.io?.disconnect();
-    this.observedEl = null;
-  }
-
-  // 역할 변경(로그인·로그아웃·강등) — 모드 전환 + 관리자 데이터 파기/적재.
-  // 관리자 데이터(목록·대여자 명단)는 페이지 로컬에만 두고,
-  // 비관리자가 되면 즉시 버린다.
-  private async syncRole() {
-    const admin = session.isAdmin;
-    if (admin === this.isAdmin) return;
-    this.isAdmin = admin;
-    if (admin) {
-      void this.loadAdmin();
-    } else {
-      this.adminGen += 1; // 진행 중 관리자 요청 무효화
-      this.adminItems = [];
-      this.adminError = "";
-      this.renters = new Map();
-      this.expandedId = null;
-      this.group = "all";
-      this.categoryFilter = "all";
-      if (this.items.length === 0) void this.fetchItems();
-    }
   }
 
   protected willUpdate(changed: PropertyValues) {
     super.willUpdate(changed);
-    if (this.hasUpdated && changed.has("q") && !this.isAdmin) {
-      this.scheduleFetch();
+    if (this.hasUpdated && changed.has("q")) this.shown = PAGE_SIZE;
+    if (this.hasUpdated && changed.has("q") && !this.isAdmin) this.scheduleFetch();
+  }
+
+  // 역할 변경(로그인·로그아웃·강등) — 모드를 갈아끼우고 다른 모드 데이터는 버린다
+  private async syncRole() {
+    const admin = session.isAdmin;
+    if (admin === this.isAdmin) return;
+    this.isAdmin = admin;
+    this.tab = "all";
+    this.shown = PAGE_SIZE;
+    if (admin) {
+      void this.loadAdmin();
+    } else {
+      this.adminGen += 1;
+      this.adminItems = [];
+      this.adminError = "";
+      this.summary = null;
+      if (this.items.length === 0) void this.fetchItems();
     }
   }
 
-  protected updated(changed: PropertyValues) {
-    super.updated(changed);
-    this.emitState();
-    if (this.isAdmin) return; // 관리자 모드는 무한스크롤 없음
-    const sentinel = this.renderRoot.querySelector(".sentinel");
-    const active = !this.q && !this.loading && !this.error && this.hasMore;
-    if (active && sentinel) {
-      if (sentinel !== this.observedEl) {
-        this.io?.disconnect();
-        this.io = new IntersectionObserver(
-          (entries) => {
-            if (entries.some((en) => en.isIntersecting)) void this.loadMore();
-          },
-          { rootMargin: "400px 0px" },
-        );
-        this.io.observe(sentinel);
-        this.observedEl = sentinel;
-      }
-    } else if (this.observedEl) {
-      this.io?.disconnect();
-      this.observedEl = null;
+  // ===== 관리자 모드 =====
+
+  private async loadAdmin() {
+    const gen = ++this.adminGen;
+    this.adminLoading = true;
+    this.adminError = "";
+    try {
+      const listRes = await api<AdminListResponse>("/api/admin/items?limit=1000");
+      if (gen !== this.adminGen || !this.isAdmin) return;
+      this.adminItems = listRes.items;
+      this.truncated = listRes.hasMore === true;
+      this.summary = catalogSummary(listRes.items);
+      this.shown = PAGE_SIZE;
+    } catch (e) {
+      if (gen !== this.adminGen || !this.isAdmin) return;
+      this.adminError = e instanceof Error ? e.message : "물품 목록을 불러오지 못했어요";
+    } finally {
+      if (gen === this.adminGen && this.isAdmin) this.adminLoading = false;
     }
   }
 
-  // ===== 공개 모드 데이터 =====
+  // 관리자 목록 — 전체를 받아 두고 탭·검색을 클라이언트에서 건다
+  private get adminVisible(): Item[] {
+    const q = this.q.trim().toLowerCase();
+    return this.adminItems.filter((it) => {
+      if (!this.matchesTab(it)) return false;
+      if (!q) return true;
+      const cats = it.categories ?? [];
+      const hay = `${it.name} ${it.location ?? ""} ${it.description ?? ""} ${cats.map((c) => c.name).join(" ")}`;
+      return hay.toLowerCase().includes(q);
+    });
+  }
+
+  // ===== 회원 모드 데이터 =====
 
   private scheduleFetch() {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = window.setTimeout(() => void this.fetchItems(), 250);
+  }
+
+  private stateParam(): string | null {
+    return this.tab === "all" ? null : this.tab;
+  }
+
+  private browseUrl(offset: number): string {
+    const params = new URLSearchParams({
+      limit: String(PAGE_SIZE),
+      offset: String(offset),
+    });
+    const state = this.stateParam();
+    if (state) params.set("state", state);
+    return `/api/items?${params.toString()}`;
   }
 
   private async fetchItems() {
@@ -229,6 +297,7 @@ export class ItemExplorer extends LitElement {
     const first = this.items.length === 0;
     if (first) this.loading = true;
     this.error = "";
+    this.noticeMsg = "";
     try {
       if (this.q) {
         const params = new URLSearchParams({ q: this.q });
@@ -236,19 +305,17 @@ export class ItemExplorer extends LitElement {
         if (gen !== this.fetchGen || this.isAdmin) return;
         this.items = items;
         this.hasMore = false;
-        // 검색 결과는 페이지네이션이 없으므로 total=결과 수다. 이전 탐색의
-        // 집계값을 남겨두면 칩 카운트가 검색 결과와 어긋난다.
-        this.total = items.length;
-        this.availTotal = items.filter((it) => isItemAvailable(it)).length;
+        // 검색 결과는 페이지네이션이 없다 — 요약도 결과 집합 기준이다.
+        // (전체 카탈로그 요약과 섞이면 칩 숫자가 결과와 어긋난다)
+        this.summary = catalogSummary(items);
       } else {
-        const { items, total, available_total, hasMore } = await api<BrowseResponse>(
-          `/api/items?${this.browseParams(0)}`,
-        );
+        const res = await api<BrowseResponse>(this.browseUrl(0));
         if (gen !== this.fetchGen || this.isAdmin) return;
-        this.items = items;
-        this.total = total;
-        this.availTotal = available_total;
-        this.hasMore = hasMore;
+        this.items = res.items;
+        this.hasMore = res.hasMore;
+        // 요약은 state 필터와 무관한 모집단 기준 — 탭 라벨이 필터에 흔들리지 않는다
+        // (응답에 summary 가 없으면 받은 행으로 폴백 — 구버전 API·목 응답 방어)
+        this.summary = res.summary ?? catalogSummary(res.items);
       }
     } catch (e) {
       if (gen !== this.fetchGen || this.isAdmin) return;
@@ -258,231 +325,150 @@ export class ItemExplorer extends LitElement {
     }
   }
 
-  private browseParams(offset: number): string {
-    const params = new URLSearchParams({
-      limit: String(PAGE_SIZE),
-      offset: String(offset),
-    });
-    if (this.availableOnly) params.set("available", "1");
-    return params.toString();
-  }
-
   private async loadMore() {
     if (this.q || this.loading || this.loadingMore || !this.hasMore || this.isAdmin) return;
+    const gen = this.fetchGen;
     this.loadingMore = true;
     try {
-      const { items, total, available_total, hasMore } = await api<BrowseResponse>(
-        `/api/items?${this.browseParams(this.items.length)}`,
-      );
-      this.items = [...this.items, ...items];
-      this.total = total;
-      this.availTotal = available_total;
-      this.hasMore = hasMore;
+      const res = await api<BrowseResponse>(this.browseUrl(this.items.length));
+      // 탭 전환·검색으로 세대가 바뀌었으면 이어붙이지 않는다 (다른 필터의 행이 섞인다)
+      if (gen !== this.fetchGen || this.q || this.isAdmin) return;
+      this.items = [...this.items, ...res.items];
+      this.hasMore = res.hasMore;
     } catch {
-      this.noticeMsg = "더 불러오지 못했어요 — 스크롤을 움직이면 다시 시도해요";
+      this.noticeMsg = "더 불러오지 못했어요 — 다시 시도해 주세요";
     } finally {
       this.loadingMore = false;
     }
-    const sentinel = this.renderRoot.querySelector(".sentinel");
-    if (
-      this.hasMore &&
-      sentinel &&
-      sentinel.getBoundingClientRect().top < window.innerHeight
-    ) {
-      await this.loadMore();
+  }
+
+  private async retryMore() {
+    this.noticeMsg = "";
+    await this.loadMore();
+  }
+
+  // ===== 공통 =====
+
+  private matchesTab(it: Item): boolean {
+    if (this.tab === "all") return true;
+    if (this.tab === "rented") return (it.active_now ?? 0) > 0;
+    // 소모품은 '대여' 대상이 아니다 — 요약 숫자와 같은 규칙
+    return it.kind !== "consumable" && availableQty(it) > 0;
+  }
+
+  private setTab(key: TabKey) {
+    if (this.tab === key) return;
+    this.tab = key;
+    this.shown = PAGE_SIZE;
+    if (this.isAdmin) return;
+    // 검색 결과는 이미 전부 받아 두었으니 클라이언트에서 거르고,
+    // 탐색은 서버에서 상태 필터로 다시 받는다 (페이지네이션이 걸려 있다).
+    if (!this.q) {
+      // 이전 탭의 행이 남아 보이지 않게 비우고 로딩 상태로 되돌린다
+      this.items = [];
+      this.loading = true;
+      void this.fetchItems();
     }
   }
 
-  private setAvailableOnly(v: boolean) {
-    if (this.availableOnly === v) return;
-    this.availableOnly = v;
-    if (!this.q) void this.fetchItems();
+  private hrefFor(it: Item): string {
+    return this.isAdmin ? `/items/${it.id}/edit` : `/items/${it.id}${location.search}`;
   }
 
-  // ===== 관리자 모드 데이터 =====
-
-  private async loadAdmin() {
-    const gen = ++this.adminGen;
-    this.adminLoading = true;
-    this.adminError = "";
-    try {
-      const [listRes, cats, dash] = await Promise.all([
-        api<AdminListResponse>("/api/admin/items?limit=1000"),
-        getCategories().catch(() => [] as Category[]),
-        // 대여자 명단 — 실패해도 목록은 보여주고 패널에서 안내한다
-        api<{ items: DashboardItem[] }>("/api/admin/dashboard").catch(() => null),
-      ]);
-      if (gen !== this.adminGen || !this.isAdmin) return;
-      this.adminItems = listRes.items;
-      this.cats = cats;
-      this.truncated = listRes.hasMore === true;
-      const map = new Map<number, DashboardRenter[]>();
-      for (const d of dash?.items ?? []) {
-        if (d.current_renters.length > 0) map.set(d.id, d.current_renters);
-      }
-      this.renters = map;
-    } catch (e) {
-      if (gen !== this.adminGen || !this.isAdmin) return;
-      this.adminError = e instanceof Error ? e.message : "물품 목록을 불러오지 못했어요";
-    } finally {
-      if (gen === this.adminGen && this.isAdmin) this.adminLoading = false;
-    }
+  private displayedSummary(): CatalogSummary {
+    return this.summary ?? { types: 0, available: 0, rented: 0, repair: 0 };
   }
 
-  // 관리자 목록 — 상태 그룹 버킷 1회 + 검색·범주 클라이언트 필터
-  private get adminVisible(): Item[] {
-    const q = this.q.trim().toLowerCase();
-    return this.adminItems.filter((it) => {
-      if (this.group !== "all" && groupKey(it) !== this.group) return false;
-      const cats = it.categories ?? [];
-      if (this.categoryFilter === "none") {
-        if (cats.length > 0) return false;
-      } else if (this.categoryFilter !== "all") {
-        if (!cats.some((c) => String(c.id) === this.categoryFilter)) return false;
-      }
-      if (!q) return true;
-      const hay = `${it.name} ${it.location ?? ""} ${it.description ?? ""} ${cats.map((c) => c.name).join(" ")}`;
-      return hay.toLowerCase().includes(q);
-    });
-  }
-
-  private toggleRents(id: number) {
-    this.expandedId = this.expandedId === id ? null : id;
-  }
-
-  // ===== 렌더 =====
-
-  // 화면에 실제로 그려지는 목록 기준으로 헤더 카운트를 계산한다 —
-  // 관리자는 클라 필터 적용 후, 공개는 서버 total 을 쓴다(무한스크롤).
-  private listState(): ItemListState {
-    if (this.isAdmin) {
-      const visible = this.adminVisible.length;
-      return {
-        isAdmin: true,
-        loading: this.adminLoading,
-        error: this.adminError,
-        total: this.adminItems.length,
-        available: null,
-        visible,
-        truncated: this.truncated,
-      };
-    }
-    const visible = this.q && this.availableOnly
-      ? this.items.filter((it) => isItemAvailable(it)).length
-      : this.items.length;
-    // total·availTotal 은 검색/탐색 어느 쪽이든 서버 집계가 채운 값이다
-    // (fetchItems 가 검색 시에도 결과 수로 덮어쓴다).
-    const total = this.total;
-    const available = this.availTotal;
-    return {
-      isAdmin: false,
-      loading: this.loading,
-      error: this.error,
-      total,
-      available,
-      visible,
-      truncated: false,
-    };
-  }
-
-  // 셸로 카운트·관리자 여부를 알린다 — 헤더에서만 읽는 파생 상태라 이벤트 전용.
-  private emitState() {
+  // 요약은 page-home 이 그린다 — 모바일에서 요약 → 검색 → 탭 순서를 맞추기 위해
+  // 데이터 소유자(explorer)가 값만 올려보낸다. 값이 바뀔 때만 이벤트를 낸다.
+  protected updated(changed: PropertyValues) {
+    super.updated(changed);
+    const s = this.displayedSummary();
+    const key = `${s.types}/${s.available}/${s.rented}/${s.repair}`;
+    if (key === this.lastSummaryKey) return;
+    this.lastSummaryKey = key;
     this.dispatchEvent(
-      new CustomEvent<ItemListState>("list-state", {
-        detail: this.listState(),
+      new CustomEvent<CatalogSummary>("summary-change", {
+        detail: s,
         bubbles: true,
         composed: true,
       }),
     );
   }
 
+  private tabCount(key: TabKey): number {
+    const s = this.displayedSummary();
+    if (key === "all") return s.types;
+    if (key === "rented") return s.rented;
+    return s.available;
+  }
+
   private emptyText(): string {
     if (this.q) return `'${this.q}'로 찾은 물품이 없어요`;
-    if (this.isAdmin) {
-      // 필터가 걸린 빈 상태와 진짜로 비어 있는 상태를 구분한다 — 어느 필터 때문인지 알려야
-      // 사용자가 다음 행동을 정할 수 있다.
-      const groupTitle = GROUPS.find((g) => g.key === this.group)?.title;
-      if (groupTitle) return `'${groupTitle}' 물품이 없어요`;
-      if (this.categoryFilter === "none") return "카테고리가 없는 물품이 없어요";
-      if (this.categoryFilter !== "all") {
-        const name = this.cats.find((c) => String(c.id) === this.categoryFilter)?.name;
-        if (name) return `'${name}' 물품이 없어요`;
-      }
-      return "등록된 물품이 없어요";
-    }
-    if (this.availableOnly) return "지금은 대여 가능한 물품이 없어요";
+    const label = TABS.find((t) => t.key === this.tab)?.label;
+    if (label && this.tab !== "all") return `'${label}' 물품이 없어요`;
     return "등록된 물품이 없어요";
   }
 
+  // ===== 렌더 =====
+
   render() {
-    return this.isAdmin ? this.renderAdmin() : this.renderPublic();
-  }
-
-  private renderPublic() {
-    const visibleItems =
-      this.q && this.availableOnly
-        ? this.items.filter((it) => isItemAvailable(it))
-        : this.items;
-
     return html`
-      <div class="filters">
-        <x-chip
-          ariaLabel="물품 필터"
-          .value=${this.availableOnly ? "available" : "all"}
-          .options=${[
-            { value: "all", label: "전체", count: this.total },
-            { value: "available", label: "대여 가능만", count: this.availTotal },
-          ]}
-          @change=${(e: CustomEvent<{ value: string }>) =>
-            this.setAvailableOnly(e.detail.value === "available")}
-        ></x-chip>
+      <div class="tabs" role="group" aria-label="물품 상태">
+        ${TABS.map(
+          (t) => html`
+            <button
+              type="button"
+              class="tab"
+              aria-pressed=${this.tab === t.key}
+              @click=${() => this.setTab(t.key)}
+            >
+              ${t.label} ${this.tabCount(t.key).toLocaleString("ko-KR")}
+            </button>
+          `,
+        )}
       </div>
 
+      ${this.isAdmin ? this.renderAdmin() : this.renderMember()}
+    `;
+  }
+
+  private renderMember() {
+    // 검색 결과는 전부 받아 두었으므로 10건씩 펼치고, 탐색은 서버 페이지(10건)를 쓴다
+    const matched = this.q ? this.items.filter((it) => this.matchesTab(it)) : this.items;
+    const visible = this.q ? matched.slice(0, this.shown) : matched;
+    if (this.error) {
+      return html`<x-empty state="error" text=${this.error}>
+        <x-button variant="secondary" size="sm" @click=${() => void this.fetchItems()}>
+          다시 시도
+        </x-button>
+      </x-empty>`;
+    }
+    if (this.loading) return html`<x-empty state="loading"></x-empty>`;
+    if (visible.length === 0) {
+      return html`<x-empty state="empty" text=${this.emptyText()}></x-empty>`;
+    }
+    return html`
       ${this.noticeMsg
         ? html`
             <x-notice>
               ${this.noticeMsg}
-              <x-button
-                variant="secondary"
-                size="sm"
-                @click=${() => void this.retryMore()}
-              >
+              <x-button variant="secondary" size="sm" @click=${() => void this.retryMore()}>
                 다시 시도
               </x-button>
             </x-notice>
           `
         : ""}
-
-      ${this.error
-        ? html`<x-empty state="error" text=${this.error}>
-            <x-button variant="secondary" size="sm" @click=${() => void this.fetchItems()}>
-              다시 시도
-            </x-button>
-          </x-empty>`
-        : this.loading
-          ? html`<x-empty state="loading"></x-empty>`
-          : visibleItems.length === 0
-            ? html`<x-empty state="empty" text=${this.emptyText()}></x-empty>`
-            : html`
-                <div class="grid">
-                  ${visibleItems.map((it) => html`<item-card .item=${it}></item-card>`)}
-                </div>
-                ${!this.q && this.hasMore
-                  ? html`
-                      ${this.loadingMore
-                        ? html`<div class="more-loading" role="status">불러오는 중…</div>`
-                        : ""}
-                      <div class="sentinel" aria-hidden="true"></div>
-                    `
-                  : ""}
-              `}
+      ${this.renderHead()}
+      <div class="table" role="list">
+        ${visible.map(
+          (it) => html`<div role="listitem">
+            <item-list-row .item=${it} href=${this.hrefFor(it)}></item-list-row>
+          </div>`,
+        )}
+      </div>
+      ${(this.q ? matched.length > this.shown : this.hasMore) ? this.renderMore() : ""}
     `;
-  }
-
-  // 더 불러오기 실패 후 재시도 — 자동 스크롤 재시도(관측)가 아니라 명시적 버튼으로 되돌린다
-  private async retryMore() {
-    this.noticeMsg = "";
-    await this.loadMore();
   }
 
   private renderAdmin() {
@@ -494,109 +480,70 @@ export class ItemExplorer extends LitElement {
         </x-button>
       </x-empty>`;
     }
-    // 그룹 버킷 1회 — 칩 카운트와 목록이 같은 버킷을 쓴다
-    const buckets: Record<StockGroup, Item[]> = {
-      rented: [],
-      repair: [],
-      available: [],
-      consumable: [],
-      retired: [],
-    };
-    for (const it of this.adminItems) buckets[groupKey(it)].push(it);
     const visible = this.adminVisible;
-
+    if (visible.length === 0) {
+      return html`<x-empty compact state="empty" text=${this.emptyText()}></x-empty>`;
+    }
+    const page = visible.slice(0, this.shown);
     return html`
-      <div class="filters">
-        <x-chip
-          ariaLabel="상태 필터"
-          .value=${this.group}
-          .options=${[
-            { value: "all", label: "전체", count: this.adminItems.length },
-            ...GROUPS.map((g) => ({
-              value: g.key,
-              label: g.title,
-              count: buckets[g.key].length,
-            })),
-          ]}
-          @change=${(e: CustomEvent<{ value: string }>) =>
-            (this.group = e.detail.value as StockGroup | "all")}
-        ></x-chip>
-      </div>
-
-      ${this.cats.length > 0
-        ? html`
-            <div class="subfilters">
-              <x-chip
-                ariaLabel="범주 필터"
-                .value=${this.categoryFilter}
-                .options=${[
-                  { value: "all", label: "범주 전체" },
-                  ...this.cats.map((c) => ({
-                    value: String(c.id),
-                    label: c.name,
-                    count: c.item_count,
-                  })),
-                  { value: "none", label: "미지정" },
-                ]}
-                @change=${(e: CustomEvent<{ value: string }>) =>
-                  (this.categoryFilter = e.detail.value)}
-              ></x-chip>
-            </div>
-          `
+      ${this.truncated
+        ? html`<p class="truncated">1000건까지만 불러왔어요 — 목록이 잘렸을 수 있어요</p>`
         : ""}
-      ${visible.length === 0
-        ? html`<x-empty
-            compact
-            state="empty"
-            text=${this.emptyText()}
-          ></x-empty>`
-        : html`<div>${visible.map((it) => this.renderAdminRow(it))}</div>`}
+      ${this.renderHead()}
+      <div class="table" role="list">
+        ${page.map(
+          (it) => html`<div role="listitem">
+            <item-list-row .item=${it} href=${this.hrefFor(it)}></item-list-row>
+          </div>`,
+        )}
+      </div>
+      ${this.shown < visible.length ? this.renderMore() : ""}
     `;
   }
 
-  private renderAdminRow(it: Item) {
-    const { kind: badgeKind, label: badgeLabel } = badgeFor(it);
-    const cats = it.categories ?? [];
-    const qty: string[] = [`보유 ${it.total_qty}`];
-    if ((it.active_now ?? 0) > 0) qty.push(`대여 중 ${it.active_now}`);
-    if ((it.qty_repair ?? 0) > 0) qty.push(`수리 ${it.qty_repair}`);
-    const rents = this.renters.get(it.id) ?? [];
-    // 이름 클릭도 수정폼으로 — 공개 미리보기는 수정폼의 "공개 보기"에서
-    const editHref = `/items/${it.id}/edit`;
+  private lastSummaryKey = "";
+
+  private renderHead() {
     return html`
-      <item-row
-        .photo=${it.photos?.[0]?.url ?? ""}
-        .name=${it.name}
-        href=${editHref}
-        badgeKind=${badgeKind}
-        badgeLabel=${badgeLabel}
-        editHref=${editHref}
-        ?expandable=${(it.active_now ?? 0) > 0}
-        ?expanded=${this.expandedId === it.id}
-        @toggle=${() => this.toggleRents(it.id)}
-      >
-        ${cats.length > 0
-          ? cats.map((c) => html`<span class="hl">${c.name}</span>`)
-          : html`<span class="dim">미지정</span>`}
-        ${it.location ? html`<span>${it.location}</span>` : ""}
-        <span>${qty.join(" · ")}</span>
-        <div slot="detail" class="renters">
-          ${rents.length > 0
-            ? rents.map((r) => html`<span>${this.renterLine(r)}</span>`)
-            : html`<span>대여 중인데 명단을 불러오지 못했어요 — 새로고침해 주세요</span>`}
-        </div>
-      </item-row>
+      <div class="head" aria-hidden="true">
+        <span class="h-name">물품명</span>
+        <span class="h-cat">분류</span>
+        <span class="h-loc">보관 위치</span>
+        <span class="h-status">상태</span>
+      </div>
     `;
   }
 
-  private renterLine(r: DashboardRenter) {
-    const who = r.member_name ?? "회원";
-    const qty = r.qty > 1 ? ` · ${r.qty}개` : "";
-    const phone = r.member_phone;
-    const tel = phone
-      ? html` · <a href="tel:${phone.replace(/[^+\d]/g, "")}">${phone}</a>`
-      : "";
-    return html`${who}${qty}${tel}`;
+  private renderMore() {
+    return html`
+      <div class="more-row">
+        <button
+          type="button"
+          class="more"
+          ?disabled=${this.loadingMore}
+          @click=${() => this.more()}
+        >
+          ${this.loadingMore
+            ? "불러오는 중…"
+            : html`
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+                더보기
+              `}
+        </button>
+      </div>
+    `;
+  }
+
+  private more() {
+    // 관리자(전체 로드)와 검색 결과(전체 로드)는 보여줄 개수만 늘리고,
+    // 회원 탐색은 서버에서 다음 페이지를 받는다.
+    if (this.isAdmin || this.q) {
+      this.shown += PAGE_SIZE;
+      return;
+    }
+    void this.loadMore();
   }
 }
 

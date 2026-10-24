@@ -104,7 +104,7 @@
                   "id": "fepRt",
                   "name": "Value",
                   "fill": "#111111",
-                  "content": "10",
+                  "content": "97",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -114,7 +114,7 @@
                   "id": "SQddy",
                   "name": "Label",
                   "fill": "#9C9C9C",
-                  "content": "총 종류",
+                  "content": "전체",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 16,
                   "fontWeight": "normal"
@@ -134,7 +134,7 @@
                   "id": "PnEAD",
                   "name": "Value",
                   "fill": "#111111",
-                  "content": "16",
+                  "content": "92",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -144,7 +144,7 @@
                   "id": "D62vKV",
                   "name": "Label",
                   "fill": "#9C9C9C",
-                  "content": "보유",
+                  "content": "대여 가능",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 16,
                   "fontWeight": "normal"
@@ -164,7 +164,7 @@
                   "id": "l0AIO",
                   "name": "Value",
                   "fill": "#EA580C",
-                  "content": "9",
+                  "content": "4",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -194,7 +194,7 @@
                   "id": "SzRqQ",
                   "name": "Value",
                   "fill": "#111111",
-                  "content": "5",
+                  "content": "1",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -204,7 +204,7 @@
                   "id": "wKiWv",
                   "name": "Label",
                   "fill": "#9C9C9C",
-                  "content": "대여 가능",
+                  "content": "수리 중",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 16,
                   "fontWeight": "normal"
@@ -236,7 +236,7 @@
                   "id": "o39Nb4",
                   "name": "Tab Label",
                   "fill": "#111111",
-                  "content": "전체 10",
+                  "content": "전체 97",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 16,
                   "fontWeight": "700"
@@ -255,7 +255,7 @@
                   "id": "FEi5V",
                   "name": "Tab Label",
                   "fill": "#9C9C9C",
-                  "content": "대여 중 9",
+                  "content": "대여 중 4",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 16,
                   "fontWeight": "normal"
@@ -274,7 +274,7 @@
                   "id": "Cpj8h",
                   "name": "Tab Label",
                   "fill": "#9C9C9C",
-                  "content": "대여 가능 5",
+                  "content": "대여 가능 92",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 16,
                   "fontWeight": "normal"
@@ -2573,7 +2573,7 @@
           "id": "utXwz",
           "name": "Login Card",
           "layout": "vertical",
-          "gap": 12,
+          "gap": 24,
           "alignItems": "center",
           "children": [
             {
@@ -2659,7 +2659,7 @@
               "ref": "OlbcC",
               "name": "Login Button",
               "width": "fit_content",
-              "y": 130,
+              "y": 142,
               "height": "fit_content",
               "descendants": {
                 "Z6McK": {
@@ -2693,7 +2693,7 @@
           "name": "Login Card",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 12,
+          "gap": 24,
           "children": [
             {
               "type": "frame",
@@ -2877,7 +2877,7 @@
                   "id": "pQcGa",
                   "name": "Value",
                   "fill": "#111111",
-                  "content": "10",
+                  "content": "97",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -2887,7 +2887,7 @@
                   "id": "d33ge",
                   "name": "Label",
                   "fill": "#9C9C9C",
-                  "content": "총 종류",
+                  "content": "전체",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 16,
                   "fontWeight": "normal"
@@ -2919,7 +2919,7 @@
                   "id": "u7mmMh",
                   "name": "Value",
                   "fill": "#111111",
-                  "content": "16",
+                  "content": "92",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -2929,7 +2929,7 @@
                   "id": "BsLzc",
                   "name": "Label",
                   "fill": "#9C9C9C",
-                  "content": "보유",
+                  "content": "대여 가능",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 16,
                   "fontWeight": "normal"
@@ -2961,7 +2961,7 @@
                   "id": "UYyLZ",
                   "name": "Value",
                   "fill": "#EA580C",
-                  "content": "9",
+                  "content": "4",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -3003,7 +3003,7 @@
                   "id": "KKYZx",
                   "name": "Value",
                   "fill": "#111111",
-                  "content": "5",
+                  "content": "1",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 24,
                   "fontWeight": "700"
@@ -3013,7 +3013,7 @@
                   "id": "U7h0o",
                   "name": "Label",
                   "fill": "#9C9C9C",
-                  "content": "대여 가능",
+                  "content": "수리 중",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 16,
                   "fontWeight": "normal"
@@ -3068,7 +3068,7 @@
                   "id": "zJsgx",
                   "name": "Tab Label",
                   "fill": "#111111",
-                  "content": "전체 10",
+                  "content": "전체 97",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 14,
                   "fontWeight": "700"
@@ -3087,7 +3087,7 @@
                   "id": "S28Fx3",
                   "name": "Tab Label",
                   "fill": "#9C9C9C",
-                  "content": "대여 중 9",
+                  "content": "대여 중 4",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 14,
                   "fontWeight": "normal"
@@ -3106,7 +3106,7 @@
                   "id": "wv7FV",
                   "name": "Tab Label",
                   "fill": "#9C9C9C",
-                  "content": "대여 가능 5",
+                  "content": "대여 가능 92",
                   "fontFamily": "Noto Sans KR",
                   "fontSize": 14,
                   "fontWeight": "normal"

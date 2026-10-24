@@ -5,7 +5,7 @@
 // 수량 축: rentable_qty = total_qty - qty_repair (수리중은 빌려줄 수 없다)
 //          available    = rentable_qty - active_now (지금 빌릴 수 있는 수량)
 // 생애주기: lifecycle='retired' 면 수량과 무관하게 대여 불가·폐기 표시
-import type { AvailabilityBadge, ItemKind, ItemLifecycle } from "./api-types";
+import type { AvailabilityBadge, CatalogSummary, ItemKind, ItemLifecycle } from "./api-types";
 
 // Item 전체를 요구하지 않는다 — 서버 SQL 행·web 카드 모델 모두 이 최소 모양을 만족한다.
 export type StockLike = {
@@ -60,6 +60,52 @@ export function availabilityBadgeOf(it: StockLike): AvailabilityBadge | null {
   const { kind } = badgeFor(it);
   return kind === "neutral" ? null : kind;
 }
+
+// 목록 상태 칸의 구성 요소 — 이슈 #12 §6.2/§6.4.
+// '대여 가능 N · 대여 중 N · 수리중 N' 을 조각으로 내려 화면이 구분점·색을 소유한다.
+// 수량 0 인 항은 숨기고(구분점까지), 전부 0 이면 '대여 가능 0' 한 항만 남긴다.
+// 폐기·소모품은 수량 분포가 아니라 단일 라벨이다 (소모품은 재고 개념).
+export type StatusPartKey = "available" | "rented" | "repair" | "consumable" | "retired";
+// zero — 수량이 0 인 '대여 가능' 항. .pen 은 데스크탑에서 숨기고 모바일 카드에서는
+// '대여 가능 0'으로 보여준다(두 아트보드가 서로 다르다 — 화면이 CSS로 가른다).
+export type StatusPart = { key: StatusPartKey; label: string; zero?: boolean };
+
+export function statusParts(it: StockLike): StatusPart[] {
+  if (it.lifecycle === "retired") return [{ key: "retired", label: "폐기" }];
+  if (it.kind === "consumable") {
+    return [{ key: "consumable", label: `보유 ${it.total_qty}` }];
+  }
+  const available = availableQty(it);
+  const rented = it.active_now ?? 0;
+  const repair = it.qty_repair ?? 0;
+  // 대여 가능은 0 이어도 항목을 만든다 — 모바일 카드가 '대여 가능 0'을 보여준다
+  const parts: StatusPart[] = [
+    { key: "available", label: `대여 가능 ${available}`, zero: available === 0 },
+  ];
+  if (rented > 0) parts.push({ key: "rented", label: `대여 중 ${rented}` });
+  if (repair > 0) parts.push({ key: "repair", label: `수리중 ${repair}` });
+  return parts;
+}
+
+// 목록 상단 요약 — 서버 집계(listItems.summary)와 같은 규칙을 클라이언트에서 계산한다.
+// 모두 '종류 수'다: 대여 가능 = 대여품 중 지금 빌릴 수 있는 종류, 대여 중 = 점유가 있는 종류,
+// 수리 중 = 수리 수량이 있는 종류. 폐기 종류는 어느 값에도 넣지 않는다.
+export function catalogSummary(items: StockLike[]): CatalogSummary {
+  let types = 0;
+  let available = 0;
+  let rented = 0;
+  let repair = 0;
+  for (const it of items) {
+    if (it.lifecycle === "retired") continue;
+    types += 1;
+    if ((it.active_now ?? 0) > 0) rented += 1;
+    if ((it.qty_repair ?? 0) > 0) repair += 1;
+    // 소모품은 '대여' 대상이 아니다 — 대여 가능 종류에서 뺀다
+    if (it.kind !== "consumable" && availableQty(it) > 0) available += 1;
+  }
+  return { types, available, rented, repair };
+}
+
 
 // 상태 그룹 — 관리자 칩 필터용. badgeFor와 같은 우선순위를 쓴다.
 export type StockGroup =

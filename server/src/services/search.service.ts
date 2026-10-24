@@ -4,7 +4,7 @@
 // 검색에는 페이지네이션이 없다 — 퍼지 매치의 꼬리는 노이즈라 "2페이지"가 의미 없다.
 import type { Sql } from "../db";
 import type { Bindings } from "../types";
-import type { AvailabilityBadge } from "../../../shared/api-types";
+import type { AvailabilityBadge, CatalogSummary } from "../../../shared/api-types";
 import type { ListItemRow } from "./items.service";
 import { parseJsonCol } from "./items.service";
 import { embed, getVectorCache } from "../embedding";
@@ -76,14 +76,35 @@ const AVAILABLE_SQL = `(items.kind = 'consumable'
              FROM reservations r
              WHERE r.item_id = items.id AND r.status = 'rented')))`;
 
+// 대여 중 — 지금 점유가 있는 물품 (상태 탭 '대여 중')
+const RENTED_SQL = `EXISTS (SELECT 1 FROM reservations r
+   WHERE r.item_id = items.id AND r.status = 'rented')`;
+
+// 대여 가능 종류 — 소모품은 '대여' 대상이 아니다 (요약 숫자와 같은 규칙)
+const RENTAL_AVAILABLE_SQL = `(items.kind = 'rental' AND ${AVAILABLE_SQL})`;
+
+// 상태 탭 필터 — 이슈 #12 §6.2 의 상태 칸과 같은 축.
+//   rented    = 지금 대여 중 수량이 있는 물품 (종류)
+//   available = 지금 빌릴 수 있는 대여품 (종류)
+const stateWhere = (state: "rented" | "available" | null | undefined): string => {
+  if (state === "rented") return ` AND ${RENTED_SQL}`;
+  if (state === "available") return ` AND ${RENTAL_AVAILABLE_SQL}`;
+  return "";
+};
+
 // ===== 전체 목록 (탐색 — 무한스크롤) =====
 
 export type BrowseList = {
   items: ListItemWithBadge[];
-  // available 필터를 무시한 전체 수 — '전체' 배지
+  // state 필터를 무시한 전체 수 — '전체' 배지
   total: number;
   // available 필터를 적용한 수 — '대여 가능만' 배지
   available_total: number;
+  // 실제로 적용된 필터(state·available)를 모두 통과한 수 — hasMore 계산용.
+  // total 은 필터와 무관하므로 페이지네이션 종료 판정에 쓰면 안 된다(무한 루프).
+  matched: number;
+  // 목록 상단 요약 — state 필터와 무관한 모집단(폐기 제외) 기준
+  summary: CatalogSummary;
 };
 
 // 텍스트 필터 — 이름·위치·범주 이름의 부분일치(LIKE). 랭킹 검색이 아니라
@@ -120,31 +141,76 @@ export async function listItems(
     withCategories?: boolean;
     includeRetired?: boolean;
     q?: string;
+    // 상태 탭 — null 이면 전체. summary·total 은 이 필터의 영향을 받지 않는다.
+    state?: "rented" | "available" | null;
   },
 ): Promise<BrowseList> {
   const retired = opts.includeRetired ?? false;
   const tf = textFilter(opts.q);
+  const state = opts.state ?? null;
   const where =
     (opts.available ? ` AND ${AVAILABLE_SQL}` : "") +
+    stateWhere(state) +
     categoryWhere(opts.category) +
     tf.sql;
+  // 행 필터 전체를 그대로 적용한 개수 — hasMore 종료 판정용
+  const matchExpr =
+    [
+      opts.available ? AVAILABLE_SQL : "",
+      state === "rented" ? RENTED_SQL : state === "available" ? RENTAL_AVAILABLE_SQL : "",
+    ]
+      .filter(Boolean)
+      .join(" AND ") || "1=1";
   const [rows, counts] = (await Promise.all([
     db.query(
       `${buildListSql(where, opts.withCategories ?? false, retired)} LIMIT ${opts.limit} OFFSET ${opts.offset}`,
       tf.params,
     ),
+    // 카운트 + 요약을 한 번에 — 예약은 item_id 로 미리 집계해 행이 늘지 않는다.
+    // retired 는 counts 에는 포함되지만(includeRetired) 요약에는 들어가지 않는다.
     db.query(
       `SELECT COUNT(*) AS total,
-              COALESCE(SUM(CASE WHEN ${AVAILABLE_SQL} THEN 1 ELSE 0 END), 0) AS available_total
-       FROM items LEFT JOIN locations l ON l.id = items.location_id
+              COALESCE(SUM(CASE WHEN ${AVAILABLE_SQL} THEN 1 ELSE 0 END), 0) AS available_total,
+              COALESCE(SUM(CASE WHEN ${matchExpr} THEN 1 ELSE 0 END), 0) AS matched,
+              COALESCE(SUM(CASE WHEN items.lifecycle <> 'retired' THEN 1 ELSE 0 END), 0) AS types,
+              COALESCE(SUM(CASE WHEN items.lifecycle <> 'retired' AND COALESCE(r.borrowed, 0) > 0 THEN 1 ELSE 0 END), 0) AS rented,
+              COALESCE(SUM(CASE WHEN items.lifecycle <> 'retired' AND items.qty_repair > 0 THEN 1 ELSE 0 END), 0) AS repair,
+              COALESCE(SUM(CASE
+                WHEN items.lifecycle <> 'retired' AND items.kind = 'rental'
+                 AND items.total_qty - items.qty_repair - COALESCE(r.borrowed, 0) > 0 THEN 1
+                ELSE 0
+              END), 0) AS available
+       FROM items
+       LEFT JOIN locations l ON l.id = items.location_id
+       LEFT JOIN (SELECT item_id, SUM(qty) AS borrowed FROM reservations
+                   WHERE status = 'rented' GROUP BY item_id) r ON r.item_id = items.id
       WHERE ${retired ? "" : "items.lifecycle <> 'retired' AND "}1=1${categoryWhere(opts.category)}${tf.sql}`,
       tf.params,
     ),
-  ])) as [ListItemRow[], { total: number; available_total: number }[]];
+  ])) as [
+    ListItemRow[],
+    {
+      total: number;
+      available_total: number;
+      matched: number;
+      types: number;
+      rented: number;
+      repair: number;
+      available: number;
+    }[],
+  ];
+  const c = counts[0];
   return {
     items: parseListRows(rows).map(withAvailabilityBadge),
-    total: counts[0].total,
-    available_total: counts[0].available_total,
+    total: Number(c.total),
+    available_total: Number(c.available_total),
+    matched: Number(c.matched),
+    summary: {
+      types: Number(c.types),
+      available: Number(c.available),
+      rented: Number(c.rented),
+      repair: Number(c.repair),
+    },
   };
 }
 

@@ -63,22 +63,22 @@ export class PageLogin extends LitElement {
       :host {
         display: block;
       }
-      /* 세로 중앙 정렬 — 104px는 app-shell의 헤더(56) + main 위아래 패딩(16+32).
-         이 div에 세로 패딩을 더하면 main 패딩과 중복되어 화면이 넘치므로
-         여백은 main이 이미 준다. 화면 높이를 104px 뺀 값이라 app-shell
-         레이아웃과 함께 바뀐다. */
+      /* 세로 중앙 정렬 — 로그인은 셸 헤더·여백을 쓰지 않는 전체 화면이다 (main.plain).
+         .pen 로그인 화면처럼 뷰포트 한가운데에 카드만 둔다. */
       .stage {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: calc(100dvh - 104px);
+        box-sizing: border-box;
+        min-height: 100dvh;
+        padding: var(--space-5, 24px);
       }
       .card {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: var(--space-4);
+        gap: var(--space-5, 24px);
         width: 100%;
         max-width: 400px;
         text-align: center;
@@ -87,7 +87,7 @@ export class PageLogin extends LitElement {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: var(--space-2);
+        gap: 6px;
       }
       .logo {
         display: block;
@@ -108,7 +108,9 @@ export class PageLogin extends LitElement {
         line-height: 1.4;
       }
       x-button {
-        width: 100%;
+        --x-button-height: 48px;
+        --x-button-radius: var(--radius-sm, 6px);
+        --x-button-padding: 0 var(--space-5, 24px);
         --x-button-font-size: 1rem;
         --x-button-weight: 700;
       }
@@ -132,10 +134,6 @@ export class PageLogin extends LitElement {
         color: var(--color-muted);
         font-size: var(--text-fine);
         line-height: 1.4;
-      }
-      .foot a {
-        color: inherit;
-        margin: 0 var(--space-1);
       }
       form { display: flex; flex-direction: column; gap: 12px; }
       label { text-align: left; font-size: var(--text-caption); }
@@ -186,7 +184,7 @@ export class PageLogin extends LitElement {
         <div class="card">
           <div class="brand">
             <img class="logo" src="/logo.png" alt="" />
-            <h1>물품 대여</h1>
+            <h1>대여 관리</h1>
             <p class="sub">물품 대여 현황 관리 시스템</p>
           </div>
 
@@ -210,16 +208,11 @@ export class PageLogin extends LitElement {
 
           <p class="msg" aria-live="polite">${this.message}</p>
 
-          <div class="foot">
-            <p>${this.localTestLogin
-              ? "로컬 사진 테스트 · 테스트 관리자 계정으로 로그인할 수 있어요"
-              : "정토회(@jungto.org) 구글 계정으로 로그인하면 바로 물품을 대여할 수 있어요"}</p>
-            <p>
-              <a href="/policy/privacy">개인정보처리방침</a>·<a href="/policy/terms"
-                >이용약관</a
-              >
-            </p>
-          </div>
+          ${this.localTestLogin
+            ? html`<div class="foot">
+                <p>로컬 사진 테스트 · 테스트 관리자 계정으로 로그인할 수 있어요</p>
+              </div>`
+            : ""}
         </div>
       </div>
     `;

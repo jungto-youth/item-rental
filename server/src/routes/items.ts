@@ -64,7 +64,9 @@ itemsRoute.get("/", async (c) => {
     if (searchThrottled(c.req.header("cf-connecting-ip") ?? "unknown")) {
       return c.json({ error: "too_many_requests" }, 429);
     }
-    const items = await searchHybrid(c.env, db, q, { withCategories: isAdmin });
+    // 분류는 목록 행의 '분류' 칸이 쓰므로 회원 응답에도 얹는다 (이슈 #12 §6.1).
+    // 태그는 민감 정보가 아니고, 행 렌더가 관리자/회원에 따라 갈리지 않게 한다.
+    const items = await searchHybrid(c.env, db, q, { withCategories: true });
     return c.json({ items });
   }
 
@@ -72,22 +74,30 @@ itemsRoute.get("/", async (c) => {
   const limit = clampInt(c.req.query("limit"), 24, 1, 60);
   const offset = clampInt(c.req.query("offset"), 0, 0, 100_000);
   const available = c.req.query("available") === "1";
+  // 상태 탭 — 전체(all) · 대여 중 · 대여 가능 (이슈 #12 §6.2)
+  const stateRaw = c.req.query("state");
+  const state = stateRaw === "rented" || stateRaw === "available" ? stateRaw : null;
   // 카테고리 필터 — 관리자 전용. "none"(미지정) 또는 숫자 id 만 받고 이외는 무시
   const categoryRaw = c.req.query("category") ?? "";
   const category =
     isAdmin && (categoryRaw === "none" || /^\d+$/.test(categoryRaw)) ? categoryRaw : null;
-  const { items, total, available_total } = await listItems(db, {
+  const { items, total, available_total, matched, summary } = await listItems(db, {
     limit,
     offset,
     available,
+    state,
     category,
-    withCategories: isAdmin,
+    // 분류 칸은 회원 목록에서도 보인다 — 행 모양을 관리자/회원이 공유한다
+    withCategories: true,
   });
   return c.json({
     items,
     total,
     available_total,
-    hasMore: offset + items.length < total,
+    matched,
+    summary,
+    // 종료 판정은 필터를 모두 적용한 수(matched)로 — total 은 필터와 무관하다
+    hasMore: offset + items.length < matched,
   });
 });
 
