@@ -19,6 +19,20 @@ export type ItemKind = "rental" | "consumable";
 // 카테고리 — 관리자가 물품 등록·수정 중에 만들고 고치는 가벼운 분류
 export type Category = { id: number; name: string; item_count: number };
 
+// 목록 상단 요약 — 모두 '종류 수'다 (2026-10-24 개정, 이슈 #12 §6.2·§6.4).
+// 수량은 각 행의 상태 칸(대여 가능 N · 대여 중 N · 수리중 N)이 보여준다.
+// 폐기 종류는 어느 값에도 넣지 않는다.
+//   types     전체 종류
+//   available 대여 가능 종류 — 대여품 중 지금 1개 이상 빌릴 수 있는 종류
+//   rented    대여 중 종류 — 점유가 있는 종류
+//   repair    수리 중 종류 — 수리 수량이 있는 종류
+export type CatalogSummary = {
+  types: number;
+  available: number;
+  rented: number;
+  repair: number;
+};
+
 export type Item = {
   id: number;
   name: string;

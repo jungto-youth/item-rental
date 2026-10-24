@@ -23,6 +23,10 @@
   --color-primary-focus: #c2410c;
   /* 포커스 링 — 흰 배경 5:1 */
   --color-primary-tint: rgba(234, 88, 12, 0.08);
+  /* 아바타·배지 배경처럼 면으로 쓰는 연한 주황 (디자인 primary-tint #FFEDD5) */
+  --color-primary-soft: #ffedd5;
+  /* 디자인 3차 텍스트($ink3) — 표 머리·요약 라벨·비활성 탭·수리중 */
+  --color-ink-3: #9c9c9c;
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger: #e11d48;
