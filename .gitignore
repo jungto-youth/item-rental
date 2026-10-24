@@ -17,3 +17,6 @@ dist/
 
 # DB 스크립트 생성물 (db:seed·db:import-items·db:export-neon)
 server/scripts/out/
+
+# 디자인 원본은 pen.dev 공유 링크로 관리한다 (README '디자인' 참고)
+item-rental.pen

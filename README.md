@@ -86,6 +86,14 @@ server/scripts/       — 시드·시트 반영 SQL 생성기
 
 API 목록은 `server/src/routes/`, 스키마 정의는 `migrations-d1/`를 본다.
 
+## 디자인
+
+화면 디자인은 pen.dev 캔버스에서 관리한다. 저장소에는 `.pen` 파일을 두지 않고 아래 공유 링크로 참조한다.
+
+- 물품 대여 디자인: <https://app.pen.dev/s/d1wHShhvLZuU8_u6T_QR6I0nk5sOvrqsI2CFCYoEyas>
+
+편집 권한이 있는 사람은 링크로 캔버스를 열어 수정하고, 코드 반영은 이 저장소의 PR로 한다.
+
 ## 개발
 
 ```bash
