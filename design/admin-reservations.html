@@ -67,11 +67,11 @@
         background: var(--color-surface-muted);
       }
       .status-badge {
+        position: relative;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
         height: 24px;
-        padding: 0 8px;
+        padding: 0 12px;
         border-radius: 999px;
         background: var(--color-surface-muted);
         color: var(--color-ink-2);
@@ -79,11 +79,16 @@
         line-height: 1;
         white-space: nowrap;
       }
+      /* 점은 왼쪽 패딩 안에 두고, 텍스트는 좌우 12px로 대칭을 맞춘다. */
       .status-dot {
+        position: absolute;
+        left: 4px;
+        top: 50%;
         width: 6px;
         height: 6px;
         border-radius: 50%;
         background: var(--color-ink-3);
+        transform: translateY(-50%);
       }
       .filter-chip {
         display: inline-flex;
@@ -147,20 +152,7 @@
 
   <body class="antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
-    <div class="preview-bar">
-      <div class="mx-auto flex h-10 max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6">
-        <span class="text-fine text-ink-2">
-          디자인 미리보기
-          <span class="hidden text-ink-2 sm:inline">— 대여·관리</span>
-        </span>
-        <nav class="flex items-center gap-3 text-fine" aria-label="대여·관리 미리보기">
-          <a href="my-rentals.html" class="text-ink-2 transition-colors hover:text-ink-1">대여 내역</a>
-          <a href="admin-reservations.html" aria-current="page" class="font-semibold text-ink-1">대여 관리</a>
-          <a href="admin-members.html" class="text-ink-2 transition-colors hover:text-ink-1">회원 관리</a>
-        </nav>
-      </div>
-    </div>
-
+    
     <!-- ===== 공통 헤더 (관리자) ===== -->
     <header class="sticky top-0 z-30 border-b border-line bg-surface">
       <div class="mx-auto flex h-14 max-w-[1200px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6">
@@ -247,7 +239,7 @@
         >
           <div class="flex flex-wrap items-center gap-3">
             <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">4인용 텐트 · 1개</h3>
-            <span class="status-badge"><span class="status-dot"></span><span data-badge-text>대여 중</span></span>
+            <span class="status-badge"><span class="status-dot bg-ink-3"></span><span data-badge-text>대여 중</span></span>
             <button
               type="button"
               data-return
@@ -273,7 +265,7 @@
         >
           <div class="flex flex-wrap items-center gap-3">
             <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">블루투스 스피커 · 1개</h3>
-            <span class="status-badge"><span class="status-dot"></span><span data-badge-text>대여 중</span></span>
+            <span class="status-badge"><span class="status-dot bg-ink-3"></span><span data-badge-text>대여 중</span></span>
             <button
               type="button"
               data-return
@@ -299,7 +291,7 @@
         >
           <div class="flex flex-wrap items-center gap-3">
             <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">빔프로젝터 · 1개</h3>
-            <span class="status-badge"><span class="status-dot"></span><span data-badge-text>대여 중</span></span>
+            <span class="status-badge"><span class="status-dot bg-ink-3"></span><span data-badge-text>대여 중</span></span>
             <button
               type="button"
               data-return
@@ -318,7 +310,7 @@
         <article data-reservation data-status="returned" data-name="캠핑 테이블" data-qty="1" data-date="2026-10-20" class="rounded-card border border-line bg-surface p-4">
           <div class="flex flex-wrap items-center gap-3">
             <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">캠핑 테이블 · 1개</h3>
-            <span class="status-badge"><span class="status-dot"></span><span data-badge-text>반납 완료</span></span>
+            <span class="status-badge"><span class="status-dot bg-ink-3"></span><span data-badge-text>반납 완료</span></span>
           </div>
           <div class="mt-2 space-y-1 text-fine text-ink-2">
             <p>김하늘 · <a href="tel:01012345678" class="text-ink-1 underline underline-offset-2">010-1234-5678</a></p>
@@ -329,7 +321,7 @@
         <article data-reservation data-status="returned" data-name="캠핑 랜턴" data-qty="2" data-date="2026-10-18" class="rounded-card border border-line bg-surface p-4">
           <div class="flex flex-wrap items-center gap-3">
             <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">캠핑 랜턴 · 2개</h3>
-            <span class="status-badge"><span class="status-dot"></span><span data-badge-text>반납 완료</span></span>
+            <span class="status-badge"><span class="status-dot bg-ink-3"></span><span data-badge-text>반납 완료</span></span>
           </div>
           <div class="mt-2 space-y-1 text-fine text-ink-2">
             <p>정민지 · <a href="tel:01045678901" class="text-ink-1 underline underline-offset-2">010-4567-8901</a></p>
@@ -343,7 +335,7 @@
         <article data-reservation data-status="cancelled" data-name="보드게임 세트" data-qty="1" data-date="2026-10-15" class="rounded-card border border-line bg-surface p-4">
           <div class="flex flex-wrap items-center gap-3">
             <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">보드게임 세트 · 1개</h3>
-            <span class="status-badge"><span class="status-dot"></span><span data-badge-text>취소</span></span>
+            <span class="status-badge"><span class="status-dot bg-ink-3"></span><span data-badge-text>취소</span></span>
           </div>
           <div class="mt-2 space-y-1 text-fine text-ink-2">
             <p>박서연 · <a href="tel:01023456789" class="text-ink-1 underline underline-offset-2">010-2345-6789</a></p>
@@ -519,5 +511,6 @@
         });
       }
     </script>
+    <script src="preview.js"></script>
   </body>
 </html>

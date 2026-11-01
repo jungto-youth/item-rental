@@ -120,19 +120,7 @@
 
   <body class="antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
-    <div class="preview-bar">
-      <div class="mx-auto flex h-10 max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6">
-        <span class="text-fine text-ink-2">
-          디자인 미리보기
-          <span class="hidden text-ink-2 sm:inline">— 실제 화면은 아닙니다</span>
-        </span>
-        <div class="role-switch" role="group" aria-label="역할 미리보기">
-          <button type="button" class="role-btn" data-role-btn="member" aria-pressed="true">회원</button>
-          <button type="button" class="role-btn" data-role-btn="admin" aria-pressed="false">관리자</button>
-        </div>
-      </div>
-    </div>
-
+    
     <!-- 문서 헤더 -->
     <header class="border-b border-line bg-surface">
       <div class="mx-auto flex h-16 max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6">
@@ -568,20 +556,6 @@
       </div>
     </footer>
 
-    <script>
-      const root = document.documentElement;
-      const roleButtons = document.querySelectorAll("[data-role-btn]");
-
-      function setRole(role) {
-        root.dataset.role = role;
-        roleButtons.forEach((button) => {
-          button.setAttribute("aria-pressed", String(button.dataset.roleBtn === role));
-        });
-      }
-
-      roleButtons.forEach((button) => {
-        button.addEventListener("click", () => setRole(button.dataset.roleBtn));
-      });
-    </script>
+    <script src="preview.js"></script>
   </body>
 </html>

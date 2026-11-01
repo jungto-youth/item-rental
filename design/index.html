@@ -164,25 +164,7 @@
 
   <body class="antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
-    <div class="preview-bar">
-      <div class="mx-auto flex h-10 max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6">
-        <span class="text-fine text-ink-2">
-          디자인 미리보기
-          <span class="hidden text-ink-2 sm:inline">— 실제 화면은 아닙니다</span>
-        </span>
-        <div class="flex items-center gap-3">
-          <a href="login.html" class="hidden text-fine text-ink-2 underline underline-offset-2 transition-colors hover:text-ink-1 sm:inline">계정 흐름</a>
-          <a href="my-rentals.html" class="hidden text-fine text-ink-2 underline underline-offset-2 transition-colors hover:text-ink-1 sm:inline">대여/관리</a>
-          <a href="item-form.html" class="hidden text-fine text-ink-2 underline underline-offset-2 transition-colors hover:text-ink-1 sm:inline">물품 등록</a>
-          <a href="states.html" class="hidden text-fine text-ink-2 underline underline-offset-2 transition-colors hover:text-ink-1 sm:inline">상태 화면</a>
-          <div class="role-switch" role="group" aria-label="역할 미리보기">
-            <button type="button" class="role-btn" data-role-btn="member" aria-pressed="true">회원</button>
-            <button type="button" class="role-btn" data-role-btn="admin" aria-pressed="false">관리자</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
+    
     <!-- ===== 공통 헤더 ===== -->
     <header class="sticky top-0 z-30 border-b border-line bg-surface">
       <div
@@ -758,20 +740,6 @@
     </a>
 
     <script>
-      const root = document.documentElement;
-      const roleButtons = document.querySelectorAll("[data-role-btn]");
-
-      function setRole(role) {
-        root.dataset.role = role;
-        roleButtons.forEach((button) => {
-          button.setAttribute("aria-pressed", String(button.dataset.roleBtn === role));
-        });
-      }
-
-      roleButtons.forEach((button) => {
-        button.addEventListener("click", () => setRole(button.dataset.roleBtn));
-      });
-
       // ===== 검색 · 상태 필터 =====
       const homeSearch = document.getElementById("home-search");
       const homeCards = [...document.querySelectorAll("[data-item-card]")];
@@ -840,5 +808,6 @@
         });
       }
     </script>
+    <script src="preview.js"></script>
   </body>
 </html>

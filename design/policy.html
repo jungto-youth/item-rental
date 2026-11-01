@@ -88,20 +88,7 @@
 
   <body class="antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
-    <div class="preview-bar">
-      <div class="mx-auto flex h-10 max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6">
-        <span class="text-fine text-ink-2">
-          디자인 미리보기
-          <span class="hidden text-ink-2 sm:inline">— 정책</span>
-        </span>
-        <nav class="flex items-center gap-3 text-fine" aria-label="정책 미리보기">
-          <a href="policy.html?kind=terms" data-policy-tab="terms" class="text-ink-2 transition-colors hover:text-ink-1">이용약관</a>
-          <a href="policy.html?kind=privacy" data-policy-tab="privacy" class="text-ink-2 transition-colors hover:text-ink-1">개인정보</a>
-          <a href="index.html" class="text-ink-2 transition-colors hover:text-ink-1">홈</a>
-        </nav>
-      </div>
-    </div>
-
+    
     <!-- 공개 헤더 -->
     <header class="sticky top-0 z-30 border-b border-line bg-surface">
       <div class="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-4 px-4 sm:h-16 sm:px-6">
@@ -347,5 +334,6 @@
           ? "이용약관 — 물품 대여"
           : "개인정보 처리방침 — 물품 대여";
     </script>
+    <script src="preview.js"></script>
   </body>
 </html>

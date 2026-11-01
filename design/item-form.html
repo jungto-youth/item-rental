@@ -128,20 +128,7 @@
 
   <body class="antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
-    <div class="preview-bar">
-      <div class="mx-auto flex h-10 max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6">
-        <span class="text-fine text-ink-2">
-          디자인 미리보기
-          <span class="hidden text-ink-2 sm:inline">— 물품 관리</span>
-        </span>
-        <nav class="flex items-center gap-3 text-fine" aria-label="물품 관리 미리보기">
-          <a href="index.html" class="text-ink-2 transition-colors hover:text-ink-1">물품 현황</a>
-          <a href="item-form.html" data-mode-link="create" class="text-ink-2 transition-colors hover:text-ink-1">신규 등록</a>
-          <a href="item-form.html?mode=edit" data-mode-link="edit" class="text-ink-2 transition-colors hover:text-ink-1">수정</a>
-        </nav>
-      </div>
-    </div>
-
+    
     <!-- ===== 공통 헤더 (관리자) ===== -->
     <header class="sticky top-0 z-30 border-b border-line bg-surface">
       <div class="mx-auto flex h-14 max-w-[1200px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6">
@@ -776,5 +763,6 @@
         });
       }
     </script>
+    <script src="preview.js"></script>
   </body>
 </html>

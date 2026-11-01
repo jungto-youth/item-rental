@@ -67,11 +67,11 @@
         background: var(--color-surface-muted);
       }
       .status-badge {
+        position: relative;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
         height: 24px;
-        padding: 0 8px;
+        padding: 0 12px;
         border-radius: 999px;
         background: var(--color-surface-muted);
         color: var(--color-ink-2);
@@ -79,11 +79,16 @@
         line-height: 1;
         white-space: nowrap;
       }
+      /* 점은 왼쪽 패딩 안에 두고, 텍스트는 좌우 12px로 대칭을 맞춘다. */
       .status-dot {
+        position: absolute;
+        left: 4px;
+        top: 50%;
         width: 6px;
         height: 6px;
         border-radius: 50%;
         background: var(--color-ink-3);
+        transform: translateY(-50%);
       }
       .filter-chip {
         display: inline-flex;
@@ -176,20 +181,7 @@
 
   <body class="antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
-    <div class="preview-bar">
-      <div class="mx-auto flex h-10 max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6">
-        <span class="text-fine text-ink-2">
-          디자인 미리보기
-          <span class="hidden text-ink-2 sm:inline">— 대여·관리</span>
-        </span>
-        <nav class="flex items-center gap-3 text-fine" aria-label="대여·관리 미리보기">
-          <a href="my-rentals.html" class="text-ink-2 transition-colors hover:text-ink-1">대여 내역</a>
-          <a href="admin-reservations.html" class="text-ink-2 transition-colors hover:text-ink-1">대여 관리</a>
-          <a href="admin-members.html" aria-current="page" class="font-semibold text-ink-1">회원 관리</a>
-        </nav>
-      </div>
-    </div>
-
+    
     <!-- ===== 공통 헤더 (관리자) ===== -->
     <header class="sticky top-0 z-30 border-b border-line bg-surface">
       <div class="mx-auto flex h-14 max-w-[1200px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6">
@@ -312,7 +304,7 @@
                 </button>
               </div>
               <div data-withdrawn-actions class="hidden w-full items-center gap-2 sm:w-auto">
-                <span class="status-badge"><span class="status-dot"></span>탈퇴</span>
+                <span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span>
                 <button data-delete class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">등록 정보 삭제</button>
               </div>
             </div>
@@ -349,7 +341,7 @@
                 <button type="button" data-withdraw class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">탈퇴</button>
               </div>
               <div data-withdrawn-actions class="hidden w-full items-center gap-2 sm:w-auto">
-                <span class="status-badge"><span class="status-dot"></span>탈퇴</span>
+                <span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span>
                 <button data-delete class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">등록 정보 삭제</button>
               </div>
             </div>
@@ -385,7 +377,7 @@
                 <button type="button" data-withdraw class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">탈퇴</button>
               </div>
               <div data-withdrawn-actions class="hidden w-full items-center gap-2 sm:w-auto">
-                <span class="status-badge"><span class="status-dot"></span>탈퇴</span>
+                <span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span>
                 <button data-delete class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">등록 정보 삭제</button>
               </div>
             </div>
@@ -421,7 +413,7 @@
                 <button type="button" data-withdraw class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">탈퇴</button>
               </div>
               <div data-withdrawn-actions class="hidden w-full items-center gap-2 sm:w-auto">
-                <span class="status-badge"><span class="status-dot"></span>탈퇴</span>
+                <span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span>
                 <button data-delete class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">등록 정보 삭제</button>
               </div>
             </div>
@@ -458,7 +450,7 @@
                 <button type="button" data-withdraw class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">탈퇴</button>
               </div>
               <div data-withdrawn-actions class="flex w-full items-center gap-2 sm:w-auto">
-                <span class="status-badge"><span class="status-dot"></span>탈퇴</span>
+                <span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span>
                 <button
                   type="button"
                   data-delete
@@ -503,7 +495,7 @@
                 <button type="button" data-withdraw class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">탈퇴</button>
               </div>
               <div data-withdrawn-actions class="flex w-full items-center gap-2 sm:w-auto">
-                <span class="status-badge"><span class="status-dot"></span>탈퇴</span>
+                <span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span>
                 <button data-delete class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">등록 정보 삭제</button>
               </div>
             </div>
@@ -890,5 +882,6 @@
         });
       }
     </script>
+    <script src="preview.js"></script>
   </body>
 </html>

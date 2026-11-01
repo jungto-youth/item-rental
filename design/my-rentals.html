@@ -67,11 +67,11 @@
         background: var(--color-surface-muted);
       }
       .status-badge {
+        position: relative;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
         height: 24px;
-        padding: 0 8px;
+        padding: 0 12px;
         border-radius: 999px;
         background: var(--color-surface-muted);
         color: var(--color-ink-2);
@@ -79,11 +79,16 @@
         line-height: 1;
         white-space: nowrap;
       }
+      /* 점은 왼쪽 패딩 안에 두고, 텍스트는 좌우 12px로 대칭을 맞춘다. */
       .status-dot {
+        position: absolute;
+        left: 4px;
+        top: 50%;
         width: 6px;
         height: 6px;
         border-radius: 50%;
         background: var(--color-ink-3);
+        transform: translateY(-50%);
       }
       details > summary {
         list-style: none;
@@ -112,20 +117,7 @@
 
   <body class="antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
-    <div class="preview-bar">
-      <div class="mx-auto flex h-10 max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6">
-        <span class="text-fine text-ink-2">
-          디자인 미리보기
-          <span class="hidden text-ink-2 sm:inline">— 대여·관리</span>
-        </span>
-        <nav class="flex items-center gap-3 text-fine" aria-label="대여·관리 미리보기">
-          <a href="my-rentals.html" aria-current="page" class="font-semibold text-ink-1">대여 내역</a>
-          <a href="admin-reservations.html" class="text-ink-2 transition-colors hover:text-ink-1">대여 관리</a>
-          <a href="admin-members.html" class="text-ink-2 transition-colors hover:text-ink-1">회원 관리</a>
-        </nav>
-      </div>
-    </div>
-
+    
     <!-- ===== 공통 헤더 ===== -->
     <header class="sticky top-0 z-30 border-b border-line bg-surface">
       <div class="mx-auto flex h-14 max-w-[1200px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6">
@@ -274,7 +266,7 @@
           <article class="rounded-card border border-line bg-surface p-4">
             <div class="flex flex-wrap items-center gap-3">
               <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">캠핑 테이블 · 1개</h3>
-              <span class="status-badge"><span class="status-dot"></span>반납 완료</span>
+              <span class="status-badge"><span class="status-dot bg-ink-3"></span>반납 완료</span>
             </div>
             <div class="mt-2 text-fine text-ink-2">2026-10-20 대여 → 2026-10-22 반납</div>
           </article>
@@ -282,7 +274,7 @@
           <article class="rounded-card border border-line bg-surface p-4">
             <div class="flex flex-wrap items-center gap-3">
               <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">빔프로젝터 · 1개</h3>
-              <span class="status-badge"><span class="status-dot"></span>반납 완료</span>
+              <span class="status-badge"><span class="status-dot bg-ink-3"></span>반납 완료</span>
             </div>
             <div class="mt-2 text-fine text-ink-2">2026-10-05 대여 → 2026-10-07 반납</div>
           </article>
@@ -290,7 +282,7 @@
           <article class="rounded-card border border-line bg-surface p-4">
             <div class="flex flex-wrap items-center gap-3">
               <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">캠핑 랜턴 · 2개</h3>
-              <span class="status-badge"><span class="status-dot"></span>취소</span>
+              <span class="status-badge"><span class="status-dot bg-ink-3"></span>취소</span>
             </div>
             <div class="mt-2 text-fine text-ink-2">2026-09-28 대여 신청</div>
           </article>
@@ -410,7 +402,7 @@
         historyRow.innerHTML = `
           <div class="flex flex-wrap items-center gap-3">
             <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">${name} · ${qty}개</h3>
-            <span class="status-badge"><span class="status-dot"></span>${returned ? "반납 완료" : "취소"}</span>
+            <span class="status-badge"><span class="status-dot bg-ink-3"></span>${returned ? "반납 완료" : "취소"}</span>
           </div>
           <div class="mt-2 space-y-1 text-fine text-ink-2">
             <p>${returned ? `${date} 대여 → 2026-11-01 반납` : `${date} 대여 신청`}</p>
@@ -452,5 +444,6 @@
         });
       }
     </script>
+    <script src="preview.js"></script>
   </body>
 </html>
