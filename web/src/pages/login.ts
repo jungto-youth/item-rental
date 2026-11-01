@@ -15,7 +15,7 @@ export class PageLogin extends LitElement {
   @state() private developmentConfigured = false;
   @state() private developmentCode = "";
 
-  // OAuth 콜백에서 로그인이 거부되면 ?error=와 함께 이 화면으로 돌아옴 ()
+  // OAuth 콜백에서 로그인이 거부되면 ?error=와 함께 이 화면으로 돌아옴
   connectedCallback() {
     super.connectedCallback();
     void this.loadLocalTestLogin();
@@ -63,8 +63,7 @@ export class PageLogin extends LitElement {
       :host {
         display: block;
       }
-      /* 세로 중앙 정렬 — 로그인은 셸 헤더·여백을 쓰지 않는 전체 화면이다 (main.plain).
-         .pen 로그인 화면처럼 뷰포트 한가운데에 카드만 둔다. */
+      /* 로그인은 셸 헤더·여백을 쓰지 않는 전체 화면 (main.plain) */
       .stage {
         display: flex;
         flex-direction: column;
@@ -72,73 +71,160 @@ export class PageLogin extends LitElement {
         justify-content: center;
         box-sizing: border-box;
         min-height: 100dvh;
-        /* .pen 로그인 (M): 좌우 24px 여백, 세로 중앙 */
-        padding: 0 var(--space-2);
+        padding: var(--space-3);
       }
       .card {
         display: flex;
         flex-direction: column;
         align-items: center;
-        /* .pen Login Stack — 브랜드와 버튼 사이 24px */
-        gap: var(--space-3);
         width: 100%;
+        max-width: 340px;
         text-align: center;
       }
       .brand {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: var(--space-1);
       }
-      /* .pen 로그인: 모바일 40px · 데스크톱 48px */
       .logo {
         display: block;
         width: 40px;
         height: 40px;
         object-fit: contain;
+        border-radius: var(--radius);
       }
       h1 {
-        margin: 0;
-        font-size: var(--text-heading);
-        font-weight: 600;
-        line-height: var(--line-height);
+        margin: var(--space-1) 0 0;
+        color: var(--ink-1);
+        font-size: var(--text-page-title);
+        font-weight: 700;
+        letter-spacing: var(--tracking-tight);
+        line-height: 1.35;
       }
       .sub {
-        margin: 0;
-        font-size: var(--text-body);
-        font-weight: 400;
+        max-width: 280px;
+        margin: var(--space-1) 0 0;
         color: var(--ink-2);
+        font-size: var(--text-body);
         line-height: var(--line-height);
       }
+
+      /* 구글 로그인 — 브랜드색은 아이콘에만, 버튼은 조용한 흰 면 */
+      .google {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-1);
+        width: 100%;
+        height: 40px;
+        margin-top: var(--space-4);
+        padding: 0 var(--space-2);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius);
+        background: var(--surface);
+        color: var(--ink-1);
+        font-family: inherit;
+        font-size: var(--text-body);
+        font-weight: 500;
+        line-height: var(--line-height-button);
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      .google:hover:not(:disabled) {
+        background: var(--surface-muted);
+      }
+      .google:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .google:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+      .google svg {
+        width: 18px;
+        height: 18px;
+        flex: none;
+      }
+
+      .msg {
+        margin: var(--space-1) 0 0;
+        color: var(--danger);
+        font-size: var(--text-fine);
+        line-height: var(--line-height);
+      }
+      .msg:empty {
+        display: none;
+      }
+      .note {
+        margin: var(--space-2) 0 0;
+        color: var(--ink-2);
+        font-size: var(--text-fine);
+        line-height: var(--line-height);
+      }
+      .note.hidden {
+        display: none;
+      }
+
+      /* 로컬 개발 전용 — 실제 배포 화면에는 나타나지 않는다 */
+      .dev {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        width: 100%;
+        margin-top: var(--space-3);
+        padding-top: var(--space-3);
+        border-top: 1px dashed var(--border-strong);
+      }
+      .dev label {
+        text-align: left;
+        color: var(--ink-2);
+        font-size: var(--text-fine);
+      }
+      .dev input {
+        box-sizing: border-box;
+        width: 100%;
+        margin-top: var(--space-1);
+        padding: var(--space-1) var(--space-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        color: var(--ink-1);
+        font: inherit;
+        font-size: var(--text-body);
+        line-height: var(--line-height-button);
+      }
+      .dev input:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+
+      footer {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        margin-top: var(--space-5);
+        color: var(--ink-2);
+        font-size: var(--text-fine);
+      }
+      footer a {
+        color: var(--ink-2);
+        text-decoration: none;
+      }
+      footer a:hover {
+        color: var(--ink-1);
+        text-decoration: underline;
+      }
+      footer span {
+        color: var(--border-strong);
+      }
+
       @media (min-width: 600px) {
-        /* .pen 로그인: 데스크톱은 340px 고정 폭 */
-        .card {
-          max-width: 340px;
-        }
         .logo {
           width: 48px;
           height: 48px;
         }
       }
-      .msg {
-        margin: 0;
-        color: var(--danger);
-        font-size: var(--text-fine);
-        line-height: var(--line-height);
-      }
-      /* 오류가 없을 때는 흐름에서 빼내 버튼과의 16px 간격도 함께 사라지게 한다 */
-      .msg:empty {
-        display: none;
-      }
-      form { display: flex; flex-direction: column; gap: var(--space-2); }
-      label { text-align: left; font-size: var(--text-fine); }
-      input {
-        box-sizing: border-box; width: 100%; margin-top: var(--space-1);
-        border: 1px solid var(--border); border-radius: var(--radius);
-        padding: var(--space-1) var(--space-2); background: var(--surface); color: var(--ink-1);
-        font: inherit; font-size: var(--text-body); line-height: var(--line-height-button);
-      }
-      input:focus { outline: none; border-color: var(--primary); }
     `,
   ];
 
@@ -176,12 +262,28 @@ export class PageLogin extends LitElement {
         <div class="card">
           <div class="brand">
             <img class="logo" src="/logo.png" alt="" />
-            <h1>대여 관리</h1>
-            <p class="sub">물품 대여 관리 시스템</p>
+            <h1>물품 대여</h1>
+            <p class="sub">필요한 물건을 빌리고,<br />다 쓰면 돌려주세요.</p>
           </div>
 
+          <button class="google" ?disabled=${this.busy} @click=${this.signIn}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.58v2.98h3.88c2.27-2.09 3.54-5.17 3.54-8.8Z" />
+              <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.95-2.93l-3.88-2.98c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09A12 12 0 0 0 12 24Z" />
+              <path fill="#FBBC05" d="M5.27 14.29A7.2 7.2 0 0 1 4.89 12c0-.8.14-1.57.38-2.29V6.62H1.29A12 12 0 0 0 0 12c0 1.94.46 3.77 1.29 5.38l3.98-3.09Z" />
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75Z" />
+            </svg>
+            ${this.busy ? "이동 중…" : "Google로 계속하기"}
+          </button>
+
+          <p class="msg" role="alert" aria-live="polite">${this.message}</p>
+
+          <p class="note ${this.message ? "hidden" : ""}">
+            정토회 계정(@jungto.org)으로 로그인하면<br />바로 회원이 돼요.
+          </p>
+
           ${this.localTestLogin
-            ? html`<form @submit=${this.signInLocalTest}>
+            ? html`<form class="dev" @submit=${this.signInLocalTest}>
                 <label for="dev-code">테스트 접근 코드
                   <input id="dev-code" type="password" autocomplete="off" autocapitalize="off"
                     spellcheck="false" minlength="32" maxlength="128" required
@@ -192,7 +294,7 @@ export class PageLogin extends LitElement {
                 ${!this.developmentConfigured
                   ? html`<p class="msg" role="status">.dev.vars에 무작위 DEV_LOGIN_CODE(32자 이상)를 설정하고 개발 서버를 다시 실행해주세요</p>` : ""}
                 <x-button
-                  variant="primary"
+                  variant="secondary"
                   type="submit"
                   ?loading=${this.busy}
                   ?disabled=${!this.developmentConfigured}
@@ -200,12 +302,14 @@ export class PageLogin extends LitElement {
                   로컬 테스트 관리자 로그인
                 </x-button>
               </form>`
-            : html`<x-button variant="primary" ?loading=${this.busy} @click=${this.signIn}>
-                ${this.busy ? "이동 중…" : "Google로 계속하기"}
-              </x-button>`}
-
-          <p class="msg" aria-live="polite">${this.message}</p>
+            : ""}
         </div>
+
+        <footer>
+          <a href="/policy/terms">이용약관</a>
+          <span aria-hidden="true">·</span>
+          <a href="/policy/privacy">개인정보처리방침</a>
+        </footer>
       </div>
     `;
   }

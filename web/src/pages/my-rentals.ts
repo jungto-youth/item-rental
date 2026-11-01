@@ -11,7 +11,6 @@ import "../components/ui/page-header";
 import "../components/common/reservation-row";
 import type { MyReservation } from "../types";
 import { reduceMotion } from "../styles/motion";
-import { sectionTitleCss } from "../styles/ui";
 
 // 대여 내역 페이지: 현재 대여 중 + 대여 이력 + 반납·취소
 @customElement("page-my-rentals")
@@ -28,51 +27,112 @@ export class PageMyRentals extends LitElement {
 
   static styles = [
     reduceMotion,
-    sectionTitleCss,
     css`
       :host {
         display: block;
+        max-width: 840px;
+        margin: 0 auto;
       }
-      .section-top {
-        margin-top: var(--space-1);
-      }
-      .empty-box {
-        text-align: center;
-        padding: var(--space-2) 0;
-        background: transparent;
-        border: 0;
-        color: var(--ink-2);
-        font-size: var(--text-fine);
-      }
-      .empty-box a {
-        display: inline-block;
-        margin-top: var(--space-1);
-        color: var(--primary-strong);
-        font-weight: 400;
-        text-decoration: none;
-      }
+
       .msg {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin: var(--space-1) 0 0;
         color: var(--ink-1);
         font-size: var(--text-fine);
         min-height: 1.2em;
-        margin: 0 0 var(--space-1);
+      }
+      .msg svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        color: var(--primary-strong);
       }
       .msg.error {
         color: var(--danger);
       }
-      details.history-details {
+      .msg.error svg {
+        color: var(--danger);
+      }
+
+      section {
         margin-top: var(--space-3);
       }
-      details.history-details summary {
-        cursor: pointer;
+      h2 {
+        margin: 0;
+        color: var(--ink-1);
         font-size: var(--text-heading);
         font-weight: 600;
         letter-spacing: var(--tracking-tight);
+      }
+      .list {
+        display: grid;
+        gap: var(--space-1);
+        margin-top: var(--space-2);
+      }
+
+      /* 현재 대여가 없을 때 — 다음 행동을 카드 안에 남긴다 */
+      .empty-card {
+        margin-top: var(--space-2);
+        padding: var(--space-5) var(--space-3);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        text-align: center;
+        box-sizing: border-box;
+      }
+      .empty-card p {
+        margin: 0;
+      }
+      .empty-title {
         color: var(--ink-1);
+        font-size: var(--text-body);
+        font-weight: 600;
+      }
+      .empty-sub {
+        margin-top: var(--space-1) !important;
+        color: var(--ink-2);
+        font-size: var(--text-fine);
+      }
+      .empty-card x-button {
+        display: inline-block;
+        margin-top: var(--space-2);
+      }
+
+      details {
+        margin-top: var(--space-4);
+      }
+      summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
         padding: var(--space-1) 0;
+        color: var(--ink-1);
+        font-size: var(--text-heading);
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+        cursor: pointer;
+        list-style: none;
         user-select: none;
       }
+      summary::-webkit-details-marker {
+        display: none;
+      }
+      summary svg {
+        width: 20px;
+        height: 20px;
+        flex: none;
+        color: var(--ink-2);
+        transition: transform 0.15s ease;
+      }
+      details[open] summary svg {
+        transform: rotate(180deg);
+      }
       .history-list {
+        display: grid;
+        gap: var(--space-1);
         margin-top: var(--space-2);
       }
     `,
@@ -217,27 +277,39 @@ export class PageMyRentals extends LitElement {
     );
 
     return html`
-      <x-page-header title="대여 내역"></x-page-header>
+      <x-page-header
+        title="대여 내역"
+        subtitle="지금 빌린 물품과 지난 기록을 확인해요."
+      ></x-page-header>
 
       ${this.message
         ? html`<p
             class="msg ${this.messageTone}"
             role=${this.messageTone === "error" ? "alert" : "status"}
           >
-            ${this.message}
+            ${this.messageTone === "success"
+              ? html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>`
+              : ""}
+            <span>${this.message}</span>
           </p>`
         : ""}
 
       <!-- 1순위: 현재 대여 중인 물품 -->
-      <section class="section-top">
+      <section>
         <h2>현재 대여 중 (${rentedList.length})</h2>
         ${rentedList.length > 0
-          ? html`${rentedList.map((r) => this.renderActiveRow(r))}`
+          ? html`<div class="list">
+              ${rentedList.map((r) => this.renderActiveRow(r))}
+            </div>`
           : html`
-              <div class="empty-box">
-                현재 대여 중인 물품이 없어요
-                <br />
-                <a href="/">물품 둘러보고 대여하기 →</a>
+              <div class="empty-card">
+                <p class="empty-title">현재 대여 중인 물품이 없어요</p>
+                <p class="empty-sub">필요한 물품을 찾아 바로 대여할 수 있어요.</p>
+                <x-button variant="secondary" @click=${() => navigate("/")}>
+                  물품 둘러보기
+                </x-button>
               </div>
             `}
       </section>
@@ -245,8 +317,13 @@ export class PageMyRentals extends LitElement {
       <!-- 2순위: 과거 대여 이력 -->
       ${historyList.length > 0
         ? html`
-            <details class="history-details" ?open=${rentedList.length === 0}>
-              <summary>대여 이력 (${historyList.length})</summary>
+            <details ?open=${rentedList.length === 0}>
+              <summary>
+                <span>대여 이력 (${historyList.length})</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </summary>
               <div class="history-list">
                 ${historyList.map((r) => this.renderHistoryRow(r))}
               </div>

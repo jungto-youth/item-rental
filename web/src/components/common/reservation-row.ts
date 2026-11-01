@@ -43,7 +43,7 @@ export class ReservationRow extends LitElement {
       .row {
         display: flex;
         align-items: center;
-        gap: var(--space-2);
+        gap: 12px;
       }
       .title {
         flex: 1;
@@ -66,7 +66,7 @@ export class ReservationRow extends LitElement {
       }
       .lines {
         display: grid;
-        gap: var(--space-1);
+        gap: 4px;
         margin-top: var(--space-1);
         font-size: var(--text-fine);
         color: var(--ink-2);
@@ -82,7 +82,7 @@ export class ReservationRow extends LitElement {
         margin: 0;
       }
       /* 좁은 화면에서는 액션을 다음 줄로 내려 이름이 잘리지 않게 한다 */
-      @media (max-width: 480px) {
+      @media (max-width: 639px) {
         .row {
           flex-wrap: wrap;
         }

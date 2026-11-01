@@ -15,6 +15,8 @@ export class XInput extends LitElement {
   @property() value = "";
   @property({ type: Boolean, reflect: true }) required = false;
   @property({ type: Boolean, reflect: true }) disabled = false;
+  // 필드 오류 — 테두리만 위험색으로. 문구는 사용처가 소유한다
+  @property({ type: Boolean, reflect: true }) invalid = false;
   // type="textarea"일 때 행 수
   @property({ type: Number }) rows = 2;
   // type="number"일 때 최솟값 — 네이티브 전달용(스피너·키보드 힌트), 폼 검증은 required 범위만
@@ -57,11 +59,15 @@ export class XInput extends LitElement {
       border-color: var(--primary);
       background: var(--surface);
     }
+    :host([invalid]) .control {
+      border-color: var(--danger);
+    }
     .control:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
     input.control {
+      height: 40px;
       padding: var(--space-1) var(--space-2);
       font-size: var(--text-body);
     }

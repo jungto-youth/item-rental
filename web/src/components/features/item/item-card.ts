@@ -100,6 +100,12 @@ export class ItemCard extends LitElement {
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+      /* 모바일 3열에서는 분류를 숨기고 위치만 — "7층 비…" 잘림을 없앤다 */
+      @media (max-width: 639px) {
+        .cat {
+          display: none;
+        }
+      }
       .status {
         display: flex;
         flex-wrap: wrap;
@@ -118,12 +124,21 @@ export class ItemCard extends LitElement {
         font-weight: 600;
         white-space: nowrap;
       }
+      .primary b {
+        font-weight: 600;
+        color: var(--ink-1);
+      }
       .primary.rented,
       .primary.repair,
       .primary.consumable,
       .primary.retired {
-        color: var(--ink-2);
         font-weight: 400;
+      }
+      .primary.rented .rest,
+      .primary.repair .rest,
+      .primary.consumable .rest,
+      .primary.retired .rest {
+        color: var(--ink-2);
       }
       .dot {
         flex: none;
@@ -157,16 +172,29 @@ export class ItemCard extends LitElement {
     `,
   ];
 
+  // "대여 가능 2" → 수량을 먼저 굵게, "수리 중 1" → 라벨 다음에 수량.
+  // 시안 카드의 상태 줄과 같은 읽기 순서를 만든다.
+  private statusLabel(part: { key: string; label: string }) {
+    const m = part.label.match(/^(.*?)\s*(\d+)$/);
+    if (!m) return html`<span class="rest">${part.label}</span>`;
+    const [, text, count] = m;
+    // 대여 중은 수량을 세지 않고 상태만 — 카드의 대여 가능 수량이 우선 정보다
+    if (part.key === "rented") return html`<span class="rest">${text}</span>`;
+    const countEl = html`<b>${count}개</b>`;
+    if (part.key === "available") {
+      return html`${countEl}<span class="rest">${text}</span>`;
+    }
+    return html`<span class="rest">${text}</span>${countEl}`;
+  }
+
   render() {
     const it = this.item;
     if (!it) return html``;
 
     const cat = (it.categories ?? []).map((c) => c.name).join(", ");
-    const meta = [cat, it.location ?? ""].filter(Boolean).join(" · ") || "분류·위치 미지정";
-    const parts = statusParts(it);
-    const primary = parts[0];
-    const rest = parts.slice(1);
+    const loc = it.location ?? "";
     const photo = it.photos?.[0]?.url ?? "";
+    const primary = statusParts(it)[0];
 
     return html`
       <a class="card" href=${this.href}>
@@ -191,15 +219,17 @@ export class ItemCard extends LitElement {
 
         <div class="body">
           <span class="name" title=${it.name}>${it.name}</span>
-          <span class="meta" title=${meta}>${meta}</span>
+          <span class="meta" title=${[cat, loc].filter(Boolean).join(" · ")}>
+            ${cat ? html`<span class="cat">${cat}${loc ? " · " : ""}</span>` : ""}
+            <span class="loc">${loc || (cat ? "" : "위치 미지정")}</span>
+          </span>
           <span class="status">
             ${primary
               ? html`
                   <span class="primary ${primary.key}">
                     <span class="dot ${primary.key}" aria-hidden="true"></span>
-                    ${primary.label}
+                    ${this.statusLabel(primary)}
                   </span>
-                  ${rest.map((p) => html`<span class="rest">${p.label}</span>`)}
                 `
               : html`<span class="rest">미지정</span>`}
           </span>

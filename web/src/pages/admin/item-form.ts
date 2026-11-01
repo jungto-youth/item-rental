@@ -99,41 +99,46 @@ export class PageAdminItemForm extends LitElement {
     css`
       :host {
         display: block;
+        max-width: 720px;
+        margin: 0 auto;
       }
 
-      /* 관리자 폼은 본문 최대 폭(--layout-max) 안에서 전체 폭을 쓴다 */
       .wrap {
         max-width: 100%;
       }
 
+      /* 한 열에 세 카드 — 기본 정보 / 분류·상태 / 재고·사진 */
       form {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        display: flex;
+        flex-direction: column;
         gap: var(--space-2);
-        align-items: start;
+        margin-top: var(--space-3);
       }
 
-      /* 3 카드 — 기본 정보 / 분류·상태 / 재고·사진 */
       .form-card {
         display: flex;
         flex-direction: column;
         gap: var(--space-2);
         min-width: 0;
-        padding: var(--space-2);
+        padding: var(--space-3);
         border: 1px solid var(--border);
         border-radius: var(--radius);
         background: var(--surface);
         box-sizing: border-box;
       }
-
-      .form-card.full {
-        grid-column: 1 / -1;
+      @media (max-width: 639px) {
+        .form-card {
+          padding: var(--space-2);
+        }
       }
 
       .form-card h2 {
         margin: 0;
-        font-size: var(--text-body);
+        padding-bottom: var(--space-1);
+        border-bottom: 1px solid var(--border);
+        font-size: var(--text-heading);
         font-weight: 600;
+        letter-spacing: var(--tracking-tight);
         color: var(--ink-1);
       }
 
@@ -169,15 +174,6 @@ export class PageAdminItemForm extends LitElement {
         gap: var(--space-2);
       }
 
-      @media (max-width: 899px) {
-        form {
-          grid-template-columns: 1fr;
-        }
-        .form-card.full {
-          grid-column: auto;
-        }
-      }
-
       @media (max-width: 560px) {
         .row {
           grid-template-columns: 1fr;
@@ -185,22 +181,33 @@ export class PageAdminItemForm extends LitElement {
       }
 
       .error-msg {
+        margin: 0;
+        padding: var(--space-1) var(--space-2);
+        border: 1px solid var(--danger);
+        border-radius: var(--radius);
+        background: var(--danger-soft);
         color: var(--danger);
         font-size: var(--text-fine);
-        margin: 0;
+        line-height: var(--line-height);
       }
 
       .footer-actions {
-        grid-column: 1 / -1;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
+        flex-direction: column;
         gap: var(--space-2);
-        margin-top: var(--space-1);
+        margin-top: var(--space-3);
+      }
+      @media (min-width: 640px) {
+        .footer-actions {
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+        }
       }
 
       .footer-left {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: var(--space-1);
         min-width: 0;
@@ -208,8 +215,17 @@ export class PageAdminItemForm extends LitElement {
 
       .btn-group {
         display: flex;
+        justify-content: flex-end;
         gap: var(--space-1);
         flex-shrink: 0;
+      }
+      @media (max-width: 639px) {
+        .btn-group {
+          width: 100%;
+        }
+        .btn-group x-button {
+          flex: 1;
+        }
       }
     `,
   ];
@@ -530,6 +546,9 @@ export class PageAdminItemForm extends LitElement {
     return html`
       <admin-page
         title=${this.isCreate ? "물품 등록" : "물품 수정"}
+        subtitle=${this.isCreate
+          ? "새 물품의 정보와 사진을 등록해요."
+          : "물품 정보와 사진을 수정해요."}
         ?loading=${this.loading}
         .error=${this.loadError}
         @retry=${() => this.init()}
@@ -647,7 +666,9 @@ export class PageAdminItemForm extends LitElement {
                 @remove=${this.onPhotoRemove}
               ></photo-uploader>
               ${this.processingPhotos ? html`<p role="status">사진을 축소하고 있어요…</p>` : ""}
-              <p class="hint">사진 추가·삭제는 저장할 때 함께 반영돼요</p>
+              <p class="hint">
+                사진 추가·삭제는 저장할 때 함께 반영돼요. 첫 사진이 대표 사진이에요.
+              </p>
             </section>
 
             <div class="footer-actions">

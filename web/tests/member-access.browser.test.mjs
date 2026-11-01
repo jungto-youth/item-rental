@@ -44,11 +44,11 @@ try {
   user = admin;
   await page.goto(base + "admin/members");
   const management = page.locator("page-admin-members");
-  const busy = management.locator('reservation-row[title="대여 중 회원"]');
+  const busy = management.locator(".member", { hasText: "대여 중 회원" });
   await busy.waitFor();
   assert.equal(await busy.getByRole("button", { name: "등록 정보 삭제", exact: true }).isDisabled(), true);
   await busy.getByText(/대여 중 1건/).waitFor();
-  const ready = management.locator('reservation-row[title="정리 회원"]');
+  const ready = management.locator(".member", { hasText: "정리 회원" });
   await ready.getByRole("button", { name: "등록 정보 삭제", exact: true }).click();
   // Scope to the custom-element host so slotted message/footer content is included.
   const confirmation = page.locator("x-modal[open]");

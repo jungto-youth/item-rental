@@ -14,7 +14,7 @@
       .bar {
         display: flex;
         align-items: center;
-        gap: var(--space-4);
+        gap: var(--space-2);
         box-sizing: border-box;
         height: 100%;
         max-width: var(--layout-max);
@@ -36,7 +36,8 @@
       /* 주 메뉴 — 로고 옆 텍스트 링크 */
       .nav {
         display: flex;
-        align-items: center;
+        align-items: stretch;
+        align-self: stretch;
         gap: var(--space-3);
         min-width: 0;
         overflow-x: auto;
@@ -46,8 +47,10 @@
         display: none;
       }
       .nav a {
+        display: flex;
+        align-items: center;
         flex-shrink: 0;
-        padding: var(--space-1) 0;
+        height: 100%;
         border-bottom: 2px solid transparent;
         color: var(--ink-2);
         text-decoration: none;
@@ -103,10 +106,16 @@
         font-size: var(--text-body);
       }
       .account-chevron {
+        display: none;
         flex: none;
         width: 16px;
         height: 16px;
         color: var(--ink-2);
+      }
+      @media (min-width: 640px) {
+        .account-chevron {
+          display: block;
+        }
       }
       .account-btn:focus-visible {
         outline: 2px solid var(--ink-1);
@@ -162,6 +171,11 @@
         line-height: var(--line-height-button);
         letter-spacing: var(--tracking-tight);
         cursor: pointer;
+      }
+      @media (min-width: 768px) {
+        .bar {
+          gap: var(--space-3);
+        }
       }
       @media (max-width: 767px) {
         header {

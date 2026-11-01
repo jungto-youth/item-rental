@@ -49,12 +49,26 @@ export class ItemGallery extends LitElement {
       height: 40px;
     }
 
+    /* 큰 사진 위 순번 — "1 / 3" */
+    .counter {
+      position: absolute;
+      right: var(--space-2);
+      bottom: var(--space-2);
+      padding: 4px var(--space-1);
+      border-radius: var(--radius-pill);
+      background: rgba(17, 24, 39, 0.7);
+      color: #fff;
+      font-size: var(--text-fine);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 썸네일은 3열 — 사진 수와 무관하게 갤러리 폭을 꽉 채운다 */
     .thumbs {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: var(--space-1);
-      margin-top: var(--space-2);
-      overflow-x: auto;
-      padding-bottom: var(--space-1);
+      margin-top: var(--space-1);
     }
 
     .thumb-btn {
@@ -62,21 +76,26 @@ export class ItemGallery extends LitElement {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 64px;
-      height: 64px;
-      padding: var(--space-1);
-      border: 1px solid transparent;
+      aspect-ratio: 4 / 3;
+      width: 100%;
+      padding: 0;
+      border: 1px solid var(--border);
       border-radius: var(--radius);
       background: var(--surface-muted);
       color: var(--ink-3);
       overflow: hidden;
       cursor: pointer;
       line-height: var(--line-height-button);
-      flex-shrink: 0;
     }
 
     .thumb-btn.active {
-      border-color: var(--primary);
+      border: 2px solid var(--ink-1);
+    }
+    .thumb-btn:hover {
+      border-color: var(--border-strong);
+    }
+    .thumb-btn.active:hover {
+      border-color: var(--ink-1);
     }
 
     .thumb-btn img {
@@ -135,6 +154,11 @@ export class ItemGallery extends LitElement {
               alt=${this.name ? `${this.name} 사진` : "물품 사진"}
               @error=${this.handleMainError}
             />`
+          : ""}
+        ${this.photos.length > 0
+          ? html`<span class="counter" aria-hidden="true"
+              >${this.selectedIdx + 1} / ${this.photos.length}</span
+            >`
           : ""}
       </div>
 

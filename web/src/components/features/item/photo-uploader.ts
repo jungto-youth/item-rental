@@ -116,42 +116,67 @@ export class PhotoUploader extends LitElement {
     }
 
     .photos-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-2);
       font-size: var(--text-fine);
-      font-weight: 600;
+      font-weight: 500;
       color: var(--ink-2);
     }
+    .photo-count {
+      font-variant-numeric: tabular-nums;
+    }
 
+    /* 3칸 슬롯 — 첫 사진이 대표, 빈 칸은 모두 추가 버튼이다 */
     .pics {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: var(--space-1);
-      flex-wrap: wrap;
     }
 
     .pic {
       position: relative;
-      width: 64px;
-      height: 64px;
+      aspect-ratio: 4 / 3;
+      width: 100%;
       border-radius: var(--radius);
       overflow: hidden;
       border: 1px solid var(--border);
+      background: var(--surface-muted);
     }
 
     .pic img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      display: block;
+    }
+
+    .representative {
+      position: absolute;
+      left: var(--space-1);
+      top: var(--space-1);
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      padding: 0 var(--space-1);
+      border-radius: var(--radius-pill);
+      background: var(--primary-soft);
+      color: var(--primary-strong);
+      font-size: var(--text-fine);
+      font-weight: 500;
     }
 
     .pic-del {
       position: absolute;
       top: var(--space-1);
       right: var(--space-1);
-      width: 20px;
-      height: 20px;
-      background: rgba(0, 0, 0, 0.65);
-      color: var(--bg);
+      width: 24px;
+      height: 24px;
+      background: rgba(17, 24, 39, 0.7);
+      color: #fff;
       border: none;
-      border-radius: var(--radius);
+      border-radius: var(--radius-pill);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -159,16 +184,19 @@ export class PhotoUploader extends LitElement {
       font-size: var(--text-fine);
       line-height: var(--line-height-button);
     }
+    .pic-del:hover {
+      background: var(--ink-1);
+    }
 
-    /* ── 사진 추가 타일 (0장일 때 온전한 드롭존으로 확장) ── */
+    /* ── 사진 추가 타일 ── */
     .add-tile {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: var(--space-1);
-      width: 64px;
-      height: 64px;
+      aspect-ratio: 4 / 3;
+      width: 100%;
       box-sizing: border-box;
       border: 1px dashed var(--border-strong);
       border-radius: var(--radius);
@@ -203,22 +231,17 @@ export class PhotoUploader extends LitElement {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--primary-soft);
-      color: var(--primary-strong);
+      color: var(--ink-2);
     }
 
     .add-icon svg {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
     }
 
     .add-main {
       font-size: var(--text-fine);
-      font-weight: 600;
-      color: var(--ink-1);
+      color: var(--ink-2);
     }
 
     .photo-hint {
@@ -254,7 +277,10 @@ export class PhotoUploader extends LitElement {
     const n = this.entries.length;
     return html`
       <div class="photos-box">
-        <span class="photos-head">사진 관리 (${n}/${MAX_PHOTOS})</span>
+        <span class="photos-head">
+          <span>사진 관리</span>
+          <span class="photo-count">${n} / ${MAX_PHOTOS}</span>
+        </span>
         <input
           id="photo-files"
           type="file"
@@ -276,13 +302,15 @@ export class PhotoUploader extends LitElement {
         />
         <div class="pics">
           ${this.entries.map(
-            (p) => html`
+            (p, i) => html`
               <div class="pic">
                 <img src=${p.url} alt="" />
+                ${i === 0 ? html`<span class="representative">대표</span>` : ""}
                 <button
                   type="button"
                   class="pic-del"
-                  title="삭제"
+                  title="사진 삭제"
+                  aria-label="사진 삭제"
                   ?disabled=${this.disabled}
                   @click=${() => this.handleRemove(p.key)}
                 >
@@ -291,36 +319,31 @@ export class PhotoUploader extends LitElement {
               </div>
             `,
           )}
-          ${n < MAX_PHOTOS
-            ? html`
-                <button
-                  type="button"
-                  class="add-tile"
-                  title="사진 추가"
-                  ?disabled=${this.disabled}
-                  @click=${this.openChooser}
+          ${Array.from({ length: MAX_PHOTOS - n }, () => html`
+            <button
+              type="button"
+              class="add-tile"
+              title="사진 추가"
+              ?disabled=${this.disabled}
+              @click=${this.openChooser}
+            >
+              <span class="add-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
                 >
-                  <span class="add-icon">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.7"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                      <circle cx="9" cy="9" r="2" />
-                      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                    </svg>
-                  </span>
-                  ${n === 0
-                    ? html`<span class="add-main">사진 추가</span>`
-                    : ""}
-                </button>
-              `
-            : ""}
+                  <path d="M5 12h14" />
+                  <path d="M12 5v14" />
+                </svg>
+              </span>
+              <span class="add-main">사진 추가</span>
+            </button>
+          `)}
         </div>
         <x-modal
           ?open=${this.chooserOpen}

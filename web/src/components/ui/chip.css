@@ -28,6 +28,19 @@
   }
 }
 
+/* 필터·탭처럼 4개 안팎의 칩은 모바일에서 2×2 그리드로 — 가로 스크롤로
+   마지막 칩이 잘리는 문제를 없앤다. */
+@media (max-width: 639px) {
+  :host([layout="grid"]) .row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  :host([layout="grid"]) .chip {
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
 /* 미선택(흰 면) → 선택(잉크 채움). 8px/16px 패딩 알약. */
 .chip {
   flex-shrink: 0;
@@ -71,7 +84,12 @@
 
 .chip .count {
   font-size: var(--text-fine);
-  opacity: 0.8;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.chip.active .count {
+  color: rgba(255, 255, 255, 0.75);
 }
 
 /* lg(44px) — 폼의 x-input 등 44px 컨트롤과 나란히 둘 때 */

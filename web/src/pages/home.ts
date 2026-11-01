@@ -2,18 +2,31 @@ import { css, html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { navigate, syncScrollKey } from "../router";
 import { session } from "../context/session";
+import { type CatalogSummary } from "../types";
 import { reduceMotion } from "../styles/motion";
 import { searchFieldCss } from "../styles/ui";
 import "../components/ui/button";
+import "../components/ui/chip";
 import "../components/ui/page-header";
 import "../components/ui/notice";
 import "../components/features/item/item-explorer";
 
-// 물품 현황 — 페이지 제목·검색·등록 액션을 소유한다.
-// 필터 칩과 목록은 item-explorer 가 그린다.
+type TabKey = "all" | "available" | "rented" | "repair";
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "all", label: "전체" },
+  { key: "available", label: "대여 가능" },
+  { key: "rented", label: "대여 중" },
+  { key: "repair", label: "수리 중" },
+];
+
+// 물품 현황 — 페이지 제목·검색·필터·등록 액션을 소유한다.
+// 목록과 탭 숫자는 item-explorer 가 데이터에서 계산해 counts-change 로 알려준다.
 @customElement("page-home")
 export class PageHome extends LitElement {
   @state() private q = "";
+  @state() private tab: TabKey = "all";
+  @state() private summary: CatalogSummary | null = null;
   @state() private denied = false;
   @state() private isAdmin = false;
   private unsub: (() => void) | null = null;
@@ -26,57 +39,78 @@ export class PageHome extends LitElement {
         display: block;
       }
 
-      /* 제목은 x-page-header, 검색·등록 액션은 그 아래 툴바가 소유한다 */
+      /* 제목은 x-page-header, 검색·필터·등록 액션은 그 아래 툴바가 소유한다 */
       .toolbar {
         display: flex;
-        align-items: center;
-        gap: var(--space-1);
-        margin-bottom: var(--space-2);
+        flex-direction: column;
+        gap: var(--space-2);
+        margin-bottom: var(--space-3);
       }
 
       .controls {
-        display: flex;
-        align-items: center;
-        gap: var(--space-1);
-        width: min(100%, 560px);
+        position: relative;
+        width: 100%;
+        max-width: 560px;
       }
 
-      .search-box {
-        display: flex;
-        align-items: center;
-        gap: var(--space-1);
-        flex: 1;
-        min-width: 0;
-        width: 100%;
+      .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        width: 16px;
+        height: 16px;
+        color: var(--ink-3);
+        pointer-events: none;
+        transform: translateY(-50%);
       }
 
       /* 검색 필드 — 테두리·라운드·글자는 searchFieldCss 가 소유한다 */
       .search {
         flex: 1;
         min-width: 0;
-        width: auto;
+        width: 100%;
+        height: 40px;
+        padding-left: 40px;
+        padding-right: 40px;
       }
 
       .clear-btn {
+        position: absolute;
+        right: 4px;
+        top: 50%;
         display: flex;
-        flex: none;
         align-items: center;
         justify-content: center;
-        width: var(--space-4);
-        height: var(--space-4);
+        width: 32px;
+        height: 32px;
         padding: 0;
         border: none;
         border-radius: var(--radius-pill);
-        background: var(--surface-muted);
+        background: transparent;
         color: var(--ink-2);
         font-size: var(--text-fine);
         line-height: var(--line-height-button);
         cursor: pointer;
+        transform: translateY(-50%);
       }
 
       .clear-btn:hover {
-        background: var(--border);
+        background: var(--surface-muted);
         color: var(--ink-1);
+      }
+
+      .filters {
+        display: flex;
+        min-width: 0;
+      }
+
+      x-chip {
+        flex: 1;
+        min-width: 0;
+      }
+
+      x-button.add {
+        display: none;
       }
 
       .notice {
@@ -84,13 +118,19 @@ export class PageHome extends LitElement {
         margin: 0 0 var(--space-2);
       }
 
-      /* 좁은 화면 — 제목 → 검색 → 칩 → 목록. 등록은 하단 FAB 가 맡는다. */
-      @media (max-width: 859px) {
+      @media (min-width: 1024px) {
+        .toolbar {
+          flex-direction: row;
+          align-items: center;
+        }
         .controls {
-          width: 100%;
+          max-width: 400px;
+        }
+        .filters {
+          margin-left: auto;
         }
         x-button.add {
-          display: none;
+          display: inline-block;
         }
       }
     `,
@@ -141,54 +181,92 @@ export class PageHome extends LitElement {
     }
   }
 
+  private tabCount(key: TabKey): number | undefined {
+    if (!this.summary) return undefined;
+    if (key === "all") return this.summary.types;
+    if (key === "available") return this.summary.available;
+    if (key === "rented") return this.summary.rented;
+    return this.summary.repair;
+  }
+
+  private get subtitle(): string {
+    return this.summary ? `함께 쓰는 물품 ${this.summary.types}종` : "함께 쓰는 물품";
+  }
+
   render() {
     return html`
       <div class="page">
-        <x-page-header title="물품 현황"></x-page-header>
+        <x-page-header title="물품 현황" subtitle=${this.subtitle}></x-page-header>
 
         <div class="toolbar">
           <div class="controls">
-            <div class="search-box">
-              <input
-                class="search-input search"
-                type="search"
-                aria-label="물품 검색"
-                placeholder="이름, 위치, 분류 검색"
-                .value=${this.q}
-                @input=${this.onSearch}
-                @keydown=${(e: KeyboardEvent) => {
-                  // Esc 로 검색어 비우기 — type="search" 브라우저 기본 동작에 의존하지 않는다
-                  if (e.key === "Escape" && this.q) {
-                    e.preventDefault();
-                    this.clearSearch();
-                  }
-                }}
-              />
-              ${this.q
-                ? html`
-                    <button
-                      type="button"
-                      class="clear-btn"
-                      aria-label="검색어 지우기"
-                      title="검색어 지우기"
-                      @click=${this.clearSearch}
-                    >
-                      ✕
-                    </button>
-                  `
-                : ""}
-            </div>
-
-            ${this.isAdmin
-              ? html`<x-button
-                  class="add"
-                  variant="primary"
-                  @click=${() => navigate("/items/new")}
-                >
-                  물품 등록
-                </x-button>`
+            <svg
+              class="search-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              class="search-input search"
+              type="search"
+              aria-label="물품 검색"
+              placeholder="이름, 위치, 분류 검색"
+              .value=${this.q}
+              @input=${this.onSearch}
+              @keydown=${(e: KeyboardEvent) => {
+                // Esc 로 검색어 비우기 — type="search" 브라우저 기본 동작에 의존하지 않는다
+                if (e.key === "Escape" && this.q) {
+                  e.preventDefault();
+                  this.clearSearch();
+                }
+              }}
+            />
+            ${this.q
+              ? html`
+                  <button
+                    type="button"
+                    class="clear-btn"
+                    aria-label="검색어 지우기"
+                    title="검색어 지우기"
+                    @click=${this.clearSearch}
+                  >
+                    ✕
+                  </button>
+                `
               : ""}
           </div>
+
+          <div class="filters">
+            <x-chip
+              layout="grid"
+              ariaLabel="물품 상태 필터"
+              .value=${this.tab}
+              .options=${TABS.map((t) => ({
+                value: t.key,
+                label: t.label,
+                count: this.tabCount(t.key),
+              }))}
+              @change=${(e: CustomEvent<{ value: string }>) =>
+                (this.tab = e.detail.value as TabKey)}
+            ></x-chip>
+          </div>
+
+          ${this.isAdmin
+            ? html`<x-button
+                class="add"
+                variant="primary"
+                @click=${() => navigate("/items/new")}
+              >
+                물품 등록
+              </x-button>`
+            : ""}
         </div>
 
         ${this.denied
@@ -201,7 +279,13 @@ export class PageHome extends LitElement {
             `
           : ""}
 
-        <item-explorer .q=${this.q} @clear-search=${this.clearSearch}></item-explorer>
+        <item-explorer
+          .q=${this.q}
+          .tab=${this.tab}
+          @counts-change=${(e: CustomEvent<CatalogSummary>) =>
+            (this.summary = e.detail)}
+          @clear-search=${this.clearSearch}
+        ></item-explorer>
       </div>
     `;
   }

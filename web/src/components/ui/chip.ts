@@ -18,6 +18,8 @@ export class XChip extends LitElement {
   @property() ariaLabel = "";
   // sm(32px)은 콘텐츠 영역 기본, lg(44px)는 폼의 x-input 등 44px 컨트롤과 나란히 둘 때
   @property({ reflect: true }) size: "sm" | "lg" = "sm";
+  // grid — 필터·탭을 모바일에서 2×2로 펼친다 (가로 스크롤로 칩이 잘리지 않게)
+  @property({ reflect: true }) layout: "scroll" | "grid" = "scroll";
   @property({ type: Boolean, reflect: true }) disabled = false;
 
   // 같은 값 재선택은 이벤트 없이 무시. 확인 다이얼로그에서 취소하면

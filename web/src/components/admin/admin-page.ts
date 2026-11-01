@@ -14,6 +14,7 @@ import "../ui/page-header";
 @customElement("admin-page")
 export class AdminPage extends LitElement {
   @property() title = "";
+  @property() subtitle = "";
   @property({ type: Boolean }) loading = false;
   @property() error = "";
   @property() message = "";
@@ -28,11 +29,23 @@ export class AdminPage extends LitElement {
         display: block;
       }
       .msg {
+        display: flex;
+        align-items: center;
+        gap: 4px;
         color: var(--ink-1);
         font-size: var(--text-fine);
-        margin: 0 0 var(--space-1);
+        margin: var(--space-1) 0 0;
+      }
+      .msg svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        color: var(--primary-strong);
       }
       .msg.error {
+        color: var(--danger);
+      }
+      .msg.error svg {
         color: var(--danger);
       }
     `,
@@ -47,14 +60,24 @@ export class AdminPage extends LitElement {
   render() {
     const tone = this.messageTone;
     return html`
-      ${this.title ? html`<x-page-header title=${this.title}></x-page-header>` : ""}
+      ${this.title
+        ? html`<x-page-header
+            title=${this.title}
+            subtitle=${this.subtitle}
+          ></x-page-header>`
+        : ""}
       <slot name="toolbar"></slot>
       ${this.message
         ? html`<p
             class="msg ${tone}"
             role=${tone === "error" ? "alert" : "status"}
           >
-            ${this.message}
+            ${tone === "success"
+              ? html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>`
+              : ""}
+            <span>${this.message}</span>
           </p>`
         : ""}
       ${this.loading

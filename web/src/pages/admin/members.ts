@@ -4,15 +4,13 @@ import { customElement, state } from "lit/decorators.js";
 import { api, ApiError } from "../../api/client";
 import type { AdminMember, AllowedEmail, Role } from "../../types";
 import { reduceMotion } from "../../styles/motion";
-import { formCss, searchFieldCss } from "../../styles/ui";
-import { rowsCss } from "../../components/ui/rows";
+import { searchFieldCss } from "../../styles/ui";
 import "../../components/admin/admin-page";
 import "../../components/ui/empty";
 import "../../components/ui/button";
 import "../../components/ui/input";
 import "../../components/ui/badge";
 import "../../components/ui/chip";
-import "../../components/common/reservation-row";
 
 // 회원 관리: 회원 목록·역할·탈퇴 + 허용 이메일 탭. 모두 admin 전용.
 // 역할 변경 보호장치는 서버가 강제: 마지막 관리자 해임 불가.
@@ -43,33 +41,135 @@ export class PageAdminMembers extends LitElement {
   static styles = [
     reduceMotion,
     searchFieldCss,
-    formCss,
-    rowsCss,
     css`
+      :host {
+        display: block;
+        max-width: 840px;
+        margin: 0 auto;
+      }
       x-chip.tab {
         display: block;
-        margin-bottom: var(--space-2);
+        margin-top: var(--space-3);
+      }
+      .search-wrap {
+        position: relative;
+        margin-top: var(--space-2);
+      }
+      .search-wrap svg {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        width: 16px;
+        height: 16px;
+        color: var(--ink-3);
+        pointer-events: none;
+        transform: translateY(-50%);
       }
       .search-input {
-        margin-bottom: var(--space-2);
+        height: 40px;
+        padding-left: 40px;
       }
       .count {
-        margin: 0 0 var(--space-1);
+        margin: var(--space-2) 0 var(--space-1);
         font-size: var(--text-fine);
         color: var(--ink-2);
       }
-      /* 이메일이 길 수 있어 줄바꿈 허용 */
-      .meta {
-        word-break: break-all;
+
+      .list {
+        display: grid;
+        gap: var(--space-1);
+        margin-top: var(--space-1);
       }
-      .email {
-        overflow-wrap: anywhere;
+
+      /* 회원 카드 — 아바타 + 이름·연락처 + 역할/탈퇴 액션 */
+      .member {
+        padding: var(--space-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-sizing: border-box;
       }
-      .email a {
+      .member-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .who {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        flex: 1;
+      }
+      .avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        flex: none;
+        border-radius: var(--radius-pill);
+        background: var(--primary-soft);
         color: var(--primary-strong);
+        font-size: var(--text-fine);
+        font-weight: 600;
       }
+      .member.withdrawn .avatar {
+        background: var(--surface-muted);
+        color: var(--ink-2);
+      }
+      .name {
+        margin: 0;
+        color: var(--ink-1);
+        font-size: var(--text-body);
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .contact {
+        margin: var(--space-1) 0 0;
+        color: var(--ink-2);
+        font-size: var(--text-fine);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .contact a {
+        color: var(--ink-2);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        width: 100%;
+      }
+      @media (min-width: 640px) {
+        .actions {
+          width: auto;
+          flex: none;
+        }
+      }
+
       /* 역할 선택 — 버튼·인풋과 같은 8px 패딩·테두리 규칙 */
+      .select-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+      }
+      @media (min-width: 640px) {
+        .select-wrap {
+          flex: none;
+        }
+      }
       .role-select {
+        width: 100%;
+        padding: var(--space-1) var(--space-2);
         border: 1px solid var(--border);
         border-radius: var(--radius);
         background: var(--surface);
@@ -77,8 +177,13 @@ export class PageAdminMembers extends LitElement {
         font-family: inherit;
         font-size: var(--text-body);
         line-height: var(--line-height-button);
-        padding: var(--space-1) var(--space-2);
         cursor: pointer;
+        appearance: none;
+      }
+      @media (min-width: 640px) {
+        .role-select {
+          width: auto;
+        }
       }
       .role-select:disabled {
         opacity: 0.5;
@@ -88,49 +193,91 @@ export class PageAdminMembers extends LitElement {
         outline: none;
         border-color: var(--primary);
       }
-      .select-wrap {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        width: fit-content;
-      }
-      .select-wrap .role-select {
-        appearance: none;
-        width: auto;
-        min-width: 0;
-        padding-right: var(--space-2);
-      }
-      .role-select:hover {
-        border-color: var(--border-strong);
-      }
       .select-caret {
         position: absolute;
-        right: 6px;
+        right: 12px;
         top: 50%;
-        width: 8px;
-        height: 8px;
+        width: 12px;
+        height: 12px;
         color: var(--ink-3);
         pointer-events: none;
         transform: translateY(-50%);
       }
       .select-caret svg {
         display: block;
-        width: 8px;
-        height: 8px;
+        width: 12px;
+        height: 12px;
       }
-      .email-form {
-        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
-        align-items: end;
-      }
-      .form-hint {
-        margin: 0 0 var(--space-1);
+
+      .guard {
+        margin: var(--space-1) 0 0;
         color: var(--ink-2);
         font-size: var(--text-fine);
       }
-      @media (max-width: 720px) {
+
+      /* ===== 허용 이메일 ===== */
+      .email-card {
+        margin-top: var(--space-2);
+        padding: var(--space-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-sizing: border-box;
+      }
+      .email-hint {
+        margin: 0;
+        color: var(--ink-2);
+        font-size: var(--text-fine);
+      }
+      .email-form {
+        display: grid;
+        gap: var(--space-2);
+        margin-top: var(--space-2);
+      }
+      @media (min-width: 720px) {
         .email-form {
-          grid-template-columns: 1fr;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+          align-items: end;
         }
+      }
+      .email-list {
+        margin-top: var(--space-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .email-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        padding: var(--space-2);
+        border-bottom: 1px solid var(--border);
+      }
+      .email-row:last-child {
+        border-bottom: 0;
+      }
+      .email-main {
+        min-width: 0;
+        flex: 1;
+      }
+      .email-main p {
+        margin: 0;
+      }
+      .email-address {
+        color: var(--ink-1);
+        font-size: var(--text-body);
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .email-meta {
+        margin-top: var(--space-1) !important;
+        color: var(--ink-2);
+        font-size: var(--text-fine);
+        word-break: break-all;
       }
     `,
   ];
@@ -172,6 +319,15 @@ export class PageAdminMembers extends LitElement {
     return this.members.filter((m) =>
       `${m.name ?? ""} ${m.email} ${m.phone ?? ""}`.toLowerCase().includes(q),
     );
+  }
+
+  // 활성 관리자가 하나뿐이면 그 관리자는 해임·탈퇴할 수 없다 (서버도 거부)
+  private get activeAdminCount(): number {
+    return this.members.filter((m) => !m.deactivated_at && m.role === "admin").length;
+  }
+
+  private isLastAdmin(m: AdminMember): boolean {
+    return !m.deactivated_at && m.role === "admin" && this.activeAdminCount <= 1;
   }
 
   private keyOf(m: AdminMember, kind: "role" | "withdraw" | "delete"): string {
@@ -345,6 +501,7 @@ export class PageAdminMembers extends LitElement {
     return html`
       <admin-page
         title="회원 관리"
+        subtitle="회원 역할과 로그인 허용 이메일을 관리해요."
         ?loading=${this.loading}
         .error=${this.error}
         .message=${this.message}
@@ -353,6 +510,7 @@ export class PageAdminMembers extends LitElement {
       >
         <x-chip
           class="tab"
+          layout="grid"
           ariaLabel="회원 관리 탭"
           .value=${this.tab}
           .options=${[
@@ -370,71 +528,104 @@ export class PageAdminMembers extends LitElement {
   private renderMembers() {
     const list = this.filtered;
     return html`
-      <input
-        class="search-input"
-        type="search"
-        aria-label="회원 검색"
-        placeholder="이름, 이메일, 연락처 검색…"
-        .value=${this.q}
-        @input=${(e: Event) => (this.q = (e.target as HTMLInputElement).value)}
-      />
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <input
+          class="search-input"
+          type="search"
+          aria-label="회원 검색"
+          placeholder="이름, 이메일, 연락처 검색…"
+          .value=${this.q}
+          @input=${(e: Event) => (this.q = (e.target as HTMLInputElement).value)}
+        />
+      </div>
       ${list.length === 0
-        ? html`<x-empty
-            compact
-            state="empty"
-            text=${this.q ? `'${this.q}'로 찾은 회원이 없어요` : "아직 회원이 없어요"}
-          ></x-empty>`
+        ? html`<div class="list">
+            <x-empty
+              state="empty"
+              text=${this.q ? `'${this.q}'로 찾은 회원이 없어요` : "아직 회원이 없어요"}
+              subtitle=${this.q ? "다른 이름이나 연락처로 검색해 보세요." : ""}
+            ></x-empty>
+          </div>`
         : html`
             <p class="count" role="status">${list.length}명</p>
-            <div>${list.map((m) => this.renderCard(m))}</div>
+            <div class="list">${list.map((m) => this.renderCard(m))}</div>
           `}
     `;
   }
 
   private renderCard(m: AdminMember) {
+    const withdrawn = !!m.deactivated_at;
+    const lastAdmin = this.isLastAdmin(m);
     const withdrawKey = this.keyOf(m, "withdraw");
+    const initial = (m.name || m.email).trim().charAt(0).toUpperCase();
+    const note = lastAdmin
+      ? "마지막 관리자는 탈퇴할 수 없어요."
+      : withdrawn && (m.active_rental_count ?? 0) > 0
+        ? `대여 중 ${m.active_rental_count}건 · 등록 정보 삭제 전 반납 또는 취소 처리가 필요해요.`
+        : "";
+
     return html`
-      <reservation-row
-        title=${m.name || "—"}
-        badgeKind=${m.deactivated_at ? "withdrawn" : ""}
-      >
-        ${!m.deactivated_at
-          ? html`<span class="select-wrap" slot="actions">
-              <select
-                class="role-select"
-                aria-label="역할 지정"
-                ?disabled=${this.otherRowBusy(m, "role")}
-                .value=${m.role}
-                @change=${(e: Event) =>
-                  this.setRole(m, (e.target as HTMLSelectElement).value as Role)}
-              >
-                <option value="user">회원</option>
-                <option value="admin">관리자</option>
-              </select>
-              <span class="select-caret" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </span>
-            </span>
-            <x-button
-              slot="actions"
-              variant="danger"
-              ?loading=${this.processingKey === withdrawKey}
-              ?disabled=${this.otherRowBusy(m, "withdraw")}
-              @click=${() => this.withdraw(m)}
-            >
-              탈퇴
-            </x-button>`
-          : html`<x-badge slot="actions" kind=${m.role}></x-badge>
-              <x-button slot="actions" variant="danger"
-                ?loading=${this.processingKey === this.keyOf(m, "delete")}
-                ?disabled=${this.otherRowBusy(m, "delete") || (m.active_rental_count ?? 0) > 0}
-                @click=${() => this.deleteRegistration(m)}>등록 정보 삭제</x-button>`}
-        <span class="email">${m.email} · ${this.phoneLine(m)}</span>
-        ${(m.active_rental_count ?? 0) > 0
-          ? html`<span>대여 중 ${m.active_rental_count}건 · 등록 정보 삭제 전 반납 또는 취소 처리가 필요해요</span>` : ""}
-      </reservation-row>
+      <article class="member ${withdrawn ? "withdrawn" : ""}">
+        <div class="member-head">
+          <div class="who">
+            <span class="avatar" aria-hidden="true">${initial}</span>
+            <div style="min-width:0">
+              <p class="name">${m.name || "—"}</p>
+              <p class="contact">${m.email} · ${this.phoneLine(m)}</p>
+            </div>
+          </div>
+
+          <div class="actions">
+            ${!withdrawn
+              ? html`
+                  <span class="select-wrap">
+                    <select
+                      class="role-select"
+                      aria-label="역할 지정"
+                      ?disabled=${lastAdmin || this.otherRowBusy(m, "role")}
+                      .value=${m.role}
+                      @change=${(e: Event) =>
+                        this.setRole(m, (e.target as HTMLSelectElement).value as Role)}
+                    >
+                      <option value="user">회원</option>
+                      <option value="admin">관리자</option>
+                    </select>
+                    <span class="select-caret" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </span>
+                  </span>
+                  <x-button
+                    variant="danger"
+                    title=${lastAdmin ? "마지막 관리자는 탈퇴할 수 없어요" : ""}
+                    ?loading=${this.processingKey === withdrawKey}
+                    ?disabled=${lastAdmin || this.otherRowBusy(m, "withdraw")}
+                    @click=${() => this.withdraw(m)}
+                  >
+                    탈퇴
+                  </x-button>
+                `
+              : html`
+                  <x-badge kind="withdrawn"></x-badge>
+                  <x-button
+                    variant="danger"
+                    title=${(m.active_rental_count ?? 0) > 0 ? "대여 중인 물품이 있어요" : ""}
+                    ?loading=${this.processingKey === this.keyOf(m, "delete")}
+                    ?disabled=${this.otherRowBusy(m, "delete") || (m.active_rental_count ?? 0) > 0}
+                    @click=${() => this.deleteRegistration(m)}
+                  >
+                    등록 정보 삭제
+                  </x-button>
+                `}
+          </div>
+        </div>
+        ${note ? html`<p class="guard">${note}</p>` : ""}
+      </article>
     `;
   }
 
@@ -447,66 +638,75 @@ export class PageAdminMembers extends LitElement {
   private renderEmails() {
     if (this.emailsLoading) return html`<x-empty state="loading"></x-empty>`;
     return html`
-      <p class="form-hint">
-        정토회(@jungto.org) 계정 외에 로그인을 허용할 이메일입니다.
-      </p>
-      <div class="form email-form">
-        <x-input
-          label="이메일"
-          type="email"
-          placeholder="oper@example.com"
-          .value=${this.emailValue}
-          @input=${(e: Event) =>
-            (this.emailValue = (e.target as HTMLInputElement).value)}
-          @keydown=${(e: KeyboardEvent) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              void this.addEmail();
-            }
-          }}
-        ></x-input>
-        <x-input
-          label="메모 (선택)"
-          placeholder="누구 계정인지"
-          .value=${this.noteValue}
-          @input=${(e: Event) =>
-            (this.noteValue = (e.target as HTMLInputElement).value)}
-        ></x-input>
-        <!-- x-button 은 form-associated 가 아니어서 form submit 에 참여하지 못한다 — 클릭으로 처리 -->
-        <x-button
-          variant="primary"
-          ?loading=${this.emailBusy}
-          @click=${() => void this.addEmail()}
-        >
-          추가
-        </x-button>
+      <div class="email-card">
+        <p class="email-hint">
+          정토회(@jungto.org) 계정 외에 로그인을 허용할 이메일입니다.
+        </p>
+        <div class="email-form">
+          <x-input
+            label="이메일"
+            type="email"
+            placeholder="oper@example.com"
+            .value=${this.emailValue}
+            @input=${(e: Event) =>
+              (this.emailValue = (e.target as HTMLInputElement).value)}
+            @keydown=${(e: KeyboardEvent) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void this.addEmail();
+              }
+            }}
+          ></x-input>
+          <x-input
+            label="메모 (선택)"
+            placeholder="누구 계정인지"
+            .value=${this.noteValue}
+            @input=${(e: Event) =>
+              (this.noteValue = (e.target as HTMLInputElement).value)}
+          ></x-input>
+          <!-- x-button 은 form-associated 가 아니어서 form submit 에 참여하지 못한다 — 클릭으로 처리 -->
+          <x-button
+            variant="primary"
+            ?loading=${this.emailBusy}
+            @click=${() => void this.addEmail()}
+          >
+            추가
+          </x-button>
+        </div>
       </div>
+
       ${this.emails.length === 0
-        ? html`<x-empty compact state="empty" text="아직 등록된 이메일이 없어요"></x-empty>`
+        ? html`<div class="list">
+            <x-empty
+              state="empty"
+              text="아직 등록된 이메일이 없어요"
+              subtitle="로그인을 허용할 이메일을 추가해 보세요."
+            ></x-empty>
+          </div>`
         : html`
-            <div class="rows">
+            <div class="email-list">
               ${this.emails.map(
                 (m) => html`
-                  <div class="row">
-                    <span class="head">
-                      <span class="name">${m.email}</span>
-                      <x-button
-                        variant="danger"
-                        ?disabled=${this.emailBusy}
-                        @click=${() => this.removeEmail(m)}
-                      >
-                        제거
-                      </x-button>
-                    </span>
-                    <span class="meta">
-                      ${[
-                        m.note,
-                        m.created_by ? `등록: ${m.created_by}` : null,
-                        new Date(m.created_at).toLocaleDateString("ko-KR"),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </span>
+                  <div class="email-row">
+                    <div class="email-main">
+                      <p class="email-address">${m.email}</p>
+                      <p class="email-meta">
+                        ${[
+                          m.note,
+                          m.created_by ? `등록: ${m.created_by}` : null,
+                          new Date(m.created_at).toLocaleDateString("ko-KR"),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </div>
+                    <x-button
+                      variant="danger"
+                      ?disabled=${this.emailBusy}
+                      @click=${() => this.removeEmail(m)}
+                    >
+                      제거
+                    </x-button>
                   </div>
                 `,
               )}

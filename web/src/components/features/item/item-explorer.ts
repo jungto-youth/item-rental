@@ -7,7 +7,6 @@ import { type CatalogSummary, type Item } from "../../../types";
 import { reduceMotion } from "../../../styles/motion";
 import { availableQty, catalogSummary } from "../../../utils/stock";
 import "../../ui/button";
-import "../../ui/chip";
 import "../../ui/empty";
 import "../../ui/notice";
 import "./item-card";
@@ -48,6 +47,9 @@ type AdminListResponse = {
 @customElement("item-explorer")
 export class ItemExplorer extends LitElement {
   @property() q = "";
+  // 필터 탭은 home 이 소유한다 — 검색창과 같은 줄에 칩을 두기 위해.
+  // 값이 바뀌면 이 컴포넌트가 데이터를 다시 받아 목록을 갈아끼운다.
+  @property() tab: TabKey = "all";
 
   @state() private isAdmin = false;
 
@@ -67,9 +69,9 @@ export class ItemExplorer extends LitElement {
   @state() private truncated = false;
   @state() private shown = PAGE_SIZE;
 
-  @state() private tab: TabKey = "all";
-
   private unsub: (() => void) | null = null;
+  // 탭 숫자를 home 에 알린다 — 같은 값이면 이벤트를 반복하지 않는다
+  private lastCounts = "";
   // 세대 번호로 늦은 응답을 버린다
   private fetchGen = 0;
   private adminGen = 0;
@@ -83,13 +85,6 @@ export class ItemExplorer extends LitElement {
         flex-direction: column;
       }
 
-      /* 필터 칩 — 페이지 본문과 같은 폭 */
-      x-chip {
-        display: block;
-        box-sizing: border-box;
-        padding: 0 0 var(--space-2);
-      }
-
       .notice {
         display: block;
         margin: 0 0 var(--space-2);
@@ -98,10 +93,20 @@ export class ItemExplorer extends LitElement {
       /* ===== 카드 그리드 — 사진이 먼저 보이는 카탈로그 ===== */
       .grid {
         display: grid;
-        /* 카드 최소 220px — 1280에서 5열, 좁아지면 자연스럽게 줄어든다 */
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        /* 시안과 같은 3 / 4 / 5열 — 390·768·1280에서 카드 폭이 예측 가능하다 */
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: var(--space-1);
         margin: 0 0 var(--space-3);
+      }
+      @media (min-width: 768px) {
+        .grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+      @media (min-width: 1280px) {
+        .grid {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
       }
       /* 빈 상태·로딩·오류 — 그리드와 같은 폭의 자리 */
       .panel {
@@ -116,14 +121,10 @@ export class ItemExplorer extends LitElement {
       }
 
       @media (max-width: 639px) {
-        x-chip {
-          padding: 0 0 var(--space-2);
-        }
         .notice {
           margin: 0 0 var(--space-2);
         }
         .grid {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: var(--space-1);
           margin: 0 0 var(--space-2);
         }
@@ -150,6 +151,64 @@ export class ItemExplorer extends LitElement {
         font-size: var(--text-fine);
         line-height: var(--line-height);
       }
+
+      /* 로딩 스켈레톤 — 실제 카드와 같은 골격으로 화면이 튀지 않게 */
+      .skeleton-card {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+      .sk-photo {
+        aspect-ratio: 4 / 3;
+        background: var(--surface-muted);
+      }
+      .sk-body {
+        display: grid;
+        gap: var(--space-1);
+        padding: var(--space-2);
+      }
+      .sk-line {
+        height: 12px;
+        border-radius: 4px;
+        background: var(--border);
+      }
+      .sk-line.title {
+        height: 16px;
+        width: 75%;
+      }
+      .sk-line.short {
+        width: 50%;
+      }
+      .sk-line.mid {
+        width: 66%;
+      }
+      .sk-photo,
+      .sk-line {
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.55;
+        }
+      }
+      @media (max-width: 767px) {
+        .skeleton-card:nth-child(n + 4) {
+          display: none;
+        }
+        .sk-body {
+          padding: var(--space-1);
+        }
+      }
+      @media (min-width: 768px) and (max-width: 1279px) {
+        .skeleton-card:nth-child(n + 5) {
+          display: none;
+        }
+      }
     `,
   ];
 
@@ -172,8 +231,32 @@ export class ItemExplorer extends LitElement {
 
   protected willUpdate(changed: PropertyValues) {
     super.willUpdate(changed);
-    if (this.hasUpdated && changed.has("q")) this.shown = PAGE_SIZE;
+    if (this.hasUpdated && (changed.has("q") || changed.has("tab"))) {
+      this.shown = PAGE_SIZE;
+    }
     if (this.hasUpdated && changed.has("q") && !this.isAdmin) this.scheduleFetch();
+    // 탭 전환 — 관리자는 전체를 받아 두었으니 클라이언트에서 거르고,
+    // 회원 탐색은 서버 상태 필터로 다시 받는다.
+    if (this.hasUpdated && changed.has("tab") && !this.isAdmin && !this.q) {
+      this.items = [];
+      this.loading = true;
+      void this.fetchItems();
+    }
+  }
+
+  // 탭 숫자를 home 의 칩에 반영한다
+  protected updated() {
+    const s = this.displayedSummary();
+    const key = `${s.types}/${s.available}/${s.rented}/${s.repair}`;
+    if (key === this.lastCounts) return;
+    this.lastCounts = key;
+    this.dispatchEvent(
+      new CustomEvent("counts-change", {
+        detail: s,
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   // 역할 변경(로그인·로그아웃·강등) — 모드를 갈아끼우고 다른 모드 데이터는 버린다
@@ -181,7 +264,6 @@ export class ItemExplorer extends LitElement {
     const admin = session.isAdmin;
     if (admin === this.isAdmin) return;
     this.isAdmin = admin;
-    this.tab = "all";
     this.shown = PAGE_SIZE;
     if (admin) {
       void this.loadAdmin();
@@ -317,21 +399,6 @@ export class ItemExplorer extends LitElement {
     return it.kind !== "consumable" && availableQty(it) > 0;
   }
 
-  private setTab(key: TabKey) {
-    if (this.tab === key) return;
-    this.tab = key;
-    this.shown = PAGE_SIZE;
-    if (this.isAdmin) return;
-    // 검색 결과는 이미 전부 받아 두었으니 클라이언트에서 거르고,
-    // 탐색은 서버에서 상태 필터로 다시 받는다 (페이지네이션이 걸려 있다).
-    if (!this.q) {
-      // 이전 탭의 행이 남아 보이지 않게 비우고 로딩 상태로 되돌린다
-      this.items = [];
-      this.loading = true;
-      void this.fetchItems();
-    }
-  }
-
   private hrefFor(it: Item): string {
     return this.isAdmin ? `/items/${it.id}/edit` : `/items/${it.id}${location.search}`;
   }
@@ -341,57 +408,72 @@ export class ItemExplorer extends LitElement {
     return this.summary ?? { types: 0, available: 0, rented: 0, repair: 0 };
   }
 
-  private tabCount(key: TabKey): number {
-    const s = this.displayedSummary();
-    if (key === "all") return s.types;
-    if (key === "available") return s.available;
-    if (key === "rented") return s.rented;
-    return s.repair;
-  }
-
   // 검색어 지우기는 home 이 소유한다 (URL·입력값 동기화)
   private clearSearch() {
     this.dispatchEvent(new CustomEvent("clear-search", { bubbles: true, composed: true }));
   }
 
-  private emptyText(): string {
-    if (this.q) return `'${this.q}'로 찾은 물품이 없어요`;
+  // 빈 상태 문구 — 제목과 다음 행동을 나눠 x-empty 에 넘긴다
+  private emptyCopy(): { title: string; subtitle: string } {
+    if (this.q) {
+      return {
+        title: `'${this.q}'로 찾은 물품이 없어요`,
+        subtitle: "다른 이름이나 위치로 검색해 보세요.",
+      };
+    }
     const label = TABS.find((t) => t.key === this.tab)?.label;
-    if (label && this.tab !== "all") return `'${label}' 물품이 없어요`;
-    return "등록된 물품이 없어요";
+    if (label && this.tab !== "all") {
+      return {
+        title: `'${label}' 물품이 없어요`,
+        subtitle: "다른 상태를 선택해 보세요.",
+      };
+    }
+    return {
+      title: "등록된 물품이 없어요",
+      subtitle: this.isAdmin
+        ? "첫 물품을 등록하면 회원이 바로 대여할 수 있어요."
+        : "관리자가 물품을 등록하면 여기에 표시돼요.",
+    };
   }
 
   // ===== 렌더 =====
 
   // 로딩·빈 상태·오류도 목록과 같은 시트 안에 그려 화면이 튀지 않게 한다
+  private renderSkeleton() {
+    return html`
+      <div class="grid" role="status" aria-label="물품 목록을 불러오는 중">
+        ${Array.from(
+          { length: 5 },
+          () => html`
+            <div class="skeleton-card" aria-hidden="true">
+              <div class="sk-photo"></div>
+              <div class="sk-body">
+                <div class="sk-line title"></div>
+                <div class="sk-line short"></div>
+                <div class="sk-line mid"></div>
+              </div>
+            </div>
+          `,
+        )}
+      </div>
+    `;
+  }
+
   private renderState(
     state: "loading" | "empty" | "error",
     text = "",
     action: unknown = "",
+    subtitle = "",
   ) {
     return html`
       <div class="panel">
-        <x-empty state=${state} text=${text}>${action}</x-empty>
+        <x-empty state=${state} text=${text} subtitle=${subtitle}>${action}</x-empty>
       </div>
     `;
   }
 
   render() {
-    return html`
-      <x-chip
-        ariaLabel="물품 상태 필터"
-        .value=${this.tab}
-        .options=${TABS.map((t) => ({
-          value: t.key,
-          label: t.label,
-          count: this.tabCount(t.key),
-        }))}
-        @change=${(e: CustomEvent<{ value: string }>) =>
-          this.setTab(e.detail.value as TabKey)}
-      ></x-chip>
-
-      ${this.isAdmin ? this.renderAdmin() : this.renderMember()}
-    `;
+    return html`${this.isAdmin ? this.renderAdmin() : this.renderMember()}`;
   }
 
   private renderMember() {
@@ -405,18 +487,21 @@ export class ItemExplorer extends LitElement {
         html`<x-button variant="secondary" @click=${() => void this.fetchItems()}>
           다시 시도
         </x-button>`,
+        "연결 상태를 확인하고 다시 시도해 주세요.",
       );
     }
-    if (this.loading) return this.renderState("loading");
+    if (this.loading) return this.renderSkeleton();
     if (visible.length === 0) {
+      const copy = this.emptyCopy();
       return this.renderState(
         "empty",
-        this.emptyText(),
+        copy.title,
         this.q
           ? html`<x-button variant="secondary" @click=${this.clearSearch}>
               검색어 지우기
             </x-button>`
           : "",
+        copy.subtitle,
       );
     }
     return html`
@@ -444,7 +529,7 @@ export class ItemExplorer extends LitElement {
   }
 
   private renderAdmin() {
-    if (this.adminLoading) return this.renderState("loading");
+    if (this.adminLoading) return this.renderSkeleton();
     if (this.adminError) {
       return this.renderState(
         "error",
@@ -452,13 +537,15 @@ export class ItemExplorer extends LitElement {
         html`<x-button variant="secondary" @click=${() => void this.loadAdmin()}>
           다시 시도
         </x-button>`,
+        "연결 상태를 확인하고 다시 시도해 주세요.",
       );
     }
     const visible = this.adminVisible;
     if (visible.length === 0) {
+      const copy = this.emptyCopy();
       return this.renderState(
         "empty",
-        this.emptyText(),
+        copy.title,
         this.q
           ? html`<x-button variant="secondary" @click=${this.clearSearch}>
               검색어 지우기
@@ -466,6 +553,7 @@ export class ItemExplorer extends LitElement {
           : html`<x-button variant="primary" @click=${() => navigate("/items/new")}>
               물품 등록
             </x-button>`,
+        copy.subtitle,
       );
     }
     return html`

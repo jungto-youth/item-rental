@@ -135,6 +135,58 @@ const ITEMS = [
 
 const SUMMARY = { types: 6, available: 5, rented: 3, repair: 2 };
 
+const RESERVATIONS = [
+  {
+    id: 1,
+    item_id: 101,
+    item_name: "4인용 텐트",
+    item_photo: null,
+    qty: 1,
+    status: "rented",
+    member_memo: "10/30 청년 모임",
+    created_at: "2026-10-28T03:00:00.000Z",
+    updated_at: "2026-10-28T03:00:00.000Z",
+  },
+  {
+    id: 2,
+    item_id: 106,
+    item_name: "돗자리",
+    item_photo: null,
+    qty: 2,
+    status: "returned",
+    member_memo: null,
+    created_at: "2026-10-20T03:00:00.000Z",
+    updated_at: "2026-10-22T03:00:00.000Z",
+  },
+  {
+    id: 3,
+    item_id: 102,
+    item_name: "주차콘",
+    item_photo: null,
+    qty: 1,
+    status: "cancelled",
+    member_memo: "모임 취소",
+    created_at: "2026-10-15T03:00:00.000Z",
+    updated_at: "2026-10-15T03:00:00.000Z",
+  },
+];
+
+const ADMIN_RESERVATIONS = RESERVATIONS.map((r, i) => ({
+  ...r,
+  total_qty: 5,
+  member_id: `visual-member-${i}`,
+  member_name: ["김하늘", "박서연", "이준호"][i] ?? "김하늘",
+  member_email: "member@example.invalid",
+  member_phone: "010-0000-0000",
+  admin_name: r.status === "returned" ? "김운영" : null,
+  returned_by_member: false,
+  item_name_snapshot: r.item_name,
+  item_location_snapshot: "7층 비품실",
+  due_at: null,
+  returned_at: r.status === "returned" ? r.updated_at : null,
+  admin_memo: null,
+}));
+
 const MEMBERS = [
   {
     ...ADMIN,
@@ -201,10 +253,22 @@ async function mockApi(page, user, options = {}) {
     return route.fulfill({ json: { item } });
   });
 
+  await page.route("**/api/categories", (route) =>
+    route.fulfill({
+      json: { categories: [{ id: 1, name: "캠핑", item_count: 2 }] },
+    }),
+  );
+  await page.route("**/api/reservations/mine", (route) =>
+    route.fulfill({ json: { reservations: RESERVATIONS } }),
+  );
+
   if (user?.role === "admin") {
     await page.route("**/api/admin/members**", (route) => route.fulfill({ json: { members: MEMBERS } }));
     await page.route("**/api/admin/allowed-emails**", (route) =>
       route.fulfill({ json: { allowedEmails: [] } }),
+    );
+    await page.route("**/api/admin/reservations**", (route) =>
+      route.fulfill({ json: { reservations: ADMIN_RESERVATIONS, truncated: false } }),
     );
   }
 }
@@ -221,7 +285,24 @@ const SCREENS = [
     mock: { devLogin: true },
     viewports: [390, 1280],
   },
-  { name: "members", path: "/admin/members", user: ADMIN, ready: "reservation-row" },
+  { name: "members", path: "/admin/members", user: ADMIN, ready: ".member" },
+  { name: "my-rentals", path: "/my/rentals", user: MEMBER, ready: "reservation-row" },
+  {
+    name: "admin-reservations",
+    path: "/admin/reservations",
+    user: ADMIN,
+    ready: "reservation-row",
+  },
+  { name: "item-form", path: "/items/new", user: ADMIN, ready: "form" },
+  { name: "mypage", path: "/mypage", user: MEMBER, ready: ".card" },
+  {
+    name: "signup-profile",
+    path: "/signup/profile",
+    user: MEMBER,
+    ready: "profile-form",
+  },
+  { name: "policy", path: "/policy/privacy", user: MEMBER, ready: "article" },
+  { name: "not-found", path: "/nope", user: MEMBER, ready: "page-not-found" },
 ];
 
 await mkdir(baselineDir, { recursive: true });

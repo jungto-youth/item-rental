@@ -16,6 +16,9 @@ type NavItem = { href: string; label: string };
 @customElement("app-header")
 export class AppHeader extends LitElement {
   @property({ attribute: false }) user: SessionUser | null = null;
+  // 현재 경로 — app-shell 이 매 이동마다 새 값을 넘겨 활성 메뉴 밑줄을 다시 계산한다.
+  // (user 만 받으면 경로가 바뀌어도 헤더가 다시 렌더되지 않아 밑줄이 멈춘다)
+  @property() route = "";
   @state() private menuOpen = false;
 
   static styles = [base, sheet(headerCss), reduceMotion];
@@ -49,7 +52,7 @@ export class AppHeader extends LitElement {
   }
 
   private isActive(href: string): boolean {
-    const path = location.pathname;
+    const path = this.route || location.pathname;
     if (href === "/") return path === "/";
     return path === href || path.startsWith(`${href}/`);
   }

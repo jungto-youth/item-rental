@@ -29,22 +29,52 @@ export class ItemRentalForm extends LitElement {
       display: block;
     }
 
+    /* 대여 신청서 — 흰 카드 + 점선 구분선 */
     .box {
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: var(--space-2);
+      padding: var(--space-3);
       background: var(--surface);
       display: flex;
       flex-direction: column;
-      gap: var(--space-2);
       box-sizing: border-box;
+    }
+
+    @media (max-width: 639px) {
+      .box {
+        padding: var(--space-2);
+      }
+    }
+
+    .form-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--space-2);
     }
 
     .title {
       font-size: var(--text-heading);
-      font-weight: 700;
+      font-weight: 600;
+      letter-spacing: var(--tracking-tight);
       margin: 0;
       color: var(--ink-1);
+    }
+
+    .avail {
+      color: var(--ink-2);
+      font-size: var(--text-fine);
+      white-space: nowrap;
+    }
+    .avail b {
+      color: var(--ink-1);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .divider {
+      margin: var(--space-2) 0;
+      border-top: 1px dashed var(--border);
     }
 
     .row {
@@ -55,47 +85,51 @@ export class ItemRentalForm extends LitElement {
     }
 
     .label {
-      font-size: var(--text-body);
-      color: var(--ink-1);
-      font-weight: 400;
+      font-size: var(--text-fine);
+      color: var(--ink-2);
+      font-weight: 500;
     }
 
     .stepper {
       display: inline-flex;
       align-items: center;
+      height: 40px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: var(--surface-muted);
+      background: var(--surface);
       overflow: hidden;
     }
 
     .step-btn {
-      width: 38px;
-      height: 38px;
+      width: 40px;
+      height: 40px;
       border: none;
       background: transparent;
-      color: var(--ink-1);
-      font-size: var(--text-body);
+      color: var(--ink-2);
+      font-size: 1.125rem;
       cursor: pointer;
       line-height: var(--line-height-button);
-      padding: var(--space-1);
+      padding: 0;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
     .step-btn:hover:not(:disabled) {
-      background: var(--surface-muted);
+      color: var(--ink-1);
     }
 
     .step-btn:disabled {
-      opacity: 0.35;
+      opacity: 0.4;
       cursor: not-allowed;
     }
 
     .qty-input {
-      width: 52px;
-      border: none;
+      width: 48px;
+      height: 40px;
+      border: 0;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
       text-align: center;
       font-weight: 600;
       font-size: var(--text-body);
@@ -104,15 +138,22 @@ export class ItemRentalForm extends LitElement {
       font-family: inherit;
       /* 스피너 숨김은 이 컴포넌트가 import 한 numberInputCss 가 담당한다 */
     }
+    .qty-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
 
     .qty-single {
+      display: inline-flex;
+      align-items: center;
+      height: 40px;
+      padding: 0 var(--space-2);
       font-size: var(--text-body);
       font-weight: 600;
       color: var(--ink-1);
-      padding: var(--space-1) var(--space-2);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: var(--surface-muted);
+      background: var(--surface);
     }
 
     .success-actions {
@@ -124,7 +165,7 @@ export class ItemRentalForm extends LitElement {
 
     .msg {
       font-size: var(--text-fine);
-      margin: 0;
+      margin: var(--space-1) 0 0;
       line-height: var(--line-height);
     }
 
@@ -136,16 +177,34 @@ export class ItemRentalForm extends LitElement {
     .memo-title {
       font-size: var(--text-fine);
       color: var(--ink-2);
-      font-weight: 400;
+      font-weight: 500;
     }
 
     .memo-field {
       display: flex;
       flex-direction: column;
       gap: var(--space-1);
+      margin-top: var(--space-2);
     }
+
+    x-button {
+      display: block;
+      width: 100%;
+      margin-top: var(--space-3);
+    }
+
+    .note {
+      margin: var(--space-1) 0 0;
+      color: var(--ink-2);
+      font-size: var(--text-fine);
+      line-height: var(--line-height);
+    }
+
     .title.success-title {
       color: var(--ink-1);
+    }
+    .success-actions x-button {
+      margin-top: 0;
     }
   `,
   ];
@@ -289,7 +348,12 @@ export class ItemRentalForm extends LitElement {
 
     return html`
       <form class="box" @submit=${this.handleSubmit}>
-        <h3 class="title">대여 신청</h3>
+        <div class="form-head">
+          <h3 class="title">대여 신청</h3>
+          <span class="avail">대여 가능 <b>${max}개</b></span>
+        </div>
+
+        <div class="divider" aria-hidden="true"></div>
 
         <div class="row">
           <span class="label">대여 수량</span>
@@ -330,14 +394,14 @@ export class ItemRentalForm extends LitElement {
         : html`<span class="qty-single">1개</span>`}
         </div>
 
-        <div class="memo-field">
+        <label class="memo-field">
           <span class="memo-title">메모 (선택)</span>
           <x-input
             placeholder="용도, 수령처 등"
             .value=${this.memo}
             @input=${(e: Event) => (this.memo = (e.target as HTMLInputElement).value)}
           ></x-input>
-        </div>
+        </label>
 
         ${this.message
         ? html`<p class="msg error" aria-live="polite">${this.message}</p>`
@@ -346,6 +410,9 @@ export class ItemRentalForm extends LitElement {
         <x-button variant="primary" type="submit" ?loading=${this.saving}>
           대여하기
         </x-button>
+        <p class="note">
+          신청하면 바로 대여 중이 돼요. 반납은 대여 기록에서 할 수 있어요.
+        </p>
       </form>
     `;
   }

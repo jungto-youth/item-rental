@@ -25,7 +25,9 @@
   --primary: #ea580c;
   /* 액션·선택 */
   --primary-strong: #c2410c;
-  /* hover·눌림 */
+  /* 채운 버튼 배경 — 흰 글자 대비 5.2:1 */
+  --primary-deep: #9a3412;
+  /* 채운 버튼 hover·눌림 */
   --primary-soft: #fff1e8;
   /* 연한 강조 면 */
   --warning: #b45309;

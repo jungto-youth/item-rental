@@ -4,6 +4,7 @@ import { createRouter } from "./router";
 import { session, type SessionUser } from "./context/session";
 import { reduceMotion } from "./styles/motion";
 import "./components/app-header";
+import "./components/app-footer";
 
 // 관리자 청크 사전 로드 — 관리자 세션이면 브라우저가 한가할 때 관리자 화면 청크를
 // 미리 받아둔다. 라우트별 코드 스플릿의 첫 클릭 빈 구간(화면 깜빡임)을 없애는 용도로,
@@ -40,10 +41,14 @@ export class AppShell extends LitElement {
     reduceMotion,
     css`
       :host {
-        display: block;
+        display: flex;
+        flex-direction: column;
+        min-height: 100dvh;
       }
 
       main {
+        flex: 1;
+        width: 100%;
         max-width: var(--layout-max);
         margin: 0 auto;
         box-sizing: border-box;
@@ -85,34 +90,45 @@ export class AppShell extends LitElement {
       .fab {
         display: none;
       }
-      @media (max-width: 767px) {
-        main {
-          padding: var(--space-2);
-          padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
-        }
+      @media (max-width: 1023px) {
         /* 물품 현황은 하단 FAB 자리만 비운다 */
         main.has-fab {
           padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
         }
         .fab {
           position: fixed;
-          right: var(--space-3);
-          bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+          right: var(--space-2);
+          bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
           z-index: 21;
           display: flex;
           align-items: center;
           justify-content: center;
           width: 48px;
           height: 48px;
-          border: 1px solid var(--primary);
+          border: 1px solid var(--primary-strong);
           border-radius: var(--radius-pill);
-          background: var(--primary);
+          background: var(--primary-strong);
           color: #fff;
           box-shadow: 0 8px 20px rgba(226, 87, 30, 0.28);
+          transition: background 0.15s ease;
+        }
+        .fab:hover {
+          background: var(--primary-deep);
+          border-color: var(--primary-deep);
+        }
+        .fab:focus-visible {
+          outline: 2px solid var(--primary);
+          outline-offset: 2px;
         }
         .fab svg {
           width: 20px;
           height: 20px;
+        }
+      }
+      @media (max-width: 767px) {
+        main {
+          padding: var(--space-2);
+          padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
         }
       }
     `,
@@ -143,13 +159,46 @@ export class AppShell extends LitElement {
     return location.pathname === "/login";
   }
 
+  // 시안에서 하단 푸터를 가진 화면만 — 홈·상세·정책·404.
+  // 계정·대여·관리 화면은 본문에 집중하도록 푸터를 두지 않는다.
+  private get footerMode(): "none" | "default" | "policy" | "surface" {
+    if (this.isLogin) return "none";
+    const path = location.pathname;
+    if (path === "/") return "default";
+    if (path.startsWith("/policy/")) return "policy";
+    if (path === "/items/new" || path.endsWith("/edit")) return "none";
+    if (path.startsWith("/items/")) return "default";
+    const known = [
+      "/mypage",
+      "/signup/profile",
+      "/my/rentals",
+      "/admin/reservations",
+      "/admin/members",
+    ];
+    if (known.includes(path)) return "none";
+    return "surface"; // 404
+  }
+
   render() {
+    const footer = this.footerMode;
     return html`
-      ${this.isLogin ? "" : html`<app-header .user=${this.user}></app-header>`}
+      ${this.isLogin
+        ? ""
+        : html`<app-header
+            .user=${this.user}
+            .route=${location.pathname}
+          ></app-header>`}
 
       <main class=${this.isLogin ? "plain" : this.showFab ? "has-fab" : ""}>
         ${this.router.outlet()}
       </main>
+
+      ${footer === "none"
+        ? ""
+        : html`<app-footer
+            ?surface=${footer === "surface"}
+            ?narrow=${footer === "policy"}
+          ></app-footer>`}
 
       ${this.showFab
         ? html`<a class="fab" href="/items/new" aria-label="물품 등록">${ICONS.plus}</a>`
