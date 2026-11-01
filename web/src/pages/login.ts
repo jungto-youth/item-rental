@@ -72,81 +72,73 @@ export class PageLogin extends LitElement {
         justify-content: center;
         box-sizing: border-box;
         min-height: 100dvh;
-        padding: var(--space-5, 24px);
+        /* .pen 로그인 (M): 좌우 24px 여백, 세로 중앙 */
+        padding: 0 var(--space-2);
       }
       .card {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: var(--space-5, 24px);
+        /* .pen Login Stack — 브랜드와 버튼 사이 24px */
+        gap: var(--space-3);
         width: 100%;
-        max-width: 400px;
         text-align: center;
       }
       .brand {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: var(--space-1);
       }
+      /* .pen 로그인: 모바일 40px · 데스크톱 48px */
       .logo {
         display: block;
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
       }
       h1 {
         margin: 0;
-        font-size: 1.5rem;
-        font-weight: 700;
-        letter-spacing: var(--tracking-tight);
-        line-height: 1.2;
+        font-size: var(--text-heading);
+        font-weight: 600;
+        line-height: var(--line-height);
       }
       .sub {
         margin: 0;
-        font-size: 1rem;
-        color: var(--color-muted);
-        line-height: 1.4;
+        font-size: var(--text-body);
+        font-weight: 400;
+        color: var(--ink-2);
+        line-height: var(--line-height);
       }
-      x-button {
-        --x-button-height: 48px;
-        --x-button-radius: var(--radius-sm, 6px);
-        --x-button-padding: 0 var(--space-5, 24px);
-        --x-button-font-size: 1rem;
-        --x-button-weight: 700;
+      @media (min-width: 600px) {
+        /* .pen 로그인: 데스크톱은 340px 고정 폭 */
+        .card {
+          max-width: 340px;
+        }
+        .logo {
+          width: 48px;
+          height: 48px;
+        }
       }
       .msg {
         margin: 0;
-        color: var(--tone-danger-text);
+        color: var(--danger);
         font-size: var(--text-fine);
-        line-height: 1.4;
+        line-height: var(--line-height);
       }
       /* 오류가 없을 때는 흐름에서 빼내 버튼과의 16px 간격도 함께 사라지게 한다 */
       .msg:empty {
         display: none;
       }
-      .foot {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-2);
-      }
-      .foot p {
-        margin: 0;
-        color: var(--color-muted);
-        font-size: var(--text-fine);
-        line-height: 1.4;
-      }
-      form { display: flex; flex-direction: column; gap: 12px; }
-      label { text-align: left; font-size: var(--text-caption); }
+      form { display: flex; flex-direction: column; gap: var(--space-2); }
+      label { text-align: left; font-size: var(--text-fine); }
       input {
-        box-sizing: border-box; width: 100%; min-height: 44px; margin-top: 6px;
-        border: 1px solid var(--color-border); border-radius: var(--radius-sm, 6px);
-        padding: 8px; background: var(--color-bg); color: var(--color-text); font: inherit;
+        box-sizing: border-box; width: 100%; margin-top: var(--space-1);
+        border: 1px solid var(--border); border-radius: var(--radius);
+        padding: var(--space-1) var(--space-2); background: var(--surface); color: var(--ink-1);
+        font: inherit; font-size: var(--text-body); line-height: var(--line-height-button);
       }
-      button {
-        min-height: 44px; border: 1px solid var(--color-primary); border-radius: var(--radius-md, 8px);
-        background: var(--color-primary); color: var(--color-primary-text, #fff); font: inherit; cursor: pointer;
-      }
-      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      input:focus { outline: none; border-color: var(--primary); }
     `,
   ];
 
@@ -185,7 +177,7 @@ export class PageLogin extends LitElement {
           <div class="brand">
             <img class="logo" src="/logo.png" alt="" />
             <h1>대여 관리</h1>
-            <p class="sub">물품 대여 현황 관리 시스템</p>
+            <p class="sub">물품 대여 관리 시스템</p>
           </div>
 
           ${this.localTestLogin
@@ -193,26 +185,26 @@ export class PageLogin extends LitElement {
                 <label for="dev-code">테스트 접근 코드
                   <input id="dev-code" type="password" autocomplete="off" autocapitalize="off"
                     spellcheck="false" minlength="32" maxlength="128" required
+                    placeholder="접근 코드 입력"
                     .value=${this.developmentCode}
                     @input=${(e: Event) => { this.developmentCode = (e.target as HTMLInputElement).value; }} />
                 </label>
                 ${!this.developmentConfigured
                   ? html`<p class="msg" role="status">.dev.vars에 무작위 DEV_LOGIN_CODE(32자 이상)를 설정하고 개발 서버를 다시 실행해주세요</p>` : ""}
-                <button type="submit" ?disabled=${this.busy || !this.developmentConfigured}>
-                  ${this.busy ? "이동 중…" : "로컬 테스트 관리자 로그인"}
-                </button>
+                <x-button
+                  variant="primary"
+                  type="submit"
+                  ?loading=${this.busy}
+                  ?disabled=${!this.developmentConfigured}
+                >
+                  로컬 테스트 관리자 로그인
+                </x-button>
               </form>`
-            : html`<x-button variant="primary" size="md" ?loading=${this.busy} @click=${this.signIn}>
-                ${this.busy ? "이동 중…" : "Google로 로그인"}
+            : html`<x-button variant="primary" ?loading=${this.busy} @click=${this.signIn}>
+                ${this.busy ? "이동 중…" : "Google로 계속하기"}
               </x-button>`}
 
           <p class="msg" aria-live="polite">${this.message}</p>
-
-          ${this.localTestLogin
-            ? html`<div class="foot">
-                <p>로컬 사진 테스트 · 테스트 관리자 계정으로 로그인할 수 있어요</p>
-              </div>`
-            : ""}
         </div>
       </div>
     `;

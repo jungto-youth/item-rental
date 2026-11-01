@@ -9,6 +9,7 @@ export function confirmDialog(
   opts: {
     confirmLabel?: string;
     cancelLabel?: string;
+    /** 파괴적 동작(삭제·탈퇴)만 true — 기본은 primary 버튼 */
     danger?: boolean;
   } = {},
 ): Promise<boolean> {
@@ -28,7 +29,7 @@ export function confirmDialog(
     cancelBtn.textContent = opts.cancelLabel ?? "취소";
     cancelBtn.addEventListener("click", () => done(false));
     const okBtn = document.createElement("x-button");
-    okBtn.setAttribute("variant", opts.danger === false ? "primary" : "danger");
+    okBtn.setAttribute("variant", opts.danger ? "danger" : "primary");
     okBtn.setAttribute("slot", "footer");
     okBtn.textContent = opts.confirmLabel ?? "확인";
     okBtn.addEventListener("click", () => done(true));

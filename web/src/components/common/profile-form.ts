@@ -16,7 +16,7 @@ export class ProfileForm extends LitElement {
   // 초기값 — 연결 시점에 내부 상태로 복사한다 (이후 부모가 바꿔도 덮지 않음)
   @property() initialName = "";
   @property() initialPhone = "";
-  // 비우면 제목·힌트 없이 입력欄만 그린다 (인라인 수정용)
+  // 비우면 제목·힌트 없이 입력란만 그린다 (인라인 수정용)
   @property() title = "";
   @property() hint = "대여 연락 목적으로만 사용돼요";
   @property() submitLabel = "저장";
@@ -35,37 +35,34 @@ export class ProfileForm extends LitElement {
       }
       .box {
         display: grid;
-        gap: var(--space-3, 12px);
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-lg, 12px);
-        padding: var(--space-5, 24px);
+        gap: var(--space-2);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: var(--space-2);
         box-sizing: border-box;
       }
       h2 {
-        font-size: var(--text-heading, 1.0625rem);
-        font-weight: 600;
+        font-size: var(--text-heading);
+        font-weight: 700;
         letter-spacing: var(--tracking-tight);
         margin: 0;
       }
       .hint {
-        color: var(--color-muted);
-        font-size: var(--text-caption, 13px);
+        color: var(--ink-2);
+        font-size: var(--text-fine);
         margin: 0;
       }
       .msg {
-        color: var(--tone-danger-text, var(--color-danger));
-        font-size: var(--text-fine, 12px);
+        color: var(--danger);
+        font-size: var(--text-fine);
         margin: 0;
         min-height: 1em;
       }
       .actions {
         display: flex;
         justify-content: flex-end;
-        gap: var(--space-2, 8px);
-      }
-      .actions.single {
-        justify-content: stretch;
+        gap: var(--space-1);
       }
       .actions.single x-button {
         flex: 1;
@@ -138,7 +135,6 @@ export class ProfileForm extends LitElement {
           ${this.cancellable
             ? html`<x-button
                 variant="secondary"
-                size="md"
                 type="button"
                 ?disabled=${this.busy}
                 @click=${this.cancel}
@@ -146,7 +142,7 @@ export class ProfileForm extends LitElement {
                 취소
               </x-button>`
             : ""}
-          <x-button variant="primary" size="md" type="submit" ?loading=${this.busy}>
+          <x-button variant="primary" type="submit" ?loading=${this.busy}>
             ${this.submitLabel}
           </x-button>
         </div>

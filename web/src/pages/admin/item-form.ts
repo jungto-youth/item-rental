@@ -4,6 +4,7 @@ import { api } from "../../api/client";
 import { confirmDialog } from "../../utils/confirm";
 import { getCategories, resolveCategoryIds } from "../../utils/categories";
 import { processPhoto } from "../../utils/photo";
+import { MAX_PHOTOS } from "../../../../shared/photo-limits";
 import { navigate } from "../../router";
 import { type Item, type ItemKind, type ItemLifecycle, type Photo } from "../../types";
 import { reduceMotion } from "../../styles/motion";
@@ -60,9 +61,9 @@ export class PageAdminItemForm extends LitElement {
   @state() private photos: Photo[] = [];
   // 저장 시 삭제할 서버 사진 id (스테이징)
   @state() private removedIds: number[] = [];
-  // 새로 올릴 사진(스테이징) — 등록·편집 공통. 저장할 때 일괄 업로드한다
-  @state() private staged: File[] = [];
-  @state() private stagedUrls: string[] = [];
+  // 새로 올릴 사진(스테이징) — 등록·편집 공통. 저장할 때 일괄 업로드한다.
+  // 파일과 미리보기 URL 을 한 항목으로 묶어 인덱스가 어긋나지 않게 한다.
+  @state() private staged: { file: File; url: string }[] = [];
   // 태그(카테고리) — 이름 배열을 직접 다룬다. id 변환은 저장 시점에 (resolveCategoryIds)
   @state() private tagNames: string[] = [];
   // 태그 자동완성 후보 — 전체 카테고리 (캐시 유틸)
@@ -75,9 +76,9 @@ export class PageAdminItemForm extends LitElement {
   @state() private processingPhotos = false;
   private photoGeneration = 0;
   @state() private error = "";
-  // error 의 성격 — 저장은 성공했는데 사진 일부만 실패한 경우처럼 "실패"가 아닌
-  // 주의가 필요한 상황을 빨간색과 구분한다
-  @state() private errorTone: "error" | "warning" = "error";
+  // 등록 POST 가 성공한 뒤 사진 처리만 실패한 경우 — 이후 저장은 같은 물품을 수정해야 한다.
+  // (이 값이 없으면 재저장이 POST 로 다시 나가 물품이 중복 생성된다)
+  @state() private createdId: number | null = null;
 
   // 로드 세대 — itemId가 빠르게 바뀌면(A→B 전환) 늦게 도착한 A의 응답이 B를 덮어쓰지 않게 한다
   private loadGen = 0;
@@ -85,7 +86,12 @@ export class PageAdminItemForm extends LitElement {
   private baseline = "";
 
   private get isCreate(): boolean {
-    return this.itemId === "new";
+    return this.itemId === "new" && this.createdId === null;
+  }
+
+  // 저장·삭제·공개 보기가 가리킬 실제 물품 id
+  private get targetId(): string {
+    return this.createdId === null ? this.itemId : String(this.createdId);
   }
 
   static styles = [
@@ -95,41 +101,46 @@ export class PageAdminItemForm extends LitElement {
         display: block;
       }
 
-      /* 폼이 화면 폭을 다 쓰면 입력줄이 너무 길어진다 — 모달 시절 폭을 유지 */
+      /* 관리자 폼은 본문 최대 폭(--layout-max) 안에서 전체 폭을 쓴다 */
       .wrap {
-        max-width: 560px;
+        max-width: 100%;
       }
 
       form {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-5, 24px);
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-2);
+        align-items: start;
       }
 
-      /* 3 fieldset — 기본 정보 / 분류·상태 / 재고·사진. 한 화면 8블록
-         일렬로는 어디가 뭔지 안 보여서 묶는다 */
-      fieldset {
+      /* 3 카드 — 기본 정보 / 분류·상태 / 재고·사진 */
+      .form-card {
         display: flex;
         flex-direction: column;
-        gap: var(--space-3-5, 14px);
-        margin: 0;
-        padding: 0;
-        border: none;
+        gap: var(--space-2);
         min-width: 0;
+        padding: var(--space-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-sizing: border-box;
       }
 
-      legend {
-        padding: 0;
-        margin-bottom: var(--space-3, 12px);
-        font-size: var(--text-caption, 13px);
+      .form-card.full {
+        grid-column: 1 / -1;
+      }
+
+      .form-card h2 {
+        margin: 0;
+        font-size: var(--text-body);
         font-weight: 600;
-        color: var(--color-muted);
+        color: var(--ink-1);
       }
 
       .hint {
         margin: 0;
-        font-size: var(--text-fine, 12px);
-        color: var(--color-muted);
+        font-size: var(--text-fine);
+        color: var(--ink-2);
       }
 
       /* 태그 입력은 래퍼 라벨, 칩 필터(구분·상태)는 .field 래퍼 — 칩은 버튼이라
@@ -137,25 +148,34 @@ export class PageAdminItemForm extends LitElement {
       label {
         display: flex;
         flex-direction: column;
-        gap: var(--space-1, 4px);
-        font-size: var(--text-caption, 13px);
-        font-weight: 500;
-        color: var(--color-muted);
+        gap: var(--space-1);
+        font-size: var(--text-fine);
+        font-weight: 400;
+        color: var(--ink-2);
       }
 
       .field {
         display: flex;
         flex-direction: column;
-        gap: var(--space-1, 4px);
-        font-size: var(--text-caption, 13px);
-        font-weight: 500;
-        color: var(--color-muted);
+        gap: var(--space-1);
+        font-size: var(--text-fine);
+        font-weight: 400;
+        color: var(--ink-2);
       }
 
       .row {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: var(--space-3, 12px);
+        gap: var(--space-2);
+      }
+
+      @media (max-width: 899px) {
+        form {
+          grid-template-columns: 1fr;
+        }
+        .form-card.full {
+          grid-column: auto;
+        }
       }
 
       @media (max-width: 560px) {
@@ -165,43 +185,30 @@ export class PageAdminItemForm extends LitElement {
       }
 
       .error-msg {
-        color: var(--tone-danger-text, var(--color-danger));
-        font-size: var(--text-caption, 13px);
+        color: var(--danger);
+        font-size: var(--text-fine);
         margin: 0;
-      }
-      /* 저장은 됐지만 사진 일부가 실패한 경우 — "실패"가 아니므로 경고 톤 */
-      .error-msg.warning {
-        color: var(--tone-warning-text, var(--color-danger));
       }
 
       .footer-actions {
+        grid-column: 1 / -1;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: var(--space-3, 12px);
-        margin-top: var(--space-1, 4px);
+        gap: var(--space-2);
+        margin-top: var(--space-1);
       }
 
       .footer-left {
         display: flex;
         align-items: center;
-        gap: var(--space-3, 12px);
+        gap: var(--space-1);
         min-width: 0;
-      }
-
-      .view-link {
-        font-size: var(--text-caption, 13px);
-        color: var(--tone-primary-text);
-        text-decoration: none;
-        white-space: nowrap;
-      }
-      .view-link:hover {
-        text-decoration: underline;
       }
 
       .btn-group {
         display: flex;
-        gap: var(--space-2, 8px);
+        gap: var(--space-1);
         flex-shrink: 0;
       }
     `,
@@ -269,7 +276,7 @@ export class PageAdminItemForm extends LitElement {
     this.removedIds = [];
     this.clearStaged();
     this.error = "";
-    this.errorTone = "error";
+    this.createdId = null;
     this.loadError = "";
     this.baseline = "";
     void this.loadCategoryOptions();
@@ -337,7 +344,7 @@ export class PageAdminItemForm extends LitElement {
     const kept = this.photos
       .filter((p) => !this.removedIds.includes(p.id))
       .map((p) => ({ url: p.url, key: p.id }));
-    const fresh = this.stagedUrls.map((u, i) => ({ url: u, key: `s${i}` }));
+    const fresh = this.staged.map((s, i) => ({ url: s.url, key: `s${i}` }));
     return [...kept, ...fresh];
   }
 
@@ -348,15 +355,14 @@ export class PageAdminItemForm extends LitElement {
     const generation = this.photoGeneration;
     try {
       for (const f of files) {
-        if (this.photoCount >= 3) {
-          this.setError("사진은 최대 3장까지 등록할 수 있어요");
+        if (this.photoCount >= MAX_PHOTOS) {
+          this.setError(`사진은 최대 ${MAX_PHOTOS}장까지 등록할 수 있어요`);
           break;
         }
         try {
           const processed = await processPhoto(f);
           if (generation !== this.photoGeneration) return;
-          this.staged = [...this.staged, processed];
-          this.stagedUrls = [...this.stagedUrls, URL.createObjectURL(processed)];
+          this.staged = [...this.staged, { file: processed, url: URL.createObjectURL(processed) }];
         } catch (err) {
           if (generation !== this.photoGeneration) return;
           this.setError(err instanceof Error ? err.message : "이미지 처리 실패");
@@ -368,17 +374,15 @@ export class PageAdminItemForm extends LitElement {
   }
 
   private removeStaged(i: number) {
-    URL.revokeObjectURL(this.stagedUrls[i]);
+    URL.revokeObjectURL(this.staged[i].url);
     this.staged = this.staged.filter((_, j) => j !== i);
-    this.stagedUrls = this.stagedUrls.filter((_, j) => j !== i);
   }
 
   private clearStaged() {
     this.photoGeneration++;
     this.processingPhotos = false;
-    for (const u of this.stagedUrls) URL.revokeObjectURL(u);
+    for (const s of this.staged) URL.revokeObjectURL(s.url);
     this.staged = [];
-    this.stagedUrls = [];
   }
 
   private onPhotoUpload(e: CustomEvent<{ files: File[] }>) {
@@ -396,27 +400,35 @@ export class PageAdminItemForm extends LitElement {
     }
   }
 
-  // 저장 시 사진 일괄 반영 — 실패한 것만 이름 모아 경고로 알린다
+  // 저장 시 사진 일괄 반영 — 실패한 항목만 이름 모아 경고로 알린다.
+  // 성공한 것만 스테이징에서 비운다: 실패분을 남겨야 "다시 저장"으로 재시도할 수 있다.
   private async flushPhotos(itemId: number | string): Promise<string[]> {
     const failed: string[] = [];
+    const remainingRemovals: number[] = [];
     for (const id of this.removedIds) {
       try {
         await api(`/api/admin/items/${itemId}/photos/${id}`, { method: "DELETE" });
       } catch {
+        remainingRemovals.push(id);
         failed.push("사진 삭제");
       }
     }
-    for (const f of this.staged) {
+
+    const remainingStaged: { file: File; url: string }[] = [];
+    for (const staged of this.staged) {
       const fd = new FormData();
-      fd.append("file", f);
+      fd.append("file", staged.file);
       try {
         await api(`/api/admin/items/${itemId}/photos`, { method: "POST", body: fd });
+        URL.revokeObjectURL(staged.url);
       } catch {
-        failed.push(f.name);
+        remainingStaged.push(staged);
+        failed.push(staged.file.name);
       }
     }
-    this.clearStaged();
-    this.removedIds = [];
+
+    this.removedIds = remainingRemovals;
+    this.staged = remainingStaged;
     return failed;
   }
 
@@ -451,19 +463,20 @@ export class PageAdminItemForm extends LitElement {
           body: JSON.stringify({ ...this.form, category_ids }),
         });
         id = res.id;
+        // 사진 처리 실패로 이 화면에 남더라도 다음 저장은 PUT 이 되게 한다
+        this.createdId = res.id;
       } else {
-        await api(`/api/admin/items/${this.itemId}`, {
+        await api(`/api/admin/items/${this.targetId}`, {
           method: "PUT",
           body: JSON.stringify({ ...this.form, category_ids }),
         });
-        id = this.itemId;
+        id = this.targetId;
       }
       // 사진 추가·삭제 일괄 반영 — 일부만 실패하면 화면에 남겨 재시도하게 둔다
       const failed = await this.flushPhotos(id);
       if (failed.length > 0) {
+        // 기준을 갱신하지 않는다 — 남은 스테이징 사진이 있으므로 떠날 때 한 번 더 묻는다
         this.error = `물품은 저장됐어요. 사진 처리만 실패했어요: ${failed.join(", ")}`;
-        this.errorTone = "warning";
-        this.commitBaseline();
         return;
       }
       // 물품 목록으로 복귀 — history.back()은 딥링크·새 탭 진입 시 앱 밖으로
@@ -484,10 +497,10 @@ export class PageAdminItemForm extends LitElement {
   }
 
   private async handleDelete() {
-    if (!(await confirmDialog(`'${this.form.name}' 물품을 정말 삭제할까요?\n연결된 대여 이력은 남고 복구할 수 없어요.`, { confirmLabel: "삭제" })))
+    if (!(await confirmDialog(`'${this.form.name}' 물품을 정말 삭제할까요?\n연결된 대여 이력은 남고 복구할 수 없어요.`, { confirmLabel: "삭제", danger: true })))
       return;
     try {
-      await api(`/api/admin/items/${this.itemId}`, { method: "DELETE" });
+      await api(`/api/admin/items/${this.targetId}`, { method: "DELETE" });
       // 삭제된 물품의 이전 화면으로 돌아가면 없는 물품이 된다 — 목록으로 보낸다
       this.baseline = "";
       navigate("/");
@@ -507,7 +520,6 @@ export class PageAdminItemForm extends LitElement {
   // 긴 폼 아래쪽에서 제출한 사람이 최상단 오류를 놓치지 않게 한다
   private setError(text: string) {
     this.error = text;
-    this.errorTone = "error";
     void this.updateComplete.then(() => {
       this.renderRoot.querySelector<HTMLElement>(".error-msg")?.focus();
     });
@@ -525,17 +537,13 @@ export class PageAdminItemForm extends LitElement {
         <div class="wrap">
           <form @submit=${this.handleSave}>
             ${this.error
-              ? html`<p
-                  class="error-msg ${this.errorTone}"
-                  role=${this.errorTone === "error" ? "alert" : "status"}
-                  tabindex="-1"
-                >
+              ? html`<p class="error-msg" role="alert" tabindex="-1">
                   ${this.error}
                 </p>`
               : ""}
 
-            <fieldset>
-              <legend>기본 정보</legend>
+            <section class="form-card">
+              <h2>기본 정보</h2>
               <x-input
                 label="이름 *"
                 .value=${f.name}
@@ -558,10 +566,10 @@ export class PageAdminItemForm extends LitElement {
                 @input=${(e: Event) =>
                   this.set("description", (e.target as HTMLInputElement).value)}
               ></x-input>
-            </fieldset>
+            </section>
 
-            <fieldset>
-              <legend>분류 · 상태</legend>
+            <section class="form-card">
+              <h2>분류 · 상태</h2>
               <span class="field">
                 카테고리
                 <category-tags-input
@@ -577,7 +585,6 @@ export class PageAdminItemForm extends LitElement {
                 <span class="field">
                   구분
                   <x-chip
-                    size="lg"
                     ariaLabel="구분"
                     .value=${f.kind}
                     .options=${[
@@ -591,7 +598,6 @@ export class PageAdminItemForm extends LitElement {
                 <span class="field">
                   상태
                   <x-chip
-                    size="lg"
                     ariaLabel="상태"
                     .value=${f.lifecycle}
                     .options=${[
@@ -603,10 +609,10 @@ export class PageAdminItemForm extends LitElement {
                   ></x-chip>
                 </span>
               </div>
-            </fieldset>
+            </section>
 
-            <fieldset>
-              <legend>재고 · 사진</legend>
+            <section class="form-card full">
+              <h2>재고 · 사진</h2>
               <div class="row">
                 <x-input
                   label="보유 수량 *"
@@ -642,26 +648,31 @@ export class PageAdminItemForm extends LitElement {
               ></photo-uploader>
               ${this.processingPhotos ? html`<p role="status">사진을 축소하고 있어요…</p>` : ""}
               <p class="hint">사진 추가·삭제는 저장할 때 함께 반영돼요</p>
-            </fieldset>
+            </section>
 
             <div class="footer-actions">
               <div class="footer-left">
                 ${this.isCreate
                   ? ""
                   : html`
-                      <x-button variant="danger" size="md" type="button" @click=${this.handleDelete}>
+                      <x-button variant="danger" type="button" @click=${this.handleDelete}>
                         물품 삭제
                       </x-button>
-                      <a class="view-link" href="/items/${this.itemId}">공개 보기 →</a>
+                      <x-button
+                        variant="secondary"
+                        type="button"
+                        @click=${() => navigate(`/items/${this.targetId}`)}
+                      >
+                        공개 보기
+                      </x-button>
                     `}
               </div>
               <div class="btn-group">
-                <x-button variant="secondary" size="md" type="button" @click=${() => void this.handleCancel()}>
+                <x-button variant="secondary" type="button" @click=${() => void this.handleCancel()}>
                   취소
                 </x-button>
                 <x-button
                   variant="primary"
-                  size="md"
                   type="submit"
                   ?loading=${this.saving}
                   ?disabled=${this.processingPhotos}

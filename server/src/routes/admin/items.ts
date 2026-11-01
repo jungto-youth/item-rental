@@ -3,7 +3,7 @@ import type { Bindings, Variables } from "../../types";
 import { getDb, type Sql } from "../../db";
 import { requireAdmin } from "../../middleware/auth";
 import { imageInfo } from "../../image-size";
-import { MAX_PHOTO_UPLOAD_BYTES as MAX_PHOTO_BYTES, MAX_PHOTO_EDGE } from "../../../../shared/photo-limits";
+import { MAX_PHOTO_UPLOAD_BYTES as MAX_PHOTO_BYTES, MAX_PHOTO_EDGE, MAX_PHOTOS } from "../../../../shared/photo-limits";
 import {
   getAdminItem,
   createItem,
@@ -11,7 +11,6 @@ import {
   deleteItem,
   addPhoto,
   deletePhoto,
-  MAX_PHOTOS,
 } from "../../services/items.service";
 import { listItems } from "../../services/search.service";
 
@@ -109,7 +108,6 @@ adminItemsRoute.get("/", async (c) => {
   const { items, total } = await listItems(db, {
     limit,
     offset,
-    available: false,
     category,
     withCategories: true,
     includeRetired: true,
@@ -167,7 +165,7 @@ adminItemsRoute.put("/:id", async (c) => {
   if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
   const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
 
-  // 속성 필드(description/location/size/color/note/kind/qty_broken)를 먼저 수집
+  // 속성 필드(description/location/kind/qty_repair)를 먼저 수집
   const parsed = readAttrs(body);
   if ("error" in parsed) return c.json({ error: parsed.error }, 400);
   const fields: Record<string, unknown> = { ...parsed.attrs };

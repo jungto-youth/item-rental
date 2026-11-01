@@ -6,8 +6,7 @@ import "../ui/button";
 import "../ui/page-header";
 
 // 관리자 페이지 골격 — 제목 → 툴바 → 결과 메시지 → 로딩·에러 또는 본문.
-// 메뉴바는 없다 — 관리자 이동은 계정 메뉴(등록·대여관리·회원관리)와
-// 화면 내 버튼이 맡는다. 페이지는 데이터와 본문만 슬롯으로 넣는다.
+// 관리자 이동은 상단 메뉴와 화면 내 버튼이 맡는다. 페이지는 데이터와 본문만 슬롯으로 넣는다.
 // - error: 로드 실패 — 재시도 버튼이 내장되고 @retry 이벤트를 발사한다
 // - message: 결과 안내(성공·작업 완료·작업 실패) — error와 역할이 다르다(전체 페이지를
 //   대체하지 않고 목록 위에 얹힌다). messageTone으로 성공/실패를 시각·시맨틱으로 구분한다.
@@ -29,15 +28,12 @@ export class AdminPage extends LitElement {
         display: block;
       }
       .msg {
-        color: var(--tone-primary-text);
-        font-size: var(--text-caption, 13px);
-        margin: 0 0 var(--space-2, 8px);
-      }
-      .msg.success {
-        color: var(--tone-success-text, var(--color-primary));
+        color: var(--ink-1);
+        font-size: var(--text-fine);
+        margin: 0 0 var(--space-1);
       }
       .msg.error {
-        color: var(--tone-danger-text, var(--color-danger));
+        color: var(--danger);
       }
     `,
   ];
@@ -65,7 +61,7 @@ export class AdminPage extends LitElement {
         ? html`<x-empty compact state="loading"></x-empty>`
         : this.error
           ? html`<x-empty compact state="error" text=${this.error}>
-              <x-button variant="secondary" size="sm" @click=${this.retry}>
+              <x-button variant="secondary" @click=${this.retry}>
                 다시 시도
               </x-button>
             </x-empty>`

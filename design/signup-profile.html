@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>계정 정보 — 청년지부 물품 대여</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --color-canvas: #f6f7f9;
+        --color-ink-1: #111827;
+        --color-ink-2: #4b5563;
+        --color-ink-3: #9ca3af;
+        --color-surface: #ffffff;
+        --color-surface-muted: #f3f4f6;
+        --color-line: #e5e7eb;
+        --color-line-strong: #d1d5db;
+        --color-primary: #ea580c;
+        --color-primary-strong: #c2410c;
+        --color-primary-deep: #9a3412;
+        --color-primary-soft: #fff1e8;
+        --color-warning: #b45309;
+        --color-warning-soft: #fffbeb;
+        --color-danger: #dc2626;
+        --color-danger-soft: #fef2f2;
+
+        --font-sans:
+          "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont,
+          "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+        --text-fine: 0.875rem;
+        --text-fine--line-height: 1.5;
+        --text-body: 1rem;
+        --text-body--line-height: 1.5;
+        --text-heading: 1.25rem;
+        --text-heading--line-height: 1.4;
+        --text-page-title: 1.5rem;
+        --text-page-title--line-height: 1.35;
+
+        --radius-card: 8px;
+        --radius-pill: 999px;
+
+        --shadow-menu: 0 8px 24px rgba(23, 23, 23, 0.1);
+        --shadow-modal: 0 24px 64px rgba(23, 23, 23, 0.18);
+      }
+    </style>
+    <style>
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        font-family: var(--font-sans);
+        background: var(--color-canvas);
+        color: var(--color-ink-1);
+      }
+      ::selection {
+        background: var(--color-primary-soft);
+      }
+      .preview-bar {
+        border-bottom: 1px dashed var(--color-line-strong);
+        background: var(--color-surface-muted);
+      }
+      .field-input.is-invalid {
+        border-color: var(--color-danger);
+      }
+      .field-input.is-invalid:focus {
+        border-color: var(--color-danger);
+        --tw-ring-color: var(--color-danger);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
+      }
+      @media print {
+        .preview-bar {
+          display: none !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body class="antialiased">
+    <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
+    <div class="preview-bar">
+      <div class="mx-auto flex h-10 max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6">
+        <span class="text-fine text-ink-2">
+          디자인 미리보기
+          <span class="hidden text-ink-2 sm:inline">— 계정 흐름</span>
+        </span>
+        <nav class="flex items-center gap-3 text-fine" aria-label="계정 흐름 미리보기">
+          <a href="login.html" class="text-ink-2 transition-colors hover:text-ink-1">로그인</a>
+          <a href="signup-profile.html" aria-current="page" class="font-semibold text-ink-1">프로필 등록</a>
+          <a href="mypage.html" class="text-ink-2 transition-colors hover:text-ink-1">내 정보</a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ===== 공통 헤더 ===== -->
+    <header class="sticky top-0 z-30 border-b border-line bg-surface">
+      <div class="mx-auto flex h-14 max-w-[1200px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6">
+        <a href="index.html" class="flex flex-none items-center gap-2" aria-label="물품 현황 — 홈">
+          <img src="assets/logo.png" alt="" class="h-7 w-7 rounded-card" />
+          <span class="hidden text-[15px] font-semibold tracking-[-0.015em] text-ink-1 sm:block">청년지부</span>
+        </a>
+
+        <nav class="flex min-w-0 items-center gap-4 sm:gap-6" aria-label="주 메뉴">
+          <a href="index.html" class="flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">물품 현황</a>
+          <a href="my-rentals.html" class="flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">대여 기록</a>
+        </nav>
+
+        <div class="relative ml-auto flex flex-none items-center">
+          <button
+            type="button"
+            class="flex h-10 items-center gap-2 rounded-pill text-body text-ink-2 transition-colors hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            id="account-btn"
+            aria-expanded="false"
+            aria-haspopup="menu"
+            aria-label="계정 메뉴 — 김하늘"
+          >
+            <span class="flex h-8 w-8 items-center justify-center rounded-pill bg-primary-soft text-fine font-semibold text-primary-strong" aria-hidden="true">김</span>
+            <span class="hidden max-w-[140px] truncate md:block">김하늘</span>
+            <svg class="hidden h-4 w-4 sm:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+          <div
+            id="account-menu"
+            class="absolute right-0 top-[calc(100%+8px)] z-20 hidden min-w-[176px] overflow-hidden rounded-card border border-line bg-surface shadow-menu"
+            role="menu"
+          >
+            <a href="mypage.html" role="menuitem" class="block px-4 py-2 text-body text-ink-1 transition-colors hover:bg-surface-muted">내 정보</a>
+            <a href="login.html" role="menuitem" class="block px-4 py-2 text-body text-danger transition-colors hover:bg-surface-muted">로그아웃</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-[400px] px-4 pb-10 pt-10 sm:px-6 sm:pt-16">
+      <div class="text-center">
+        <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">반가워요</h1>
+        <p class="mt-2 text-body leading-[1.5] text-ink-2">물품을 빌리려면 이름과 연락처가 필요해요.</p>
+      </div>
+
+      <form id="profile-form" class="mt-6 rounded-card border border-line bg-surface p-6 max-sm:p-4">
+        <div class="mb-4 flex items-center gap-2 rounded-card bg-surface-muted px-4 py-2 text-fine">
+          <svg class="h-4 w-4 flex-none text-primary-strong" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+          <span class="text-ink-2">로그인한 계정</span>
+          <span class="ml-auto truncate text-ink-1">haneul@jungto.org</span>
+        </div>
+
+        <label class="block">
+          <span class="text-fine font-medium text-ink-2">이름 <span class="text-danger">*</span></span>
+          <input
+            id="name"
+            name="name"
+            autocomplete="name"
+            value="김하늘"
+            aria-required="true"
+            aria-describedby="form-error"
+            class="field-input mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </label>
+
+        <label class="mt-4 block">
+          <span class="text-fine font-medium text-ink-2">휴대폰 번호 <span class="text-danger">*</span></span>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            inputmode="tel"
+            autocomplete="tel"
+            placeholder="010-1234-5678"
+            aria-required="true"
+            aria-describedby="form-error"
+            class="field-input mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </label>
+
+        <p id="form-error" class="mt-2 hidden text-fine text-danger" role="alert">이름과 연락처를 모두 입력해 주세요.</p>
+
+        <button
+          type="submit"
+          class="mt-6 flex h-10 w-full items-center justify-center rounded-card bg-primary-strong text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          저장
+        </button>
+        <p class="mt-2 text-center text-fine text-ink-2">저장하면 바로 물품을 둘러볼 수 있어요.</p>
+      </form>
+
+      <p class="mt-4 text-center text-fine text-ink-2">입력한 정보는 물품 대여 연락에만 사용해요.</p>
+    </main>
+
+    <script>
+      const form = document.getElementById("profile-form");
+      const nameInput = document.getElementById("name");
+      const phoneInput = document.getElementById("phone");
+      const error = document.getElementById("form-error");
+
+      function clearInvalidOnInput(input) {
+        input.addEventListener("input", () => {
+          input.classList.remove("is-invalid");
+          if (nameInput.value.trim() && phoneInput.value.trim()) {
+            error.classList.add("hidden");
+          }
+        });
+      }
+
+      clearInvalidOnInput(nameInput);
+      clearInvalidOnInput(phoneInput);
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const name = nameInput.value.trim();
+        const phone = phoneInput.value.trim();
+        nameInput.classList.toggle("is-invalid", !name);
+        phoneInput.classList.toggle("is-invalid", !phone);
+
+        if (!name || !phone) {
+          error.textContent =
+            !name && !phone
+              ? "이름과 연락처를 모두 입력해 주세요"
+              : !name
+                ? "이름을 입력해 주세요"
+                : "연락처를 입력해 주세요";
+          error.classList.remove("hidden");
+          return;
+        }
+
+        location.href = "mypage.html";
+      });
+
+      // ===== 계정 메뉴 =====
+      const accountBtn = document.getElementById("account-btn");
+      const accountMenu = document.getElementById("account-menu");
+      if (accountBtn && accountMenu) {
+        const closeAccountMenu = () => {
+          accountMenu.classList.add("hidden");
+          accountBtn.setAttribute("aria-expanded", "false");
+        };
+        accountBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const hidden = accountMenu.classList.toggle("hidden");
+          accountBtn.setAttribute("aria-expanded", String(!hidden));
+        });
+        document.addEventListener("pointerdown", (event) => {
+          if (accountMenu.classList.contains("hidden")) return;
+          if (event.composedPath().includes(accountBtn) || event.composedPath().includes(accountMenu)) return;
+          closeAccountMenu();
+        });
+        window.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeAccountMenu();
+        });
+      }
+    </script>
+  </body>
+</html>

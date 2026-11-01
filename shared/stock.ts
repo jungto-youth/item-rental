@@ -17,21 +17,14 @@ export type StockLike = {
   active_now?: number;
 };
 
-// 대여 가능 기준 수량 (수리중 제외)
-export function rentableQty(it: StockLike): number {
+// 대여 가능 기준 수량 (수리중 제외) — 이 파일 안에서만 쓴다
+function rentableQty(it: StockLike): number {
   return it.rentable_qty ?? (it.total_qty - (it.qty_repair ?? 0));
 }
 
 // 지금 빌릴 수 있는 수량
 export function availableQty(it: StockLike): number {
   return Math.max(0, rentableQty(it) - (it.active_now ?? 0));
-}
-
-// 대여 가능 여부 — 소모품은 대여 대상이 아니라 항상 true(필터에서 제외하지 않음)
-export function isItemAvailable(it: StockLike): boolean {
-  if (it.kind === "consumable") return true;
-  if (it.lifecycle !== "active") return false;
-  return availableQty(it) > 0;
 }
 
 // 카드·행 배지 — 우선순위: 폐기 > 소모품 > 수리중 > 대여중 > 대여가능.
@@ -63,12 +56,10 @@ export function availabilityBadgeOf(it: StockLike): AvailabilityBadge | null {
 
 // 목록 상태 칸의 구성 요소 — 이슈 #12 §6.2/§6.4.
 // '대여 가능 N · 대여 중 N · 수리중 N' 을 조각으로 내려 화면이 구분점·색을 소유한다.
-// 수량 0 인 항은 숨기고(구분점까지), 전부 0 이면 '대여 가능 0' 한 항만 남긴다.
+// 수량 0 인 항은 숨기고(구분점까지), 전체(total) 조각은 내리지 않는다.
 // 폐기·소모품은 수량 분포가 아니라 단일 라벨이다 (소모품은 재고 개념).
 export type StatusPartKey = "available" | "rented" | "repair" | "consumable" | "retired";
-// zero — 수량이 0 인 '대여 가능' 항. .pen 은 데스크탑에서 숨기고 모바일 카드에서는
-// '대여 가능 0'으로 보여준다(두 아트보드가 서로 다르다 — 화면이 CSS로 가른다).
-export type StatusPart = { key: StatusPartKey; label: string; zero?: boolean };
+export type StatusPart = { key: StatusPartKey; label: string };
 
 export function statusParts(it: StockLike): StatusPart[] {
   if (it.lifecycle === "retired") return [{ key: "retired", label: "폐기" }];
@@ -78,12 +69,10 @@ export function statusParts(it: StockLike): StatusPart[] {
   const available = availableQty(it);
   const rented = it.active_now ?? 0;
   const repair = it.qty_repair ?? 0;
-  // 대여 가능은 0 이어도 항목을 만든다 — 모바일 카드가 '대여 가능 0'을 보여준다
-  const parts: StatusPart[] = [
-    { key: "available", label: `대여 가능 ${available}`, zero: available === 0 },
-  ];
+  const parts: StatusPart[] = [];
+  if (available > 0) parts.push({ key: "available", label: `대여 가능 ${available}` });
   if (rented > 0) parts.push({ key: "rented", label: `대여 중 ${rented}` });
-  if (repair > 0) parts.push({ key: "repair", label: `수리중 ${repair}` });
+  if (repair > 0) parts.push({ key: "repair", label: `수리 중 ${repair}` });
   return parts;
 }
 
@@ -104,21 +93,4 @@ export function catalogSummary(items: StockLike[]): CatalogSummary {
     if (it.kind !== "consumable" && availableQty(it) > 0) available += 1;
   }
   return { types, available, rented, repair };
-}
-
-
-// 상태 그룹 — 관리자 칩 필터용. badgeFor와 같은 우선순위를 쓴다.
-export type StockGroup =
-  | "rented"
-  | "repair"
-  | "available"
-  | "consumable"
-  | "retired";
-
-export function groupKey(it: StockLike): StockGroup {
-  if (it.lifecycle === "retired") return "retired";
-  if (it.kind === "consumable") return "consumable";
-  if (rentableQty(it) <= 0) return "repair";
-  if ((it.active_now ?? 0) > 0) return "rented";
-  return "available";
 }

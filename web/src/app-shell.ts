@@ -1,4 +1,4 @@
-import { LitElement, html, css, type TemplateResult } from "lit";
+import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { createRouter, navigate } from "./router";
 import { session, type SessionUser } from "./context/session";
@@ -19,31 +19,10 @@ function preloadAdminChunks() {
   });
 }
 
-type NavItem = { href: string; label: string; icon: TemplateResult };
+type NavItem = { href: string; label: string };
 
-// 아이콘 — .pen 의 lucide 세트(package·history·users·user-round·plus)를 인라인 SVG 로.
+// 아이콘 — 물품 등록 FAB 의 plus 하나만 쓴다.
 const ICONS = {
-  package: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="m7.5 4.27 9 5.15" />
-    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-    <path d="m3.3 7 8.7 5 8.7-5" />
-    <path d="M12 22V12" />
-  </svg>`,
-  history: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-    <path d="M3 3v5h5" />
-    <path d="M12 7v5l4 2" />
-  </svg>`,
-  users: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>`,
-  user: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <circle cx="12" cy="8" r="5" />
-    <path d="M20 21a8 8 0 0 0-16 0" />
-  </svg>`,
   plus: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M5 12h14" />
     <path d="M12 5v14" />
@@ -67,18 +46,21 @@ export class AppShell extends LitElement {
         position: sticky;
         top: 0;
         z-index: 10;
-        background: var(--color-bg);
-        border-bottom: 1px solid var(--color-border);
+        background: var(--surface);
+        box-sizing: border-box;
+        height: 64px;
+        /* 헤어라인은 화면 폭 전체를 잇는다 — 안쪽 .bar 의 최대 폭 제한에 걸리면 끊긴다. */
+        border-bottom: 1px solid var(--border);
       }
       .bar {
         display: flex;
         align-items: center;
-        gap: var(--space-5, 24px);
+        gap: var(--space-4);
         box-sizing: border-box;
-        height: 48px;
-        max-width: 1440px;
+        height: 100%;
+        max-width: var(--layout-max);
         margin: 0 auto;
-        padding: 0 var(--space-5, 24px);
+        padding: 0 var(--space-3);
       }
       .brand {
         display: flex;
@@ -88,15 +70,15 @@ export class AppShell extends LitElement {
       }
       .brand img {
         display: block;
-        width: 24px;
-        height: 24px;
-        border-radius: var(--radius-sm, 6px);
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius);
       }
-      /* 주 메뉴 — .pen Top Bar: 로고 옆 텍스트 링크 */
+      /* 주 메뉴 — 로고 옆 텍스트 링크 */
       .nav {
         display: flex;
         align-items: center;
-        gap: var(--space-5, 24px);
+        gap: var(--space-3);
         min-width: 0;
         overflow-x: auto;
         scrollbar-width: none;
@@ -106,19 +88,21 @@ export class AppShell extends LitElement {
       }
       .nav a {
         flex-shrink: 0;
-        color: var(--color-ink-3, #9c9c9c);
+        padding: var(--space-1) 0;
+        border-bottom: 2px solid transparent;
+        color: var(--ink-2);
         text-decoration: none;
-        font-size: 1rem;
+        font-size: var(--text-body);
         font-weight: 400;
         white-space: nowrap;
-        transition: color 0.15s ease;
       }
       .nav a:hover {
-        color: var(--color-text);
+        color: var(--ink-1);
       }
       .nav a.active {
-        color: var(--color-text);
-        font-weight: 700;
+        border-bottom-color: var(--primary);
+        color: var(--ink-1);
+        font-weight: 600;
       }
       .account {
         position: relative;
@@ -128,47 +112,56 @@ export class AppShell extends LitElement {
       .account-btn {
         display: flex;
         align-items: center;
-        gap: var(--space-2, 8px);
-        padding: 0;
+        gap: var(--space-1);
+        padding: var(--space-1) 0;
         border: none;
         background: none;
         font-family: inherit;
+        font-size: var(--text-body);
+        line-height: var(--line-height-button);
         cursor: pointer;
-        border-radius: var(--radius-pill, 999px);
+        border-radius: var(--radius-pill);
       }
       .avatar {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: var(--color-primary-soft, #ffedd5);
-        color: var(--color-primary);
-        font-size: var(--text-fine, 12px);
-        font-weight: 700;
+        width: 32px;
+        height: 32px;
+        border: 0;
+        border-radius: var(--radius-pill);
+        background: var(--primary-soft);
+        color: var(--primary-strong);
+        font-size: var(--text-fine);
+        font-weight: 600;
       }
       .account-name {
         max-width: 140px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        color: var(--color-ink-3, #9c9c9c);
-        font-size: 1rem;
+        color: var(--ink-2);
+        font-size: var(--text-body);
+      }
+      .account-chevron {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        color: var(--ink-2);
       }
       .account-btn:focus-visible {
-        outline: 2px solid var(--color-primary-focus);
+        outline: 2px solid var(--ink-1);
         outline-offset: 2px;
       }
       .menu {
         position: absolute;
-        top: calc(100% + 6px);
+        top: calc(100% + var(--space-1));
         right: 0;
-        min-width: 160px;
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md, 8px);
-        background: var(--color-surface);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        min-width: 176px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow-menu);
         overflow: hidden;
         z-index: 20;
       }
@@ -177,57 +170,54 @@ export class AppShell extends LitElement {
         display: block;
         width: 100%;
         box-sizing: border-box;
-        padding: 12px 16px;
+        padding: var(--space-2);
         text-align: left;
         background: none;
         border: none;
-        color: var(--color-text);
+        color: var(--ink-1);
         text-decoration: none;
         font-family: inherit;
-        font-size: var(--text-caption, 13px);
+        font-size: var(--text-body);
+        line-height: var(--line-height-button);
         cursor: pointer;
-        transition: background-color 0.15s ease;
       }
       .menu a:hover,
       .menu button:hover {
-        background: var(--color-bg);
+        background: var(--surface-muted);
       }
       .menu .menu-logout {
-        color: var(--color-danger);
+        color: var(--danger);
       }
       .btn-login {
         display: flex;
         align-items: center;
-        height: 36px;
-        padding: 0 var(--space-3);
-        border: 1px solid var(--color-primary);
-        border-radius: var(--radius-sm, 6px);
-        background: transparent;
-        color: var(--tone-primary-text);
+        padding: var(--space-1) var(--space-2);
+        border: 1px solid var(--primary);
+        border-radius: var(--radius);
+        background: var(--primary);
+        color: #fff;
         text-decoration: none;
         font-family: inherit;
-        font-size: var(--text-caption);
+        font-size: var(--text-body);
         font-weight: 600;
+        line-height: var(--line-height-button);
         letter-spacing: var(--tracking-tight);
         cursor: pointer;
       }
 
       main {
-        max-width: 1440px;
+        max-width: var(--layout-max);
         margin: 0 auto;
-        padding: var(--space-5, 24px);
-        padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+        box-sizing: border-box;
+        padding: var(--space-3);
+        padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
         font-size: var(--text-body);
-        line-height: 1.47;
+        line-height: var(--line-height);
       }
       /* 로그인은 .pen 처럼 헤더·여백 없는 전체 화면 — 셸이 방해하지 않는다 */
       main.plain {
         max-width: none;
         padding: 0;
-      }
-      /* 목록 화면은 .pen 처럼 헤더 바로 아래 12px에서 시작한다 (Page Header padding-top) */
-      main.flush {
-        padding-top: 0;
       }
       /* 코드 스플릿 청크 로딩 구간 — 아직 등록되지 않은 페이지 요소가 빈 화면으로
          깜빡이지 않게 스피너 영역을 보여준다 (사전 로드가 커버 못 하는 콜드 로드·
@@ -242,7 +232,7 @@ export class AppShell extends LitElement {
         width: 16px;
         height: 16px;
         margin: 35vh auto 0;
-        border: 2px solid var(--color-muted);
+        border: 2px solid var(--ink-2);
         border-right-color: transparent;
         border-radius: 50%;
         animation: spin 0.6s linear infinite;
@@ -253,76 +243,49 @@ export class AppShell extends LitElement {
         }
       }
 
-      /* ===== 모바일 하단 탭 바 + FAB (.pen Bottom) ===== */
-      .tabbar {
-        display: none;
-      }
+      /* ===== 모바일 FAB ===== */
       .fab {
         display: none;
       }
       @media (max-width: 767px) {
-        .bar {
-          padding: 0 var(--space-4, 16px);
-          gap: var(--space-3, 12px);
+        header {
+          height: 56px;
         }
-        .nav {
+        .bar {
+          gap: var(--space-2);
+          padding: 0 var(--space-2);
+        }
+        /* 좁은 화면에서는 메뉴 자리를 위해 계정 이름을 숨긴다 (이니셜만) */
+        .account-name {
           display: none;
         }
         main {
-          padding: var(--space-4, 16px) var(--space-5, 24px);
-          padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+          padding: var(--space-2);
+          padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
         }
-        .tabbar {
-          position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          z-index: 20;
-          display: flex;
-          justify-content: center;
-          background: var(--color-bg);
-          border-top: 1px solid var(--color-border);
-          padding: var(--space-2, 8px) var(--space-4, 16px)
-            calc(var(--space-2, 8px) + env(safe-area-inset-bottom, 0px));
-        }
-        .tabbar a {
-          display: flex;
-          flex: 1;
-          flex-direction: column;
-          align-items: center;
-          gap: var(--space-1, 4px);
-          padding: var(--space-1, 4px);
-          color: var(--color-muted);
-          text-decoration: none;
-          font-size: var(--text-fine, 12px);
-          white-space: nowrap;
-        }
-        .tabbar a svg {
-          width: 20px;
-          height: 20px;
-        }
-        .tabbar a.active {
-          color: var(--color-primary);
-          font-weight: 700;
+        /* 물품 현황은 하단 FAB 자리만 비운다 */
+        main.has-fab {
+          padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
         }
         .fab {
           position: fixed;
-          right: var(--space-5, 24px);
-          bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+          right: var(--space-3);
+          bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
           z-index: 21;
           display: flex;
           align-items: center;
           justify-content: center;
           width: 48px;
           height: 48px;
-          border-radius: var(--radius-pill, 999px);
-          background: var(--color-primary);
-          color: var(--color-primary-text);
-          box-shadow: 0 6px 16px rgba(234, 88, 12, 0.35);
+          border: 1px solid var(--primary);
+          border-radius: var(--radius-pill);
+          background: var(--primary);
+          color: #fff;
+          box-shadow: 0 8px 20px rgba(226, 87, 30, 0.28);
         }
         .fab svg {
-          width: 24px;
-          height: 24px;
+          width: 20px;
+          height: 20px;
         }
       }
     `,
@@ -351,34 +314,26 @@ export class AppShell extends LitElement {
   }
 
   // ===== 내비게이션 =====
-  // 데스크탑 Top Bar 와 모바일 Bottom Tab Bar 가 같은 목록을 공유한다.
+  // 모바일·데스크톱 모두 같은 상단 메뉴를 쓴다.
   // 관리자: 물품 현황 · 대여 기록(관리) · 회원 관리 / 회원: 물품 현황 · 대여 기록(내역)
   private get navItems(): NavItem[] {
     if (!this.user) return [];
     const isAdmin = this.user.role === "admin";
     return [
-      { href: "/", label: "물품 현황", icon: ICONS.package },
+      { href: "/", label: "물품 현황" },
       {
         href: isAdmin ? "/admin/reservations" : "/my/rentals",
         label: "대여 기록",
-        icon: ICONS.history,
       },
       ...(isAdmin
-        ? [{ href: "/admin/members", label: "회원 관리", icon: ICONS.users }]
+        ? [{ href: "/admin/members", label: "회원 관리" }]
         : []),
     ];
-  }
-
-  // 하단 탭은 내 정보까지 포함한다
-  private get tabItems(): NavItem[] {
-    if (!this.user) return [];
-    return [...this.navItems, { href: "/mypage", label: "내 정보", icon: ICONS.user }];
   }
 
   private isActive(href: string): boolean {
     const path = location.pathname;
     if (href === "/") return path === "/";
-    if (href === "/mypage") return path === "/mypage";
     return path === href || path.startsWith(`${href}/`);
   }
 
@@ -388,10 +343,6 @@ export class AppShell extends LitElement {
 
   private get isLogin(): boolean {
     return location.pathname === "/login";
-  }
-
-  private get isHome(): boolean {
-    return location.pathname === "/";
   }
 
   // 계정 메뉴 — 외부 클릭이나 Esc로 닫는다
@@ -473,6 +424,9 @@ export class AppShell extends LitElement {
                   >
                     <span class="avatar" aria-hidden="true">${this.accountInitial}</span>
                     <span class="account-name">${this.accountLabel}</span>
+                    <svg class="account-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
                   </button>
                   ${this.menuOpen
                     ? html`
@@ -498,30 +452,12 @@ export class AppShell extends LitElement {
         </div>
       </header>`}
 
-      <main class=${this.isLogin ? "plain" : this.isHome ? "flush" : ""}>${this.router.outlet()}</main>
+      <main class=${this.isLogin ? "plain" : this.showFab ? "has-fab" : ""}>${this.router.outlet()}</main>
 
       ${this.showFab
         ? html`<a class="fab" href="/items/new" aria-label="물품 등록">${ICONS.plus}</a>`
         : ""}
 
-      ${user
-        ? html`
-            <nav class="tabbar" aria-label="하단 메뉴">
-              ${this.tabItems.map(
-                (item) => html`
-                  <a
-                    href=${item.href}
-                    class=${this.isActive(item.href) ? "active" : ""}
-                    ?aria-current=${this.isActive(item.href) ? "page" : null}
-                  >
-                    ${item.icon}
-                    <span>${item.label}</span>
-                  </a>
-                `,
-              )}
-            </nav>
-          `
-        : ""}
     `;
   }
 }

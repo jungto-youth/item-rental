@@ -28,40 +28,40 @@ export class PageMypage extends LitElement {
         display: block;
       }
       .profile-card {
-        margin-top: var(--space-3);
-        font-size: var(--text-caption, 13px);
+        margin-top: var(--space-2);
+        font-size: var(--text-fine);
       }
       .profile-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: var(--space-3, 12px);
+        gap: var(--space-2);
       }
       /* 상단 안내 — 연락처 미등록일 때만 노출 (탈퇴 회원은 이 페이지에 도달할 수 없다) */
       x-notice {
         display: block;
-        margin-bottom: var(--space-4, 16px);
+        margin-bottom: var(--space-2);
       }
       .profile-actions {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: var(--space-2, 8px);
-        margin-top: var(--space-1, 4px);
+        gap: var(--space-1);
+        margin-top: var(--space-1);
       }
       .saved-msg {
-        color: var(--tone-success-text, var(--color-success));
-        font-size: var(--text-fine, 12px);
+        color: var(--ink-1);
+        font-size: var(--text-fine);
       }
       .account-section {
-        margin-top: var(--space-2, 8px);
+        margin-top: var(--space-1);
       }
       .sub {
-        color: var(--color-muted);
-        font-size: var(--text-fine, 12px);
+        color: var(--ink-2);
+        font-size: var(--text-fine);
       }
       profile-form {
-        margin-top: var(--space-3, 12px);
+        margin-top: var(--space-2);
       }
     `,
   ];
@@ -134,7 +134,7 @@ export class PageMypage extends LitElement {
                 </div>
                 <div class="profile-actions">
                   <span class="saved-msg" role="status" ?hidden=${!this.saved}>저장했어요</span>
-                  <x-button variant="secondary" size="sm" type="button" @click=${this.startEdit}>
+                  <x-button variant="secondary" type="button" @click=${this.startEdit}>
                     수정
                   </x-button>
                 </div>

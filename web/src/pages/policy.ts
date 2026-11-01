@@ -10,57 +10,56 @@ export class PagePolicy extends LitElement {
   static styles = css`
     article {
       max-width: 640px;
-      line-height: 1.47;
+      line-height: var(--line-height);
       font-size: var(--text-body);
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg, 12px);
-      padding: var(--space-5);
+      background: transparent;
+      border: 0;
+      padding: 0;
       box-sizing: border-box;
       margin: 0 auto;
     }
     h1 {
-      font-size: var(--text-page-title, 1.375rem);
+      font-size: var(--text-page-title);
       font-weight: 600;
       letter-spacing: var(--tracking-tight);
-      line-height: 1.1;
-      margin: var(--space-2) 0 var(--space-2);
+      line-height: var(--line-height);
+      margin: var(--space-1) 0 var(--space-1);
     }
     h2 {
-      font-size: var(--text-heading, 1.0625rem);
+      font-size: var(--text-heading);
       font-weight: 600;
       letter-spacing: var(--tracking-tight);
-      margin: var(--space-5) 0 var(--space-2);
+      margin: var(--space-3) 0 var(--space-1);
     }
     p,
     li {
-      color: var(--color-muted);
+      color: var(--ink-2);
     }
     ul {
-      padding-left: var(--space-5);
+      padding-left: var(--space-3);
     }
     .updated {
       font-size: var(--text-fine);
-      color: var(--color-muted);
+      color: var(--ink-2);
     }
     table {
       border-collapse: collapse;
-      font-size: var(--text-caption);
-      margin: var(--space-3) 0;
+      font-size: var(--text-fine);
+      margin: var(--space-2) 0;
       width: 100%;
       display: block;
       overflow-x: auto;
     }
     th,
     td {
-      border: 1px solid var(--color-border);
-      padding: var(--space-2);
+      border: 1px solid var(--border);
+      padding: var(--space-1);
       text-align: left;
       white-space: nowrap;
     }
     th {
-      background: var(--color-bg);
-      color: var(--color-text);
+      background: var(--bg);
+      color: var(--ink-1);
       font-weight: 600;
     }
   `;

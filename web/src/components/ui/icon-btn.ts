@@ -1,7 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
-// 아이콘만 있는 작은 버튼 — 테마 전환, 모달 닫기 등 32px 터치 타깃 통일.
+// 아이콘만 있는 작은 버튼 — 모달 닫기 등 32px 터치 타깃 통일.
 @customElement("x-icon-btn")
 export class XIconBtn extends LitElement {
   @property() label = "";
@@ -15,22 +15,23 @@ export class XIconBtn extends LitElement {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
-      padding: 0;
-      border: 1px solid transparent;
-      border-radius: var(--radius-md, 8px);
-      background: transparent;
-      color: var(--color-muted);
+      min-width: 38px;
+      min-height: 38px;
+      padding: var(--space-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--ink-2);
       cursor: pointer;
-      transition: color 0.15s ease, background-color 0.15s ease;
+      line-height: var(--line-height-button);
     }
     button:hover {
-      color: var(--color-text);
-      background: var(--color-surface);
+      border-color: var(--border-strong);
+      background: var(--surface-muted);
+      color: var(--ink-1);
     }
     button:focus-visible {
-      outline: 2px solid var(--color-primary-focus);
+      outline: 2px solid var(--primary);
       outline-offset: 2px;
     }
     ::slotted(svg) {
@@ -42,7 +43,12 @@ export class XIconBtn extends LitElement {
 
   render() {
     return html`
-      <button type="button" aria-label=${this.label} title=${this.label}>
+      <button
+        type="button"
+        part="button"
+        aria-label=${this.label}
+        title=${this.label}
+      >
         <slot></slot>
       </button>
     `;

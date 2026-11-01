@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>개인정보 처리방침 — 청년지부 물품 대여</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --color-canvas: #f6f7f9;
+        --color-ink-1: #111827;
+        --color-ink-2: #4b5563;
+        --color-ink-3: #9ca3af;
+        --color-surface: #ffffff;
+        --color-surface-muted: #f3f4f6;
+        --color-line: #e5e7eb;
+        --color-line-strong: #d1d5db;
+        --color-primary: #ea580c;
+        --color-primary-strong: #c2410c;
+        --color-primary-deep: #9a3412;
+        --color-primary-soft: #fff1e8;
+        --color-warning: #b45309;
+        --color-warning-soft: #fffbeb;
+        --color-danger: #dc2626;
+        --color-danger-soft: #fef2f2;
+
+        --font-sans:
+          "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont,
+          "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+        --text-fine: 0.875rem;
+        --text-fine--line-height: 1.5;
+        --text-body: 1rem;
+        --text-body--line-height: 1.5;
+        --text-heading: 1.25rem;
+        --text-heading--line-height: 1.4;
+        --text-page-title: 1.5rem;
+        --text-page-title--line-height: 1.35;
+
+        --radius-card: 8px;
+        --radius-pill: 999px;
+
+        --shadow-menu: 0 8px 24px rgba(23, 23, 23, 0.1);
+        --shadow-modal: 0 24px 64px rgba(23, 23, 23, 0.18);
+      }
+    </style>
+    <style>
+      html {
+        -webkit-text-size-adjust: 100%;
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: var(--font-sans);
+        background: var(--color-canvas);
+        color: var(--color-ink-1);
+      }
+      ::selection {
+        background: var(--color-primary-soft);
+      }
+      .preview-bar {
+        border-bottom: 1px dashed var(--color-line-strong);
+        background: var(--color-surface-muted);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
+      }
+      @media print {
+        .preview-bar {
+          display: none !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body class="antialiased">
+    <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
+    <div class="preview-bar">
+      <div class="mx-auto flex h-10 max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6">
+        <span class="text-fine text-ink-2">
+          디자인 미리보기
+          <span class="hidden text-ink-2 sm:inline">— 정책</span>
+        </span>
+        <nav class="flex items-center gap-3 text-fine" aria-label="정책 미리보기">
+          <a href="policy.html?kind=terms" data-policy-tab="terms" class="text-ink-2 transition-colors hover:text-ink-1">이용약관</a>
+          <a href="policy.html?kind=privacy" data-policy-tab="privacy" class="text-ink-2 transition-colors hover:text-ink-1">개인정보</a>
+          <a href="index.html" class="text-ink-2 transition-colors hover:text-ink-1">홈</a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- 공개 헤더 -->
+    <header class="sticky top-0 z-30 border-b border-line bg-surface">
+      <div class="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-4 px-4 sm:h-16 sm:px-6">
+        <a href="index.html" class="flex min-w-0 items-center gap-2">
+          <img src="assets/logo.png" alt="" class="h-7 w-7 rounded-card" />
+          <span class="text-[15px] font-semibold tracking-[-0.015em] text-ink-1">청년지부</span>
+        </a>
+        <a
+          href="login.html"
+          class="inline-flex h-9 flex-none items-center rounded-card bg-primary-strong px-4 text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          로그인
+        </a>
+      </div>
+    </header>
+
+    <main id="top" class="mx-auto max-w-[1000px] px-4 pb-16 pt-6 sm:px-6 sm:pt-8">
+      <nav class="flex gap-6 border-b border-line" aria-label="정책 종류">
+        <a href="policy.html?kind=terms" data-policy-tab="terms" class="-mb-px border-b-2 border-transparent pb-2 text-body text-ink-2 transition-colors hover:text-ink-1">이용약관</a>
+        <a href="policy.html?kind=privacy" data-policy-tab="privacy" class="-mb-px border-b-2 border-transparent pb-2 text-body text-ink-2 transition-colors hover:text-ink-1">개인정보 처리방침</a>
+      </nav>
+
+      <div class="mt-8 grid gap-8 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-12">
+        <!-- 목차 -->
+        <aside data-policy-toc="terms" class="hidden lg:sticky lg:top-24 lg:self-start">
+          <p class="text-fine font-semibold text-ink-1">목차</p>
+          <nav class="mt-2 space-y-2" aria-label="이용약관 목차">
+            <a href="#terms-1" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">1. 목적</a>
+            <a href="#terms-2" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">2. 회원 가입</a>
+            <a href="#terms-3" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">3. 물품 대여</a>
+            <a href="#terms-4" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">4. 회원 의무</a>
+            <a href="#terms-5" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">5. 운영진 의무</a>
+            <a href="#terms-6" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">6. 책임 제한</a>
+            <a href="#terms-7" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">7. 약관 변경</a>
+          </nav>
+        </aside>
+
+        <aside data-policy-toc="privacy" class="hidden lg:sticky lg:top-24 lg:self-start">
+          <p class="text-fine font-semibold text-ink-1">목차</p>
+          <nav class="mt-2 space-y-2" aria-label="개인정보 처리방침 목차">
+            <a href="#privacy-1" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">1. 수집하는 개인정보 항목</a>
+            <a href="#privacy-2" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">2. 수집 목적</a>
+            <a href="#privacy-3" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">3. 보관 기간 및 파기</a>
+            <a href="#privacy-4" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">4. 개인정보 제3자 제공</a>
+            <a href="#privacy-5" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">5. 개인정보 처리 위탁</a>
+            <a href="#privacy-6" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">6. 회원 권리</a>
+            <a href="#privacy-7" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">7. 문의처</a>
+          </nav>
+        </aside>
+
+        <div class="min-w-0">
+          <!-- 이용약관 -->
+          <article data-policy="terms" class="hidden max-w-[680px]">
+            <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">서비스 이용약관</h1>
+            <p class="mt-2 text-fine text-ink-2">시행일: 2026-09-10</p>
+
+            <h2 id="terms-1" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">1. 목적</h2>
+            <p class="mt-2 text-body leading-[1.75] text-ink-2">
+              이 약관은 청년지부 물품 대여 서비스(이하 “서비스”)의 이용 조건을 정해,
+              물품 대여 절차와 회원·운영진의 권리·의무를 명확히 하는 데 목적이 있어요.
+            </p>
+
+            <h2 id="terms-2" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">2. 회원 가입</h2>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-body leading-[1.75] text-ink-2">
+              <li>정토회 계정(@jungto.org)으로 로그인하면 바로 회원으로 가입돼요.</li>
+              <li>대여 연락을 위해 휴대폰 번호 등록이 필요해요.</li>
+              <li>서비스는 지부 회원 대상 — 정토회 계정이 아니면 로그인할 수 없어요.</li>
+            </ul>
+
+            <h2 id="terms-3" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">3. 물품 대여</h2>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-body leading-[1.75] text-ink-2">
+              <li>물품은 신청 → 수령 → 반납 순서로 대여돼요.</li>
+              <li>수령 전이면 언제든 신청을 취소할 수 있어요 (수령 후에는 불가).</li>
+              <li>대여 기간은 물품별 최대 대여일을 넘을 수 없어요.</li>
+              <li>반납일은 물품을 돌려주는 날이며, 그 전날까지 사용할 수 있어요.</li>
+            </ul>
+
+            <h2 id="terms-4" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">4. 회원 의무</h2>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-body leading-[1.75] text-ink-2">
+              <li>물품을 반납일까지 관리하고 정시에 반납해요.</li>
+              <li>고의·중과실로 물품을 훼손·분실하면 복구(구매) 책임이 있어요.</li>
+              <li>반납일 경과(연체) 시 운영진이 연락할 수 있어요.</li>
+              <li>연락처가 바뀌면 내 정보에서 수정해 주세요.</li>
+            </ul>
+
+            <h2 id="terms-5" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">5. 운영진 의무</h2>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-body leading-[1.75] text-ink-2">
+              <li>대여 신청·반납을 공정하게 처리해요.</li>
+              <li>물품 상태를 수령·반납 시점에 확인하고 기록해요.</li>
+            </ul>
+
+            <h2 id="terms-6" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">6. 책임 제한</h2>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-body leading-[1.75] text-ink-2">
+              <li>사용 전 물품 상태를 확인해 주세요.</li>
+              <li>서비스는 물품 대여 기록·연락 조율 도구이며, 물품 자체의 하자로 인한 손해에 대해 배상 책임을 지지 않아요.</li>
+            </ul>
+
+            <h2 id="terms-7" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">7. 약관 변경</h2>
+            <p class="mt-2 text-body leading-[1.75] text-ink-2">약관이 바뀌면 서비스 내 공지로 알려드려요.</p>
+
+            <a href="#top" class="mt-10 inline-flex text-fine text-ink-2 underline underline-offset-2 transition-colors hover:text-ink-1">맨 위로</a>
+          </article>
+
+          <!-- 개인정보 처리방침 -->
+          <article data-policy="privacy" class="hidden max-w-[680px]">
+            <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">개인정보 처리방침</h1>
+            <p class="mt-2 text-fine text-ink-2">시행일: 2026-09-10</p>
+
+            <h2 id="privacy-1" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">1. 수집하는 개인정보 항목</h2>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-body leading-[1.75] text-ink-2">
+              <li><b class="font-semibold text-ink-1">구글 계정 정보</b>: 이메일 주소, 이름 (구글 OAuth 로그인 시 제공받는 정보)</li>
+              <li><b class="font-semibold text-ink-1">계정 정보</b>: 이름, 휴대폰 번호 (최초 로그인 후 직접 입력)</li>
+              <li><b class="font-semibold text-ink-1">대여 이력</b>: 신청·수령·반납 기록</li>
+            </ul>
+
+            <h2 id="privacy-2" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">2. 수집 목적</h2>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-body leading-[1.75] text-ink-2">
+              <li>회원 식별 및 로그인 (구글 계정)</li>
+              <li>물품 대여 신청·수령·반납 과정의 연락 (휴대폰 번호)</li>
+              <li>대여 이력 관리 및 분쟁 대응</li>
+            </ul>
+
+            <h2 id="privacy-3" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">3. 보관 기간 및 파기</h2>
+            <p class="mt-2 text-body leading-[1.75] text-ink-2">
+              대여 이력 보존을 위해 탈퇴(비활성화) 후에도 기록이 남아요. 개인정보는
+              이용 목적이 소멸하면 지체 없이 파기하며, 보관 기간은 다음과 같아요.
+            </p>
+            <div class="mt-4 overflow-x-auto">
+              <table class="w-full min-w-[420px] border-collapse text-fine">
+                <thead>
+                  <tr>
+                    <th class="border border-line bg-surface-muted px-2 py-2 text-left font-semibold text-ink-1">항목</th>
+                    <th class="border border-line bg-surface-muted px-2 py-2 text-left font-semibold text-ink-1">보관 기간</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="border border-line px-2 py-2 text-ink-2">이메일·이름</td>
+                    <td class="border border-line px-2 py-2 text-ink-2">회원 활동 기간 + 탈퇴 후 1년</td>
+                  </tr>
+                  <tr>
+                    <td class="border border-line px-2 py-2 text-ink-2">휴대폰 번호</td>
+                    <td class="border border-line px-2 py-2 text-ink-2">회원 활동 기간 + 탈퇴 후 1년</td>
+                  </tr>
+                  <tr>
+                    <td class="border border-line px-2 py-2 text-ink-2">대여 이력</td>
+                    <td class="border border-line px-2 py-2 text-ink-2">관련 법령에 따라 보관 (분쟁 대응)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="privacy-4" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">4. 개인정보 제3자 제공</h2>
+            <p class="mt-2 text-body leading-[1.75] text-ink-2">
+              회원의 개인정보를 외부에 제공하지 않아요. 단, 법령에 근거한 요청이 있는
+              경우 예외로 해요.
+            </p>
+
+            <h2 id="privacy-5" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">5. 개인정보 처리 위탁</h2>
+            <p class="mt-2 text-body leading-[1.75] text-ink-2">
+              서비스 운영을 위해 아래 사업자에 개인정보 처리를 위탁하고 있어요.
+            </p>
+            <div class="mt-4 overflow-x-auto">
+              <table class="w-full min-w-[420px] border-collapse text-fine">
+                <thead>
+                  <tr>
+                    <th class="border border-line bg-surface-muted px-2 py-2 text-left font-semibold text-ink-1">수탁자</th>
+                    <th class="border border-line bg-surface-muted px-2 py-2 text-left font-semibold text-ink-1">위탁 업무</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="border border-line px-2 py-2 text-ink-2">Google LLC (OAuth)</td>
+                    <td class="border border-line px-2 py-2 text-ink-2">소셜 로그인 인증</td>
+                  </tr>
+                  <tr>
+                    <td class="border border-line px-2 py-2 text-ink-2">Cloudflare (호스팅·이미지 저장)</td>
+                    <td class="border border-line px-2 py-2 text-ink-2">서비스 운영 인프라</td>
+                  </tr>
+                  <tr>
+                    <td class="border border-line px-2 py-2 text-ink-2">Neon (데이터베이스)</td>
+                    <td class="border border-line px-2 py-2 text-ink-2">회원·대여 정보 저장</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h2 id="privacy-6" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">6. 회원 권리</h2>
+            <p class="mt-2 text-body leading-[1.75] text-ink-2">
+              회원은 언제든지 자신의 개인정보를 열람·수정할 수 있어요 (내 정보에서
+              계정 정보 수정 가능). 탈퇴를 원하면 관리자에게 요청해 주세요 —
+              비활성화 처리돼요.
+            </p>
+
+            <h2 id="privacy-7" class="mt-8 scroll-mt-24 text-heading font-semibold tracking-[-0.015em] text-ink-1">7. 문의처</h2>
+            <p class="mt-2 text-body leading-[1.75] text-ink-2">
+              개인정보 보호 관련 문의: 운영진 담당자 (서비스 관리자에게 문의해 주세요)
+            </p>
+
+            <a href="#top" class="mt-10 inline-flex text-fine text-ink-2 underline underline-offset-2 transition-colors hover:text-ink-1">맨 위로</a>
+          </article>
+        </div>
+      </div>
+    </main>
+
+    <footer class="border-t border-line bg-surface">
+      <div class="mx-auto flex max-w-[1000px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <p>정토회 청년지부 · 함께 쓰는 물품</p>
+        <nav class="flex gap-4" aria-label="정책">
+          <a href="policy.html?kind=terms" class="transition-colors hover:text-ink-1 hover:underline">이용약관</a>
+          <a href="policy.html?kind=privacy" class="transition-colors hover:text-ink-1 hover:underline">개인정보 처리방침</a>
+          <a href="login.html" class="transition-colors hover:text-ink-1 hover:underline">로그인</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      const kind = params.get("kind") === "terms" ? "terms" : "privacy";
+
+      document.querySelectorAll("[data-policy]").forEach((article) => {
+        article.classList.toggle("hidden", article.dataset.policy !== kind);
+      });
+      document.querySelectorAll("[data-policy-toc]").forEach((toc) => {
+        const active = toc.dataset.policyToc === kind;
+        toc.classList.toggle("hidden", !active);
+        toc.classList.toggle("block", active);
+      });
+
+      document.querySelectorAll("[data-policy-tab]").forEach((tab) => {
+        const active = tab.dataset.policyTab === kind;
+        tab.classList.toggle("border-ink-1", active);
+        tab.classList.toggle("text-ink-1", active);
+        tab.classList.toggle("font-semibold", active);
+        tab.classList.toggle("border-transparent", !active);
+        tab.classList.toggle("text-ink-2", !active);
+        if (active) tab.setAttribute("aria-current", "page");
+        else tab.removeAttribute("aria-current");
+      });
+
+      document.title =
+        kind === "terms"
+          ? "이용약관 — 청년지부 물품 대여"
+          : "개인정보 처리방침 — 청년지부 물품 대여";
+    </script>
+  </body>
+</html>

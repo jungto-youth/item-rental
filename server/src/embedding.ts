@@ -2,11 +2,11 @@
 // 생성은 물품 등록/수정 시 1회, 검색 시 쿼리 텍스트만 즉시 임베딩 ()
 // D1엔 pgvector가 없다 — 벡터는 BLOB(1024×f32 little-endian)로 저장하고 코사인은 JS로 계산한다
 import type { Bindings } from './types'
-import { getDb, type Sql } from './db'
+import type { Sql } from './db'
 
 const MODEL = '@cf/baai/bge-m3'
 
-// 임베딩 입력 텍스트 — 이름·설명·태그 (0021부터 태그 포함 — 뿓뿓 분류 키워드 의미 검색)
+// 임베딩 입력 텍스트 — 이름·설명·태그 (0021부터 태그 포함 — 분류 키워드 의미 검색)
 function itemEmbedText(name: string, description: string | null, tags = ''): string {
   return [name, description ?? '', tags].filter(Boolean).join(' | ')
 }

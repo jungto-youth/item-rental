@@ -23,42 +23,41 @@ export class CategoryTagsInput extends LitElement {
     :host {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: var(--space-1);
       align-items: center;
-      min-height: 40px;
-      padding: 6px 10px;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md, 8px);
-      background: var(--color-surface);
+      min-height: 38px;
+      padding: var(--space-1) var(--space-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
       box-sizing: border-box;
-      transition: border-color 0.15s ease;
     }
     :host(:focus-within) {
-      border-color: var(--color-primary);
+      border-color: var(--primary);
     }
     .tag {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: 999px;
-      padding: 2px 4px 2px 10px;
-      font-size: var(--text-caption, 13px);
-      line-height: 1.4;
-      color: var(--color-text);
+      gap: var(--space-1);
+      background: var(--primary-soft);
+      border: 0;
+      border-radius: var(--radius-pill);
+      padding: 0 var(--space-1);
+      font-size: var(--text-fine);
+      line-height: 24px;
+      color: var(--primary-strong);
     }
     .tag button {
       border: none;
       background: transparent;
       cursor: pointer;
-      font-size: 12px;
-      line-height: 1;
-      color: var(--color-muted);
-      padding: 0 3px;
+      font-size: var(--text-fine);
+      line-height: var(--line-height-button);
+      color: var(--ink-2);
+      padding: var(--space-1);
     }
     .tag button:hover {
-      color: var(--color-danger);
+      color: var(--danger);
     }
     input {
       flex: 1;
@@ -67,11 +66,11 @@ export class CategoryTagsInput extends LitElement {
       outline: none;
       background: transparent;
       font-family: inherit;
-      font-size: var(--text-body, 15px);
-      color: var(--color-text);
+      font-size: var(--text-body);
+      color: var(--ink-1);
     }
     input::placeholder {
-      color: var(--color-muted);
+      color: var(--ink-2);
     }
   `;
 

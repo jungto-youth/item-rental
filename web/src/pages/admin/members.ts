@@ -48,19 +48,89 @@ export class PageAdminMembers extends LitElement {
     css`
       x-chip.tab {
         display: block;
-        margin-bottom: var(--space-4, 16px);
+        margin-bottom: var(--space-2);
       }
       .search-input {
-        margin-bottom: var(--space-3, 12px);
+        margin-bottom: var(--space-2);
       }
       .count {
-        margin: 0 0 var(--space-2, 8px);
-        font-size: var(--text-caption, 13px);
-        color: var(--color-muted);
+        margin: 0 0 var(--space-1);
+        font-size: var(--text-fine);
+        color: var(--ink-2);
       }
       /* 이메일이 길 수 있어 줄바꿈 허용 */
       .meta {
         word-break: break-all;
+      }
+      .email {
+        overflow-wrap: anywhere;
+      }
+      .email a {
+        color: var(--primary-strong);
+      }
+      /* 역할 선택 — 버튼·인풋과 같은 8px 패딩·테두리 규칙 */
+      .role-select {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        color: var(--ink-1);
+        font-family: inherit;
+        font-size: var(--text-body);
+        line-height: var(--line-height-button);
+        padding: var(--space-1) var(--space-2);
+        cursor: pointer;
+      }
+      .role-select:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .role-select:focus-visible {
+        outline: none;
+        border-color: var(--primary);
+      }
+      .select-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+      }
+      .select-wrap .role-select {
+        appearance: none;
+        width: auto;
+        min-width: 0;
+        padding-right: var(--space-2);
+      }
+      .role-select:hover {
+        border-color: var(--border-strong);
+      }
+      .select-caret {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        width: 8px;
+        height: 8px;
+        color: var(--ink-3);
+        pointer-events: none;
+        transform: translateY(-50%);
+      }
+      .select-caret svg {
+        display: block;
+        width: 8px;
+        height: 8px;
+      }
+      .email-form {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+        align-items: end;
+      }
+      .form-hint {
+        margin: 0 0 var(--space-1);
+        color: var(--ink-2);
+        font-size: var(--text-fine);
+      }
+      @media (max-width: 720px) {
+        .email-form {
+          grid-template-columns: 1fr;
+        }
       }
     `,
   ];
@@ -108,7 +178,9 @@ export class PageAdminMembers extends LitElement {
     return `${m.id}:${kind}`;
   }
 
-  private rowBusy(m: AdminMember, kind: "role" | "withdraw" | "delete"): boolean {
+  // 다른 행의 작업이 끝날 때까지 이 행의 컨트롤을 잠근다.
+  // 처리 중인 행 자신은 버튼의 loading 상태가 잠그므로 여기서는 true 가 아니다.
+  private otherRowBusy(m: AdminMember, kind: "role" | "withdraw" | "delete"): boolean {
     if (!this.processingKey) return false;
     return this.processingKey !== this.keyOf(m, kind);
   }
@@ -122,7 +194,7 @@ export class PageAdminMembers extends LitElement {
     if (
       !(await confirmDialog(
         `'${who}'님을 탈퇴 처리할까요?\n이후 다시 로그인할 수 없어요.\n대여 중인 물품은 본인이 반납할 수 없어 관리자가 대신 처리해야 해요.`,
-        { confirmLabel: "탈퇴 처리" },
+        { confirmLabel: "탈퇴 처리", danger: true },
       ))
     )
       return;
@@ -152,7 +224,7 @@ export class PageAdminMembers extends LitElement {
     const who = m.name || m.email;
     if (!(await confirmDialog(
       `'${who}'님의 등록 정보를 삭제할까요?\n대여 중인 물품이 없어야 해요. 이름·이메일·연락처는 제거하고 완료된 이력은 익명으로 보존해요.\n삭제 후에는 다시 로그인하여 새 일반 회원으로 등록할 수 있어요.`,
-      { confirmLabel: "등록 정보 삭제" },
+      { confirmLabel: "등록 정보 삭제", danger: true },
     ))) return;
     if (this.processingKey) return;
     this.processingKey = this.keyOf(m, "delete");
@@ -184,7 +256,7 @@ export class PageAdminMembers extends LitElement {
     if (
       !(await confirmDialog(
         `'${m.name || m.email}'님의 역할을 '${label[role]}'(으)로 바꿀까요?`,
-        { confirmLabel: "변경", danger: false },
+        { confirmLabel: "변경" },
       ))
     ) {
       return; // 취소 — 칩은 제어 컴포넌트라 역할 상태가 안 바뀌면 제자리에 머문다
@@ -249,7 +321,7 @@ export class PageAdminMembers extends LitElement {
     if (
       !(await confirmDialog(
         `'${m.email}' 계정의 로그인을 허용 목록에서 제거할까요?\n제거 후 이 계정으로는 다시 로그인할 수 없어요.`,
-        { confirmLabel: "제거" },
+        { confirmLabel: "제거", danger: true },
       ))
     )
       return;
@@ -327,34 +399,39 @@ export class PageAdminMembers extends LitElement {
         badgeKind=${m.deactivated_at ? "withdrawn" : ""}
       >
         ${!m.deactivated_at
-          ? html`<x-chip
-              slot="actions"
-              ?disabled=${this.rowBusy(m, "role")}
-              ariaLabel="역할 지정"
-              .value=${m.role}
-              .options=${[
-                { value: "user", label: "회원" },
-                { value: "admin", label: "관리자" },
-              ]}
-              @change=${(e: CustomEvent<{ value: string }>) =>
-                this.setRole(m, e.detail.value as Role)}
-            ></x-chip>
+          ? html`<span class="select-wrap" slot="actions">
+              <select
+                class="role-select"
+                aria-label="역할 지정"
+                ?disabled=${this.otherRowBusy(m, "role")}
+                .value=${m.role}
+                @change=${(e: Event) =>
+                  this.setRole(m, (e.target as HTMLSelectElement).value as Role)}
+              >
+                <option value="user">회원</option>
+                <option value="admin">관리자</option>
+              </select>
+              <span class="select-caret" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </span>
+            </span>
             <x-button
               slot="actions"
               variant="danger"
-              size="sm"
               ?loading=${this.processingKey === withdrawKey}
-              ?disabled=${this.rowBusy(m, "withdraw")}
+              ?disabled=${this.otherRowBusy(m, "withdraw")}
               @click=${() => this.withdraw(m)}
             >
               탈퇴
             </x-button>`
           : html`<x-badge slot="actions" kind=${m.role}></x-badge>
-              <x-button slot="actions" variant="danger" size="sm"
+              <x-button slot="actions" variant="danger"
                 ?loading=${this.processingKey === this.keyOf(m, "delete")}
-                ?disabled=${this.rowBusy(m, "delete") || (m.active_rental_count ?? 0) > 0}
+                ?disabled=${this.otherRowBusy(m, "delete") || (m.active_rental_count ?? 0) > 0}
                 @click=${() => this.deleteRegistration(m)}>등록 정보 삭제</x-button>`}
-        <span style="overflow-wrap:anywhere">${m.email} · ${this.phoneLine(m)}</span>
+        <span class="email">${m.email} · ${this.phoneLine(m)}</span>
         ${(m.active_rental_count ?? 0) > 0
           ? html`<span>대여 중 ${m.active_rental_count}건 · 등록 정보 삭제 전 반납 또는 취소 처리가 필요해요</span>` : ""}
       </reservation-row>
@@ -370,7 +447,10 @@ export class PageAdminMembers extends LitElement {
   private renderEmails() {
     if (this.emailsLoading) return html`<x-empty state="loading"></x-empty>`;
     return html`
-      <div class="form">
+      <p class="form-hint">
+        정토회(@jungto.org) 계정 외에 로그인을 허용할 이메일입니다.
+      </p>
+      <div class="form email-form">
         <x-input
           label="이메일"
           type="email"
@@ -385,23 +465,21 @@ export class PageAdminMembers extends LitElement {
             }
           }}
         ></x-input>
-        <div class="form-row">
-          <x-input
-            label="메모 (선택)"
-            placeholder="누구 계정인지"
-            .value=${this.noteValue}
-            @input=${(e: Event) =>
-              (this.noteValue = (e.target as HTMLInputElement).value)}
-          ></x-input>
-          <!-- x-button 은 form-associated 가 아니어서 form submit 에 참여하지 못한다 — 클릭으로 처리 -->
-          <x-button
-            variant="primary"
-            ?loading=${this.emailBusy}
-            @click=${() => void this.addEmail()}
-          >
-            추가
-          </x-button>
-        </div>
+        <x-input
+          label="메모 (선택)"
+          placeholder="누구 계정인지"
+          .value=${this.noteValue}
+          @input=${(e: Event) =>
+            (this.noteValue = (e.target as HTMLInputElement).value)}
+        ></x-input>
+        <!-- x-button 은 form-associated 가 아니어서 form submit 에 참여하지 못한다 — 클릭으로 처리 -->
+        <x-button
+          variant="primary"
+          ?loading=${this.emailBusy}
+          @click=${() => void this.addEmail()}
+        >
+          추가
+        </x-button>
       </div>
       ${this.emails.length === 0
         ? html`<x-empty compact state="empty" text="아직 등록된 이메일이 없어요"></x-empty>`
@@ -414,7 +492,6 @@ export class PageAdminMembers extends LitElement {
                       <span class="name">${m.email}</span>
                       <x-button
                         variant="danger"
-                        size="sm"
                         ?disabled=${this.emailBusy}
                         @click=${() => this.removeEmail(m)}
                       >

@@ -20,7 +20,6 @@ export class PageAdminReservations extends LitElement {
   @state() private truncated = false;
   @state() private filter: "" | ReservationStatus = "";
   @state() private loading = true; /* 초기 로드 전 — "없어요" 깜빡임 방지 */
-  @state() private busy = false;
   // 반납 처리 중인 예약 id — 해당 행 버튼만 스피너를 띄운다
   @state() private processingId: number | null = null;
   @state() private message = "";
@@ -33,18 +32,18 @@ export class PageAdminReservations extends LitElement {
     css`
       x-chip {
         display: block;
-        margin-bottom: var(--space-4, 16px);
+        margin-bottom: var(--space-2);
       }
       .count {
-        margin: 0 0 var(--space-2);
-        font-size: var(--text-caption);
-        color: var(--color-muted);
+        margin: 0 0 var(--space-1);
+        font-size: var(--text-fine);
+        color: var(--ink-2);
       }
       .trunc {
-        color: var(--tone-warning-text);
+        color: var(--danger);
       }
       .tel {
-        color: var(--tone-primary-text);
+        color: var(--ink-1);
         text-decoration: none;
       }
       .tel:hover {
@@ -93,11 +92,10 @@ export class PageAdminReservations extends LitElement {
 
   // 반납 처리 — 이 화면의 유일한 상태 전이
   private async markReturned(r: AdminReservation) {
-    if (this.busy) return;
+    if (this.processingId !== null) return;
     const label = r.qty > 1 ? `'${r.item_name}' ${r.qty}개` : `'${r.item_name}'`;
-    if (!(await confirmDialog(`${label}를 반납 처리할까요?`, { confirmLabel: "반납 처리", danger: false })))
+    if (!(await confirmDialog(`${label}를 반납 처리할까요?`, { confirmLabel: "반납 처리" })))
       return;
-    this.busy = true;
     this.processingId = r.id;
     try {
       await api(`/api/admin/reservations/${r.id}/return`, { method: "POST" });
@@ -109,7 +107,6 @@ export class PageAdminReservations extends LitElement {
       this.messageTone = "error";
       await this.reload();
     } finally {
-      this.busy = false;
       this.processingId = null;
     }
   }
@@ -134,7 +131,7 @@ export class PageAdminReservations extends LitElement {
             { value: "cancelled", label: "취소" },
           ]}
           @change=${(e: CustomEvent<{ value: string }>) => this.setFilter(e.detail.value)}
-        >
+        ></x-chip>
         ${this.reservations.length === 0
           ? html`<x-empty compact state="empty" text="대여가 없어요"></x-empty>`
           : html`
@@ -170,9 +167,8 @@ export class PageAdminReservations extends LitElement {
           ? html`<x-button
               slot="actions"
               variant="secondary"
-              size="sm"
               ?loading=${processing}
-              ?disabled=${this.busy && !processing}
+              ?disabled=${this.processingId !== null && !processing}
               @click=${() => this.markReturned(r)}
             >
               반납
@@ -200,7 +196,7 @@ export class PageAdminReservations extends LitElement {
     const phone = r.member_phone;
     const contact = phone
       ? html`<a class="tel" href="tel:${phone.replace(/[^+\d]/g, "")}">${phone}</a>`
-      : (r.member_email ?? "연락처 미등록");
+      : (r.member_email || "연락처 미등록");
     return html`<span>${r.member_name || "—"} · ${contact}</span>`;
   }
 }

@@ -36,7 +36,6 @@ const calls: { path: string; method: string; body?: string; contentType?: string
   { path: "/api/admin/allowed-emails", method: "GET" },
   { path: "/api/admin/allowed-emails", method: "POST", body: '{"email":"a@b.kr"}', contentType: "application/json" },
   { path: "/api/admin/allowed-emails/x", method: "DELETE" },
-  { path: "/api/admin/dashboard", method: "GET" },
   { path: "/api/admin/reembed-all", method: "POST" },
 ];
 
@@ -58,7 +57,6 @@ const byFile: Record<string, string[]> = {
   ],
   "reservations.ts": ["/api/admin/reservations", "/api/admin/reservations/1/return"],
   "allowed-emails.ts": ["/api/admin/allowed-emails", "/api/admin/allowed-emails/x"],
-  "dashboard.ts": ["/api/admin/dashboard"],
   "reembed.ts": ["/api/admin/reembed-all"],
 };
 

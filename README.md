@@ -82,38 +82,58 @@ shared/api-types.ts   — 서버·웹이 함께 쓰는 API 타입 계약
 migrations-d1/        — D1 스키마 마이그레이션 (기준선 이후 변경을 순서대로 적용)
 server/tests/         — 단위 테스트(가짜 DB) + 실 SQLite 통합 테스트
 server/scripts/       — 시드·시트 반영 SQL 생성기
+docs/design-system/   — 디자인 원칙·감사·토큰·컴포넌트·검증 문서
 ```
 
 API 목록은 `server/src/routes/`, 스키마 정의는 `migrations-d1/`를 본다.
 
 ## 디자인
 
-화면 디자인은 pen.dev 캔버스에서 관리한다. 저장소에는 `.pen` 파일을 두지 않고 아래 공유 링크로 참조한다.
+디자인 값의 단일 출처는 `web/src/styles/tokens.css` 다. 중립 회색 바탕·흰 카드·오렌지
+포인트를 쓰고, 글자 4단계·간격 5단계만 참조한다. 간격은 8px 단위만 쓴다.
+그림자는 메뉴·모달·FAB처럼 떠 있는 층에만 쓰고, 카드·인풋은 1px 테두리와
+여백으로 구분한다. 라운드는 8·999px 두 단계만 쓴다.
 
-- 물품 대여 디자인: <https://app.pen.dev/s/d1wHShhvLZuU8_u6T_QR6I0nk5sOvrqsI2CFCYoEyas>
+새 색·크기가 필요하면 먼저 토큰에 추가하고, 그 밖의 hex·중간 px 값은 만들지 않는다.
 
-편집 권한이 있는 사람은 링크로 캔버스를 열어 수정하고, 코드 반영은 이 저장소의 PR로 한다.
+스타일은 Lit `css`가 기본이고, Tailwind는 선택 사항이다(토큰을 참조하는 shadow DOM용
+설정). 쓰는 법·매핑·전환 절차는 [`docs/design-system/tailwind.md`](docs/design-system/tailwind.md).
+
+화면 감사·토큰 구조·컴포넌트 계약·검증 절차는
+[`docs/design-system/`](docs/design-system/README.md)에 정리되어 있다.
+
+리뷰용 HTML 시안은 `design/`에 있다 — 물품(`index`, `item-detail`, `item-form`), 상태(`states`),
+계정(`login`, `signup-profile`, `mypage`), 대여·관리(`my-rentals`, `admin-reservations`,
+`admin-members`), 정책·404(`policy`, `not-found`). 빌드 없이 브라우저에서 열고, 상단
+미리보기 바에서 화면을 이동할 수 있다.
 
 ## 개발
 
 ```bash
 npm ci                # 의존성 설치
 
-# 개발 (터미널 2개)
-npm run dev:api       # API 서버 → localhost:8787
-npm run dev:web       # 웹 빌드 감시 → 브라우저 새로고침으로 반영
-npm run dev:web:hmr   # 개발 서버 → localhost:5173 (구글 콜백 등록 필요)
+# 개발
+npm run dev           # API(8787) + 웹 HMR(5173) 동시 실행 → http://localhost:5173
+npm run dev:api       # API 서버만 → localhost:8787
+npm run dev:web:hmr   # 웹 개발 서버만 → localhost:5173
+npm run dev:web       # 빌드 감시 → wrangler(8787)가 서빙하는 번들, 새로고침 필요
 npm run dev:lan       # 같은 API 서버를 0.0.0.0 에 → 폰/태블릿에서 실물로 검증
 
 npm run check         # 타입 검사 (웹 + 서버 + 테스트 + 스크립트)
 npm test              # 테스트
 npm run test:photos   # 사진 파이프라인 브라우저 테스트 (chromium 필요)
 npm run test:members  # 회원 전용 이동·등록 정보 삭제 브라우저 테스트 (chromium 필요)
+npm run test:profile  # 프로필 저장 브라우저 테스트 (chromium 필요)
+npm run test:visual   # 390/768/1280 시각 회귀 (fixture, chromium 필요)
+npm run test:visual:update  # 시각 회귀 기준선 갱신
 npm run build         # 빌드 → web/dist
 npm run deploy        # 빌드 후 배포
 ```
 
-`npm run dev`로 두 서버를 한 번에 띄울 수도 있다.
+`npm run dev`는 두 서버를 함께 띄운다. 브라우저는 **5173**(Vite)으로 접속해야
+저장 즉시 반영된다. 8787은 wrangler가 `web/dist`를 서빙하므로 `dev:web`(빌드 감시)
+없이는 이전 빌드가 보인다. 구글 로그인 콜백은 8787로 돌아오지만 세션 쿠키는 포트와
+무관해서, 로그인 후 5173으로 다시 이동하면 된다.
 
 `dev:lan`은 같은 서버에 LAN 전용 플래그를 켠다. 이 플래그가 있어야 `/api/dev/login`이
 동작해 계정 없이 로컬 관리자 세션을 만들 수 있다 — 공개 호스트나 일반 빌드에서는

@@ -5,7 +5,7 @@ import { navigate } from "../router";
 import { reduceMotion } from "../styles/motion";
 import "../components/common/profile-form";
 
-// 최초 로그인 후 이름·연락처 입력 (1회) — 입력欄은 profile-form 공용.
+// 최초 로그인 후 이름·연락처 입력 (1회) — 입력란은 profile-form 공용.
 @customElement("page-signup-profile")
 export class PageSignupProfile extends LitElement {
   @state() private name = "";
@@ -20,7 +20,7 @@ export class PageSignupProfile extends LitElement {
       }
       profile-form {
         max-width: 360px;
-        margin: var(--space-6, 32px) auto 0;
+        margin: var(--space-4) auto 0;
       }
     `,
   ];

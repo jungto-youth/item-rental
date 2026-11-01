@@ -38,22 +38,34 @@ export class PageItemDetail extends LitElement {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: var(--space-2, 8px);
-        margin-bottom: var(--space-4, 16px);
+        gap: var(--space-1);
+        margin-bottom: var(--space-2);
       }
 
-      /* 단일 열 — 갤러리 → 정보 → 신청폼 순서로 쌓는다.
-         2열 분할은 720폭에서 양쪽이 다 비좁아지는だけ라 걷어냈다. */
+      /* 데스크톱은 사진 + 정보 2열, 좁은 화면은 한 열 */
       .content-col {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+        gap: var(--space-3);
+        align-items: start;
+      }
+
+      .info-col {
         display: flex;
         flex-direction: column;
-        gap: var(--space-4, 16px);
+        gap: var(--space-1);
+        min-width: 0;
+      }
+
+      /* 헤더 자체의 아래 여백은 info-col gap이 대신한다 */
+      .info-col x-page-header {
+        margin-bottom: 0;
       }
 
       .desc {
-        font-size: var(--text-body, 15px);
-        line-height: 1.6;
-        color: var(--color-muted);
+        font-size: var(--text-body);
+        line-height: var(--line-height);
+        color: var(--ink-2);
         margin: 0;
         white-space: pre-wrap;
       }
@@ -61,35 +73,45 @@ export class PageItemDetail extends LitElement {
       .tags {
         display: flex;
         flex-wrap: wrap;
-        gap: var(--space-2, 8px);
+        gap: var(--space-1);
       }
 
       .tag {
-        font-size: var(--text-caption, 13px);
-        color: var(--color-text);
-        background: var(--color-bg);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-pill, 999px);
-        padding: 2px 10px;
+        display: inline-flex;
+        align-items: center;
+        height: 24px;
+        padding: 0 var(--space-1);
+        border: 0;
+        border-radius: var(--radius-pill);
+        background: var(--primary-soft);
+        color: var(--primary-strong);
+        font-size: var(--text-fine);
       }
 
       .attrs {
         display: grid;
-        grid-template-columns: 100px 1fr;
-        gap: var(--space-2, 8px) var(--space-3, 12px);
+        grid-template-columns: 120px 1fr;
+        gap: var(--space-1) var(--space-2);
         margin: 0;
-        font-size: var(--text-caption, 13px);
-        line-height: 1.5;
+        font-size: var(--text-fine);
+        line-height: var(--line-height);
       }
 
       dt {
-        color: var(--color-muted);
-        font-weight: 500;
+        color: var(--ink-2);
+        font-weight: 400;
       }
 
       dd {
         margin: 0;
-        color: var(--color-text);
+        color: var(--ink-1);
+      }
+
+      @media (max-width: 899px) {
+        .content-col {
+          grid-template-columns: minmax(0, 1fr);
+          gap: var(--space-2);
+        }
       }
     `,
   ];
@@ -164,14 +186,13 @@ export class PageItemDetail extends LitElement {
     const it = this.item;
     return html`
       <div class="top-nav">
-        <x-button variant="secondary" size="sm" @click=${this.goBack}>
-          ← 목록으로
+        <x-button variant="secondary" @click=${this.goBack}>
+          목록으로
         </x-button>
         ${it && this.isAdmin
           ? html`
               <x-button
                 variant="primary"
-                size="sm"
                 @click=${() => navigate(`/items/${it.id}/edit`)}
               >
                 수정
@@ -206,41 +227,43 @@ export class PageItemDetail extends LitElement {
       <div class="content-col">
         <item-gallery .photos=${it.photos} .name=${it.name}></item-gallery>
 
-        <x-page-header title=${it.name}>
-          ${it.availability_badge
-            ? html`<x-badge slot="action" kind=${it.availability_badge}></x-badge>`
+        <div class="info-col">
+          <x-page-header title=${it.name}>
+            ${it.availability_badge
+              ? html`<x-badge slot="action" kind=${it.availability_badge}></x-badge>`
+              : ""}
+          </x-page-header>
+
+          ${it.description ? html`<p class="desc">${it.description}</p>` : ""}
+          ${it.categories?.length
+            ? html`
+                <div class="tags">
+                  ${it.categories.map(
+                    (c) => html`<span class="tag">#${c.name}</span>`,
+                  )}
+                </div>
+              `
             : ""}
-        </x-page-header>
+          ${attrs.length > 0
+            ? html`
+                <dl class="attrs">
+                  ${attrs.map(
+                    ([k, v]) => html`
+                      <dt>${k}</dt>
+                      <dd>${v}</dd>
+                    `,
+                  )}
+                </dl>
+              `
+            : ""}
 
-        ${it.description ? html`<p class="desc">${it.description}</p>` : ""}
-        ${it.categories?.length
-          ? html`
-              <div class="tags">
-                ${it.categories.map(
-                  (c) => html`<span class="tag">#${c.name}</span>`,
-                )}
-              </div>
-            `
-          : ""}
-        ${attrs.length > 0
-          ? html`
-              <dl class="attrs">
-                ${attrs.map(
-                  ([k, v]) => html`
-                    <dt>${k}</dt>
-                    <dd>${v}</dd>
-                  `,
-                )}
-              </dl>
-            `
-          : ""}
-
-        <item-rental-form
-          .item=${it}
-          .user=${this.user}
-          .userReady=${this.userReady}
-          @rented=${() => void this.load(true)}
-        ></item-rental-form>
+          <item-rental-form
+            .item=${it}
+            .user=${this.user}
+            .userReady=${this.userReady}
+            @rented=${() => void this.load(true)}
+          ></item-rental-form>
+        </div>
       </div>
     `;
   }

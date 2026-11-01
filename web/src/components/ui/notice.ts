@@ -1,12 +1,14 @@
 import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 
-// 인라인 안내 배너 — info / warning / danger 3톤으로 통일.
+// 인라인 안내 배너 — info / danger 2톤. 경고성 안내도 danger 색을 쓴다.
 // 오른쪽에 액션 버튼을 넣고 싶으면 슬롯 안에 x-button 등을 배치한다.
 @customElement("x-notice")
 export class XNotice extends LitElement {
-  @property() tone: "info" | "warning" | "danger" = "info";
+  @property() tone: "info" | "danger" = "info";
   @property({ type: Boolean, reflect: true }) alert = false;
+  // 액션 슬롯이 비면 오른쪽 빈 상자와 gap 을 만들지 않는다
+  @state() private hasAction = false;
 
   static styles = css`
     :host {
@@ -16,45 +18,52 @@ export class XNotice extends LitElement {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: var(--space-3, 12px);
-      padding: var(--space-3, 12px) var(--space-3-5, 14px);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md, 8px);
-      background: var(--color-surface);
-      color: var(--color-text);
-      font-size: var(--text-caption, 13px);
-      line-height: 1.4;
+      gap: var(--space-2);
+      padding: var(--space-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--ink-1);
+      font-size: var(--text-fine);
+      line-height: var(--line-height);
       box-sizing: border-box;
     }
     .body {
       min-width: 0;
     }
     .body ::slotted(a) {
-      color: var(--tone-primary-text);
+      color: var(--primary-strong);
     }
     .action {
       flex-shrink: 0;
     }
-    .action:empty {
+    .action.empty {
       display: none;
     }
-    .warning {
-      border-color: var(--color-warning);
-      background: var(--tone-warning-bg);
-      color: var(--tone-warning-text);
-    }
+    /* 경고성 안내와 오류는 같은 톤 */
     .danger {
-      border-color: var(--color-danger);
-      background: var(--tone-danger-bg);
-      color: var(--tone-danger-text);
+      border-color: var(--danger);
+      background: var(--danger-soft);
+      color: var(--danger);
     }
   `;
+
+  private onActionSlotChange(e: Event) {
+    const nodes = (e.target as HTMLSlotElement).assignedNodes({ flatten: true });
+    this.hasAction = nodes.some(
+      (n) =>
+        n.nodeType === Node.ELEMENT_NODE ||
+        (n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim() !== ""),
+    );
+  }
 
   render() {
     return html`
       <div class="notice ${this.tone}" role=${this.alert ? "alert" : "status"}>
         <span class="body"><slot></slot></span>
-        <span class="action"><slot name="action"></slot></span>
+        <span class="action ${this.hasAction ? "" : "empty"}">
+          <slot name="action" @slotchange=${this.onActionSlotChange}></slot>
+        </span>
       </div>
     `;
   }

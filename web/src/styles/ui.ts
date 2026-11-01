@@ -24,29 +24,24 @@ export const numberInputCss = css`
 export const searchFieldCss = css`
   .search-input {
     flex: 1;
+    width: 100%;
     min-width: 0;
-    height: 44px;
-    padding: 0 var(--space-3, 12px);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md, 8px);
-    background: var(--color-surface);
-    color: var(--color-text);
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink-1);
     box-sizing: border-box;
     font-family: inherit;
-    font-size: var(--text-body, 15px);
-    transition: border-color 0.15s ease, background-color 0.15s ease;
+    font-size: var(--text-body);
+    line-height: var(--line-height-button);
   }
   .search-input:focus {
     outline: none;
-    border-color: var(--color-primary);
-    background: var(--color-bg);
-  }
-  .search-input:focus-visible {
-    outline: 2px solid var(--color-primary-focus);
-    outline-offset: 1px;
+    border-color: var(--primary);
   }
   .search-input::placeholder {
-    color: var(--color-muted);
+    color: var(--ink-2);
   }
   /* type="search" 의 브라우저 기본 지우개는 이 디자인의 클리어 버튼과 겹친다 */
   .search-input::-webkit-search-cancel-button,
@@ -59,21 +54,21 @@ export const searchFieldCss = css`
 // 본문 섹션 소제목(h2) 규격.
 export const sectionTitleCss = css`
   h2 {
-    font-size: var(--text-heading, 1.0625rem);
+    font-size: var(--text-heading);
     font-weight: 600;
     letter-spacing: var(--tracking-tight);
-    margin: var(--space-5) 0 var(--space-3);
+    margin: var(--space-3) 0 var(--space-2);
   }
 `;
 
 // 독립 카드 — my-rentals·mypage·예약 행 등 "떠 있는 상자"의 단일 규격.
-// radius-lg + padding space-4. rows(붙어 있는 목록)와 구분된다.
+// 흰 면 + 1px 테두리 + 12px 라운드. rows(붙어 있는 목록)와 구분된다.
 export const cardCss = css`
   .card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg, 12px);
-    padding: var(--space-4, 16px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--space-2);
     box-sizing: border-box;
   }
 `;
@@ -82,17 +77,17 @@ export const cardCss = css`
 export const formCss = css`
   .form {
     display: grid;
-    gap: var(--space-3, 12px);
-    margin-bottom: var(--space-4, 16px);
-    padding: var(--space-3-5, 14px) var(--space-4, 16px);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg, 12px);
-    background: var(--color-surface);
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+    padding: var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
     box-sizing: border-box;
   }
   .form-row {
     display: flex;
-    gap: var(--space-2, 8px);
+    gap: var(--space-1);
     align-items: flex-end;
   }
   .form-row x-input {
@@ -104,49 +99,4 @@ export const formCss = css`
   }
 `;
 
-// 칩 — x-chip 본체의 단일 시각 규격.
-// 32px pill, 미선택(surface) → 선택(primary 채움). 행 높이를 바꾸지 않기 위해
-// 줄바꿈 없이 가로 스크롤한다.
-export const chipCss = css`
-  .chip {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1, 4px);
-    height: 32px;
-    padding: 0 var(--space-3, 12px);
-    border-radius: var(--radius-pill, 999px);
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    color: var(--color-muted);
-    font-size: var(--text-caption, 13px);
-    font-weight: 500;
-    cursor: pointer;
-    font-family: inherit;
-    white-space: nowrap;
-    text-decoration: none;
-    box-sizing: border-box;
-    transition: all 0.15s ease;
-  }
-  .chip:hover {
-    border-color: var(--color-muted);
-    color: var(--color-text);
-  }
-  .chip:focus-visible {
-    outline: 2px solid var(--color-primary-focus);
-    outline-offset: 1px;
-  }
-  .chip.active {
-    border-color: var(--color-primary);
-    background: var(--color-primary);
-    color: var(--color-primary-text);
-  }
-  .chip:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-  .chip .count {
-    font-size: var(--text-fine, 12px);
-    opacity: 0.85;
-  }
-`;
+// 칩 규격은 x-chip 자신만 쓰므로 `components/ui/chip.css`로 옮겼다.

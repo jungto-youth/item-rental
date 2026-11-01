@@ -30,61 +30,62 @@ export class ItemRentalForm extends LitElement {
     }
 
     .box {
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg, 12px);
-      padding: var(--space-5, 20px);
-      background: var(--color-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--space-2);
+      background: var(--surface);
       display: flex;
       flex-direction: column;
-      gap: var(--space-4, 16px);
+      gap: var(--space-2);
       box-sizing: border-box;
     }
 
     .title {
-      font-size: var(--text-heading, 17px);
-      font-weight: 600;
+      font-size: var(--text-heading);
+      font-weight: 700;
       margin: 0;
-      color: var(--color-text);
+      color: var(--ink-1);
     }
 
     .row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: var(--space-3, 12px);
+      gap: var(--space-2);
     }
 
     .label {
-      font-size: var(--text-body, 15px);
-      color: var(--color-text);
-      font-weight: 500;
+      font-size: var(--text-body);
+      color: var(--ink-1);
+      font-weight: 400;
     }
 
     .stepper {
       display: inline-flex;
       align-items: center;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md, 8px);
-      background: var(--color-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface-muted);
       overflow: hidden;
     }
 
     .step-btn {
-      width: 44px;
-      height: 44px;
+      width: 38px;
+      height: 38px;
       border: none;
       background: transparent;
-      color: var(--color-text);
-      font-size: 18px;
+      color: var(--ink-1);
+      font-size: var(--text-body);
       cursor: pointer;
+      line-height: var(--line-height-button);
+      padding: var(--space-1);
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background-color 0.12s;
     }
 
     .step-btn:hover:not(:disabled) {
-      background: var(--color-surface);
+      background: var(--surface-muted);
     }
 
     .step-btn:disabled {
@@ -97,58 +98,54 @@ export class ItemRentalForm extends LitElement {
       border: none;
       text-align: center;
       font-weight: 600;
-      font-size: var(--text-body, 15px);
+      font-size: var(--text-body);
       background: transparent;
-      color: var(--color-text);
+      color: var(--ink-1);
       font-family: inherit;
-      /* 스피너 숨김은 tokens.css 전역 규칙이 담당 */
+      /* 스피너 숨김은 이 컴포넌트가 import 한 numberInputCss 가 담당한다 */
     }
 
     .qty-single {
-      font-size: var(--text-body, 15px);
+      font-size: var(--text-body);
       font-weight: 600;
-      color: var(--color-text);
-      padding: var(--space-2, 8px) var(--space-3-5, 14px);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md, 8px);
-      background: var(--color-bg);
+      color: var(--ink-1);
+      padding: var(--space-1) var(--space-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface-muted);
     }
 
     .success-actions {
       display: flex;
       flex-direction: column;
-      gap: var(--space-2, 8px);
-      margin-top: var(--space-2, 8px);
+      gap: var(--space-1);
+      margin-top: var(--space-1);
     }
 
     .msg {
-      font-size: var(--text-caption, 13px);
+      font-size: var(--text-fine);
       margin: 0;
-      line-height: 1.4;
+      line-height: var(--line-height);
     }
 
     .msg.error {
-      color: var(--color-danger);
-    }
-
-    .msg.success {
-      color: var(--tone-success-text, var(--color-success));
+      color: var(--danger);
     }
 
     /* 메모는 항상 노출 — 접이식은 손이 많이 감 */
     .memo-title {
-      font-size: var(--text-caption, 13px);
-      color: var(--color-muted);
-      font-weight: 500;
+      font-size: var(--text-fine);
+      color: var(--ink-2);
+      font-weight: 400;
     }
 
     .memo-field {
       display: flex;
       flex-direction: column;
-      gap: var(--space-2, 8px);
+      gap: var(--space-1);
     }
     .title.success-title {
-      color: var(--tone-success-text, var(--color-success));
+      color: var(--ink-1);
     }
   `,
   ];
@@ -237,10 +234,10 @@ export class ItemRentalForm extends LitElement {
             <b>${this.item.name}</b> 대여가 접수되었어요. 사용 후 대여 내역에서 반납해 주세요.
           </p>
           <div class="success-actions">
-            <x-button variant="primary" size="md" @click=${() => navigate("/my/rentals")}>
+            <x-button variant="primary" @click=${() => navigate("/my/rentals")}>
               대여 내역 확인 / 반납하기
             </x-button>
-            <x-button variant="secondary" size="md" @click=${() => navigate("/")}>
+            <x-button variant="secondary" @click=${() => navigate("/")}>
               다른 물품 둘러보기
             </x-button>
           </div>
@@ -270,7 +267,6 @@ export class ItemRentalForm extends LitElement {
           <x-button
             slot="action"
             variant="secondary"
-            size="sm"
             @click=${() => navigate("/login")}
           >
             로그인
@@ -281,13 +277,13 @@ export class ItemRentalForm extends LitElement {
 
     if (this.item.lifecycle !== "active") {
       return html`
-        <x-notice tone="warning">더 이상 대여하지 않는 물품이에요.</x-notice>
+        <x-notice tone="danger">더 이상 대여하지 않는 물품이에요.</x-notice>
       `;
     }
 
     if (max === 0) {
       return html`
-        <x-notice tone="warning">지금은 재고가 없어요 — 반납 후 다시 시도해 주세요.</x-notice>
+        <x-notice tone="danger">지금은 재고가 없어요 — 반납 후 다시 시도해 주세요.</x-notice>
       `;
     }
 
@@ -344,10 +340,10 @@ export class ItemRentalForm extends LitElement {
         </div>
 
         ${this.message
-        ? html`<p class="msg ${this.isSuccess ? "success" : "error"}" aria-live="polite">${this.message}</p>`
+        ? html`<p class="msg error" aria-live="polite">${this.message}</p>`
         : ""}
 
-        <x-button variant="primary" size="md" type="submit" ?loading=${this.saving}>
+        <x-button variant="primary" type="submit" ?loading=${this.saving}>
           대여하기
         </x-button>
       </form>

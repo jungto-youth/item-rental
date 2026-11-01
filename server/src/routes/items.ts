@@ -73,18 +73,17 @@ itemsRoute.get("/", async (c) => {
   // 탐색 — 전체 목록을 OFFSET/LIMIT 으로 나눠 내린다 (홈 무한스크롤)
   const limit = clampInt(c.req.query("limit"), 24, 1, 60);
   const offset = clampInt(c.req.query("offset"), 0, 0, 100_000);
-  const available = c.req.query("available") === "1";
-  // 상태 탭 — 전체(all) · 대여 중 · 대여 가능 (이슈 #12 §6.2)
+  // 상태 탭 — 전체(all) · 대여 가능 · 대여 중 · 수리 중 (이슈 #12 §6.2)
   const stateRaw = c.req.query("state");
-  const state = stateRaw === "rented" || stateRaw === "available" ? stateRaw : null;
+  const state =
+    stateRaw === "rented" || stateRaw === "available" || stateRaw === "repair" ? stateRaw : null;
   // 카테고리 필터 — 관리자 전용. "none"(미지정) 또는 숫자 id 만 받고 이외는 무시
   const categoryRaw = c.req.query("category") ?? "";
   const category =
     isAdmin && (categoryRaw === "none" || /^\d+$/.test(categoryRaw)) ? categoryRaw : null;
-  const { items, total, available_total, matched, summary } = await listItems(db, {
+  const { items, total, matched, summary } = await listItems(db, {
     limit,
     offset,
-    available,
     state,
     category,
     // 분류 칸은 회원 목록에서도 보인다 — 행 모양을 관리자/회원이 공유한다
@@ -93,7 +92,6 @@ itemsRoute.get("/", async (c) => {
   return c.json({
     items,
     total,
-    available_total,
     matched,
     summary,
     // 종료 판정은 필터를 모두 적용한 수(matched)로 — total 은 필터와 무관하다

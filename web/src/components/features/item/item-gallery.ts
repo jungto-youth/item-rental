@@ -19,82 +19,106 @@ export class ItemGallery extends LitElement {
       width: 100%;
       aspect-ratio: 4 / 3;
       max-height: 480px;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg, 12px);
-      background: var(--color-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface-muted);
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 3rem;
+      color: var(--ink-3);
       box-sizing: border-box;
     }
 
     .main-photo img {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
-      transition: opacity 0.15s ease;
+    }
+
+    .main-photo .fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .main-photo .fallback svg {
+      width: 40px;
+      height: 40px;
     }
 
     .thumbs {
       display: flex;
-      gap: var(--space-2, 8px);
-      margin-top: var(--space-3, 12px);
+      gap: var(--space-1);
+      margin-top: var(--space-2);
       overflow-x: auto;
-      padding-bottom: var(--space-1, 4px);
+      padding-bottom: var(--space-1);
     }
 
     .thumb-btn {
       position: relative;
-      width: 60px;
-      height: 60px;
-      padding: 0;
-      border: 2px solid transparent;
-      border-radius: var(--radius-sm, 6px);
-      background: var(--color-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      padding: var(--space-1);
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      background: var(--surface-muted);
+      color: var(--ink-3);
       overflow: hidden;
       cursor: pointer;
+      line-height: var(--line-height-button);
       flex-shrink: 0;
-      transition: border-color 0.15s ease, opacity 0.15s ease;
     }
 
     .thumb-btn.active {
-      border-color: var(--color-primary);
-    }
-
-    .thumb-btn:hover:not(.active) {
-      opacity: 0.85;
+      border-color: var(--primary);
     }
 
     .thumb-btn img {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
     }
+
+    .thumb-btn .fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .thumb-btn .fallback svg {
+      width: 24px;
+      height: 24px;
+    }
   `;
 
   private handleMainError(e: Event) {
-    const img = e.target as HTMLImageElement;
-    img.style.display = "none";
-    const parent = img.parentElement;
-    if (parent) parent.textContent = "📦";
+    (e.target as HTMLImageElement).remove();
   }
 
   private handleThumbError(e: Event, idx: number) {
-    const img = e.target as HTMLImageElement;
-    img.style.display = "none";
-    const btn = img.parentElement;
-    if (btn) {
-      btn.textContent = "📦";
-      if (idx === this.selectedIdx) {
-        // 다음 사진으로 이동
-        const next = this.photos.findIndex((_, i) => i !== idx);
-        if (next !== -1) this.selectedIdx = next;
-      }
+    (e.target as HTMLImageElement).remove();
+    if (idx === this.selectedIdx) {
+      // 다음 사진으로 이동
+      const next = this.photos.findIndex((_, i) => i !== idx);
+      if (next !== -1) this.selectedIdx = next;
     }
+  }
+
+  // 사진이 없거나 로드에 실패하면 이 아이콘이 남는다 (.pen 썸네일 placeholder)
+  private get imageIcon() {
+    return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+    </svg>`;
   }
 
   render() {
@@ -104,13 +128,14 @@ export class ItemGallery extends LitElement {
     // 스크롤되기를 기다려 첫 화면이 늦게 뜬다. 썸네일들은 lazy 유지.
     return html`
       <div class="main-photo">
+        <span class="fallback" aria-hidden="true">${this.imageIcon}</span>
         ${current
           ? html`<img
               src=${current.url}
               alt=${this.name ? `${this.name} 사진` : "물품 사진"}
               @error=${this.handleMainError}
             />`
-          : html`<span aria-hidden="true">📦</span>`}
+          : ""}
       </div>
 
       ${this.photos.length > 1
@@ -124,6 +149,7 @@ export class ItemGallery extends LitElement {
                     aria-label="사진 ${idx + 1}"
                     aria-pressed=${idx === this.selectedIdx}
                   >
+                    <span class="fallback" aria-hidden="true">${this.imageIcon}</span>
                     <img
                       src=${p.url}
                       alt=""
