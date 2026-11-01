@@ -26,9 +26,8 @@ Nielsen Norman Group은 디자인 시스템 도입을 세 가지로 나눈다.
 - [Pico.css](https://picocss.com/) / [Simple.css](https://simplecss.org/) — 문서형 미니멀 룩 참고
 
 > React 기반 시스템(shadcn/ui, Radix, Mantine)은 이 스택에 바로 적용할 수 없다.
-> Tailwind는 Shadow DOM 안으로 스타일이 침투하지 않으므로 별도 설계가 필요하다 —
-> 이 프로젝트는 컴파일된 CSS를 `CSSStyleSheet`로 공유하는 방식으로 붙였다
-> ([tailwind.md](tailwind.md)). 토큰을 참조만 하므로 단일 출처는 그대로다.
+> Tailwind 같은 전역 유틸리티는 Shadow DOM 안으로 침투하지 않으므로 쓰지 않는다.
+> 이 프로젝트는 **`tokens.css` + Lit `css`** 단일 구조를 쓴다.
 
 ## 2. 디자인 원칙
 
@@ -94,8 +93,7 @@ static styles = [base, sheet(styles)];
 `tokens.css`가 문서에 하던 전역 규칙(서체·행간·box-sizing)을 shadow root마다
 복원해 주므로, 컴포넌트 CSS는 자기 레이아웃만 쓰면 된다.
 **margin·padding 리셋은 넣지 않는다** — UA 기본 여백에 기대는 화면이 조용히 틀어진다.
-
-Tailwind를 쓰는 컴포넌트는 `[tw, base, ...]` 순서로 둔다 ([tailwind.md](tailwind.md)).
+유틸리티 클래스(Tailwind)는 쓰지 않는다.
 
 ## 4. 문서 지도
 
@@ -105,7 +103,6 @@ Tailwind를 쓰는 컴포넌트는 `[tw, base, ...]` 순서로 둔다 ([tailwind
 | [tokens.md](tokens.md) | 토큰 3층 구조, 현재 값, 변경 절차 |
 | [components.md](components.md) | 컴포넌트 계약, 상태 매트릭스, 미니멀 UI 주의점 |
 | [verification.md](verification.md) | 시각 회귀·접근성·사용성 검증과 거버넌스 |
-| [tailwind.md](tailwind.md) | Shadow DOM에서 Tailwind 쓰는 법 — 구조·매핑·전환 절차 |
 | [research.md](research.md) | 조사 출처와 요약 |
 
 ## 5. 적용 순서

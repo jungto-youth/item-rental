@@ -96,8 +96,8 @@ API 목록은 `server/src/routes/`, 스키마 정의는 `migrations-d1/`를 본�
 
 새 색·크기가 필요하면 먼저 토큰에 추가하고, 그 밖의 hex·중간 px 값은 만들지 않는다.
 
-스타일은 Lit `css`가 기본이고, Tailwind는 선택 사항이다(토큰을 참조하는 shadow DOM용
-설정). 쓰는 법·매핑·전환 절차는 [`docs/design-system/tailwind.md`](docs/design-system/tailwind.md).
+스타일은 Lit `css`와 `web/src/styles/ui.ts`의 공유 조각으로만 쓴다. Tailwind·유틸리티
+클래스는 쓰지 않는다. 컴포넌트 계약·검증 절차는 [`docs/design-system/`](docs/design-system/README.md)에 있다.
 
 화면 감사·토큰 구조·컴포넌트 계약·검증 절차는
 [`docs/design-system/`](docs/design-system/README.md)에 정리되어 있다.

@@ -40,7 +40,6 @@
 | 공지 | `web/src/components/ui/notice.ts` | info / danger, action 슬롯 |
 | 빈 상태 | `web/src/components/ui/empty.ts` | loading / empty / error, compact |
 | 페이지 헤더 | `web/src/components/ui/page-header.ts` | 제목·부제·액션 |
-| 아이콘 버튼 | `web/src/components/ui/icon-btn.ts` | 기본·hover·focus |
 | 행 목록 | `web/src/components/ui/rows.ts` | 구분선·마지막 행 |
 | 물품 카드 | `web/src/components/features/item/item-card.ts` | 사진 있음/없음, 상태 텍스트 |
 | 물품 갤러리 | `web/src/components/features/item/item-gallery.ts` | 사진 1장/여러 장, 로드 실패 |

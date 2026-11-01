@@ -1,0 +1,178 @@
+:host {
+        display: block;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      header {
+        background: var(--surface);
+        box-sizing: border-box;
+        height: 64px;
+        /* 헤어라인은 화면 폭 전체를 잇는다 — 안쪽 .bar 의 최대 폭 제한에 걸리면 끊긴다. */
+        border-bottom: 1px solid var(--border);
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        box-sizing: border-box;
+        height: 100%;
+        max-width: var(--layout-max);
+        margin: 0 auto;
+        padding: 0 var(--space-3);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        text-decoration: none;
+      }
+      .brand img {
+        display: block;
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius);
+      }
+      /* 주 메뉴 — 로고 옆 텍스트 링크 */
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .nav::-webkit-scrollbar {
+        display: none;
+      }
+      .nav a {
+        flex-shrink: 0;
+        padding: var(--space-1) 0;
+        border-bottom: 2px solid transparent;
+        color: var(--ink-2);
+        text-decoration: none;
+        font-size: var(--text-body);
+        font-weight: 400;
+        white-space: nowrap;
+      }
+      .nav a:hover {
+        color: var(--ink-1);
+      }
+      .nav a.active {
+        border-bottom-color: var(--primary);
+        color: var(--ink-1);
+        font-weight: 600;
+      }
+      .account {
+        position: relative;
+        flex-shrink: 0;
+        margin-left: auto;
+      }
+      .account-btn {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        padding: var(--space-1) 0;
+        border: none;
+        background: none;
+        font-family: inherit;
+        font-size: var(--text-body);
+        line-height: var(--line-height-button);
+        cursor: pointer;
+        border-radius: var(--radius-pill);
+      }
+      .avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border: 0;
+        border-radius: var(--radius-pill);
+        background: var(--primary-soft);
+        color: var(--primary-strong);
+        font-size: var(--text-fine);
+        font-weight: 600;
+      }
+      .account-name {
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--ink-2);
+        font-size: var(--text-body);
+      }
+      .account-chevron {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        color: var(--ink-2);
+      }
+      .account-btn:focus-visible {
+        outline: 2px solid var(--ink-1);
+        outline-offset: 2px;
+      }
+      .menu {
+        position: absolute;
+        top: calc(100% + var(--space-1));
+        right: 0;
+        min-width: 176px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow-menu);
+        overflow: hidden;
+        z-index: 20;
+      }
+      .menu a,
+      .menu button {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: var(--space-2);
+        text-align: left;
+        background: none;
+        border: none;
+        color: var(--ink-1);
+        text-decoration: none;
+        font-family: inherit;
+        font-size: var(--text-body);
+        line-height: var(--line-height-button);
+        cursor: pointer;
+      }
+      .menu a:hover,
+      .menu button:hover {
+        background: var(--surface-muted);
+      }
+      .menu .menu-logout {
+        color: var(--danger);
+      }
+      .btn-login {
+        display: flex;
+        align-items: center;
+        padding: var(--space-1) var(--space-2);
+        border: 1px solid var(--primary);
+        border-radius: var(--radius);
+        background: var(--primary);
+        color: #fff;
+        text-decoration: none;
+        font-family: inherit;
+        font-size: var(--text-body);
+        font-weight: 600;
+        line-height: var(--line-height-button);
+        letter-spacing: var(--tracking-tight);
+        cursor: pointer;
+      }
+      @media (max-width: 767px) {
+        header {
+          height: 56px;
+        }
+        .bar {
+          gap: var(--space-2);
+          padding: 0 var(--space-2);
+        }
+        /* 좁은 화면에서는 메뉴 자리를 위해 계정 이름을 숨긴다 (이니셜만) */
+        .account-name {
+          display: none;
+        }
+      }
