@@ -195,10 +195,7 @@ export class AppShell extends LitElement {
 
       ${footer === "none"
         ? ""
-        : html`<app-footer
-            ?surface=${footer === "surface"}
-            ?narrow=${footer === "policy"}
-          ></app-footer>`}
+        : html`<app-footer ?surface=${footer === "surface"}></app-footer>`}
 
       ${this.showFab
         ? html`<a class="fab" href="/items/new" aria-label="물품 등록">${ICONS.plus}</a>`

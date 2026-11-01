@@ -44,8 +44,6 @@ export class PageAdminMembers extends LitElement {
     css`
       :host {
         display: block;
-        max-width: 840px;
-        margin: 0 auto;
       }
       x-chip.tab {
         display: block;

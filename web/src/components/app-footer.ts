@@ -7,7 +7,6 @@ import { reduceMotion } from "../styles/motion";
 @customElement("app-footer")
 export class AppFooter extends LitElement {
   @property({ type: Boolean, reflect: true }) surface = false;
-  @property({ type: Boolean, reflect: true }) narrow = false;
 
   static styles = [
     reduceMotion,
@@ -30,9 +29,6 @@ export class AppFooter extends LitElement {
         color: var(--ink-2);
         font-size: var(--text-fine);
         line-height: var(--line-height);
-      }
-      :host([narrow]) .inner {
-        max-width: 1000px;
       }
       p {
         margin: 0;

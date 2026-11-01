@@ -35,8 +35,6 @@ export class PageAdminReservations extends LitElement {
     css`
       :host {
         display: block;
-        max-width: 840px;
-        margin: 0 auto;
       }
       x-chip {
         display: block;

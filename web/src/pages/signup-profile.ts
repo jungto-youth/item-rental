@@ -18,7 +18,7 @@ export class PageSignupProfile extends LitElement {
     css`
       :host {
         display: block;
-        max-width: 400px;
+        max-width: var(--layout-onboarding);
         margin: 0 auto;
       }
       .head {

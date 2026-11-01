@@ -99,7 +99,7 @@ export class PageAdminItemForm extends LitElement {
     css`
       :host {
         display: block;
-        max-width: 720px;
+        max-width: var(--layout-form);
         margin: 0 auto;
       }
 

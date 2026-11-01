@@ -30,8 +30,6 @@ export class PageMyRentals extends LitElement {
     css`
       :host {
         display: block;
-        max-width: 840px;
-        margin: 0 auto;
       }
 
       .msg {

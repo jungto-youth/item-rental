@@ -23,8 +23,12 @@ export class PageMypage extends LitElement {
     css`
       :host {
         display: block;
-        max-width: 720px;
+        max-width: var(--layout-form);
         margin: 0 auto;
+      }
+
+      .content {
+        max-width: 100%;
       }
 
       /* 연락처 미등록 안내 — 브랜드 오렌지의 연한 면 */
@@ -234,63 +238,65 @@ export class PageMypage extends LitElement {
         subtitle="계정 정보와 연락처를 관리해요."
       ></x-page-header>
 
-      ${this.banner}
+      <div class="content">
+        ${this.banner}
 
-      <section>
-        <h2>계정 정보</h2>
+        <section>
+          <h2>계정 정보</h2>
 
-        ${this.editing
-          ? html`
-              <profile-form
-                title="계정 정보 수정"
-                hint="이메일은 변경할 수 없어요."
-                avatar
-                cancellable
-                .email=${u.email}
-                accountLabel="이메일"
-                .initialName=${u.name}
-                .initialPhone=${u.phone ?? ""}
-                @saved=${this.onSaved}
-                @cancel=${() => (this.editing = false)}
-              ></profile-form>
-            `
-          : html`
-              <div class="card">
-                <div class="view-head">
-                  <div class="who">
-                    <span class="avatar" aria-hidden="true">${initial}</span>
-                    <div>
-                      <p class="name">${u.name || u.email}</p>
-                      <p class="org">정토회</p>
+          ${this.editing
+            ? html`
+                <profile-form
+                  title="계정 정보 수정"
+                  hint="이메일은 변경할 수 없어요."
+                  avatar
+                  cancellable
+                  .email=${u.email}
+                  accountLabel="이메일"
+                  .initialName=${u.name}
+                  .initialPhone=${u.phone ?? ""}
+                  @saved=${this.onSaved}
+                  @cancel=${() => (this.editing = false)}
+                ></profile-form>
+              `
+            : html`
+                <div class="card">
+                  <div class="view-head">
+                    <div class="who">
+                      <span class="avatar" aria-hidden="true">${initial}</span>
+                      <div>
+                        <p class="name">${u.name || u.email}</p>
+                        <p class="org">정토회</p>
+                      </div>
                     </div>
+                    <x-button variant="secondary" type="button" @click=${this.startEdit}>
+                      수정
+                    </x-button>
                   </div>
-                  <x-button variant="secondary" type="button" @click=${this.startEdit}>
-                    수정
-                  </x-button>
+
+                  <dl>
+                    <div class="row">
+                      <dt>이메일</dt>
+                      <dd title=${u.email}>${u.email}</dd>
+                    </div>
+                    <div class="row">
+                      <dt>연락처</dt>
+                      <dd>${u.phone || "미등록"}</dd>
+                    </div>
+                  </dl>
+
+                  <p class="saved" role="status" ?hidden=${!this.saved}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    저장했어요
+                  </p>
                 </div>
+              `}
+        </section>
 
-                <dl>
-                  <div class="row">
-                    <dt>이메일</dt>
-                    <dd title=${u.email}>${u.email}</dd>
-                  </div>
-                  <div class="row">
-                    <dt>연락처</dt>
-                    <dd>${u.phone || "미등록"}</dd>
-                  </div>
-                </dl>
-
-                <p class="saved" role="status" ?hidden=${!this.saved}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                  저장했어요
-                </p>
-              </div>
-            `}
-      </section>
-
-      <p class="footnote">연락처는 물품 대여·반납 안내에만 사용해요.</p>
+        <p class="footnote">연락처는 물품 대여·반납 안내에만 사용해요.</p>
+      </div>
     `;
   }
 }
