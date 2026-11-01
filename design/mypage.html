@@ -10,6 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="assets/page-layout.css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style type="text/tailwindcss">
       @theme {
@@ -94,10 +95,9 @@
     
     <!-- ===== 공통 헤더 ===== -->
     <header class="sticky top-0 z-30 border-b border-line bg-surface">
-      <div class="mx-auto flex h-14 max-w-[1200px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6">
+      <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6">
         <a href="index.html" class="flex flex-none items-center gap-2" aria-label="물품 현황 — 홈">
           <img src="assets/logo.png" alt="" class="h-7 w-7 rounded-card" />
-          <span class="hidden text-[15px] font-semibold tracking-[-0.015em] text-ink-1 sm:block">물품 대여</span>
         </a>
 
         <nav class="flex min-w-0 items-center gap-4 sm:gap-6" aria-label="주 메뉴">
@@ -132,7 +132,7 @@
       </div>
     </header>
 
-    <main class="mx-auto max-w-[720px] px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
+    <main class="mx-auto max-w-[1280px] px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
       <div>
         <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">내 정보</h1>
         <p class="mt-2 text-fine text-ink-2">계정 정보와 연락처를 관리해요.</p>
@@ -153,8 +153,10 @@
         </button>
       </div>
 
-      <section class="mt-6">
-        <h2 class="text-heading font-semibold tracking-[-0.015em] text-ink-1">계정 정보</h2>
+      <div class="page-split mt-6">
+        <div class="page-main">
+          <section>
+            <h2 class="text-heading font-semibold tracking-[-0.015em] text-ink-1">계정 정보</h2>
 
         <div id="account-card" data-mode="view" class="mt-4 rounded-card border border-line bg-surface p-6 max-sm:p-4">
           <!-- 표시 모드 -->
@@ -254,8 +256,32 @@
           </form>
         </div>
 
-        <p class="mt-3 text-fine text-ink-2">연락처는 물품 대여·반납 안내에만 사용해요.</p>
-      </section>
+            <p class="mt-3 text-fine text-ink-2">연락처는 물품 대여·반납 안내에만 사용해요.</p>
+          </section>
+        </div>
+
+        <aside class="page-side page-side-hide" aria-label="계정 안내">
+          <section class="rounded-card border border-line bg-surface p-4">
+            <h2 class="text-body font-semibold tracking-[-0.015em] text-ink-1">대여 현황</h2>
+            <p class="mt-2 text-fine leading-[1.5] text-ink-2">
+              지금 대여 중인 물품 <b class="font-semibold text-ink-1">2건</b>이 있어요.
+            </p>
+            <a
+              href="my-rentals.html"
+              class="mt-4 inline-flex h-9 items-center rounded-card border border-line bg-surface px-4 text-fine font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              대여 내역 보기
+            </a>
+          </section>
+
+          <section class="rounded-card border border-line bg-surface p-4">
+            <h2 class="text-body font-semibold tracking-[-0.015em] text-ink-1">연락처 안내</h2>
+            <p class="mt-2 text-fine leading-[1.5] text-ink-2">
+              연락처는 물품 대여·반납 안내에만 사용해요. 번호가 바뀌면 내 정보에서 수정해 주세요.
+            </p>
+          </section>
+        </aside>
+      </div>
     </main>
 
     <script>

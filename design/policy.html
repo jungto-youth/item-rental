@@ -67,6 +67,15 @@
         border-bottom: 1px dashed var(--color-line-strong);
         background: var(--color-surface-muted);
       }
+      /* 본문을 왼쪽 주 컨텐츠, 목차를 오른쪽 보조 패널로 */
+      @media (min-width: 1024px) {
+        .policy-body {
+          order: 1;
+        }
+        .policy-toc {
+          order: 2;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         html {
           scroll-behavior: auto;
@@ -91,10 +100,9 @@
     
     <!-- 공개 헤더 -->
     <header class="sticky top-0 z-30 border-b border-line bg-surface">
-      <div class="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-4 px-4 sm:h-16 sm:px-6">
-        <a href="index.html" class="flex min-w-0 items-center gap-2">
+      <div class="mx-auto flex h-14 max-w-[1280px] items-center justify-between gap-4 px-4 sm:h-16 sm:px-6">
+        <a href="index.html" class="flex min-w-0 items-center gap-2" aria-label="물품 현황 — 홈">
           <img src="assets/logo.png" alt="" class="h-7 w-7 rounded-card" />
-          <span class="text-[15px] font-semibold tracking-[-0.015em] text-ink-1">물품 대여</span>
         </a>
         <a
           href="login.html"
@@ -111,9 +119,9 @@
         <a href="policy.html?kind=privacy" data-policy-tab="privacy" class="-mb-px border-b-2 border-transparent pb-2 text-body text-ink-2 transition-colors hover:text-ink-1">개인정보 처리방침</a>
       </nav>
 
-      <div class="mt-8 grid gap-8 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-12">
+      <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_200px] lg:gap-12">
         <!-- 목차 -->
-        <aside data-policy-toc="terms" class="hidden lg:sticky lg:top-24 lg:self-start">
+        <aside data-policy-toc="terms" class="policy-toc hidden lg:sticky lg:top-24 lg:self-start">
           <p class="text-fine font-semibold text-ink-1">목차</p>
           <nav class="mt-2 space-y-2" aria-label="이용약관 목차">
             <a href="#terms-1" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">1. 목적</a>
@@ -126,7 +134,7 @@
           </nav>
         </aside>
 
-        <aside data-policy-toc="privacy" class="hidden lg:sticky lg:top-24 lg:self-start">
+        <aside data-policy-toc="privacy" class="policy-toc hidden lg:sticky lg:top-24 lg:self-start">
           <p class="text-fine font-semibold text-ink-1">목차</p>
           <nav class="mt-2 space-y-2" aria-label="개인정보 처리방침 목차">
             <a href="#privacy-1" class="block text-fine text-ink-2 transition-colors hover:text-ink-1">1. 수집하는 개인정보 항목</a>
@@ -139,7 +147,7 @@
           </nav>
         </aside>
 
-        <div class="min-w-0">
+        <div class="policy-body min-w-0">
           <!-- 이용약관 -->
           <article data-policy="terms" class="hidden max-w-[680px]">
             <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">서비스 이용약관</h1>
