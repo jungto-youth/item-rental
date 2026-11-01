@@ -239,7 +239,7 @@ export class PagePolicy extends LitElement {
     return html`
       <article>
         <h1>개인정보 처리방침</h1>
-        <p class="updated">시행일: 2026-09-10</p>
+        <p class="updated">시행일: 2026-11-02</p>
 
         <h2 id="privacy-1">1. 수집하는 개인정보 항목</h2>
         <ul>
@@ -312,12 +312,8 @@ export class PagePolicy extends LitElement {
                 <td>소셜 로그인 인증</td>
               </tr>
               <tr>
-                <td>Cloudflare (호스팅·이미지 저장)</td>
-                <td>서비스 운영 인프라</td>
-              </tr>
-              <tr>
-                <td>Neon (데이터베이스)</td>
-                <td>회원·대여 정보 저장</td>
+                <td>Cloudflare (호스팅·데이터베이스·이미지 저장)</td>
+                <td>서비스 운영 인프라, 회원·대여 정보 및 이미지 저장</td>
               </tr>
             </tbody>
           </table>
