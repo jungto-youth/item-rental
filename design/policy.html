@@ -67,13 +67,25 @@
         border-bottom: 1px dashed var(--color-line-strong);
         background: var(--color-surface-muted);
       }
-      /* 본문을 왼쪽 주 컨텐츠, 목차를 오른쪽 보조 패널로 */
+      /* 본문을 왼쪽 주 컨텐츠, 목차를 오른쪽 320px 보조 패널로 */
+      .policy-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px;
+      }
       @media (min-width: 1024px) {
+        .policy-layout {
+          grid-template-columns: minmax(0, 1fr) 320px;
+          align-items: start;
+        }
         .policy-body {
           order: 1;
         }
         .policy-toc {
           order: 2;
+          position: sticky;
+          top: 96px;
+          align-self: start;
         }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -113,13 +125,13 @@
       </div>
     </header>
 
-    <main id="top" class="mx-auto max-w-[1000px] px-4 pb-16 pt-6 sm:px-6 sm:pt-8">
+    <main id="top" class="mx-auto max-w-[1280px] px-4 pb-16 pt-6 sm:px-6 sm:pt-8">
       <nav class="flex gap-6 border-b border-line" aria-label="정책 종류">
         <a href="policy.html?kind=terms" data-policy-tab="terms" class="-mb-px border-b-2 border-transparent pb-2 text-body text-ink-2 transition-colors hover:text-ink-1">이용약관</a>
         <a href="policy.html?kind=privacy" data-policy-tab="privacy" class="-mb-px border-b-2 border-transparent pb-2 text-body text-ink-2 transition-colors hover:text-ink-1">개인정보 처리방침</a>
       </nav>
 
-      <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_200px] lg:gap-12">
+      <div class="policy-layout mt-8">
         <!-- 목차 -->
         <aside data-policy-toc="terms" class="policy-toc hidden lg:sticky lg:top-24 lg:self-start">
           <p class="text-fine font-semibold text-ink-1">목차</p>
@@ -149,7 +161,7 @@
 
         <div class="policy-body min-w-0">
           <!-- 이용약관 -->
-          <article data-policy="terms" class="hidden max-w-[680px]">
+          <article data-policy="terms" class="hidden">
             <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">서비스 이용약관</h1>
             <p class="mt-2 text-fine text-ink-2">시행일: 2026-09-10</p>
 
@@ -201,7 +213,7 @@
           </article>
 
           <!-- 개인정보 처리방침 -->
-          <article data-policy="privacy" class="hidden max-w-[680px]">
+          <article data-policy="privacy" class="hidden">
             <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">개인정보 처리방침</h1>
             <p class="mt-2 text-fine text-ink-2">시행일: 2026-09-10</p>
 
@@ -303,7 +315,7 @@
     </main>
 
     <footer class="border-t border-line bg-surface">
-      <div class="mx-auto flex max-w-[1000px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div class="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <p>정토회 · 함께 쓰는 물품</p>
         <nav class="flex gap-4" aria-label="정책">
           <a href="policy.html?kind=terms" class="transition-colors hover:text-ink-1 hover:underline">이용약관</a>
