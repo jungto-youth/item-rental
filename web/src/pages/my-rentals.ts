@@ -106,7 +106,6 @@ export class PageMyRentals extends LitElement {
         align-items: center;
         justify-content: space-between;
         gap: var(--space-2);
-        padding: var(--space-1) 0;
         color: var(--ink-1);
         font-size: var(--text-heading);
         font-weight: 600;
