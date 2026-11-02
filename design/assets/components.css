@@ -51,14 +51,6 @@ body {
   color: #fff;
   font-weight: 600;
 }
-.filter-chip .count {
-  font-size: 0.875rem;
-  font-weight: 400;
-  color: var(--color-ink-2);
-}
-.filter-chip[aria-pressed="true"] .count {
-  color: rgba(255, 255, 255, 0.75);
-}
 .filter-chip:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

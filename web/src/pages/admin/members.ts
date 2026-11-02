@@ -45,11 +45,10 @@ export class PageAdminMembers extends LitElement {
       :host {
         display: block;
       }
-      /* 허용 이메일은 목록 아래 접이식 섹션 — 탭으로 화면을 나누지 않는다 */
+      /* 허용 이메일은 목록 아래 접이식 섹션 — 탭으로 화면을 나누지 않는다.
+         선 없이 위 간격만으로 구분한다 */
       .emails {
         margin-top: var(--space-4);
-        padding-top: var(--space-3);
-        border-top: 1px solid var(--border);
       }
       .emails summary {
         display: flex;
@@ -61,12 +60,6 @@ export class PageAdminMembers extends LitElement {
         font-size: var(--text-heading);
         font-weight: 600;
         letter-spacing: var(--tracking-tight);
-      }
-      .emails .count {
-        margin-left: 4px;
-        color: var(--ink-2);
-        font-size: var(--text-fine);
-        font-weight: 400;
       }
       .emails summary svg {
         width: 20px;
@@ -100,11 +93,6 @@ export class PageAdminMembers extends LitElement {
       .search-input {
         height: 40px;
         padding-left: 40px;
-      }
-      .count {
-        margin: var(--space-2) 0 var(--space-1);
-        font-size: var(--text-fine);
-        color: var(--ink-2);
       }
 
       .list {
@@ -547,7 +535,6 @@ export class PageAdminMembers extends LitElement {
           <summary>
             <span>
               로그인 허용 이메일
-              <span class="count">${this.emails.length}</span>
             </span>
             <svg
               viewBox="0 0 24 24"
@@ -609,7 +596,6 @@ export class PageAdminMembers extends LitElement {
             ></x-empty>
           </div>`
         : html`
-            <p class="count" role="status">${list.length}명</p>
             <div class="list">${list.map((m) => this.renderCard(m))}</div>
           `}
     `;

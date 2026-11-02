@@ -3,9 +3,9 @@ import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
 import { session } from "../../../context/session";
 import { navigate } from "../../../router";
-import { type CatalogSummary, type Item } from "../../../types";
+import { type Item } from "../../../types";
 import { reduceMotion } from "../../../styles/motion";
-import { availableQty, catalogSummary } from "../../../utils/stock";
+import { availableQty } from "../../../utils/stock";
 import "../../ui/button";
 import "../../ui/empty";
 import "../../ui/notice";
@@ -13,10 +13,7 @@ import "./item-card";
 
 // 물품 현황 목록 — 데스크탑은 한 장의 목록 시트, 모바일은 3줄 카드로 접힌다.
 // 관리자와 회원이 같은 행 모양을 쓰고, 행 목적지만 다르다(수정 폼 / 상세).
-// 탭·목록의 숫자 규칙은 이슈 #12 §6.2·§6.4 를 따른다:
-//   - 탭 숫자(총 종류·대여 가능·대여 중·수리 중)는 API summary 다. 폐기는 어느 값에도 넣지 않는다.
-//   - 탭 라벨은 같은 합계를 쓴다. 행 수와 다를 수 있다.
-//   - 상태 칸은 shared/stock.statusParts 가 만든다 — 수량 0 인 항은 구분점까지 숨긴다.
+// 상태 칸은 shared/stock.statusParts 가 만든다 — 수량 0 인 항은 구분점까지 숨긴다.
 type TabKey = "all" | "available" | "rented" | "repair";
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -34,7 +31,6 @@ type BrowseResponse = {
   items: Item[];
   total: number;
   matched: number;
-  summary: CatalogSummary;
   hasMore: boolean;
 };
 
@@ -57,7 +53,6 @@ export class ItemExplorer extends LitElement {
   @state() private items: Item[] = [];
   @state() private loading = true;
   @state() private error = "";
-  @state() private summary: CatalogSummary | null = null;
   @state() private hasMore = false;
   @state() private loadingMore = false;
   @state() private noticeMsg = "";
@@ -70,8 +65,6 @@ export class ItemExplorer extends LitElement {
   @state() private shown = PAGE_SIZE;
 
   private unsub: (() => void) | null = null;
-  // 탭 숫자를 home 에 알린다 — 같은 값이면 이벤트를 반복하지 않는다
-  private lastCounts = "";
   // 세대 번호로 늦은 응답을 버린다
   private fetchGen = 0;
   private adminGen = 0;
@@ -244,21 +237,6 @@ export class ItemExplorer extends LitElement {
     }
   }
 
-  // 탭 숫자를 home 의 칩에 반영한다
-  protected updated() {
-    const s = this.displayedSummary();
-    const key = `${s.types}/${s.available}/${s.rented}/${s.repair}`;
-    if (key === this.lastCounts) return;
-    this.lastCounts = key;
-    this.dispatchEvent(
-      new CustomEvent("counts-change", {
-        detail: s,
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
-
   // 역할 변경(로그인·로그아웃·강등) — 모드를 갈아끼우고 다른 모드 데이터는 버린다
   private async syncRole() {
     const admin = session.isAdmin;
@@ -271,7 +249,6 @@ export class ItemExplorer extends LitElement {
       this.adminGen += 1;
       this.adminItems = [];
       this.adminError = "";
-      this.summary = null;
       if (this.items.length === 0) void this.fetchItems();
     }
   }
@@ -287,7 +264,6 @@ export class ItemExplorer extends LitElement {
       if (gen !== this.adminGen || !this.isAdmin) return;
       this.adminItems = listRes.items;
       this.truncated = listRes.hasMore === true;
-      this.summary = catalogSummary(listRes.items);
       this.shown = PAGE_SIZE;
     } catch (e) {
       if (gen !== this.adminGen || !this.isAdmin) return;
@@ -347,17 +323,11 @@ export class ItemExplorer extends LitElement {
         if (gen !== this.fetchGen || this.isAdmin) return;
         this.items = items;
         this.hasMore = false;
-        // 검색 결과는 페이지네이션이 없다 — 요약도 결과 집합 기준이다.
-        // (전체 카탈로그 요약과 섞이면 칩 숫자가 결과와 어긋난다)
-        this.summary = catalogSummary(items);
       } else {
         const res = await api<BrowseResponse>(this.browseUrl(0));
         if (gen !== this.fetchGen || this.isAdmin) return;
         this.items = res.items;
         this.hasMore = res.hasMore;
-        // 요약은 state 필터와 무관한 모집단 기준 — 탭 라벨이 필터에 흔들리지 않는다
-        // (응답에 summary 가 없으면 받은 행으로 폴백 — 구버전 API·목 응답 방어)
-        this.summary = res.summary ?? catalogSummary(res.items);
       }
     } catch (e) {
       if (gen !== this.fetchGen || this.isAdmin) return;
@@ -401,11 +371,6 @@ export class ItemExplorer extends LitElement {
 
   private hrefFor(it: Item): string {
     return this.isAdmin ? `/items/${it.id}/edit` : `/items/${it.id}${location.search}`;
-  }
-
-  private displayedSummary(): CatalogSummary {
-    if (this.isAdmin) return catalogSummary(this.adminQueryMatches);
-    return this.summary ?? { types: 0, available: 0, rented: 0, repair: 0 };
   }
 
   // 검색어 지우기는 home 이 소유한다 (URL·입력값 동기화)

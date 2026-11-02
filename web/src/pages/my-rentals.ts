@@ -39,7 +39,7 @@ export class PageMyRentals extends LitElement {
         display: flex;
         align-items: center;
         gap: 4px;
-        margin: var(--space-1) 0 0;
+        margin: var(--space-1) 0 var(--space-2);
         color: var(--ink-1);
         font-size: var(--text-fine);
         min-height: 1.2em;
@@ -57,9 +57,6 @@ export class PageMyRentals extends LitElement {
         color: var(--danger);
       }
 
-      section {
-        margin-top: var(--space-3);
-      }
       h2 {
         margin: 0;
         color: var(--ink-1);
@@ -300,7 +297,7 @@ export class PageMyRentals extends LitElement {
 
           <!-- 1순위: 현재 대여 중인 물품 -->
           <section>
-            <h2>현재 대여 중 (${rentedList.length})</h2>
+            <h2>현재 대여 중</h2>
             ${rentedList.length > 0
               ? html`<div class="list">
                   ${rentedList.map((r) => this.renderActiveRow(r))}
@@ -321,7 +318,7 @@ export class PageMyRentals extends LitElement {
             ? html`
                 <details ?open=${rentedList.length === 0}>
                   <summary>
-                    <span>대여 이력 (${historyList.length})</span>
+                    <span>대여 이력</span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <path d="m6 9 6 6 6-6" />
                     </svg>

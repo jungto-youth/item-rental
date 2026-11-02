@@ -37,7 +37,8 @@ export class PageMypage extends LitElement {
         display: flex;
         flex-direction: column;
         gap: var(--space-1);
-        margin-top: var(--space-2);
+        /* 헤더 아래 안내 배너 — 아래 본문 2열과의 간격까지 여기서 만든다 */
+        margin: var(--space-2) 0 var(--space-3);
         padding: var(--space-1) var(--space-2);
         border: 1px solid var(--border);
         border-radius: var(--radius);
@@ -75,9 +76,6 @@ export class PageMypage extends LitElement {
         }
       }
 
-      section {
-        margin-top: var(--space-3);
-      }
       h2 {
         margin: 0;
         color: var(--ink-1);
@@ -239,10 +237,10 @@ export class PageMypage extends LitElement {
         subtitle="계정 정보와 연락처를 관리해요."
       ></x-page-header>
 
+      ${this.banner}
+
       <div class="split">
         <div class="main content">
-          ${this.banner}
-
           <section>
             <h2>계정 정보</h2>
 

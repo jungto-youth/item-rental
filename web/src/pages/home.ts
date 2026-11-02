@@ -2,7 +2,6 @@ import { css, html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { navigate, syncScrollKey } from "../router";
 import { session } from "../context/session";
-import { type CatalogSummary } from "../types";
 import { reduceMotion } from "../styles/motion";
 import { searchFieldCss, sideCardCss } from "../styles/ui";
 import "../components/ui/button";
@@ -21,12 +20,10 @@ const TABS: { key: TabKey; label: string }[] = [
 ];
 
 // 물품 현황 — 페이지 제목·검색·필터·등록 액션을 소유한다.
-// 목록과 탭 숫자는 item-explorer 가 데이터에서 계산해 counts-change 로 알려준다.
 @customElement("page-home")
 export class PageHome extends LitElement {
   @state() private q = "";
   @state() private tab: TabKey = "all";
-  @state() private summary: CatalogSummary | null = null;
   @state() private denied = false;
   @state() private isAdmin = false;
   private unsub: (() => void) | null = null;
@@ -207,16 +204,7 @@ export class PageHome extends LitElement {
     }
   }
 
-  private tabCount(key: TabKey): number | undefined {
-    if (!this.summary) return undefined;
-    if (key === "all") return this.summary.types;
-    if (key === "available") return this.summary.available;
-    if (key === "rented") return this.summary.rented;
-    return this.summary.repair;
-  }
-
   // 부제는 고정 문구 — 물품 종 수는 데이터에 따라 달라지므로 숫자를 넣지 않는다.
-  // 현재 종 수는 상태 필터 칩(전체)이 보여준다.
   private get subtitle(): string {
     return "함께 쓰는 물품과 대여 상태를 확인해요.";
   }
@@ -299,7 +287,6 @@ export class PageHome extends LitElement {
                 .options=${TABS.map((t) => ({
                   value: t.key,
                   label: t.label,
-                  count: this.tabCount(t.key),
                 }))}
                 @change=${(e: CustomEvent<{ value: string }>) =>
                   (this.tab = e.detail.value as TabKey)}
@@ -319,8 +306,6 @@ export class PageHome extends LitElement {
             <item-explorer
               .q=${this.q}
               .tab=${this.tab}
-              @counts-change=${(e: CustomEvent<CatalogSummary>) =>
-                (this.summary = e.detail)}
               @clear-search=${this.clearSearch}
             ></item-explorer>
           </div>

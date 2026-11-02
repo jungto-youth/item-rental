@@ -5,6 +5,9 @@ dist/
 .env
 *.local
 
+# macOS
+.DS_Store
+
 # pi 에이전트 작업 로그·태스크 출력 (로컬 스크래치)
 .pi/
 

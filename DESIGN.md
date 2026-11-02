@@ -172,6 +172,7 @@ npm run build && npm run check:production
 - `node design/build.ts`로 채우고, `--check`로 드리프트를 감지한다(`npm run check`에 포함).
 - CSS는 여러 화면이 같이 쓰는 규칙만 `design/assets/components.css`로 올린다.
 - 상세한 마커 문법은 `design/README.md`.
+- 같은 시안의 SolidJS 구현은 `solid/`에 있다(Tailwind v4, 샘플 데이터). 실행·화면·연결 방법은 `solid/README.md`.
 
 ## 참고
 

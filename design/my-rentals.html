@@ -127,7 +127,7 @@
       <div class="page-split mt-6">
         <div class="page-main">
           <section>
-            <h2 id="active-title" class="text-heading font-semibold tracking-[-0.015em] text-ink-1">현재 대여 중 (2)</h2>
+            <h2 id="active-title" class="text-heading font-semibold tracking-[-0.015em] text-ink-1">현재 대여 중</h2>
 
         <div id="active-list" class="mt-4 space-y-2">
           <article
@@ -211,7 +211,7 @@
 
       <details id="history-details" class="mt-8">
         <summary class="flex cursor-pointer items-center justify-between gap-4 text-heading font-semibold tracking-[-0.015em] text-ink-1">
-          <span>대여 이력 (<span id="history-count">3</span>)</span>
+          <span>대여 이력</span>
           <svg class="chevron h-5 w-5 flex-none text-ink-2 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="m6 9 6 6 6-6" />
           </svg>
@@ -320,11 +320,9 @@
       const confirmBtn = document.getElementById("modal-confirm");
       const cancelBtn = document.getElementById("modal-cancel");
       const activeList = document.getElementById("active-list");
-      const activeTitle = document.getElementById("active-title");
       const activeEmpty = document.getElementById("active-empty");
       const historyDetails = document.getElementById("history-details");
       const historyList = document.getElementById("history-list");
-      const historyCount = document.getElementById("history-count");
       const message = document.getElementById("page-message");
       const messageText = document.getElementById("page-message-text");
 
@@ -383,7 +381,6 @@
         row.remove();
 
         const remaining = activeList.querySelectorAll("[data-active-row]").length;
-        activeTitle.textContent = `현재 대여 중 (${remaining})`;
 
         if (remaining === 0) {
           activeList.classList.add("hidden");
@@ -404,7 +401,6 @@
           </div>
         `;
         historyList.prepend(historyRow);
-        historyCount.textContent = String(Number(historyCount.textContent) + 1);
 
         messageText.textContent = returned
           ? `${name} 반납 완료 처리되었어요`

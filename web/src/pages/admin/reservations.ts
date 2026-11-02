@@ -40,7 +40,6 @@ export class PageAdminReservations extends LitElement {
       }
       x-chip {
         display: block;
-        margin-top: var(--space-3);
       }
       .result {
         display: flex;
@@ -53,6 +52,9 @@ export class PageAdminReservations extends LitElement {
       }
       .result p {
         margin: 0;
+      }
+      .result .sort {
+        margin-left: auto;
       }
       .trunc {
         color: var(--danger);
@@ -112,11 +114,6 @@ export class PageAdminReservations extends LitElement {
     return this.reservations.filter((r) => r.status === this.filter);
   }
 
-  private countFor(status: Filter): number {
-    if (!status) return this.reservations.length;
-    return this.reservations.filter((r) => r.status === status).length;
-  }
-
   // 반납 처리 — 이 화면의 유일한 상태 전이
   private async markReturned(r: AdminReservation) {
     if (this.processingId !== null) return;
@@ -156,10 +153,10 @@ export class PageAdminReservations extends LitElement {
           ariaLabel="상태 필터"
           .value=${this.filter}
           .options=${[
-            { value: "", label: "전체", count: this.countFor("") },
-            { value: "rented", label: "대여 중", count: this.countFor("rented") },
-            { value: "returned", label: "반납 완료", count: this.countFor("returned") },
-            { value: "cancelled", label: "취소", count: this.countFor("cancelled") },
+            { value: "", label: "전체" },
+            { value: "rented", label: "대여 중" },
+            { value: "returned", label: "반납 완료" },
+            { value: "cancelled", label: "취소" },
           ]}
           @change=${(e: CustomEvent<{ value: string }>) => this.setFilter(e.detail.value)}
         ></x-chip>
@@ -174,13 +171,12 @@ export class PageAdminReservations extends LitElement {
             </div>`
           : html`
               <div class="result">
-                <p role="status">
-                  ${list.length}개
-                  ${this.truncated
-                    ? html` <span class="trunc">(500건까지만 표시 — 더 오래된 건은 여기 없어요)</span>`
-                    : ""}
-                </p>
-                <p>최근 대여 순</p>
+                ${this.truncated
+                  ? html`<p class="trunc" role="status">
+                      500건까지만 표시 — 더 오래된 건은 여기 없어요
+                    </p>`
+                  : ""}
+                <p class="sort">최근 대여 순</p>
               </div>
               <div class="list">
                 ${list.map((r) => this.renderCard(r))}

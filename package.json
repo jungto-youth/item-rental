@@ -14,9 +14,12 @@
     "build": "vite build",
     "design": "node design/build.ts",
     "design:check": "node design/build.ts --check",
+    "dev:solid": "vite --config solid/vite.config.ts",
+    "build:solid": "vite build --config solid/vite.config.ts",
+    "preview:solid": "vite preview --config solid/vite.config.ts",
     "check:production": "node server/scripts/check-production-bundle.ts",
     "deploy": "vite build && wrangler deploy",
-    "check": "tsc --noEmit -p web && tsc --noEmit -p server && tsc --noEmit -p server/tsconfig.tests.json && tsc --noEmit -p server/tsconfig.scripts.json && tsc --noEmit -p design && node design/build.ts --check",
+    "check": "tsc --noEmit -p web && tsc --noEmit -p server && tsc --noEmit -p server/tsconfig.tests.json && tsc --noEmit -p server/tsconfig.scripts.json && tsc --noEmit -p design && tsc --noEmit -p solid && node design/build.ts --check",
     "test": "vitest run",
     "test:photos": "node web/tests/photo.browser.test.mjs",
     "test:members": "node web/tests/member-access.browser.test.mjs",
@@ -31,17 +34,22 @@
     "@fontsource-variable/noto-sans-kr": "^5.3.1",
     "@lit-labs/router": "^0.1.4",
     "@neondatabase/serverless": "^1",
+    "@solidjs/router": "^1.0.1",
     "hono": "^4",
-    "lit": "^3"
+    "lit": "^3",
+    "solid-js": "^1.9.18"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260918.1",
+    "@tailwindcss/vite": "^4.3.4",
     "@types/node": "^24",
     "pixelmatch": "^8.0.0",
     "playwright": "^1.64.0",
     "pngjs": "^7.0.0",
+    "tailwindcss": "^4.3.4",
     "typescript": "^5",
     "vite": "^7",
+    "vite-plugin-solid": "^2.11.15",
     "vitest": "^5.0.3",
     "wrangler": "^4.149.0"
   }

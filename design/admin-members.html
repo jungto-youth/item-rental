@@ -429,11 +429,10 @@
         </div>
 
           <!-- ===== 허용 이메일 (보조 설정) ===== -->
-          <details id="email-section" class="email-section mt-8 border-t border-line pt-6">
+          <details id="email-section" class="email-section mt-8">
             <summary class="flex cursor-pointer items-center justify-between gap-4">
               <span class="text-heading font-semibold tracking-[-0.015em] text-ink-1">
                 로그인 허용 이메일
-                <span id="email-count" class="ml-1 text-fine font-normal text-ink-2">3</span>
               </span>
               <svg class="chevron h-5 w-5 flex-none text-ink-2 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m6 9 6 6 6-6" />
@@ -748,11 +747,9 @@
       const emailError = document.getElementById("email-error");
       const emailList = document.getElementById("email-list");
       const emailEmpty = document.getElementById("email-empty");
-      const emailCount = document.getElementById("email-count");
 
       function updateEmailCount() {
         const count = emailList.querySelectorAll("[data-email-row]").length;
-        emailCount.textContent = String(count);
         emailList.classList.toggle("hidden", count === 0);
         emailEmpty.classList.toggle("hidden", count !== 0);
       }

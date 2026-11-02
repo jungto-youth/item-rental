@@ -82,16 +82,6 @@
   cursor: not-allowed;
 }
 
-.chip .count {
-  font-size: var(--text-fine);
-  font-weight: 400;
-  color: var(--ink-2);
-}
-
-.chip.active .count {
-  color: rgba(255, 255, 255, 0.75);
-}
-
 /* lg(44px) — 폼의 x-input 등 44px 컨트롤과 나란히 둘 때 */
 .size-lg .chip {
   height: 44px;
