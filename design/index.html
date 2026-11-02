@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="ko" data-role="member">
+  <head>
+    <!-- @begin head -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/components.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --color-canvas: #f6f7f9;
+        --color-ink-1: #111827;
+        --color-ink-2: #4b5563;
+        --color-ink-3: #9ca3af;
+        --color-surface: #ffffff;
+        --color-surface-muted: #f3f4f6;
+        --color-line: #e5e7eb;
+        --color-line-strong: #d1d5db;
+        --color-primary: #ea580c;
+        --color-primary-strong: #c2410c;
+        --color-primary-deep: #9a3412;
+        --color-primary-soft: #fff1e8;
+        --color-warning: #b45309;
+        --color-warning-soft: #fffbeb;
+        --color-danger: #dc2626;
+        --color-danger-soft: #fef2f2;
+
+        --font-sans:
+          "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont,
+          "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+        --text-fine: 0.875rem;
+        --text-fine--line-height: 1.5;
+        --text-body: 1rem;
+        --text-body--line-height: 1.5;
+        --text-heading: 1.25rem;
+        --text-heading--line-height: 1.4;
+        --text-page-title: 1.5rem;
+        --text-page-title--line-height: 1.35;
+
+        --radius-card: 8px;
+        --radius-pill: 999px;
+
+        --shadow-menu: 0 8px 24px rgba(23, 23, 23, 0.1);
+        --shadow-modal: 0 24px 64px rgba(23, 23, 23, 0.18);
+      }
+    </style>
+    <!-- @end head -->
+    <title>물품 현황 — 물품 대여</title>
+
+    <style>
+      /* ===== 홈 2열 — 왼쪽 주 컨텐츠, 오른쪽 보조 패널 ===== */
+      .home-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+          "search"
+          "main";
+        column-gap: 24px;
+        row-gap: 16px;
+      }
+      .home-search {
+        grid-area: search;
+        max-width: 560px;
+      }
+      .home-main {
+        grid-area: main;
+        min-width: 0;
+      }
+      .home-side {
+        grid-area: side;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      @media (min-width: 1024px) {
+        .home-layout {
+          grid-template-columns: minmax(0, 1fr) 320px;
+          grid-template-areas:
+            "search side"
+            "main side";
+          align-items: start;
+        }
+        .home-search {
+          max-width: 400px;
+        }
+        .home-side {
+          position: sticky;
+          top: 96px;
+        }
+      }
+      /* 모바일·태블릿에서는 오른쪽 보조 패널 없이 검색 → 필터 → 목록 순서 */
+      @media (max-width: 1023px) {
+        .home-side {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+
+  <body class="flex min-h-dvh flex-col antialiased">
+    <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
+    
+    <!-- ===== 공통 헤더 ===== -->
+    <header class="sticky top-0 z-30 border-b border-line bg-surface">
+      <div
+        class="mx-auto flex h-14 max-w-[1280px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6"
+      >
+        <a href="index.html" class="flex flex-none items-center gap-2" aria-label="물품 현황 — 홈">
+          <img src="assets/logo.png" alt="" class="h-7 w-7 rounded-card" />
+        </a>
+
+        <nav class="flex min-w-0 items-center gap-4 sm:gap-6" aria-label="주 메뉴">
+          <a
+            href="index.html"
+            aria-current="page"
+            class="flex h-14 items-center border-b-2 border-primary text-body font-semibold text-ink-1 sm:h-16"
+          >
+            물품 현황
+          </a>
+          <a
+            href="my-rentals.html"
+            class="flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16"
+          >
+            대여 기록
+          </a>
+          <a
+            href="admin-members.html"
+            class="admin-only flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16"
+          >
+            회원 관리
+          </a>
+        </nav>
+
+        <div class="relative ml-auto flex flex-none items-center">
+          <button
+            type="button"
+            class="flex h-10 items-center gap-2 rounded-pill text-body text-ink-2 transition-colors hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            id="account-btn"
+            aria-expanded="false"
+            aria-haspopup="menu"
+            aria-label="계정 메뉴 — 김하늘"
+          >
+            <span
+              class="flex h-8 w-8 items-center justify-center rounded-pill bg-primary-soft text-fine font-semibold text-primary-strong"
+              aria-hidden="true"
+            >
+              김
+            </span>
+            <span class="hidden max-w-[140px] truncate md:block">김하늘</span>
+            <svg
+              class="hidden h-4 w-4 sm:block"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+          <div
+            id="account-menu"
+            class="absolute right-0 top-[calc(100%+8px)] z-20 hidden min-w-[176px] overflow-hidden rounded-card border border-line bg-surface shadow-menu"
+            role="menu"
+          >
+            <a href="mypage.html" role="menuitem" class="block px-4 py-2 text-body text-ink-1 transition-colors hover:bg-surface-muted">내 정보</a>
+            <a href="login.html" role="menuitem" class="block px-4 py-2 text-body text-danger transition-colors hover:bg-surface-muted">로그아웃</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
+      <!-- ===== 페이지 헤더 ===== -->
+      <div>
+        <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">물품 현황</h1>
+        <p class="mt-2 text-fine text-ink-2">함께 쓰는 물품과 대여 상태를 확인해요.</p>
+      </div>
+
+      <!-- ===== 2열: 왼쪽 주 컨텐츠 · 오른쪽 보조 패널 ===== -->
+      <div class="home-layout mt-6">
+        <div class="home-search relative w-full">
+          <svg
+            class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            id="home-search"
+            type="search"
+            aria-label="물품 검색"
+            placeholder="이름, 위치, 분류 검색"
+            class="h-10 w-full rounded-card border border-line bg-surface pl-10 pr-4 text-body text-ink-1 placeholder:text-ink-2 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </div>
+
+        <aside class="home-side" aria-label="물품 등록과 대여 안내">
+          <a
+            href="item-form.html"
+            class="admin-only hidden h-10 w-full items-center justify-center gap-2 rounded-card bg-primary-strong px-4 text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:inline-flex"
+          >
+            <svg
+              class="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
+            물품 등록
+          </a>
+
+          <section class="home-guide rounded-card border border-line bg-surface p-4">
+            <h2 class="text-body font-semibold tracking-[-0.015em] text-ink-1">대여 안내</h2>
+            <p class="mt-2 text-fine leading-[1.5] text-ink-2">
+              신청하면 바로 대여 중이 돼요. 반납은 대여 기록에서 할 수 있어요.
+            </p>
+            <a
+              href="my-rentals.html"
+              class="mt-4 inline-flex h-9 items-center rounded-card border border-line bg-surface px-4 text-fine font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              내 대여 보기
+            </a>
+          </section>
+        </aside>
+
+        <div class="home-main">
+          <div class="flex flex-wrap items-center gap-2" aria-label="물품 상태 필터">
+            <button type="button" class="filter-chip" data-filter="all" aria-pressed="true">
+              전체 <span class="count">24</span>
+            </button>
+            <button type="button" class="filter-chip" data-filter="available" aria-pressed="false">
+              대여 가능 <span class="count">18</span>
+            </button>
+            <button type="button" class="filter-chip" data-filter="rented" aria-pressed="false">
+              대여 중 <span class="count">4</span>
+            </button>
+            <button type="button" class="filter-chip" data-filter="repair" aria-pressed="false">
+              수리 중 <span class="count">2</span>
+            </button>
+          </div>
+
+          <!-- ===== 물품 그리드 ===== -->
+          <div class="mt-4 grid grid-cols-3 gap-2 md:grid-cols-4 xl:grid-cols-5" role="list">
+        <!-- 1 -->
+        <a
+          role="listitem"
+          href="item-detail.html"
+          data-item-card
+          data-status="available"
+          data-search="4인용 텐트 캠핑 7층 비품실"
+          class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <div class="relative aspect-[4/3] bg-surface-muted">
+            <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+              <svg class="h-6 w-6 sm:h-8 sm:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+              <span class="text-fine text-ink-2">사진 없음</span>
+            </span>
+            <img
+              src="https://images.unsplash.com/photo-1445308394109-4ec2920981b1?auto=format&fit=crop&w=800&q=70"
+              alt=""
+              loading="lazy"
+              class="absolute inset-0 h-full w-full object-cover"
+              onerror="this.remove()"
+            />
+          </div>
+          <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+            <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+              4인용 텐트
+            </h3>
+            <p class="truncate text-fine text-ink-2"><span class="max-sm:hidden">캠핑 · </span>7층 비품실</p>
+            <p class="mt-auto flex items-center gap-1 text-fine tabular-nums">
+              <span class="h-1.5 w-1.5 flex-none rounded-full bg-primary" aria-hidden="true"></span>
+              <span class="font-semibold text-ink-1">2개</span>
+              <span class="text-ink-2">대여 가능</span>
+            </p>
+          </div>
+        </a>
+
+        <!-- 2 -->
+        <a
+          role="listitem"
+          href="item-detail.html"
+          data-item-card
+          data-status="available"
+          data-search="캠핑 테이블 캠핑 7층 비품실"
+          class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <div class="relative aspect-[4/3] bg-surface-muted">
+            <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+              <svg class="h-6 w-6 sm:h-8 sm:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+              <span class="text-fine text-ink-2">사진 없음</span>
+            </span>
+            <img
+              src="https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?auto=format&fit=crop&w=800&q=70"
+              alt=""
+              loading="lazy"
+              class="absolute inset-0 h-full w-full object-cover"
+              onerror="this.remove()"
+            />
+          </div>
+          <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+            <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+              캠핑 테이블
+            </h3>
+            <p class="truncate text-fine text-ink-2"><span class="max-sm:hidden">캠핑 · </span>7층 비품실</p>
+            <p class="mt-auto flex items-center gap-1 text-fine tabular-nums">
+              <span class="h-1.5 w-1.5 flex-none rounded-full bg-primary" aria-hidden="true"></span>
+              <span class="font-semibold text-ink-1">1개</span>
+              <span class="text-ink-2">대여 가능</span>
+            </p>
+          </div>
+        </a>
+
+        <!-- 3 -->
+        <a
+          role="listitem"
+          href="item-detail.html"
+          data-item-card
+          data-status="rented"
+          data-search="빔프로젝터 교육 행사 2층 OA실"
+          class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <div class="relative aspect-[4/3] bg-surface-muted">
+            <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+              <svg class="h-6 w-6 sm:h-8 sm:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+              <span class="text-fine text-ink-2">사진 없음</span>
+            </span>
+            <img
+              src="https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&w=800&q=70"
+              alt=""
+              loading="lazy"
+              class="absolute inset-0 h-full w-full object-cover"
+              onerror="this.remove()"
+            />
+          </div>
+          <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+            <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+              빔프로젝터
+            </h3>
+            <p class="truncate text-fine text-ink-2"><span class="max-sm:hidden">교육·행사 · </span>2층 OA실</p>
+            <p class="mt-auto flex items-center gap-1 text-fine">
+              <span class="h-1.5 w-1.5 flex-none rounded-full bg-ink-3" aria-hidden="true"></span>
+              <span class="text-ink-2">대여 중</span>
+            </p>
+          </div>
+        </a>
+
+        <!-- 4 -->
+        <a
+          role="listitem"
+          href="item-detail.html"
+          data-item-card
+          data-status="available"
+          data-search="블루투스 스피커 음향 2층 OA실"
+          class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <div class="relative aspect-[4/3] bg-surface-muted">
+            <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+              <svg class="h-6 w-6 sm:h-8 sm:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+              <span class="text-fine text-ink-2">사진 없음</span>
+            </span>
+            <img
+              src="https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=800&q=70"
+              alt=""
+              loading="lazy"
+              class="absolute inset-0 h-full w-full object-cover"
+              onerror="this.remove()"
+            />
+          </div>
+          <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+            <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+              블루투스 스피커
+            </h3>
+            <p class="truncate text-fine text-ink-2"><span class="max-sm:hidden">음향 · </span>2층 OA실</p>
+            <p class="mt-auto flex items-center gap-1 text-fine tabular-nums">
+              <span class="h-1.5 w-1.5 flex-none rounded-full bg-primary" aria-hidden="true"></span>
+              <span class="font-semibold text-ink-1">3개</span>
+              <span class="text-ink-2">대여 가능</span>
+            </p>
+          </div>
+        </a>
+
+        <!-- 5 -->
+        <a
+          role="listitem"
+          href="item-detail.html"
+          data-item-card
+          data-status="available"
+          data-search="전동 드릴 공구 1층 창고"
+          class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <div class="relative aspect-[4/3] bg-surface-muted">
+            <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+              <svg class="h-6 w-6 sm:h-8 sm:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+              <span class="text-fine text-ink-2">사진 없음</span>
+            </span>
+            <img
+              src="https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=800&q=70"
+              alt=""
+              loading="lazy"
+              class="absolute inset-0 h-full w-full object-cover"
+              onerror="this.remove()"
+            />
+          </div>
+          <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+            <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+              전동 드릴
+            </h3>
+            <p class="truncate text-fine text-ink-2"><span class="max-sm:hidden">공구 · </span>1층 창고</p>
+            <p class="mt-auto flex items-center gap-1 text-fine tabular-nums">
+              <span class="h-1.5 w-1.5 flex-none rounded-full bg-primary" aria-hidden="true"></span>
+              <span class="font-semibold text-ink-1">2개</span>
+              <span class="text-ink-2">대여 가능</span>
+            </p>
+          </div>
+        </a>
+
+        <!-- 6 -->
+        <a
+          role="listitem"
+          href="item-detail.html"
+          data-item-card
+          data-status="available"
+          data-search="보드게임 세트 여가 3층 라운지"
+          class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <div class="relative aspect-[4/3] bg-surface-muted">
+            <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+              <svg class="h-6 w-6 sm:h-8 sm:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+              <span class="text-fine text-ink-2">사진 없음</span>
+            </span>
+            <img
+              src="https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&w=800&q=70"
+              alt=""
+              loading="lazy"
+              class="absolute inset-0 h-full w-full object-cover"
+              onerror="this.remove()"
+            />
+          </div>
+          <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+            <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+              보드게임 세트
+            </h3>
+            <p class="truncate text-fine text-ink-2"><span class="max-sm:hidden">여가 · </span>3층 라운지</p>
+            <p class="mt-auto flex items-center gap-1 text-fine tabular-nums">
+              <span class="h-1.5 w-1.5 flex-none rounded-full bg-primary" aria-hidden="true"></span>
+              <span class="font-semibold text-ink-1">4개</span>
+              <span class="text-ink-2">대여 가능</span>
+            </p>
+          </div>
+        </a>
+
+        <!-- 7 -->
+        <a
+          role="listitem"
+          href="item-detail.html"
+          data-item-card
+          data-status="rented"
+          data-search="도서 꾸러미 도서 3층 라운지"
+          class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <div class="relative aspect-[4/3] bg-surface-muted">
+            <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+              <svg class="h-6 w-6 sm:h-8 sm:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+              <span class="text-fine text-ink-2">사진 없음</span>
+            </span>
+            <img
+              src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=70"
+              alt=""
+              loading="lazy"
+              class="absolute inset-0 h-full w-full object-cover"
+              onerror="this.remove()"
+            />
+          </div>
+          <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+            <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+              도서 꾸러미
+            </h3>
+            <p class="truncate text-fine text-ink-2"><span class="max-sm:hidden">도서 · </span>3층 라운지</p>
+            <p class="mt-auto flex items-center gap-1 text-fine">
+              <span class="h-1.5 w-1.5 flex-none rounded-full bg-ink-3" aria-hidden="true"></span>
+              <span class="text-ink-2">대여 중</span>
+            </p>
+          </div>
+        </a>
+
+        <!-- 8 -->
+        <a
+          role="listitem"
+          href="item-detail.html"
+          data-item-card
+          data-status="available"
+          data-search="무선 마이크 2개 음향 2층 OA실"
+          class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <div class="relative aspect-[4/3] bg-surface-muted">
+            <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+              <svg class="h-6 w-6 sm:h-8 sm:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+              <span class="text-fine text-ink-2">사진 없음</span>
+            </span>
+            <img
+              src="https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=800&q=70"
+              alt=""
+              loading="lazy"
+              class="absolute inset-0 h-full w-full object-cover"
+              onerror="this.remove()"
+            />
+          </div>
+          <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+            <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+              무선 마이크 2개
+            </h3>
+            <p class="truncate text-fine text-ink-2"><span class="max-sm:hidden">음향 · </span>2층 OA실</p>
+            <p class="mt-auto flex items-center gap-1 text-fine tabular-nums">
+              <span class="h-1.5 w-1.5 flex-none rounded-full bg-primary" aria-hidden="true"></span>
+              <span class="font-semibold text-ink-1">2개</span>
+              <span class="text-ink-2">대여 가능</span>
+            </p>
+          </div>
+        </a>
+
+        <!-- 9 -->
+        <a
+          role="listitem"
+          href="item-detail.html"
+          data-item-card
+          data-status="repair"
+          data-search="2인용 텐트 캠핑 7층 비품실"
+          class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <div class="relative aspect-[4/3] bg-surface-muted">
+            <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+              <svg class="h-6 w-6 sm:h-8 sm:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+              <span class="text-fine text-ink-2">사진 없음</span>
+            </span>
+            <img
+              src="https://images.unsplash.com/photo-1526491109672-74740652b963?auto=format&fit=crop&w=800&q=70"
+              alt=""
+              loading="lazy"
+              class="absolute inset-0 h-full w-full object-cover"
+              onerror="this.remove()"
+            />
+          </div>
+          <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+            <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+              2인용 텐트
+            </h3>
+            <p class="truncate text-fine text-ink-2"><span class="max-sm:hidden">캠핑 · </span>7층 비품실</p>
+            <p class="mt-auto flex items-center gap-1 text-fine tabular-nums">
+              <span class="h-1.5 w-1.5 flex-none rounded-full bg-warning" aria-hidden="true"></span>
+              <span class="text-ink-2">수리 중</span>
+              <span class="font-semibold text-ink-1">1개</span>
+            </p>
+          </div>
+        </a>
+
+        <!-- 10 — 사진 없는 물품 -->
+        <a
+          role="listitem"
+          href="item-detail.html"
+          data-item-card
+          data-status="available"
+          data-search="대형 돗자리 캠핑 7층 비품실"
+          class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <div class="relative aspect-[4/3] bg-surface-muted">
+            <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+              <svg class="h-6 w-6 sm:h-8 sm:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+              <span class="text-fine text-ink-2">사진 없음</span>
+            </span>
+          </div>
+          <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+            <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+              대형 돗자리
+            </h3>
+            <p class="truncate text-fine text-ink-2"><span class="max-sm:hidden">캠핑 · </span>7층 비품실</p>
+            <p class="mt-auto flex items-center gap-1 text-fine tabular-nums">
+              <span class="h-1.5 w-1.5 flex-none rounded-full bg-primary" aria-hidden="true"></span>
+              <span class="font-semibold text-ink-1">5개</span>
+              <span class="text-ink-2">대여 가능</span>
+            </p>
+          </div>
+        </a>
+      </div>
+
+      <div id="home-empty" class="mt-6 hidden rounded-card border border-line bg-surface px-6 py-10 text-center">
+        <p class="text-body font-semibold text-ink-1">찾는 물품이 없어요</p>
+        <p class="mt-2 text-fine text-ink-2">다른 이름이나 위치로 검색해 보세요.</p>
+        <button
+          type="button"
+          id="home-empty-clear"
+          class="mt-4 inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-body font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          검색어 지우기
+        </button>
+      </div>
+
+          <!-- ===== 더보기 ===== -->
+          <div id="home-more" class="mt-8 flex justify-center">
+            <button
+              type="button"
+              class="h-10 rounded-card border border-line bg-surface px-6 text-body font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              더보기
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- @begin footer -->
+    <footer class="border-t border-line">
+      <div
+        class="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+      >
+        <p>정토회 · 함께 쓰는 물품</p>
+        <nav class="flex gap-4" aria-label="정책">
+          <a href="policy.html?kind=terms" class="transition-colors hover:text-ink-1 hover:underline">이용약관</a>
+          <a href="policy.html?kind=privacy" class="transition-colors hover:text-ink-1 hover:underline">개인정보처리방침</a>
+        </nav>
+      </div>
+    </footer>
+    <!-- @end footer -->
+
+    <!-- 모바일 관리자 FAB -->
+    <a
+      href="item-form.html"
+      class="admin-only fixed bottom-4 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-pill bg-primary-strong text-white shadow-[0_8px_20px_rgba(226,87,30,0.28)] transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:hidden"
+      aria-label="물품 등록"
+    >
+      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 12h14" />
+        <path d="M12 5v14" />
+      </svg>
+    </a>
+
+    <script>
+      // ===== 검색 · 상태 필터 =====
+      const homeSearch = document.getElementById("home-search");
+      const homeCards = [...document.querySelectorAll("[data-item-card]")];
+      const homeChips = [...document.querySelectorAll("[data-filter]")];
+      const homeEmpty = document.getElementById("home-empty");
+      const homeEmptyClear = document.getElementById("home-empty-clear");
+      const homeMore = document.getElementById("home-more");
+
+      let homeFilter = "all";
+
+      function applyHomeFilter() {
+        const q = homeSearch.value.trim().toLowerCase();
+        let visible = 0;
+
+        homeCards.forEach((card) => {
+          const statusOk = homeFilter === "all" || card.dataset.status === homeFilter;
+          const searchOk = !q || card.dataset.search.toLowerCase().includes(q);
+          const show = statusOk && searchOk;
+          card.classList.toggle("hidden", !show);
+          if (show) visible += 1;
+        });
+
+        homeEmpty.classList.toggle("hidden", visible !== 0);
+        homeMore.classList.toggle("hidden", visible === 0);
+        homeChips.forEach((chip) => {
+          chip.setAttribute("aria-pressed", String(chip.dataset.filter === homeFilter));
+        });
+      }
+
+      homeSearch.addEventListener("input", applyHomeFilter);
+      homeChips.forEach((chip) => {
+        chip.addEventListener("click", () => {
+          homeFilter = chip.dataset.filter;
+          applyHomeFilter();
+        });
+      });
+      homeEmptyClear.addEventListener("click", () => {
+        homeSearch.value = "";
+        homeFilter = "all";
+        applyHomeFilter();
+        homeSearch.focus();
+      });
+
+      applyHomeFilter();
+
+      // ===== 계정 메뉴 =====
+      const accountBtn = document.getElementById("account-btn");
+      const accountMenu = document.getElementById("account-menu");
+      if (accountBtn && accountMenu) {
+        const closeAccountMenu = () => {
+          accountMenu.classList.add("hidden");
+          accountBtn.setAttribute("aria-expanded", "false");
+        };
+        accountBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const hidden = accountMenu.classList.toggle("hidden");
+          accountBtn.setAttribute("aria-expanded", String(!hidden));
+        });
+        document.addEventListener("pointerdown", (event) => {
+          if (accountMenu.classList.contains("hidden")) return;
+          if (event.composedPath().includes(accountBtn) || event.composedPath().includes(accountMenu)) return;
+          closeAccountMenu();
+        });
+        window.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeAccountMenu();
+        });
+      }
+    </script>
+    <script src="preview.js"></script>
+  </body>
+</html>

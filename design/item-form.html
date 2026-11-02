@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="ko" data-role="admin">
+  <head>
+    <!-- @begin head -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/components.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --color-canvas: #f6f7f9;
+        --color-ink-1: #111827;
+        --color-ink-2: #4b5563;
+        --color-ink-3: #9ca3af;
+        --color-surface: #ffffff;
+        --color-surface-muted: #f3f4f6;
+        --color-line: #e5e7eb;
+        --color-line-strong: #d1d5db;
+        --color-primary: #ea580c;
+        --color-primary-strong: #c2410c;
+        --color-primary-deep: #9a3412;
+        --color-primary-soft: #fff1e8;
+        --color-warning: #b45309;
+        --color-warning-soft: #fffbeb;
+        --color-danger: #dc2626;
+        --color-danger-soft: #fef2f2;
+
+        --font-sans:
+          "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont,
+          "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+        --text-fine: 0.875rem;
+        --text-fine--line-height: 1.5;
+        --text-body: 1rem;
+        --text-body--line-height: 1.5;
+        --text-heading: 1.25rem;
+        --text-heading--line-height: 1.4;
+        --text-page-title: 1.5rem;
+        --text-page-title--line-height: 1.35;
+
+        --radius-card: 8px;
+        --radius-pill: 999px;
+
+        --shadow-menu: 0 8px 24px rgba(23, 23, 23, 0.1);
+        --shadow-modal: 0 24px 64px rgba(23, 23, 23, 0.18);
+      }
+    </style>
+    <!-- @end head -->
+    <title>물품 등록 — 물품 대여</title>
+    <link rel="stylesheet" href="assets/page-layout.css" />
+
+    <style>
+      .choice-chip {
+        display: inline-flex;
+        align-items: center;
+        height: 36px;
+        padding: 0 16px;
+        border: 1px solid var(--color-line);
+        border-radius: 999px;
+        background: var(--color-surface);
+        color: var(--color-ink-1);
+        font: inherit;
+        font-size: 1rem;
+        line-height: 1.2;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .choice-chip:hover {
+        border-color: var(--color-line-strong);
+        background: var(--color-surface-muted);
+      }
+      .choice-chip[aria-pressed="true"] {
+        border-color: var(--color-ink-1);
+        background: var(--color-ink-1);
+        color: #fff;
+        font-weight: 600;
+      }
+      .choice-chip:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+
+  <body class="flex min-h-dvh flex-col antialiased">
+    <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
+    
+    <!-- ===== 공통 헤더 (관리자) ===== -->
+    <header class="sticky top-0 z-30 border-b border-line bg-surface">
+      <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6">
+        <a href="index.html" class="flex flex-none items-center gap-2" aria-label="물품 현황 — 홈">
+          <img src="assets/logo.png" alt="" class="h-7 w-7 rounded-card" />
+        </a>
+
+        <nav class="flex min-w-0 items-center gap-4 sm:gap-6" aria-label="주 메뉴">
+          <a href="index.html" aria-current="page" class="flex h-14 items-center border-b-2 border-primary text-body font-semibold text-ink-1 sm:h-16">물품 현황</a>
+          <a href="admin-reservations.html" class="admin-only flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">대여 관리</a>
+          <a href="admin-members.html" class="admin-only flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">회원 관리</a>
+        </nav>
+
+        <div class="relative ml-auto flex flex-none items-center">
+          <button
+            type="button"
+            class="flex h-10 items-center gap-2 rounded-pill text-body text-ink-2 transition-colors hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            id="account-btn"
+            aria-expanded="false"
+            aria-haspopup="menu"
+            aria-label="계정 메뉴 — 김하늘"
+          >
+            <span class="flex h-8 w-8 items-center justify-center rounded-pill bg-primary-soft text-fine font-semibold text-primary-strong" aria-hidden="true">김</span>
+            <span class="hidden max-w-[140px] truncate md:block">김하늘</span>
+            <svg class="hidden h-4 w-4 sm:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+          <div
+            id="account-menu"
+            class="absolute right-0 top-[calc(100%+8px)] z-20 hidden min-w-[176px] overflow-hidden rounded-card border border-line bg-surface shadow-menu"
+            role="menu"
+          >
+            <a href="mypage.html" role="menuitem" class="block px-4 py-2 text-body text-ink-1 transition-colors hover:bg-surface-muted">내 정보</a>
+            <a href="login.html" role="menuitem" class="block px-4 py-2 text-body text-danger transition-colors hover:bg-surface-muted">로그아웃</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
+      <div>
+        <h1 id="page-title" class="text-page-title font-bold tracking-[-0.015em] text-ink-1">물품 등록</h1>
+        <p id="page-sub" class="mt-2 text-fine text-ink-2">새 물품의 정보와 사진을 등록해요.</p>
+      </div>
+
+      <p id="page-message" class="mt-3 hidden items-center gap-1 text-fine text-ink-1" role="status">
+        <svg class="h-4 w-4 flex-none text-primary-strong" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+        <span id="page-message-text"></span>
+      </p>
+
+      <div class="page-split mt-6">
+        <div class="page-main">
+          <form id="item-form" novalidate>
+        <div id="form-error" class="mb-4 hidden rounded-card border border-danger bg-danger-soft px-4 py-2 text-fine text-danger" role="alert" tabindex="-1"></div>
+
+        <!-- 기본 정보 -->
+        <section class="rounded-card border border-line bg-surface p-6 max-sm:p-4">
+          <h2 class="border-b border-line pb-2 text-heading font-semibold tracking-[-0.015em] text-ink-1">기본 정보</h2>
+
+          <label class="mt-4 block">
+            <span class="text-fine font-medium text-ink-2">이름 <span class="text-danger">*</span></span>
+            <input
+              id="name"
+              placeholder="예: 4인용 텐트"
+              aria-describedby="form-error"
+              class="field-input mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </label>
+
+          <label class="mt-4 block">
+            <span class="text-fine font-medium text-ink-2">보관 위치</span>
+            <input
+              id="location"
+              placeholder="예: 7층 비품실, 2층 OA실"
+              class="field-input mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </label>
+
+          <label class="mt-4 block">
+            <span class="text-fine font-medium text-ink-2">설명</span>
+            <textarea
+              id="description"
+              rows="3"
+              placeholder="물품 설명이나 주의사항을 적어주세요"
+              class="field-input mt-2 min-h-[88px] w-full resize-y rounded-card border border-line bg-surface px-4 py-2 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            ></textarea>
+          </label>
+        </section>
+
+        <!-- 분류 · 상태 -->
+        <section class="mt-4 rounded-card border border-line bg-surface p-6 max-sm:p-4">
+          <h2 class="border-b border-line pb-2 text-heading font-semibold tracking-[-0.015em] text-ink-1">분류 · 상태</h2>
+
+          <div class="mt-4">
+            <span class="text-fine font-medium text-ink-2">카테고리</span>
+            <div
+              id="tag-container"
+              class="mt-2 flex min-h-10 flex-wrap items-center gap-2 rounded-card border border-line bg-surface p-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20"
+            >
+              <span data-tag class="hidden h-7 items-center gap-1 rounded-pill bg-primary-soft px-2 text-fine text-primary-strong">
+                #캠핑
+                <button type="button" data-remove-tag class="flex h-6 w-6 items-center justify-center rounded-pill text-primary-strong/70 transition-colors hover:text-primary-strong" aria-label="캠핑 태그 제거">×</button>
+              </span>
+              <span data-tag class="hidden h-7 items-center gap-1 rounded-pill bg-primary-soft px-2 text-fine text-primary-strong">
+                #야외
+                <button type="button" data-remove-tag class="flex h-6 w-6 items-center justify-center rounded-pill text-primary-strong/70 transition-colors hover:text-primary-strong" aria-label="야외 태그 제거">×</button>
+              </span>
+              <input
+                id="tag-input"
+                placeholder="태그 입력 후 엔터 (예: 캠핑, 취미)"
+                class="h-8 min-w-[160px] flex-1 border-0 bg-transparent px-2 text-body text-ink-1 placeholder:text-ink-2 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <span class="text-fine font-medium text-ink-2">구분</span>
+              <div class="mt-2 flex gap-2" role="group" aria-label="구분">
+                <button type="button" class="choice-chip" data-kind="rental" aria-pressed="true">대여품</button>
+                <button type="button" class="choice-chip" data-kind="consumable" aria-pressed="false">소모품</button>
+              </div>
+            </div>
+            <div>
+              <span class="text-fine font-medium text-ink-2">상태</span>
+              <div class="mt-2 flex gap-2" role="group" aria-label="상태">
+                <button type="button" class="choice-chip" data-lifecycle="active" aria-pressed="true">사용</button>
+                <button type="button" class="choice-chip" data-lifecycle="retired" aria-pressed="false">폐기</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 재고 · 사진 -->
+        <section class="mt-4 rounded-card border border-line bg-surface p-6 max-sm:p-4">
+          <h2 class="border-b border-line pb-2 text-heading font-semibold tracking-[-0.015em] text-ink-1">재고 · 사진</h2>
+
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <label class="block">
+              <span class="text-fine font-medium text-ink-2">보유 수량 <span class="text-danger">*</span></span>
+              <input
+                id="total-qty"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                value="1"
+                class="field-input mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body tabular-nums text-ink-1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </label>
+            <label id="repair-field" class="block">
+              <span class="text-fine font-medium text-ink-2">수리중 수량</span>
+              <input
+                id="repair-qty"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                value="0"
+                class="field-input mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body tabular-nums text-ink-1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </label>
+          </div>
+          <p id="repair-hint" class="mt-2 text-fine text-ink-2">수리중 수량은 대여 불가 수량이에요 (보유 수량을 넘을 수 없어요)</p>
+
+          <div class="mt-6 flex items-center justify-between gap-4">
+            <span class="text-fine font-medium text-ink-2">사진 관리</span>
+            <span id="photo-count" class="text-fine tabular-nums text-ink-2">0 / 3</span>
+          </div>
+
+          <!-- 신규: 3장 모두 비어 있음 -->
+          <div id="photos-create" class="mt-2 grid grid-cols-3 gap-2">
+            <div data-photo-slot data-empty="true" class="relative aspect-[4/3] overflow-hidden rounded-card border border-dashed border-line-strong bg-surface">
+              <img data-photo-img hidden alt="" class="h-full w-full object-cover" />
+              <span data-photo-badge class="hidden absolute left-2 top-2 h-6 items-center rounded-pill bg-primary-soft px-2 text-fine font-medium text-primary-strong">대표</span>
+              <button type="button" data-remove-photo class="hidden absolute right-2 top-2 h-6 w-6 items-center justify-center rounded-pill bg-ink-1/70 text-white hover:bg-ink-1" aria-label="사진 삭제">×</button>
+              <button type="button" data-add-photo class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-2 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="사진 추가">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                <span class="text-fine">사진 추가</span>
+              </button>
+            </div>
+            <div data-photo-slot data-empty="true" class="relative aspect-[4/3] overflow-hidden rounded-card border border-dashed border-line-strong bg-surface">
+              <img data-photo-img hidden alt="" class="h-full w-full object-cover" />
+              <span data-photo-badge class="hidden absolute left-2 top-2 h-6 items-center rounded-pill bg-primary-soft px-2 text-fine font-medium text-primary-strong">대표</span>
+              <button type="button" data-remove-photo class="hidden absolute right-2 top-2 h-6 w-6 items-center justify-center rounded-pill bg-ink-1/70 text-white hover:bg-ink-1" aria-label="사진 삭제">×</button>
+              <button type="button" data-add-photo class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-2 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="사진 추가">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                <span class="text-fine">사진 추가</span>
+              </button>
+            </div>
+            <div data-photo-slot data-empty="true" class="relative aspect-[4/3] overflow-hidden rounded-card border border-dashed border-line-strong bg-surface">
+              <img data-photo-img hidden alt="" class="h-full w-full object-cover" />
+              <span data-photo-badge class="hidden absolute left-2 top-2 h-6 items-center rounded-pill bg-primary-soft px-2 text-fine font-medium text-primary-strong">대표</span>
+              <button type="button" data-remove-photo class="hidden absolute right-2 top-2 h-6 w-6 items-center justify-center rounded-pill bg-ink-1/70 text-white hover:bg-ink-1" aria-label="사진 삭제">×</button>
+              <button type="button" data-add-photo class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-2 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="사진 추가">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                <span class="text-fine">사진 추가</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 수정: 2장 + 빈 슬롯 1장 -->
+          <div id="photos-edit" class="mt-2 hidden grid-cols-3 gap-2">
+            <div data-photo-slot data-empty="false" class="relative aspect-[4/3] overflow-hidden rounded-card border border-line bg-surface-muted">
+              <img data-photo-img src="https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=400&q=70" alt="" class="h-full w-full object-cover" />
+              <span data-photo-badge class="absolute left-2 top-2 inline-flex h-6 items-center rounded-pill bg-primary-soft px-2 text-fine font-medium text-primary-strong">대표</span>
+              <button type="button" data-remove-photo class="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-pill bg-ink-1/70 text-white hover:bg-ink-1" aria-label="사진 삭제">×</button>
+              <button type="button" data-add-photo class="hidden absolute inset-0 flex-col items-center justify-center gap-1 text-ink-2" aria-label="사진 추가">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                <span class="text-fine">사진 추가</span>
+              </button>
+            </div>
+            <div data-photo-slot data-empty="false" class="relative aspect-[4/3] overflow-hidden rounded-card border border-line bg-surface-muted">
+              <img data-photo-img src="https://images.unsplash.com/photo-1445308394109-4ec2920981b1?auto=format&fit=crop&w=400&q=70" alt="" class="h-full w-full object-cover" />
+              <span data-photo-badge class="hidden absolute left-2 top-2 h-6 items-center rounded-pill bg-primary-soft px-2 text-fine font-medium text-primary-strong">대표</span>
+              <button type="button" data-remove-photo class="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-pill bg-ink-1/70 text-white hover:bg-ink-1" aria-label="사진 삭제">×</button>
+              <button type="button" data-add-photo class="hidden absolute inset-0 flex-col items-center justify-center gap-1 text-ink-2" aria-label="사진 추가">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                <span class="text-fine">사진 추가</span>
+              </button>
+            </div>
+            <div data-photo-slot data-empty="true" class="relative aspect-[4/3] overflow-hidden rounded-card border border-dashed border-line-strong bg-surface">
+              <img data-photo-img hidden alt="" class="h-full w-full object-cover" />
+              <span data-photo-badge class="hidden absolute left-2 top-2 h-6 items-center rounded-pill bg-primary-soft px-2 text-fine font-medium text-primary-strong">대표</span>
+              <button type="button" data-remove-photo class="hidden absolute right-2 top-2 h-6 w-6 items-center justify-center rounded-pill bg-ink-1/70 text-white hover:bg-ink-1" aria-label="사진 삭제">×</button>
+              <button type="button" data-add-photo class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-2 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="사진 추가">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                <span class="text-fine">사진 추가</span>
+              </button>
+            </div>
+          </div>
+
+          <p class="mt-2 text-fine text-ink-2">사진 추가·삭제는 저장할 때 함께 반영돼요. 첫 사진이 대표 사진이에요.</p>
+        </section>
+
+        <!-- 하단 액션 -->
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div data-edit-only class="hidden flex-col gap-2 sm:flex-row">
+            <button type="button" data-delete class="h-10 rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">물품 삭제</button>
+            <a href="item-detail.html" class="inline-flex h-10 items-center justify-center rounded-card border border-line bg-surface px-4 text-body font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">공개 보기</a>
+          </div>
+          <div class="flex justify-end gap-2 sm:ml-auto">
+            <button type="button" data-cancel class="h-10 rounded-card border border-line bg-surface px-4 text-body font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">취소</button>
+            <button type="submit" class="h-10 rounded-card bg-primary-strong px-4 text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">저장</button>
+          </div>
+        </div>
+          </form>
+        </div>
+
+        <aside class="page-side page-side-hide" aria-label="물품 등록 안내">
+          <section class="rounded-card border border-line bg-surface p-4">
+            <h2 class="text-body font-semibold tracking-[-0.015em] text-ink-1">작성 안내</h2>
+            <p class="mt-2 text-fine leading-[1.5] text-ink-2">
+              이름과 보유 수량은 필수예요. 수리중 수량은 대여할 수 없는 수량이라
+              보유 수량을 넘을 수 없어요.
+            </p>
+          </section>
+
+          <section class="rounded-card border border-line bg-surface p-4">
+            <h2 class="text-body font-semibold tracking-[-0.015em] text-ink-1">사진 안내</h2>
+            <p class="mt-2 text-fine leading-[1.5] text-ink-2">
+              사진은 최대 3장까지 등록할 수 있어요. 첫 사진이 대표 사진이 되고,
+              추가·삭제는 저장할 때 함께 반영돼요.
+            </p>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <!-- @begin footer -->
+    <footer class="border-t border-line">
+      <div
+        class="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+      >
+        <p>정토회 · 함께 쓰는 물품</p>
+        <nav class="flex gap-4" aria-label="정책">
+          <a href="policy.html?kind=terms" class="transition-colors hover:text-ink-1 hover:underline">이용약관</a>
+          <a href="policy.html?kind=privacy" class="transition-colors hover:text-ink-1 hover:underline">개인정보처리방침</a>
+        </nav>
+      </div>
+    </footer>
+    <!-- @end footer -->
+
+    <!-- 확인 모달 -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-ink-1/45 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-desc">
+      <div class="w-full max-w-[400px] rounded-card bg-surface p-6 shadow-modal">
+        <h2 id="confirm-title" class="text-heading font-semibold tracking-[-0.015em] text-ink-1"></h2>
+        <p id="confirm-desc" class="mt-2 text-fine leading-[1.5] text-ink-2"></p>
+        <div class="mt-6 flex justify-end gap-2">
+          <button id="confirm-cancel" type="button" class="inline-flex h-9 items-center rounded-card border border-line bg-surface px-4 text-body font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">닫기</button>
+          <button id="confirm-ok" type="button" class="inline-flex h-9 items-center rounded-card border border-danger bg-surface px-4 text-body font-semibold text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 사진 추가 방법 선택 -->
+    <div id="photo-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-ink-1/45 p-4" role="dialog" aria-modal="true" aria-labelledby="photo-title" aria-describedby="photo-desc">
+      <div class="w-full max-w-[400px] rounded-card bg-surface p-6 shadow-modal">
+        <h2 id="photo-title" class="text-heading font-semibold tracking-[-0.015em] text-ink-1">사진 추가</h2>
+        <p id="photo-desc" class="mt-2 text-fine leading-[1.5] text-ink-2">사진을 추가할 방법을 선택하세요.</p>
+        <div class="mt-6 grid grid-cols-2 gap-2">
+          <button type="button" data-photo-source="camera" class="inline-flex h-10 items-center justify-center gap-2 rounded-card border border-line bg-surface px-4 text-body font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z" /><circle cx="12" cy="13" r="3" /></svg>
+            사진 촬영
+          </button>
+          <button type="button" data-photo-source="upload" class="inline-flex h-10 items-center justify-center gap-2 rounded-card bg-primary-strong px-4 text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5" /><path d="M12 3v12" /></svg>
+            사진 업로드
+          </button>
+        </div>
+        <button type="button" data-photo-close class="mt-3 w-full text-center text-fine text-ink-2 underline underline-offset-2 transition-colors hover:text-ink-1">닫기</button>
+      </div>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      const mode = params.get("mode") === "edit" ? "edit" : "create";
+
+      const form = document.getElementById("item-form");
+      const nameInput = document.getElementById("name");
+      const locationInput = document.getElementById("location");
+      const descriptionInput = document.getElementById("description");
+      const totalQty = document.getElementById("total-qty");
+      const repairQty = document.getElementById("repair-qty");
+      const repairField = document.getElementById("repair-field");
+      const repairHint = document.getElementById("repair-hint");
+      const tagContainer = document.getElementById("tag-container");
+      const tagInput = document.getElementById("tag-input");
+      const staticTags = [...document.querySelectorAll("[data-tag]")];
+      const editOnly = [...document.querySelectorAll("[data-edit-only]")];
+      const createPhotos = document.getElementById("photos-create");
+      const editPhotos = document.getElementById("photos-edit");
+      const photoCount = document.getElementById("photo-count");
+      const pageTitle = document.getElementById("page-title");
+      const pageSub = document.getElementById("page-sub");
+      const pageMessage = document.getElementById("page-message");
+      const pageMessageText = document.getElementById("page-message-text");
+      const formError = document.getElementById("form-error");
+      const modeLinks = [...document.querySelectorAll("[data-mode-link]")];
+
+      let kind = "rental";
+      let dirty = false;
+      let confirmAction = null;
+
+      const SAMPLE_PHOTO =
+        "https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=400&q=70";
+
+      // ===== 모드 =====
+      if (mode === "edit") {
+        pageTitle.textContent = "물품 수정";
+        pageSub.textContent = "물품 정보와 사진을 수정해요.";
+        nameInput.value = "4인용 텐트";
+        locationInput.value = "7층 비품실";
+        descriptionInput.value =
+          "이너텐트, 플라이, 팩, 수납 가방이 한 세트예요. 사용 후에는 먼지와 습기를 털어 말린 뒤 반납해 주세요.";
+        totalQty.value = "3";
+        repairQty.value = "1";
+        staticTags.forEach((tag) => {
+          tag.classList.remove("hidden");
+          tag.classList.add("inline-flex");
+        });
+        editOnly.forEach((el) => {
+          el.classList.remove("hidden");
+          el.classList.add("flex");
+        });
+        createPhotos.classList.add("hidden");
+        createPhotos.classList.remove("grid");
+        editPhotos.classList.remove("hidden");
+        editPhotos.classList.add("grid");
+      }
+
+      modeLinks.forEach((link) => {
+        const active = link.dataset.modeLink === mode;
+        link.classList.toggle("font-semibold", active);
+        link.classList.toggle("text-ink-1", active);
+        link.classList.toggle("text-ink-2", !active);
+      });
+
+      function activePhotoGrid() {
+        return mode === "edit" ? editPhotos : createPhotos;
+      }
+
+      function updatePhotoState() {
+        const grid = activePhotoGrid();
+        const slots = [...grid.querySelectorAll("[data-photo-slot]")];
+        const filled = slots.filter((slot) => slot.dataset.empty === "false");
+        const count = filled.length;
+
+        photoCount.textContent = `${count} / 3`;
+        slots.forEach((slot) => {
+          slot.querySelectorAll("[data-photo-badge]").forEach((badge) => {
+            badge.classList.add("hidden");
+            badge.classList.remove("inline-flex");
+          });
+        });
+        const first = filled[0];
+        if (first) {
+          const badge = first.querySelector("[data-photo-badge]");
+          if (badge) {
+            badge.classList.remove("hidden");
+            badge.classList.add("inline-flex");
+          }
+        }
+
+        slots.forEach((slot) => {
+          const empty = slot.dataset.empty === "true";
+          const img = slot.querySelector("[data-photo-img]");
+          const add = slot.querySelector("[data-add-photo]");
+          const remove = slot.querySelector("[data-remove-photo]");
+          const badge = slot.querySelector("[data-photo-badge]");
+
+          if (img) {
+            img.toggleAttribute("hidden", empty);
+            img.classList.toggle("hidden", empty);
+          }
+          if (add) {
+            add.classList.toggle("hidden", !empty);
+            add.classList.toggle("flex", empty);
+          }
+          if (remove) {
+            remove.classList.toggle("hidden", empty);
+            remove.classList.toggle("flex", !empty);
+          }
+          if (badge && empty) {
+            badge.classList.add("hidden");
+            badge.classList.remove("inline-flex");
+          }
+          slot.classList.toggle("border-dashed", empty);
+          slot.classList.toggle("border-line-strong", empty);
+          slot.classList.toggle("border-line", !empty);
+          slot.classList.toggle("bg-surface", empty);
+          slot.classList.toggle("bg-surface-muted", !empty);
+        });
+      }
+
+      function addPhoto() {
+        const grid = activePhotoGrid();
+        const slot = [...grid.querySelectorAll('[data-photo-slot][data-empty="true"]')][0];
+        if (!slot) return;
+        const img = slot.querySelector("[data-photo-img]");
+        if (img) img.src = SAMPLE_PHOTO;
+        slot.dataset.empty = "false";
+        updatePhotoState();
+        dirty = true;
+      }
+
+      function removePhoto(slot) {
+        slot.dataset.empty = "true";
+        const img = slot.querySelector("[data-photo-img]");
+        if (img) img.removeAttribute("src");
+        updatePhotoState();
+        dirty = true;
+      }
+
+      updatePhotoState();
+
+      // ===== 변경 감지 =====
+      function markDirty() {
+        dirty = true;
+        formError.classList.add("hidden");
+        pageMessage.classList.add("hidden");
+        pageMessage.classList.remove("flex");
+      }
+
+      form.addEventListener("input", markDirty);
+      form.addEventListener("change", markDirty);
+
+      // ===== 태그 =====
+      tagInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" || event.isComposing) return;
+        event.preventDefault();
+        const value = tagInput.value.trim().replace(/^#/, "");
+        if (!value) return;
+
+        const chip = document.createElement("span");
+        chip.dataset.tag = "";
+        chip.className =
+          "inline-flex h-7 items-center gap-1 rounded-pill bg-primary-soft px-2 text-fine text-primary-strong";
+        const label = document.createElement("span");
+        label.textContent = `#${value}`;
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.dataset.removeTag = "";
+        remove.className =
+          "flex h-6 w-6 items-center justify-center rounded-pill text-primary-strong/70 transition-colors hover:text-primary-strong";
+        remove.setAttribute("aria-label", `${value} 태그 제거`);
+        remove.textContent = "×";
+        chip.append(label, remove);
+        tagContainer.insertBefore(chip, tagInput);
+
+        tagInput.value = "";
+        dirty = true;
+      });
+
+      tagContainer.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-remove-tag]");
+        if (!button) return;
+        button.closest("[data-tag]")?.remove();
+        dirty = true;
+      });
+
+      // ===== 구분 · 상태 =====
+      document.querySelectorAll("[data-kind]").forEach((button) => {
+        button.addEventListener("click", () => {
+          kind = button.dataset.kind;
+          document.querySelectorAll("[data-kind]").forEach((item) => {
+            item.setAttribute("aria-pressed", String(item === button));
+          });
+          const consumable = kind === "consumable";
+          repairField.classList.toggle("hidden", consumable);
+          repairHint.classList.toggle("hidden", consumable);
+          dirty = true;
+        });
+      });
+
+      document.querySelectorAll("[data-lifecycle]").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll("[data-lifecycle]").forEach((item) => {
+            item.setAttribute("aria-pressed", String(item === button));
+          });
+          dirty = true;
+        });
+      });
+
+      // ===== 사진 =====
+      form.addEventListener("click", (event) => {
+        const add = event.target.closest("[data-add-photo]");
+        if (add) {
+          document.getElementById("photo-modal").classList.remove("hidden");
+          document.getElementById("photo-modal").classList.add("flex");
+          return;
+        }
+        const remove = event.target.closest("[data-remove-photo]");
+        if (remove) removePhoto(remove.closest("[data-photo-slot]"));
+      });
+
+      function closePhotoModal() {
+        document.getElementById("photo-modal").classList.add("hidden");
+        document.getElementById("photo-modal").classList.remove("flex");
+      }
+
+      document.querySelectorAll("[data-photo-source]").forEach((button) => {
+        button.addEventListener("click", () => {
+          addPhoto();
+          closePhotoModal();
+        });
+      });
+      document.querySelector("[data-photo-close]").addEventListener("click", closePhotoModal);
+      document.getElementById("photo-modal").addEventListener("click", (event) => {
+        if (event.target.id === "photo-modal") closePhotoModal();
+      });
+
+      // ===== 확인 모달 =====
+      const confirmModal = document.getElementById("confirm-modal");
+      const confirmTitle = document.getElementById("confirm-title");
+      const confirmDesc = document.getElementById("confirm-desc");
+      const confirmOk = document.getElementById("confirm-ok");
+      const confirmCancel = document.getElementById("confirm-cancel");
+
+      function openConfirm(action) {
+        confirmAction = action;
+        if (action === "delete") {
+          confirmTitle.textContent = `'${nameInput.value.trim() || "물품"}' 물품을 정말 삭제할까요?`;
+          confirmDesc.textContent = "연결된 대여 이력은 남고 복구할 수 없어요.";
+          confirmOk.textContent = "삭제";
+          confirmCancel.textContent = "닫기";
+        } else {
+          confirmTitle.textContent = "저장하지 않은 변경이 있어요.";
+          confirmDesc.textContent = "떠나면 변경 사항이 사라져요.";
+          confirmOk.textContent = "나가기";
+          confirmCancel.textContent = "계속 수정";
+        }
+        confirmModal.classList.remove("hidden");
+        confirmModal.classList.add("flex");
+        confirmOk.focus();
+      }
+
+      function closeConfirm() {
+        confirmModal.classList.add("hidden");
+        confirmModal.classList.remove("flex");
+        confirmAction = null;
+      }
+
+      confirmCancel.addEventListener("click", closeConfirm);
+      confirmModal.addEventListener("click", (event) => {
+        if (event.target === confirmModal) closeConfirm();
+      });
+
+      confirmOk.addEventListener("click", () => {
+        if (confirmAction === "delete" || confirmAction === "leave") {
+          location.href = "index.html";
+        }
+      });
+
+      document.querySelector("[data-delete]").addEventListener("click", () => openConfirm("delete"));
+      document.querySelector("[data-cancel]").addEventListener("click", () => {
+        if (dirty) openConfirm("leave");
+        else location.href = "index.html";
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        if (!confirmModal.classList.contains("hidden")) closeConfirm();
+        if (!document.getElementById("photo-modal").classList.contains("hidden")) closePhotoModal();
+      });
+
+      // ===== 저장 =====
+      function showError(text) {
+        formError.textContent = text;
+        formError.classList.remove("hidden");
+        formError.focus();
+        pageMessage.classList.add("hidden");
+        pageMessage.classList.remove("flex");
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const name = nameInput.value.trim();
+        const total = Number(totalQty.value);
+        const repair = Number(repairQty.value || 0);
+
+        nameInput.classList.toggle("is-invalid", !name);
+        totalQty.classList.toggle("is-invalid", !(total >= 1));
+        repairQty.classList.toggle("is-invalid", kind === "rental" && repair > total);
+
+        if (!name) {
+          showError("물품 이름을 입력해 주세요.");
+          return;
+        }
+        if (!(total >= 1)) {
+          showError("보유 수량을 1 이상 입력해 주세요.");
+          return;
+        }
+        if (kind === "rental" && repair > total) {
+          showError("수리중 수량은 보유 수량을 넘을 수 없어요.");
+          return;
+        }
+
+        formError.classList.add("hidden");
+        dirty = false;
+        pageMessageText.textContent = mode === "edit" ? "수정했어요" : "등록했어요";
+        pageMessage.classList.remove("hidden");
+        pageMessage.classList.add("flex");
+      });
+
+      // ===== 계정 메뉴 =====
+      const accountBtn = document.getElementById("account-btn");
+      const accountMenu = document.getElementById("account-menu");
+      if (accountBtn && accountMenu) {
+        const closeAccountMenu = () => {
+          accountMenu.classList.add("hidden");
+          accountBtn.setAttribute("aria-expanded", "false");
+        };
+        accountBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const hidden = accountMenu.classList.toggle("hidden");
+          accountBtn.setAttribute("aria-expanded", String(!hidden));
+        });
+        document.addEventListener("pointerdown", (event) => {
+          if (accountMenu.classList.contains("hidden")) return;
+          if (event.composedPath().includes(accountBtn) || event.composedPath().includes(accountMenu)) return;
+          closeAccountMenu();
+        });
+        window.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeAccountMenu();
+        });
+      }
+    </script>
+    <script src="preview.js"></script>
+  </body>
+</html>

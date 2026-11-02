@@ -1,97 +1,114 @@
-/* 미니멀 디자인 시스템 토큰
-   라이트 모드 단일 팔레트 — 순백 캔버스(#ffffff).
-   color-scheme: light 가 OS 다크 설정을 무시하므로 네이티브 위젯
-   (스크롤바 · 폼 컨트롤 · 캘린더)도 OS 설정과 무관하게 라이트로 렌더된다.
-   헤어라인 보더(1px)와 8px/12px 일관된 조형 언어. */
+/* 디자인 토큰 — 값의 유일한 출처.
+   따뜻한 중립 회색 바탕 · 흰 카드 · 잉크 텍스트 · 오렌지 포인트.
+   간격은 8px 단위, 라운드는 컨트롤 8 / 카드 12 / 알약 999만 쓴다. */
 
 :root {
   color-scheme: light;
 
-  --color-bg: #ffffff;
-  /* 순백 캔버스 */
-  --color-surface: #f7f7f7;
-  /* 은은한 서피스/호버/필 */
-  --color-border: #e6e6e6;
-  /* 1px 미세 헤어라인 */
-  --color-text: #111111;
-  /* 선명한 블랙 본문 */
-  --color-muted: #6b6b6b;
-  /* 차분한 그레이 보조 텍스트 */
-  --color-primary: #ea580c;
-  /* 브랜드 오렌지 — 단일 액센트 (로고와 같은 색) */
-  --color-primary-text: #ffffff;
-  --color-primary-focus: #c2410c;
-  /* 포커스 링 — 흰 배경 5:1 */
-  --color-primary-tint: rgba(234, 88, 12, 0.08);
-  /* 아바타·배지 배경처럼 면으로 쓰는 연한 주황 (디자인 primary-tint #FFEDD5) */
-  --color-primary-soft: #ffedd5;
-  /* 디자인 3차 텍스트($ink3) — 표 머리·요약 라벨·비활성 탭·수리중 */
-  --color-ink-3: #9c9c9c;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #e11d48;
-  --color-on-overlay: #ffffff;
-  /* 검은 오버레이 위 아이콘·텍스트 — 테마와 무관하게 흰색 유지 */
+  /* ===== 색 ===== */
+  --ink-1: #111827;
+  /* 본문·제목 */
+  --ink-2: #4b5563;
+  /* 보조 설명·라벨 */
+  --ink-3: #9ca3af;
+  /* 비활성·아이콘 */
+  --bg: #f6f7f9;
+  /* 중립 회색 바탕 */
+  --surface: #ffffff;
+  /* 카드·필드 */
+  --surface-muted: #f3f4f6;
+  /* 사진 자리·호버 */
+  --border: #e5e7eb;
+  /* 1px 헤어라인 */
+  --border-strong: #d1d5db;
+  /* 입력 필드 경계 */
+  --primary: #ea580c;
+  /* 액션·선택 */
+  --primary-strong: #c2410c;
+  /* 채운 버튼 배경 — 흰 글자 대비 5.2:1 */
+  --primary-deep: #9a3412;
+  /* 채운 버튼 hover·눌림 */
+  --primary-soft: #fff1e8;
+  /* 연한 강조 면 */
+  --warning: #b45309;
+  /* 수리 중 */
+  --warning-soft: #fffbeb;
+  --danger: #dc2626;
+  /* 오류·삭제 */
+  --danger-soft: #fef2f2;
+  /* 오류 배너 면 */
 
-  /* 상태 인디케이터 점 색상 */
-  --dot-available: #10b981;
-  --dot-rented: #71717a;
-  --dot-repair: #f59e0b;
-
-  /* 상태 톤 토큰 — 상태 표시용 팔레트(--color-success 등)가 아니라 "문장으로 읽히는"
-     피드백(성공/경고/오류)에 쓴다. 색을 상태색으로 두면 흰 배경에서 2.5:1로
-     WCAG AA(4.5:1)를 못 채우기 때문에 본문 판독용 톤을 따로 둔다.
-     액센트도 같은 이유로 둘로 나눈다 — --color-primary(넓은 면·보더·포커스 링)는
-     오렌지 3.6:1로 비텍스트 3:1은 채우지만, 흰 배경 위 작은 글자로 쓰면 AA를
-     못 채운다. 링크·라벨 등 글자색에는 --tone-primary-text(5.2:1)를 쓴다. */
-  --tone-primary-text: #c2410c; /* orange-700 — 흰 배경 5.2:1 */
-  --tone-success-text: #047857; /* emerald-700 — 흰 배경 4.8:1 */
-  --tone-warning-bg: #fffbeb;
-  --tone-warning-text: #92400e;
-  --tone-danger-bg: #fff1f2;
-  --tone-danger-text: #9f1239;
-
-  /* 라운드 스케일 — 컨트롤 8px / 카드 12px / 알약(pill)은 완전 둥글게.
-     raw px 반경 금지 — 셋 중 하나로만 쓴다. */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  /* ===== 라운드 ===== */
+  --radius: 8px;
+  /* 버튼·인풋·카드·모달·행 */
   --radius-pill: 999px;
+  /* 칩·배지·아바타 */
 
-  /* 간격 스케일 (4px 그리드) */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-3-5: 14px;
-  /* 반 단계 — 로우 리스트 여백 */
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
+  /* ===== 간격 (8px 그리드) ===== */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
 
-  /* 타이포그래피 */
-  --text-title: 1.25rem;
-  /* 20px */
-  --text-page-title: 1.375rem;
-  /* 22px — 페이지 대제목(x-page-header h1 등) */
-  --text-heading: 1.0625rem;
-  /* 17px */
-  --text-body: 0.9375rem;
-  /* 15px */
-  --text-caption: 0.8125rem;
-  /* 13px */
-  --text-fine: 0.75rem;
-  /* 12px */
+  /* ===== 레이아웃 ===== */
+  --layout-max: 1280px;
+  /* 헤더·본문·푸터 공통 최대 폭 */
+  --layout-form: 720px;
+  /* 폼·계정 카드의 읽기 좋은 최대 폭 */
+  --layout-onboarding: 400px;
+  /* 로그인 후 프로필 등록처럼 한 과업만 있는 화면 */
+  --layout-doc: 1280px;
+  /* 정책 문서의 목차 + 본문 묶음 — 다른 화면과 같은 1280 셸 */
+
+  /* ===== 글자 ===== */
+  --text-fine: 0.875rem;
+  /* 14 — 캡션·배지·라벨 */
+  --text-body: 1rem;
+  /* 16 — 본문·버튼·인풋 */
+  --text-heading: 1.25rem;
+  /* 20 — 섹션 제목 */
+  --text-page-title: 1.5rem;
+  /* 24 — 페이지 제목 */
+
   --tracking-tight: -0.015em;
 
-  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
-    "Malgun Gothic", sans-serif;
+  /* ===== 행간 ===== */
+  --line-height: 1.5;
+  /* 본문·인풋 */
+  --line-height-button: 1.2;
+  /* 버튼만 */
+
+  /* ===== 깊이 ===== */
+  --shadow-menu: 0 8px 24px rgba(23, 23, 23, 0.1);
+  --shadow-modal: 0 24px 64px rgba(23, 23, 23, 0.18);
+
+  --font-body: "Noto Sans KR Variable", "Noto Sans KR", system-ui, -apple-system,
+    BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 
 body {
   margin: 0;
   font-family: var(--font-body);
-  background: var(--color-bg);
-  color: var(--color-text);
-  line-height: 1.5;
+  background: var(--bg);
+  color: var(--ink-1);
+  line-height: var(--line-height);
   -webkit-font-smoothing: antialiased;
+}
+
+/* 버튼만 행간 1.2 — 라이트 DOM 기준. shadow DOM 안은 각 컴포넌트가 직접 쓴다. */
+button {
+  font-family: inherit;
+  line-height: var(--line-height-button);
+}
+
+input,
+select {
+  font-family: inherit;
+  line-height: var(--line-height);
+}
+
+a {
+  color: var(--primary-strong);
+  text-underline-offset: 2px;
 }

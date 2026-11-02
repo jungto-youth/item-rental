@@ -43,7 +43,9 @@ try {
   assert.equal((await first).status(), 200);
   await page.waitForURL(base + "mypage");
   assert.deepEqual(updates, [{ name: "테스트 사용자", phone: "010-0000-0000" }]);
-  await page.locator("page-mypage").getByText("profile@example.invalid · 010-0000-0000", { exact: true }).waitFor();
+  const profileCard = page.locator("page-mypage").locator(".card");
+  await profileCard.getByText("profile@example.invalid", { exact: true }).waitFor();
+  await profileCard.getByText("010-0000-0000", { exact: true }).waitFor();
   console.log("PASS signup Save sends one PUT and refreshes the visible profile");
 
   const mypage = page.locator("page-mypage");

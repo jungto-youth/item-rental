@@ -1,6 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { MAX_PHOTO_EDGE } from "../../../../../shared/photo-limits";
+import "../../ui/button";
 import "../../ui/modal";
 
 @customElement("camera-capture-dialog")
@@ -19,30 +20,13 @@ export class CameraCaptureDialog extends LitElement {
       display: block;
       width: 100%;
       max-height: 55vh;
-      background: #000;
-      border-radius: var(--radius-sm, 6px);
+      background: var(--ink-1);
+      border-radius: var(--radius);
       object-fit: contain;
     }
-    .message { margin: 12px 0 0; font-size: var(--text-caption, 13px); }
-    .error { color: var(--color-danger); }
-    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    button {
-      min-height: 44px;
-      padding: 0 16px;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md, 8px);
-      background: var(--color-surface);
-      color: var(--color-text);
-      font: inherit;
-      cursor: pointer;
-    }
-    .primary {
-      background: var(--color-primary);
-      color: var(--color-primary-text, #fff);
-      border-color: var(--color-primary);
-    }
-    button:disabled { opacity: 0.5; cursor: wait; }
-    button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+    .message { margin: var(--space-2) 0 0; font-size: var(--text-fine); }
+    .error { color: var(--danger); }
+    .actions { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: flex-end; }
   `;
 
   connectedCallback() {
@@ -182,11 +166,20 @@ export class CameraCaptureDialog extends LitElement {
         ${this.starting ? html`<p class="message" role="status">카메라를 열고 있어요. 권한 요청이 나오면 허용해주세요</p>` : ""}
         ${this.error ? html`<p class="message error" role="alert">${this.error}</p>` : ""}
         <div slot="footer" class="actions">
-          <button type="button" @click=${this.close}>취소</button>
-          ${this.error ? html`<button type="button" ?disabled=${this.starting} @click=${this.startCamera}>다시 시도</button>` : ""}
-          <button type="button" class="primary" ?disabled=${!this.ready || this.capturing} @click=${this.capture}>
-            ${this.capturing ? "처리 중…" : "촬영"}
-          </button>
+          <x-button variant="secondary" @click=${this.close}>취소</x-button>
+          ${this.error
+            ? html`<x-button variant="secondary" ?disabled=${this.starting} @click=${this.startCamera}>
+                다시 시도
+              </x-button>`
+            : ""}
+          <x-button
+            variant="primary"
+            ?loading=${this.capturing}
+            ?disabled=${!this.ready}
+            @click=${this.capture}
+          >
+            촬영
+          </x-button>
         </div>
       </x-modal>
     `;

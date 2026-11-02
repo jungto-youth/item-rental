@@ -40,54 +40,6 @@ test("categories: 익명은 401, 비활성 회원은 401", async () => {
   } finally { db.close(); }
 });
 
-// ===== GET /api/admin/dashboard =====
-
-test("dashboard: 물품별 대여자 목록과 수량 분포를 준다", async () => {
-  // current_renters 의 출처다 — 물품 현황 화면의 '대여자' 컬럼이 여기서 온다
-  const { db, request, member } = httpFixture();
-  try {
-    const admin = await member("admin", "admin");
-    await member("borrower", "user");
-    db.exec(`
-      INSERT INTO items (id, name, kind, total_qty, qty_repair) VALUES
-        (1, '빔 프로젝터', 'rental', 3, 1),
-        (2, '등산 배낭', 'rental', 1, 0);
-      INSERT INTO reservations (item_id, member_id, status, qty)
-        VALUES (1, 'borrower', 'rented', 2);
-    `);
-
-    const res = await request("/api/admin/dashboard", { headers: { cookie: admin, ...get } });
-    expect(res.status).toBe(200);
-    const { items } = await res.json() as {
-      items: {
-        id: number; name: string; total_qty: number; qty_repair: number;
-        rentable_qty: number; active_now: number; photo: string | null;
-        current_renters: { member_name: string; member_phone: string | null; qty: number }[];
-      }[];
-    };
-    const projector = items.find((i) => i.id === 1)!;
-    // 대여 가능 = total_qty − qty_repair = 3 − 1 = 2, 대여 중 = 2
-    expect(projector.rentable_qty).toBe(2);
-    expect(projector.active_now).toBe(2);
-    expect(projector.current_renters).toEqual([
-      { member_name: "borrower", member_phone: "010-0000-0000", qty: 2 },
-    ]);
-    expect(projector.photo).toBeNull();
-  } finally { db.close(); }
-});
-
-test("dashboard: 폐기 물품도 내려온다 — 현재 상태를 전부 보려는 조회다", async () => {
-  const { db, request, member } = httpFixture();
-  try {
-    const admin = await member("admin", "admin");
-    db.exec("INSERT INTO items (id, name, lifecycle) VALUES (1, '폐기된 물품', 'retired');");
-    const res = await request("/api/admin/dashboard", { headers: { cookie: admin, ...get } });
-    const { items } = await res.json() as { items: { id: number; lifecycle: string }[] };
-    expect(items).toHaveLength(1);
-    expect(items[0].lifecycle).toBe("retired");
-  } finally { db.close(); }
-});
-
 // ===== /api/admin/allowed-emails =====
 
 test("allowed-emails: 생성·목록·삭제가 관리자 세션에서 동작한다", async () => {

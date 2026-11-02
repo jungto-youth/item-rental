@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <!-- @begin head -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/components.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --color-canvas: #f6f7f9;
+        --color-ink-1: #111827;
+        --color-ink-2: #4b5563;
+        --color-ink-3: #9ca3af;
+        --color-surface: #ffffff;
+        --color-surface-muted: #f3f4f6;
+        --color-line: #e5e7eb;
+        --color-line-strong: #d1d5db;
+        --color-primary: #ea580c;
+        --color-primary-strong: #c2410c;
+        --color-primary-deep: #9a3412;
+        --color-primary-soft: #fff1e8;
+        --color-warning: #b45309;
+        --color-warning-soft: #fffbeb;
+        --color-danger: #dc2626;
+        --color-danger-soft: #fef2f2;
+
+        --font-sans:
+          "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont,
+          "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+        --text-fine: 0.875rem;
+        --text-fine--line-height: 1.5;
+        --text-body: 1rem;
+        --text-body--line-height: 1.5;
+        --text-heading: 1.25rem;
+        --text-heading--line-height: 1.4;
+        --text-page-title: 1.5rem;
+        --text-page-title--line-height: 1.35;
+
+        --radius-card: 8px;
+        --radius-pill: 999px;
+
+        --shadow-menu: 0 8px 24px rgba(23, 23, 23, 0.1);
+        --shadow-modal: 0 24px 64px rgba(23, 23, 23, 0.18);
+      }
+    </style>
+    <!-- @end head -->
+    <title>대여 내역 — 물품 대여</title>
+    <link rel="stylesheet" href="assets/page-layout.css" />
+
+    <style>
+      details > summary {
+        list-style: none;
+      }
+      details > summary::-webkit-details-marker {
+        display: none;
+      }
+      details[open] .chevron {
+        transform: rotate(180deg);
+      }
+    </style>
+  </head>
+
+  <body class="flex min-h-dvh flex-col antialiased">
+    <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
+    
+    <!-- ===== 공통 헤더 ===== -->
+    <header class="sticky top-0 z-30 border-b border-line bg-surface">
+      <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6">
+        <a href="index.html" class="flex flex-none items-center gap-2" aria-label="물품 현황 — 홈">
+          <img src="assets/logo.png" alt="" class="h-7 w-7 rounded-card" />
+        </a>
+
+        <nav class="flex min-w-0 items-center gap-4 sm:gap-6" aria-label="주 메뉴">
+          <a href="index.html" class="flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">물품 현황</a>
+          <a href="my-rentals.html" aria-current="page" class="flex h-14 items-center border-b-2 border-primary text-body font-semibold text-ink-1 sm:h-16">대여 기록</a>
+          <a href="admin-members.html" class="admin-only flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">회원 관리</a>
+        </nav>
+
+        <div class="relative ml-auto flex flex-none items-center">
+          <button
+            type="button"
+            class="flex h-10 items-center gap-2 rounded-pill text-body text-ink-2 transition-colors hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            id="account-btn"
+            aria-expanded="false"
+            aria-haspopup="menu"
+            aria-label="계정 메뉴 — 김하늘"
+          >
+            <span class="flex h-8 w-8 items-center justify-center rounded-pill bg-primary-soft text-fine font-semibold text-primary-strong" aria-hidden="true">김</span>
+            <span class="hidden max-w-[140px] truncate md:block">김하늘</span>
+            <svg class="hidden h-4 w-4 sm:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+          <div
+            id="account-menu"
+            class="absolute right-0 top-[calc(100%+8px)] z-20 hidden min-w-[176px] overflow-hidden rounded-card border border-line bg-surface shadow-menu"
+            role="menu"
+          >
+            <a href="mypage.html" role="menuitem" class="block px-4 py-2 text-body text-ink-1 transition-colors hover:bg-surface-muted">내 정보</a>
+            <a href="login.html" role="menuitem" class="block px-4 py-2 text-body text-danger transition-colors hover:bg-surface-muted">로그아웃</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
+      <div>
+        <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">대여 내역</h1>
+        <p class="mt-2 text-fine text-ink-2">지금 빌린 물품과 지난 기록을 확인해요.</p>
+      </div>
+
+      <p id="page-message" class="mt-3 hidden items-center gap-1 text-fine text-ink-1" role="status">
+        <svg class="h-4 w-4 flex-none text-primary-strong" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+        <span id="page-message-text"></span>
+      </p>
+
+      <div class="page-split mt-6">
+        <div class="page-main">
+          <section>
+            <h2 id="active-title" class="text-heading font-semibold tracking-[-0.015em] text-ink-1">현재 대여 중 (2)</h2>
+
+        <div id="active-list" class="mt-4 space-y-2">
+          <article
+            data-active-row
+            data-name="4인용 텐트"
+            data-qty="1"
+            data-date="2026-10-28"
+            data-memo="10/30 청년 모임"
+            class="rounded-card border border-ink-1 bg-surface p-4"
+          >
+            <div class="flex flex-wrap items-center gap-3">
+              <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">4인용 텐트 · 1개</h3>
+              <div class="flex w-full gap-2 sm:w-auto">
+                <button
+                  type="button"
+                  data-action="return"
+                  class="h-9 flex-1 rounded-card bg-primary-strong px-4 text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-none"
+                >
+                  반납하기
+                </button>
+                <button
+                  type="button"
+                  data-action="cancel"
+                  class="h-9 flex-1 rounded-card border border-line bg-surface px-4 text-body font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-none"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 space-y-1 text-fine text-ink-2">
+              <p>2026-10-28 대여 신청</p>
+              <p>메모: 10/30 청년 모임</p>
+            </div>
+          </article>
+
+          <article
+            data-active-row
+            data-name="블루투스 스피커"
+            data-qty="1"
+            data-date="2026-10-27"
+            data-memo="행사 음향"
+            class="rounded-card border border-ink-1 bg-surface p-4"
+          >
+            <div class="flex flex-wrap items-center gap-3">
+              <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">블루투스 스피커 · 1개</h3>
+              <div class="flex w-full gap-2 sm:w-auto">
+                <button
+                  type="button"
+                  data-action="return"
+                  class="h-9 flex-1 rounded-card bg-primary-strong px-4 text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-none"
+                >
+                  반납하기
+                </button>
+                <button
+                  type="button"
+                  data-action="cancel"
+                  class="h-9 flex-1 rounded-card border border-line bg-surface px-4 text-body font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-none"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+            <div class="mt-2 space-y-1 text-fine text-ink-2">
+              <p>2026-10-27 대여 신청</p>
+              <p>메모: 행사 음향</p>
+            </div>
+          </article>
+        </div>
+
+        <div id="active-empty" class="mt-4 hidden rounded-card border border-line bg-surface px-6 py-10 text-center">
+          <p class="text-body font-semibold text-ink-1">현재 대여 중인 물품이 없어요</p>
+          <p class="mt-2 text-fine text-ink-2">필요한 물품을 찾아 바로 대여할 수 있어요.</p>
+          <a
+            href="index.html"
+            class="mt-4 inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-body font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            물품 둘러보기
+          </a>
+        </div>
+      </section>
+
+      <details id="history-details" class="mt-8">
+        <summary class="flex cursor-pointer items-center justify-between gap-4 text-heading font-semibold tracking-[-0.015em] text-ink-1">
+          <span>대여 이력 (<span id="history-count">3</span>)</span>
+          <svg class="chevron h-5 w-5 flex-none text-ink-2 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </summary>
+
+        <div id="history-list" class="mt-4 space-y-2">
+          <article class="rounded-card border border-line bg-surface p-4">
+            <div class="flex flex-wrap items-center gap-3">
+              <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">캠핑 테이블 · 1개</h3>
+              <span class="status-badge"><span class="status-dot bg-ink-3"></span>반납 완료</span>
+            </div>
+            <div class="mt-2 text-fine text-ink-2">2026-10-20 대여 → 2026-10-22 반납</div>
+          </article>
+
+          <article class="rounded-card border border-line bg-surface p-4">
+            <div class="flex flex-wrap items-center gap-3">
+              <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">빔프로젝터 · 1개</h3>
+              <span class="status-badge"><span class="status-dot bg-ink-3"></span>반납 완료</span>
+            </div>
+            <div class="mt-2 text-fine text-ink-2">2026-10-05 대여 → 2026-10-07 반납</div>
+          </article>
+
+          <article class="rounded-card border border-line bg-surface p-4">
+            <div class="flex flex-wrap items-center gap-3">
+              <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">캠핑 랜턴 · 2개</h3>
+              <span class="status-badge"><span class="status-dot bg-ink-3"></span>취소</span>
+            </div>
+            <div class="mt-2 text-fine text-ink-2">2026-09-28 대여 신청</div>
+          </article>
+        </div>
+          </details>
+        </div>
+
+        <aside class="page-side" aria-label="대여 안내">
+          <section class="page-side-hide rounded-card border border-line bg-surface p-4">
+            <h2 class="text-body font-semibold tracking-[-0.015em] text-ink-1">반납 안내</h2>
+            <p class="mt-2 text-fine leading-[1.5] text-ink-2">
+              대여 중인 물품은 <b class="font-semibold text-ink-1">반납하기</b>를 눌러 바로 반납할 수 있어요.
+              취소는 빌리지 않기로 한 경우에만 사용해요.
+            </p>
+            <a
+              href="index.html"
+              class="mt-4 inline-flex h-9 items-center rounded-card border border-line bg-surface px-4 text-fine font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              물품 둘러보기
+            </a>
+          </section>
+
+          <section class="page-side-hide rounded-card border border-line bg-surface p-4">
+            <h2 class="text-body font-semibold tracking-[-0.015em] text-ink-1">대여 이력</h2>
+            <p class="mt-2 text-fine leading-[1.5] text-ink-2">
+              반납·취소한 물품은 아래 접이식 이력에서 다시 확인할 수 있어요.
+            </p>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <!-- @begin footer -->
+    <footer class="border-t border-line">
+      <div
+        class="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+      >
+        <p>정토회 · 함께 쓰는 물품</p>
+        <nav class="flex gap-4" aria-label="정책">
+          <a href="policy.html?kind=terms" class="transition-colors hover:text-ink-1 hover:underline">이용약관</a>
+          <a href="policy.html?kind=privacy" class="transition-colors hover:text-ink-1 hover:underline">개인정보처리방침</a>
+        </nav>
+      </div>
+    </footer>
+    <!-- @end footer -->
+
+    <!-- 확인 모달 -->
+    <div
+      id="modal"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-ink-1/45 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      aria-describedby="modal-desc"
+    >
+      <div class="w-full max-w-[400px] rounded-card bg-surface p-6 shadow-modal">
+        <h2 id="modal-title" class="text-heading font-semibold tracking-[-0.015em] text-ink-1"></h2>
+        <p id="modal-desc" class="mt-2 text-fine leading-[1.5] text-ink-2"></p>
+        <div class="mt-6 flex justify-end gap-2">
+          <button
+            id="modal-cancel"
+            type="button"
+            class="inline-flex h-9 items-center rounded-card border border-line bg-surface px-4 text-body font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            닫기
+          </button>
+          <button
+            id="modal-confirm"
+            type="button"
+            class="inline-flex h-9 items-center rounded-card bg-primary-strong px-4 text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          ></button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const modal = document.getElementById("modal");
+      const modalTitle = document.getElementById("modal-title");
+      const modalDesc = document.getElementById("modal-desc");
+      const confirmBtn = document.getElementById("modal-confirm");
+      const cancelBtn = document.getElementById("modal-cancel");
+      const activeList = document.getElementById("active-list");
+      const activeTitle = document.getElementById("active-title");
+      const activeEmpty = document.getElementById("active-empty");
+      const historyDetails = document.getElementById("history-details");
+      const historyList = document.getElementById("history-list");
+      const historyCount = document.getElementById("history-count");
+      const message = document.getElementById("page-message");
+      const messageText = document.getElementById("page-message-text");
+
+      let current = null;
+
+      function openModal(row, action) {
+        current = { row, action };
+        const name = row.dataset.name;
+
+        if (action === "return") {
+          modalTitle.textContent = `'${name}'를 반납할까요?`;
+          modalDesc.textContent = "반납하면 재고가 바로 돌아오고, 대여 이력에 남아요.";
+          confirmBtn.textContent = "반납";
+        } else {
+          modalTitle.textContent = `'${name}' 대여를 취소할까요?`;
+          modalDesc.textContent = "취소하면 대여하지 않은 것으로 기록돼요.";
+          confirmBtn.textContent = "대여 취소";
+        }
+
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        confirmBtn.focus();
+      }
+
+      function closeModal() {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        current = null;
+      }
+
+      document.querySelectorAll("[data-action]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const row = button.closest("[data-active-row]");
+          if (row) openModal(row, button.dataset.action);
+        });
+      });
+
+      cancelBtn.addEventListener("click", closeModal);
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) closeModal();
+      });
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !modal.classList.contains("hidden")) closeModal();
+      });
+
+      confirmBtn.addEventListener("click", () => {
+        if (!current) return;
+
+        const { row, action } = current;
+        const name = row.dataset.name;
+        const qty = row.dataset.qty;
+        const date = row.dataset.date;
+        const memo = row.dataset.memo;
+        const returned = action === "return";
+
+        row.remove();
+
+        const remaining = activeList.querySelectorAll("[data-active-row]").length;
+        activeTitle.textContent = `현재 대여 중 (${remaining})`;
+
+        if (remaining === 0) {
+          activeList.classList.add("hidden");
+          activeEmpty.classList.remove("hidden");
+          historyDetails.open = true;
+        }
+
+        const historyRow = document.createElement("article");
+        historyRow.className = "rounded-card border border-line bg-surface p-4";
+        historyRow.innerHTML = `
+          <div class="flex flex-wrap items-center gap-3">
+            <h3 class="min-w-0 flex-1 truncate text-body font-semibold tracking-[-0.015em] text-ink-1">${name} · ${qty}개</h3>
+            <span class="status-badge"><span class="status-dot bg-ink-3"></span>${returned ? "반납 완료" : "취소"}</span>
+          </div>
+          <div class="mt-2 space-y-1 text-fine text-ink-2">
+            <p>${returned ? `${date} 대여 → 2026-11-01 반납` : `${date} 대여 신청`}</p>
+            ${memo ? `<p>메모: ${memo}</p>` : ""}
+          </div>
+        `;
+        historyList.prepend(historyRow);
+        historyCount.textContent = String(Number(historyCount.textContent) + 1);
+
+        messageText.textContent = returned
+          ? `${name} 반납 완료 처리되었어요`
+          : `${name} 대여를 취소했어요`;
+        message.classList.remove("hidden");
+        message.classList.add("flex");
+
+        closeModal();
+      });
+
+      // ===== 계정 메뉴 =====
+      const accountBtn = document.getElementById("account-btn");
+      const accountMenu = document.getElementById("account-menu");
+      if (accountBtn && accountMenu) {
+        const closeAccountMenu = () => {
+          accountMenu.classList.add("hidden");
+          accountBtn.setAttribute("aria-expanded", "false");
+        };
+        accountBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const hidden = accountMenu.classList.toggle("hidden");
+          accountBtn.setAttribute("aria-expanded", String(!hidden));
+        });
+        document.addEventListener("pointerdown", (event) => {
+          if (accountMenu.classList.contains("hidden")) return;
+          if (event.composedPath().includes(accountBtn) || event.composedPath().includes(accountMenu)) return;
+          closeAccountMenu();
+        });
+        window.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeAccountMenu();
+        });
+      }
+    </script>
+    <script src="preview.js"></script>
+  </body>
+</html>

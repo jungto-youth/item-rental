@@ -21,11 +21,6 @@ export function imageInfo(buf: Uint8Array): ImageInfo | null {
   return w ? { ...w, type: "image/webp" } : null;
 }
 
-export function imageSize(buf: Uint8Array): ImageSize | null {
-  const info = imageInfo(buf);
-  return info ? { width: info.width, height: info.height } : null;
-}
-
 // PNG — 8바이트 시그니처 뒤 IHDR 청크에 폭·높이 (big-endian uint32)
 function png(b: Uint8Array): ImageSize | null {
   if (b.length < 33) return null;

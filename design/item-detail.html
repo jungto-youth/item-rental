@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="ko" data-role="member">
+  <head>
+    <!-- @begin head -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/components.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --color-canvas: #f6f7f9;
+        --color-ink-1: #111827;
+        --color-ink-2: #4b5563;
+        --color-ink-3: #9ca3af;
+        --color-surface: #ffffff;
+        --color-surface-muted: #f3f4f6;
+        --color-line: #e5e7eb;
+        --color-line-strong: #d1d5db;
+        --color-primary: #ea580c;
+        --color-primary-strong: #c2410c;
+        --color-primary-deep: #9a3412;
+        --color-primary-soft: #fff1e8;
+        --color-warning: #b45309;
+        --color-warning-soft: #fffbeb;
+        --color-danger: #dc2626;
+        --color-danger-soft: #fef2f2;
+
+        --font-sans:
+          "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont,
+          "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+        --text-fine: 0.875rem;
+        --text-fine--line-height: 1.5;
+        --text-body: 1rem;
+        --text-body--line-height: 1.5;
+        --text-heading: 1.25rem;
+        --text-heading--line-height: 1.4;
+        --text-page-title: 1.5rem;
+        --text-page-title--line-height: 1.35;
+
+        --radius-card: 8px;
+        --radius-pill: 999px;
+
+        --shadow-menu: 0 8px 24px rgba(23, 23, 23, 0.1);
+        --shadow-modal: 0 24px 64px rgba(23, 23, 23, 0.18);
+      }
+    </style>
+    <!-- @end head -->
+    <title>4인용 텐트 — 물품 대여</title>
+
+    <style>
+      .thumb {
+        border: 1px solid var(--color-line);
+      }
+      .thumb[data-active="true"] {
+        border: 2px solid var(--color-ink-1);
+      }
+      .thumb:hover {
+        border-color: var(--color-line-strong);
+      }
+      .thumb[data-active="true"]:hover {
+        border-color: var(--color-ink-1);
+      }
+    </style>
+  </head>
+
+  <body class="flex min-h-dvh flex-col antialiased">
+    <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
+    
+    <!-- ===== 공통 헤더 ===== -->
+    <header class="sticky top-0 z-30 border-b border-line bg-surface">
+      <div
+        class="mx-auto flex h-14 max-w-[1280px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6"
+      >
+        <a href="index.html" class="flex flex-none items-center gap-2" aria-label="물품 현황 — 홈">
+          <img src="assets/logo.png" alt="" class="h-7 w-7 rounded-card" />
+        </a>
+
+        <nav class="flex min-w-0 items-center gap-4 sm:gap-6" aria-label="주 메뉴">
+          <a
+            href="index.html"
+            aria-current="page"
+            class="flex h-14 items-center border-b-2 border-primary text-body font-semibold text-ink-1 sm:h-16"
+          >
+            물품 현황
+          </a>
+          <a
+            href="my-rentals.html"
+            class="flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16"
+          >
+            대여 기록
+          </a>
+          <a
+            href="admin-members.html"
+            class="admin-only flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16"
+          >
+            회원 관리
+          </a>
+        </nav>
+
+        <div class="relative ml-auto flex flex-none items-center">
+          <button
+            type="button"
+            class="flex h-10 items-center gap-2 rounded-pill text-body text-ink-2 transition-colors hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            id="account-btn"
+            aria-expanded="false"
+            aria-haspopup="menu"
+            aria-label="계정 메뉴 — 김하늘"
+          >
+            <span
+              class="flex h-8 w-8 items-center justify-center rounded-pill bg-primary-soft text-fine font-semibold text-primary-strong"
+              aria-hidden="true"
+            >
+              김
+            </span>
+            <span class="hidden max-w-[140px] truncate md:block">김하늘</span>
+            <svg
+              class="hidden h-4 w-4 sm:block"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+          <div
+            id="account-menu"
+            class="absolute right-0 top-[calc(100%+8px)] z-20 hidden min-w-[176px] overflow-hidden rounded-card border border-line bg-surface shadow-menu"
+            role="menu"
+          >
+            <a href="mypage.html" role="menuitem" class="block px-4 py-2 text-body text-ink-1 transition-colors hover:bg-surface-muted">내 정보</a>
+            <a href="login.html" role="menuitem" class="block px-4 py-2 text-body text-danger transition-colors hover:bg-surface-muted">로그아웃</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
+      <!-- ===== 상단 이동 ===== -->
+      <div class="flex items-center justify-between gap-4">
+        <a
+          href="index.html"
+          class="inline-flex h-9 items-center gap-1 rounded-card text-body font-medium text-ink-2 transition-colors hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          목록으로
+        </a>
+        <a
+          href="item-form.html?mode=edit"
+          class="admin-only inline-flex h-9 items-center rounded-card border border-line bg-surface px-4 text-body font-medium text-ink-1 transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          수정
+        </a>
+      </div>
+
+      <!-- ===== 사진 + 정보 ===== -->
+      <div class="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6">
+        <!-- 갤러리 -->
+        <section aria-label="물품 사진">
+          <div class="relative aspect-[4/3] overflow-hidden rounded-card border border-line bg-surface-muted">
+            <img
+              id="main-photo"
+              src="https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1400&q=75"
+              alt="텐트 안에서 바라본 숲 풍경"
+              class="h-full w-full object-cover"
+            />
+            <span
+              id="photo-count"
+              class="absolute bottom-3 right-3 rounded-pill bg-ink-1/70 px-2 py-1 text-fine tabular-nums text-white"
+            >
+              1 / 3
+            </span>
+          </div>
+
+          <div class="mt-2 grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              aria-label="사진 1 보기"
+              aria-current="true"
+              data-active="true"
+              data-photo="https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1400&q=75"
+              data-alt="텐트 안에서 바라본 숲 풍경"
+              class="thumb overflow-hidden rounded-card bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=400&q=70"
+                alt=""
+                class="aspect-[4/3] w-full object-cover"
+              />
+            </button>
+            <button
+              type="button"
+              aria-label="사진 2 보기"
+              data-active="false"
+              data-photo="https://images.unsplash.com/photo-1445308394109-4ec2920981b1?auto=format&fit=crop&w=1400&q=75"
+              data-alt="숲속 캠핑장에 세워진 4인용 텐트"
+              class="thumb overflow-hidden rounded-card bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1445308394109-4ec2920981b1?auto=format&fit=crop&w=400&q=70"
+                alt=""
+                class="aspect-[4/3] w-full object-cover"
+              />
+            </button>
+            <button
+              type="button"
+              aria-label="사진 3 보기"
+              data-active="false"
+              data-photo="https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=1400&q=75"
+              data-alt="노을 지는 캠핑장의 텐트"
+              class="thumb overflow-hidden rounded-card bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=400&q=70"
+                alt=""
+                class="aspect-[4/3] w-full object-cover"
+              />
+            </button>
+          </div>
+        </section>
+
+        <!-- 정보 -->
+        <section class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">4인용 텐트</h1>
+            <span
+              class="inline-flex h-7 items-center rounded-pill bg-primary-soft px-3 text-fine font-medium text-primary-strong"
+            >
+              대여 가능 2개
+            </span>
+          </div>
+
+          <p class="mt-4 text-body leading-[1.5] text-ink-2">
+            야외 활동에 쓰는 4인용 돔 텐트입니다. 이너텐트, 플라이, 팩, 수납
+            가방이 한 세트예요. 사용 후에는 먼지와 습기를 털어 말린 뒤 반납해 주세요.
+          </p>
+
+          <div class="mt-4 flex flex-wrap gap-2" aria-label="분류">
+            <span class="inline-flex h-7 items-center rounded-pill bg-primary-soft px-3 text-fine text-primary-strong">#캠핑</span>
+            <span class="inline-flex h-7 items-center rounded-pill bg-primary-soft px-3 text-fine text-primary-strong">#야외</span>
+            <span class="inline-flex h-7 items-center rounded-pill bg-primary-soft px-3 text-fine text-primary-strong">#가족</span>
+          </div>
+
+          <dl class="mt-6 divide-y divide-line border-y border-line">
+            <div class="flex items-center justify-between gap-4 py-2">
+              <dt class="text-fine text-ink-2">대여 가능</dt>
+              <dd class="text-body font-semibold tabular-nums text-ink-1">2개</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4 py-2">
+              <dt class="text-fine text-ink-2">전체 보유</dt>
+              <dd class="text-body tabular-nums text-ink-1">3개</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4 py-2">
+              <dt class="text-fine text-ink-2">수리 중</dt>
+              <dd class="text-body tabular-nums text-ink-1">1개</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4 py-2">
+              <dt class="text-fine text-ink-2">보관 위치</dt>
+              <dd class="text-body text-ink-1">7층 비품실</dd>
+            </div>
+          </dl>
+
+          <!-- 대여 신청 — 이 화면의 유일한 주 액션 -->
+          <form id="rental-form" class="mt-6 rounded-card border border-line bg-surface p-6 max-sm:p-4">
+            <div class="flex items-baseline justify-between gap-4">
+              <h2 class="text-heading font-semibold tracking-[-0.015em] text-ink-1">대여 신청</h2>
+              <span class="text-fine text-ink-2">
+                대여 가능 <b class="font-semibold tabular-nums text-ink-1">2개</b>
+              </span>
+            </div>
+
+            <div class="my-4 border-t border-dashed border-line" aria-hidden="true"></div>
+
+            <div class="flex items-center justify-between gap-4">
+              <label for="qty" class="text-fine font-medium text-ink-2">대여 수량</label>
+              <div class="flex h-10 items-center rounded-card border border-line bg-surface">
+                <button
+                  id="qty-minus"
+                  type="button"
+                  disabled
+                  aria-label="수량 감소"
+                  class="flex h-10 w-10 items-center justify-center text-lg text-ink-2 transition-colors hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  −
+                </button>
+                <input
+                  id="qty"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  max="2"
+                  value="1"
+                  aria-label="대여 수량"
+                  class="h-10 w-12 border-x border-line bg-transparent text-center text-body font-semibold tabular-nums text-ink-1 outline-none focus:border-primary"
+                />
+                <button
+                  id="qty-plus"
+                  type="button"
+                  aria-label="수량 증가"
+                  class="flex h-10 w-10 items-center justify-center text-lg text-ink-2 transition-colors hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <label for="memo" class="mt-4 block">
+              <span class="text-fine font-medium text-ink-2">메모 (선택)</span>
+              <input
+                id="memo"
+                type="text"
+                placeholder="용도, 수령처 등"
+                class="mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 placeholder:text-ink-2 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </label>
+
+            <button
+              type="submit"
+              class="mt-6 flex h-10 w-full items-center justify-center rounded-card bg-primary-strong text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              대여하기
+            </button>
+            <p class="mt-2 text-fine text-ink-2">
+              신청하면 바로 대여 중이 돼요. 반납은 대여 기록에서 할 수 있어요.
+            </p>
+          </form>
+        </section>
+      </div>
+
+      <!-- ===== 같은 분류 ===== -->
+      <section class="mt-10 border-t border-line pt-8">
+        <div class="flex items-end justify-between gap-4">
+          <div>
+            <h2 class="text-heading font-semibold tracking-[-0.015em] text-ink-1">캠핑 물품 더 보기</h2>
+            <p class="mt-2 text-fine text-ink-2">함께 쓰면 좋은 물품이에요</p>
+          </div>
+          <a
+            href="index.html"
+            class="text-body font-medium text-primary-strong transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            전체 보기
+          </a>
+        </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4" role="list">
+          <a
+            role="listitem"
+            href="index.html"
+            class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <div class="relative aspect-[4/3] bg-surface-muted">
+              <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                </svg>
+                <span class="text-fine text-ink-2">사진 없음</span>
+              </span>
+              <img
+                src="https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?auto=format&fit=crop&w=600&q=70"
+                alt=""
+                loading="lazy"
+                class="absolute inset-0 h-full w-full object-cover"
+                onerror="this.remove()"
+              />
+            </div>
+            <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+              <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+                캠핑 테이블
+              </h3>
+              <p class="truncate text-fine text-ink-2">캠핑 · 7층 비품실</p>
+              <p class="mt-auto flex items-center gap-1 text-fine tabular-nums">
+                <span class="h-1.5 w-1.5 flex-none rounded-full bg-primary" aria-hidden="true"></span>
+                <span class="font-semibold text-ink-1">1개</span>
+                <span class="text-ink-2">대여 가능</span>
+              </p>
+            </div>
+          </a>
+
+          <a
+            role="listitem"
+            href="index.html"
+            class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <div class="relative aspect-[4/3] bg-surface-muted">
+              <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                </svg>
+                <span class="text-fine text-ink-2">사진 없음</span>
+              </span>
+              <img
+                src="https://images.unsplash.com/photo-1526491109672-74740652b963?auto=format&fit=crop&w=600&q=70"
+                alt=""
+                loading="lazy"
+                class="absolute inset-0 h-full w-full object-cover"
+                onerror="this.remove()"
+              />
+            </div>
+            <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+              <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+                2인용 텐트
+              </h3>
+              <p class="truncate text-fine text-ink-2">캠핑 · 7층 비품실</p>
+              <p class="mt-auto flex items-center gap-1 text-fine tabular-nums">
+                <span class="h-1.5 w-1.5 flex-none rounded-full bg-warning" aria-hidden="true"></span>
+                <span class="text-ink-2">수리 중</span>
+                <span class="font-semibold text-ink-1">1개</span>
+              </p>
+            </div>
+          </a>
+
+          <a
+            role="listitem"
+            href="index.html"
+            class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <div class="relative aspect-[4/3] bg-surface-muted">
+              <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                </svg>
+                <span class="text-fine text-ink-2">사진 없음</span>
+              </span>
+              <img
+                src="https://images.unsplash.com/photo-1537565266759-34bbc16be345?auto=format&fit=crop&w=600&q=70"
+                alt=""
+                loading="lazy"
+                class="absolute inset-0 h-full w-full object-cover"
+                onerror="this.remove()"
+              />
+            </div>
+            <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+              <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+                캠핑 랜턴
+              </h3>
+              <p class="truncate text-fine text-ink-2">캠핑 · 7층 비품실</p>
+              <p class="mt-auto flex items-center gap-1 text-fine tabular-nums">
+                <span class="h-1.5 w-1.5 flex-none rounded-full bg-primary" aria-hidden="true"></span>
+                <span class="font-semibold text-ink-1">2개</span>
+                <span class="text-ink-2">대여 가능</span>
+              </p>
+            </div>
+          </a>
+
+          <a
+            role="listitem"
+            href="index.html"
+            class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <div class="relative aspect-[4/3] bg-surface-muted">
+              <span class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-ink-3" aria-hidden="true">
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                </svg>
+                <span class="text-fine text-ink-2">사진 없음</span>
+              </span>
+            </div>
+            <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+              <h3 class="line-clamp-2 text-body font-semibold leading-[1.5] tracking-[-0.015em] text-ink-1 max-sm:text-fine">
+                대형 돗자리
+              </h3>
+              <p class="truncate text-fine text-ink-2">캠핑 · 7층 비품실</p>
+              <p class="mt-auto flex items-center gap-1 text-fine tabular-nums">
+                <span class="h-1.5 w-1.5 flex-none rounded-full bg-primary" aria-hidden="true"></span>
+                <span class="font-semibold text-ink-1">5개</span>
+                <span class="text-ink-2">대여 가능</span>
+              </p>
+            </div>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <!-- @begin footer mt-10 -->
+    <footer class="border-t border-line mt-10">
+      <div
+        class="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+      >
+        <p>정토회 · 함께 쓰는 물품</p>
+        <nav class="flex gap-4" aria-label="정책">
+          <a href="policy.html?kind=terms" class="transition-colors hover:text-ink-1 hover:underline">이용약관</a>
+          <a href="policy.html?kind=privacy" class="transition-colors hover:text-ink-1 hover:underline">개인정보처리방침</a>
+        </nav>
+      </div>
+    </footer>
+    <!-- @end footer -->
+
+    <script>
+      // 갤러리 — 썸네일을 누르면 큰 사진과 순번이 바뀐다
+      const mainPhoto = document.getElementById("main-photo");
+      const photoCount = document.getElementById("photo-count");
+      const thumbs = [...document.querySelectorAll("[data-photo]")];
+
+      thumbs.forEach((thumb, index) => {
+        thumb.addEventListener("click", () => {
+          mainPhoto.src = thumb.dataset.photo;
+          mainPhoto.alt = thumb.dataset.alt;
+          photoCount.textContent = `${index + 1} / ${thumbs.length}`;
+          thumbs.forEach((item) => {
+            item.dataset.active = String(item === thumb);
+            if (item === thumb) item.setAttribute("aria-current", "true");
+            else item.removeAttribute("aria-current");
+          });
+        });
+      });
+
+      // 수량 스테퍼 — 1~2개 사이에서 움직인다
+      const qty = document.getElementById("qty");
+      const qtyMinus = document.getElementById("qty-minus");
+      const qtyPlus = document.getElementById("qty-plus");
+      const MIN_QTY = 1;
+      const MAX_QTY = 2;
+
+      function setQty(next) {
+        const value = Math.min(MAX_QTY, Math.max(MIN_QTY, Number(next) || MIN_QTY));
+        qty.value = String(value);
+        qtyMinus.disabled = value <= MIN_QTY;
+        qtyPlus.disabled = value >= MAX_QTY;
+      }
+
+      qtyMinus.addEventListener("click", () => setQty(Number(qty.value) - 1));
+      qtyPlus.addEventListener("click", () => setQty(Number(qty.value) + 1));
+      qty.addEventListener("change", () => setQty(qty.value));
+      setQty(1);
+
+      // 정적 목업 — 폼 제출로 페이지가 새로고침되지 않게
+      document.getElementById("rental-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+      });
+
+      // ===== 계정 메뉴 =====
+      const accountBtn = document.getElementById("account-btn");
+      const accountMenu = document.getElementById("account-menu");
+      if (accountBtn && accountMenu) {
+        const closeAccountMenu = () => {
+          accountMenu.classList.add("hidden");
+          accountBtn.setAttribute("aria-expanded", "false");
+        };
+        accountBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const hidden = accountMenu.classList.toggle("hidden");
+          accountBtn.setAttribute("aria-expanded", String(!hidden));
+        });
+        document.addEventListener("pointerdown", (event) => {
+          if (accountMenu.classList.contains("hidden")) return;
+          if (event.composedPath().includes(accountBtn) || event.composedPath().includes(accountMenu)) return;
+          closeAccountMenu();
+        });
+        window.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeAccountMenu();
+        });
+      }
+    </script>
+    <script src="preview.js"></script>
+  </body>
+</html>

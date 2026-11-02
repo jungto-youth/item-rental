@@ -1,6 +1,8 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { chipCss } from "../../styles/ui";
+import { base } from "../../styles/base";
+import { sheet } from "../../styles/sheet";
+import chipStyles from "./chip.css?inline";
 
 export type ChipOption = { value: string; label: string; count?: number };
 
@@ -16,6 +18,8 @@ export class XChip extends LitElement {
   @property() ariaLabel = "";
   // sm(32px)은 콘텐츠 영역 기본, lg(44px)는 폼의 x-input 등 44px 컨트롤과 나란히 둘 때
   @property({ reflect: true }) size: "sm" | "lg" = "sm";
+  // grid — 필터·탭을 모바일에서 2×2로 펼친다 (가로 스크롤로 칩이 잘리지 않게)
+  @property({ reflect: true }) layout: "scroll" | "grid" = "scroll";
   @property({ type: Boolean, reflect: true }) disabled = false;
 
   // 같은 값 재선택은 이벤트 없이 무시. 확인 다이얼로그에서 취소하면
@@ -32,32 +36,7 @@ export class XChip extends LitElement {
     );
   }
 
-  static styles = [
-    chipCss,
-    css`
-      :host {
-        display: block;
-        min-width: 0;
-      }
-      .row {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2, 8px);
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        /* 칩이 넘치는 화면에서 스크롤바 대신 스크롤 동작만 — 행 높이 일관 유지 */
-        scrollbar-width: none;
-      }
-      .row::-webkit-scrollbar {
-        display: none;
-      }
-      .size-lg .chip {
-        height: 44px;
-        padding: 0 var(--space-3-5, 14px);
-        font-size: var(--text-body, 15px);
-      }
-    `,
-  ];
+  static styles = [base, sheet(chipStyles)];
 
   render() {
     return html`

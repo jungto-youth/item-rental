@@ -19,82 +19,125 @@ export class ItemGallery extends LitElement {
       width: 100%;
       aspect-ratio: 4 / 3;
       max-height: 480px;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg, 12px);
-      background: var(--color-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface-muted);
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 3rem;
+      color: var(--ink-3);
       box-sizing: border-box;
     }
 
     .main-photo img {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
-      transition: opacity 0.15s ease;
     }
 
-    .thumbs {
+    .main-photo .fallback {
       display: flex;
-      gap: var(--space-2, 8px);
-      margin-top: var(--space-3, 12px);
-      overflow-x: auto;
-      padding-bottom: var(--space-1, 4px);
+      align-items: center;
+      justify-content: center;
+    }
+    .main-photo .fallback svg {
+      width: 40px;
+      height: 40px;
+    }
+
+    /* 큰 사진 위 순번 — "1 / 3" */
+    .counter {
+      position: absolute;
+      right: var(--space-2);
+      bottom: var(--space-2);
+      padding: 4px var(--space-1);
+      border-radius: var(--radius-pill);
+      background: rgba(17, 24, 39, 0.7);
+      color: #fff;
+      font-size: var(--text-fine);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 썸네일은 3열 — 사진 수와 무관하게 갤러리 폭을 꽉 채운다 */
+    .thumbs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-1);
+      margin-top: var(--space-1);
     }
 
     .thumb-btn {
       position: relative;
-      width: 60px;
-      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 4 / 3;
+      width: 100%;
       padding: 0;
-      border: 2px solid transparent;
-      border-radius: var(--radius-sm, 6px);
-      background: var(--color-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface-muted);
+      color: var(--ink-3);
       overflow: hidden;
       cursor: pointer;
-      flex-shrink: 0;
-      transition: border-color 0.15s ease, opacity 0.15s ease;
+      line-height: var(--line-height-button);
     }
 
     .thumb-btn.active {
-      border-color: var(--color-primary);
+      border: 2px solid var(--ink-1);
     }
-
-    .thumb-btn:hover:not(.active) {
-      opacity: 0.85;
+    .thumb-btn:hover {
+      border-color: var(--border-strong);
+    }
+    .thumb-btn.active:hover {
+      border-color: var(--ink-1);
     }
 
     .thumb-btn img {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
     }
+
+    .thumb-btn .fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .thumb-btn .fallback svg {
+      width: 24px;
+      height: 24px;
+    }
   `;
 
   private handleMainError(e: Event) {
-    const img = e.target as HTMLImageElement;
-    img.style.display = "none";
-    const parent = img.parentElement;
-    if (parent) parent.textContent = "📦";
+    (e.target as HTMLImageElement).remove();
   }
 
   private handleThumbError(e: Event, idx: number) {
-    const img = e.target as HTMLImageElement;
-    img.style.display = "none";
-    const btn = img.parentElement;
-    if (btn) {
-      btn.textContent = "📦";
-      if (idx === this.selectedIdx) {
-        // 다음 사진으로 이동
-        const next = this.photos.findIndex((_, i) => i !== idx);
-        if (next !== -1) this.selectedIdx = next;
-      }
+    (e.target as HTMLImageElement).remove();
+    if (idx === this.selectedIdx) {
+      // 다음 사진으로 이동
+      const next = this.photos.findIndex((_, i) => i !== idx);
+      if (next !== -1) this.selectedIdx = next;
     }
+  }
+
+  // 사진이 없거나 로드에 실패하면 이 아이콘이 남는다 (.pen 썸네일 placeholder)
+  private get imageIcon() {
+    return html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+    </svg>`;
   }
 
   render() {
@@ -104,13 +147,19 @@ export class ItemGallery extends LitElement {
     // 스크롤되기를 기다려 첫 화면이 늦게 뜬다. 썸네일들은 lazy 유지.
     return html`
       <div class="main-photo">
+        <span class="fallback" aria-hidden="true">${this.imageIcon}</span>
         ${current
           ? html`<img
               src=${current.url}
               alt=${this.name ? `${this.name} 사진` : "물품 사진"}
               @error=${this.handleMainError}
             />`
-          : html`<span aria-hidden="true">📦</span>`}
+          : ""}
+        ${this.photos.length > 0
+          ? html`<span class="counter" aria-hidden="true"
+              >${this.selectedIdx + 1} / ${this.photos.length}</span
+            >`
+          : ""}
       </div>
 
       ${this.photos.length > 1
@@ -124,6 +173,7 @@ export class ItemGallery extends LitElement {
                     aria-label="사진 ${idx + 1}"
                     aria-pressed=${idx === this.selectedIdx}
                   >
+                    <span class="fallback" aria-hidden="true">${this.imageIcon}</span>
                     <img
                       src=${p.url}
                       alt=""

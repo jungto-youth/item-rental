@@ -1,5 +1,5 @@
 import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import { cardCss } from "../../styles/ui";
 import "../ui/badge";
 
@@ -10,8 +10,23 @@ import "../ui/badge";
 export class ReservationRow extends LitElement {
   @property() title = "";
   @property() badgeKind = "";
-  // 대여 중 강조 — 왼쪽 액센트 바로 현재 대여 건임을 알린다
+  // 대여 중 강조 — 테두리를 잉크색으로 올려 현재 대여 건임을 알린다
   @property({ type: Boolean, reflect: true }) active = false;
+
+  // 슬롯이 비었으면 빈 상자를 그리지 않는다. (:empty 는 <slot> 자식 때문에 절대 매치되지 않는다)
+  @state() private hasActions = false;
+  @state() private hasLines = false;
+
+  private onSlotChange(which: "actions" | "lines", e: Event) {
+    const nodes = (e.target as HTMLSlotElement).assignedNodes({ flatten: true });
+    const filled = nodes.some(
+      (n) =>
+        n.nodeType === Node.ELEMENT_NODE ||
+        (n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim() !== ""),
+    );
+    if (which === "actions") this.hasActions = filled;
+    else this.hasLines = filled;
+  }
 
   static styles = [
     cardCss,
@@ -20,21 +35,21 @@ export class ReservationRow extends LitElement {
         display: block;
       }
       .card {
-        margin-bottom: var(--space-2, 8px);
+        margin-bottom: var(--space-1);
       }
       :host([active]) .card {
-        border-left: 3px solid var(--color-primary);
+        border-color: var(--ink-1);
       }
       .row {
         display: flex;
         align-items: center;
-        gap: var(--space-3, 12px);
+        gap: 12px;
       }
       .title {
         flex: 1;
         min-width: 0;
         font-weight: 600;
-        font-size: var(--text-body, 15px);
+        font-size: var(--text-body);
         letter-spacing: var(--tracking-tight);
         overflow: hidden;
         text-overflow: ellipsis;
@@ -43,31 +58,31 @@ export class ReservationRow extends LitElement {
       .actions {
         display: flex;
         align-items: center;
-        gap: var(--space-2, 8px);
+        gap: var(--space-1);
         flex-shrink: 0;
       }
-      .actions:empty {
+      .actions.empty {
         display: none;
       }
       .lines {
         display: grid;
-        gap: var(--space-1, 4px);
-        margin-top: var(--space-1, 4px);
-        font-size: var(--text-caption, 13px);
-        color: var(--color-muted);
+        gap: 4px;
+        margin-top: var(--space-1);
+        font-size: var(--text-fine);
+        color: var(--ink-2);
       }
-      .lines:empty {
+      .lines.empty {
         display: none;
       }
       ::slotted(.warn) {
-        color: var(--tone-warning-text);
-        font-size: var(--text-fine, 12px);
+        color: var(--danger);
+        font-size: var(--text-fine);
       }
       ::slotted(*) {
         margin: 0;
       }
       /* 좁은 화면에서는 액션을 다음 줄로 내려 이름이 잘리지 않게 한다 */
-      @media (max-width: 480px) {
+      @media (max-width: 639px) {
         .row {
           flex-wrap: wrap;
         }
@@ -87,9 +102,13 @@ export class ReservationRow extends LitElement {
         <div class="row">
           <span class="title">${this.title}</span>
           ${this.badgeKind ? html`<x-badge kind=${this.badgeKind}></x-badge>` : ""}
-          <span class="actions"><slot name="actions"></slot></span>
+          <span class="actions ${this.hasActions ? "" : "empty"}">
+            <slot name="actions" @slotchange=${(e: Event) => this.onSlotChange("actions", e)}></slot>
+          </span>
         </div>
-        <div class="lines"><slot></slot></div>
+        <div class="lines ${this.hasLines ? "" : "empty"}">
+          <slot @slotchange=${(e: Event) => this.onSlotChange("lines", e)}></slot>
+        </div>
       </div>
     `;
   }

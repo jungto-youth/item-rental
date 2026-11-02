@@ -1,0 +1,100 @@
+/* x-chip — 단일 선택 칩.
+   일반 CSS 파일이다. :host·@media·의사 클래스 모두 그대로 쓴다. */
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  /* 칩이 넘치는 화면에서 스크롤바 대신 스크롤 동작만 — 행 높이 일관 유지 */
+  scrollbar-width: none;
+}
+
+.row::-webkit-scrollbar {
+  display: none;
+}
+
+/* 좁은 화면에서는 옵션이 잘리지 않도록 두 줄까지 허용한다 */
+@media (max-width: 639px) {
+  .row {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
+/* 필터·탭처럼 4개 안팎의 칩은 모바일에서 2×2 그리드로 — 가로 스크롤로
+   마지막 칩이 잘리는 문제를 없앤다. */
+@media (max-width: 639px) {
+  :host([layout="grid"]) .row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  :host([layout="grid"]) .chip {
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
+/* 미선택(흰 면) → 선택(잉크 채움). 8px/16px 패딩 알약. */
+.chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--text-body);
+  font-weight: 400;
+  line-height: var(--line-height-button);
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.chip:hover {
+  border-color: var(--ink-3);
+  color: var(--ink-1);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.chip.active {
+  border-color: var(--ink-1);
+  background: var(--ink-1);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+.chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chip .count {
+  font-size: var(--text-fine);
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.chip.active .count {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* lg(44px) — 폼의 x-input 등 44px 컨트롤과 나란히 둘 때 */
+.size-lg .chip {
+  height: 44px;
+  padding: 0 var(--space-2);
+  font-size: var(--text-body);
+}

@@ -13,7 +13,8 @@ const LABELS: Record<string, string> = {
   cancelled: "취소",
 };
 
-// 미니멀 상태 배지: 무채색 칩 + 상태 점(Status Dot)
+// 상태 배지 — 작은 알약 + 점. 상태는 문장이 말하고, 색은 보조 신호로만 쓴다.
+// 색은 종류별 예외만 두고, 모양은 .badge 공통 규격이 소유한다.
 @customElement("x-badge")
 export class XBadge extends LitElement {
   @property() kind = "neutral";
@@ -24,59 +25,66 @@ export class XBadge extends LitElement {
       display: inline-flex;
       vertical-align: middle;
     }
+
     .badge {
+      position: relative;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 2px 8px;
-      border-radius: var(--radius-sm, 6px);
-      border: 1px solid var(--color-border);
-      background: var(--color-surface);
-      color: var(--color-text);
-      font-size: var(--text-fine, 12px);
-      font-weight: 500;
-      line-height: 1.4;
+      height: 24px;
+      padding: 0 12px;
+      border-radius: var(--radius-pill);
+      background: var(--surface-muted);
+      color: var(--ink-2);
+      font-size: var(--text-fine);
+      font-weight: 400;
+      line-height: 1;
       white-space: nowrap;
     }
 
+    .badge.available,
+    .badge.admin {
+      background: var(--primary-soft);
+      color: var(--primary-strong);
+    }
+
+    .badge.repair {
+      background: var(--warning-soft);
+      color: var(--warning);
+    }
+
+    /* 점은 왼쪽 패딩 안에 두고 텍스트는 좌우 12px로 대칭을 맞춘다. */
     .dot {
+      position: absolute;
+      left: 4px;
+      top: 50%;
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: var(--color-muted);
-      flex-shrink: 0;
+      background: var(--ink-3);
+      transform: translateY(-50%);
     }
 
-    /* 상태별 점 색상 */
-    .available .dot,
-    .returned .dot {
-      background: var(--dot-available, #10b981);
+    .dot.available,
+    .dot.admin {
+      background: var(--primary);
     }
-    .rented .dot {
-      background: var(--dot-rented, #71717a);
-      border: 1px solid currentColor;
-      box-sizing: border-box;
-    }
-    .repair .dot {
-      background: var(--dot-repair, #f59e0b);
-    }
-    .admin .dot {
-      background: var(--color-primary);
-    }
-    .retired .dot,
-    .withdrawn .dot,
-    .cancelled .dot,
-    .neutral .dot {
-      background: var(--color-muted);
+
+    .dot.repair {
+      background: var(--warning);
     }
   `;
 
   render() {
     const text = this.label || LABELS[this.kind] || this.kind;
+    const tone =
+      this.kind === "available" || this.kind === "admin" || this.kind === "repair"
+        ? this.kind
+        : "neutral";
+
     return html`
-      <span class="badge ${this.kind}">
-        <span class="dot"></span>
-        <span class="text">${text}</span>
+      <span class="badge ${tone}">
+        <span class="dot ${tone}" aria-hidden="true"></span>
+        <span>${text}</span>
       </span>
     `;
   }

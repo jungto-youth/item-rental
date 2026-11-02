@@ -726,10 +726,10 @@ test("listItems: withCategories 는 관리자 행에만 카테고리를 채운�
   const itemId = addItem(db);
   tagItem(db, itemId, catId);
 
-  const admin = await listItems(sql, { limit: 10, offset: 0, available: false, withCategories: true });
+  const admin = await listItems(sql, { limit: 10, offset: 0, withCategories: true });
   expect(admin.items[0].categories).toEqual([{ id: catId, name: "캠핑" }]);
 
-  const member = await listItems(sql, { limit: 10, offset: 0, available: false });
+  const member = await listItems(sql, { limit: 10, offset: 0 });
   expect(member.items[0].categories).toEqual(undefined);
 });
 
@@ -742,20 +742,20 @@ test("listItems: 카테고리 필터가 행과 카운트에 함께 적용된다"
   tagItem(db, tagged, catId);
   addItem(db, { lifecycle: "retired" }); // 폐기는 필터와 무관하게 항상 제외
 
-  const inCat = await listItems(sql, { limit: 10, offset: 0, available: false, category: String(catId) });
+  const inCat = await listItems(sql, { limit: 10, offset: 0, category: String(catId) });
   expect(inCat.items.map((i) => i.id)).toEqual([tagged]);
   expect(inCat.total).toEqual(1);
 
-  const none = await listItems(sql, { limit: 10, offset: 0, available: false, category: "none" });
+  const none = await listItems(sql, { limit: 10, offset: 0, category: "none" });
   expect(none.items.map((i) => i.id)).toEqual([untagged]);
   expect(none.total).toEqual(1);
 
-  const all = await listItems(sql, { limit: 10, offset: 0, available: false });
+  const all = await listItems(sql, { limit: 10, offset: 0 });
   expect(all.items.length).toEqual(2);
   expect(all.total).toEqual(2);
 });
 
-test("listItems: 카테고리 + 대여가능 필터를 같이 건다", async () => {
+test("listItems: 카테고리 필터는 태그가 붙은 행만 남긴다", async () => {
   const db = freshDb();
   const sql = sqliteSql(db);
   const catId = addCategory(db, "청소");
@@ -767,12 +767,11 @@ test("listItems: 카테고리 + 대여가능 필터를 같이 건다", async () 
   const res = await listItems(sql, {
     limit: 10,
     offset: 0,
-    available: true,
     category: String(catId),
     withCategories: true,
   });
-  expect(res.items.map((i) => i.id)).toEqual([rentable]);
-  expect(res.available_total).toEqual(1);
+  expect(res.items.map((i) => i.id).sort()).toEqual([rentable, broken].sort());
+  expect(res.matched).toEqual(2);
 });
 
 test("listItems: includeRetired 는 폐기 물품을 행과 카운트에 포함한다", async () => {
@@ -781,7 +780,7 @@ test("listItems: includeRetired 는 폐기 물품을 행과 카운트에 포함�
   const active = addItem(db);
   const retired = addItem(db, { lifecycle: "retired" });
 
-  const base = await listItems(sql, { limit: 10, offset: 0, available: false });
+  const base = await listItems(sql, { limit: 10, offset: 0 });
   expect(base.items.map((i) => i.id)).toEqual([active]);
   expect(base.total).toEqual(1);
 
@@ -789,7 +788,6 @@ test("listItems: includeRetired 는 폐기 물품을 행과 카운트에 포함�
   const all = await listItems(sql, {
     limit: 10,
     offset: 0,
-    available: false,
     includeRetired: true,
   });
   expect(all.items.map((i) => i.id)).toEqual([retired, active]);
@@ -806,13 +804,12 @@ test("listItems: q 는 정규화된 위치 이름도 본다 — 행과 카운트
   const res = await listItems(sql, {
     limit: 10,
     offset: 0,
-    available: false,
     q: "자료실",
   });
   expect(res.items.map((i) => i.id)).toEqual([inStorage]);
   expect(res.total).toEqual(1);
   // 다른 물품은 여전히 보인다 — 조인이 행을 잃지 않는다
-  const all = await listItems(sql, { limit: 10, offset: 0, available: false });
+  const all = await listItems(sql, { limit: 10, offset: 0 });
   expect(all.items.map((i) => i.id).sort()).toEqual([inStorage, elsewhere].sort());
 });
 
@@ -829,14 +826,13 @@ test("listItems: state 탭은 행만 거르고 summary·total 은 모집단을 �
   ).run(rented, addMember(db, "user"));
 
   // 요약은 모두 종류 수 — 전체 4(폐기 제외) · 대여 가능 2 · 대여 중 1 · 수리 중 1
-  const all = await listItems(sql, { limit: 10, offset: 0, available: false, includeRetired: true });
+  const all = await listItems(sql, { limit: 10, offset: 0, includeRetired: true });
   expect(all.summary).toEqual({ types: 4, available: 2, rented: 1, repair: 1 });
   expect(all.total).toEqual(5); // retired 포함 행 수
 
   const rentedTab = await listItems(sql, {
     limit: 10,
     offset: 0,
-    available: false,
     state: "rented",
   });
   expect(rentedTab.items.map((i) => i.id)).toEqual([rented]);
@@ -846,7 +842,6 @@ test("listItems: state 탭은 행만 거르고 summary·total 은 모집단을 �
   const availableTab = await listItems(sql, {
     limit: 10,
     offset: 0,
-    available: false,
     state: "available",
   });
   expect(availableTab.items.map((i) => i.id).sort()).toEqual([free, rented].sort());

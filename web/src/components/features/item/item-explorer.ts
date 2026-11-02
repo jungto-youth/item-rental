@@ -2,28 +2,29 @@ import { css, html, LitElement, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { api } from "../../../api/client";
 import { session } from "../../../context/session";
+import { navigate } from "../../../router";
 import { type CatalogSummary, type Item } from "../../../types";
 import { reduceMotion } from "../../../styles/motion";
 import { availableQty, catalogSummary } from "../../../utils/stock";
 import "../../ui/button";
 import "../../ui/empty";
 import "../../ui/notice";
-import "./item-list-row";
+import "./item-card";
 
-// 물품 현황 목록 — .pen 의 데스크탑 표와 모바일 3줄 카드를 한 컴포넌트로 그린다.
+// 물품 현황 목록 — 데스크탑은 한 장의 목록 시트, 모바일은 3줄 카드로 접힌다.
 // 관리자와 회원이 같은 행 모양을 쓰고, 행 목적지만 다르다(수정 폼 / 상세).
-// 요약·탭·목록의 숫자 규칙은 이슈 #12 §6.2·§6.4 를 따른다:
-//   - 요약(총 종류·보유·대여 중·대여 가능)은 수량 합계다. 폐기는 어느 값에도 넣지 않는다.
-//   - 탭(전체·대여 중·대여 가능)은 같은 합계를 라벨로 쓴다. 행 수와 다를 수 있다.
+// 탭·목록의 숫자 규칙은 이슈 #12 §6.2·§6.4 를 따른다:
+//   - 탭 숫자(총 종류·대여 가능·대여 중·수리 중)는 API summary 다. 폐기는 어느 값에도 넣지 않는다.
+//   - 탭 라벨은 같은 합계를 쓴다. 행 수와 다를 수 있다.
 //   - 상태 칸은 shared/stock.statusParts 가 만든다 — 수량 0 인 항은 구분점까지 숨긴다.
-type TabKey = "all" | "rented" | "available";
+type TabKey = "all" | "available" | "rented" | "repair";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "all", label: "전체" },
-  { key: "rented", label: "대여 중" },
   { key: "available", label: "대여 가능" },
+  { key: "rented", label: "대여 중" },
+  { key: "repair", label: "수리 중" },
 ];
-
 
 // 목록은 한 번에 10건씩 — 회원은 서버 페이지, 관리자는 전체를 받아 두고 10건씩 펼친다.
 // '더보기'를 누를 때마다 같은 수만큼 더 보여준다 (.pen 물품 현황 / (M)).
@@ -32,7 +33,6 @@ const PAGE_SIZE = 10;
 type BrowseResponse = {
   items: Item[];
   total: number;
-  available_total: number;
   matched: number;
   summary: CatalogSummary;
   hasMore: boolean;
@@ -47,6 +47,9 @@ type AdminListResponse = {
 @customElement("item-explorer")
 export class ItemExplorer extends LitElement {
   @property() q = "";
+  // 필터 탭은 home 이 소유한다 — 검색창과 같은 줄에 칩을 두기 위해.
+  // 값이 바뀌면 이 컴포넌트가 데이터를 다시 받아 목록을 갈아끼운다.
+  @property() tab: TabKey = "all";
 
   @state() private isAdmin = false;
 
@@ -66,9 +69,9 @@ export class ItemExplorer extends LitElement {
   @state() private truncated = false;
   @state() private shown = PAGE_SIZE;
 
-  @state() private tab: TabKey = "all";
-
   private unsub: (() => void) | null = null;
+  // 탭 숫자를 home 에 알린다 — 같은 값이면 이벤트를 반복하지 않는다
+  private lastCounts = "";
   // 세대 번호로 늦은 응답을 버린다
   private fetchGen = 0;
   private adminGen = 0;
@@ -78,120 +81,132 @@ export class ItemExplorer extends LitElement {
     reduceMotion,
     css`
       :host {
-        display: block;
-      }
-      /* ===== 요약은 page-home 이 소유한다 (요약 → 검색 → 탭 순서를 화면별로 맞추기 위해) ===== */
-
-      /* ===== 탭 ===== */
-      .tabs {
         display: flex;
-        gap: var(--space-3, 12px);
-        padding: var(--space-3, 12px) 0;
-      }
-      .tab {
-        padding: var(--space-1, 4px) 0;
-        border: none;
-        background: none;
-        font-family: inherit;
-        font-size: 1rem;
-        color: var(--color-ink-3, #9c9c9c);
-        cursor: pointer;
-        white-space: nowrap;
-        transition: color 0.15s ease;
-      }
-      .tab:hover {
-        color: var(--color-text);
-      }
-      .tab[aria-pressed="true"] {
-        color: var(--color-text);
-        font-weight: 700;
-      }
-      .tab:focus-visible {
-        outline: 2px solid var(--color-primary-focus);
-        outline-offset: 2px;
-        border-radius: var(--radius-sm, 6px);
+        flex-direction: column;
       }
 
-      /* ===== 표 머리 — 행(grid)과 같은 열 폭을 쓴다 ===== */
-      .head {
+      .notice {
+        display: block;
+        margin: 0 0 var(--space-2);
+      }
+
+      /* ===== 카드 그리드 — 사진이 먼저 보이는 카탈로그 ===== */
+      .grid {
         display: grid;
-        grid-template-columns: 48px minmax(0, 1fr) 110px 130px 300px;
-        column-gap: var(--space-4, 16px);
-        padding: var(--space-3, 12px) 0;
-        border-bottom: 1px solid var(--color-border);
-        font-size: var(--text-fine, 12px);
-        color: var(--color-ink-3, #9c9c9c);
+        /* 시안과 같은 3 / 4 / 5열 — 390·768·1280에서 카드 폭이 예측 가능하다 */
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--space-1);
+        margin: 0 0 var(--space-3);
       }
-      /* .pen List Head: 물품명 라벨은 썸네일 위(= 열 맨 앞)에서 시작한다 */
-      .h-name {
-        grid-column: 1 / 3;
+      @media (min-width: 768px) {
+        .grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
       }
-      .h-cat {
-        grid-column: 3;
+      @media (min-width: 1280px) {
+        .grid {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
       }
-      .h-loc {
-        grid-column: 4;
-      }
-      .h-status {
-        grid-column: 5;
-      }
-      .table {
-        border-bottom: 0;
+      /* 빈 상태·로딩·오류 — 그리드와 같은 폭의 자리 */
+      .panel {
+        margin: 0 0 var(--space-3);
+        box-sizing: border-box;
       }
 
-      /* ===== 더보기 ===== */
       .more-row {
         display: flex;
         justify-content: center;
-        padding: var(--space-3, 12px) 0;
-      }
-      .more {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--space-2, 8px);
-        padding: var(--space-3, 12px) var(--space-5, 24px);
-        border: none;
-        border-radius: var(--radius-sm, 6px);
-        background: none;
-        color: var(--color-muted);
-        font-family: inherit;
-        font-size: 1rem;
-        cursor: pointer;
-      }
-      .more:hover {
-        background: var(--color-surface);
-      }
-      .more:focus-visible {
-        outline: 2px solid var(--color-primary-focus);
-        outline-offset: 2px;
-      }
-      .more[disabled] {
-        color: var(--color-muted);
-        cursor: default;
-      }
-      .more svg {
-        width: 16px;
-        height: 16px;
-      }
-      .truncated {
-        margin: 0 0 var(--space-2);
-        font-size: var(--text-caption, 13px);
-        color: var(--color-muted);
+        margin: 0 0 var(--space-4);
       }
 
-      /* ===== 좁은 화면 — 물품 현황 (M) ===== */
-      @media (max-width: 859px) {
-        .tabs {
-          gap: var(--space-4, 16px);
+      @media (max-width: 639px) {
+        .notice {
+          margin: 0 0 var(--space-2);
         }
-        .tab {
-          font-size: 0.875rem;
+        .grid {
+          gap: var(--space-1);
+          margin: 0 0 var(--space-2);
         }
-        .head {
+        .panel {
+          margin: 0 0 var(--space-2);
+        }
+        .more-row {
+          margin: 0 0 var(--space-4);
+        }
+        .truncated {
+          margin: 0 0 var(--space-2);
+        }
+      }
+      /* 아주 좁은 화면에서는 두 장씩 — 3열은 너무 좁아진다 */
+      @media (max-width: 359px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .truncated {
+        margin: 0 0 var(--space-2);
+        color: var(--ink-2);
+        font-size: var(--text-fine);
+        line-height: var(--line-height);
+      }
+
+      /* 로딩 스켈레톤 — 실제 카드와 같은 골격으로 화면이 튀지 않게 */
+      .skeleton-card {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+      .sk-photo {
+        aspect-ratio: 4 / 3;
+        background: var(--surface-muted);
+      }
+      .sk-body {
+        display: grid;
+        gap: var(--space-1);
+        padding: var(--space-2);
+      }
+      .sk-line {
+        height: 12px;
+        border-radius: 4px;
+        background: var(--border);
+      }
+      .sk-line.title {
+        height: 16px;
+        width: 75%;
+      }
+      .sk-line.short {
+        width: 50%;
+      }
+      .sk-line.mid {
+        width: 66%;
+      }
+      .sk-photo,
+      .sk-line {
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.55;
+        }
+      }
+      @media (max-width: 767px) {
+        .skeleton-card:nth-child(n + 4) {
           display: none;
         }
-        .more {
-          font-size: var(--text-body, 15px);
+        .sk-body {
+          padding: var(--space-1);
+        }
+      }
+      @media (min-width: 768px) and (max-width: 1279px) {
+        .skeleton-card:nth-child(n + 5) {
+          display: none;
         }
       }
     `,
@@ -216,8 +231,32 @@ export class ItemExplorer extends LitElement {
 
   protected willUpdate(changed: PropertyValues) {
     super.willUpdate(changed);
-    if (this.hasUpdated && changed.has("q")) this.shown = PAGE_SIZE;
+    if (this.hasUpdated && (changed.has("q") || changed.has("tab"))) {
+      this.shown = PAGE_SIZE;
+    }
     if (this.hasUpdated && changed.has("q") && !this.isAdmin) this.scheduleFetch();
+    // 탭 전환 — 관리자는 전체를 받아 두었으니 클라이언트에서 거르고,
+    // 회원 탐색은 서버 상태 필터로 다시 받는다.
+    if (this.hasUpdated && changed.has("tab") && !this.isAdmin && !this.q) {
+      this.items = [];
+      this.loading = true;
+      void this.fetchItems();
+    }
+  }
+
+  // 탭 숫자를 home 의 칩에 반영한다
+  protected updated() {
+    const s = this.displayedSummary();
+    const key = `${s.types}/${s.available}/${s.rented}/${s.repair}`;
+    if (key === this.lastCounts) return;
+    this.lastCounts = key;
+    this.dispatchEvent(
+      new CustomEvent("counts-change", {
+        detail: s,
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   // 역할 변경(로그인·로그아웃·강등) — 모드를 갈아끼우고 다른 모드 데이터는 버린다
@@ -225,7 +264,6 @@ export class ItemExplorer extends LitElement {
     const admin = session.isAdmin;
     if (admin === this.isAdmin) return;
     this.isAdmin = admin;
-    this.tab = "all";
     this.shown = PAGE_SIZE;
     if (admin) {
       void this.loadAdmin();
@@ -259,16 +297,20 @@ export class ItemExplorer extends LitElement {
     }
   }
 
-  // 관리자 목록 — 전체를 받아 두고 탭·검색을 클라이언트에서 건다
-  private get adminVisible(): Item[] {
+  // 관리자 목록 — 전체를 받아 두고 탭·검색을 클라이언트에서 건다.
+  // 검색어는 탭과 무관하게 먼저 적용한다 — 칩 숫자도 같은 결과 집합을 세야 한다.
+  private get adminQueryMatches(): Item[] {
     const q = this.q.trim().toLowerCase();
+    if (!q) return this.adminItems;
     return this.adminItems.filter((it) => {
-      if (!this.matchesTab(it)) return false;
-      if (!q) return true;
       const cats = it.categories ?? [];
       const hay = `${it.name} ${it.location ?? ""} ${it.description ?? ""} ${cats.map((c) => c.name).join(" ")}`;
       return hay.toLowerCase().includes(q);
     });
+  }
+
+  private get adminVisible(): Item[] {
+    return this.adminQueryMatches.filter((it) => this.matchesTab(it));
   }
 
   // ===== 회원 모드 데이터 =====
@@ -352,23 +394,9 @@ export class ItemExplorer extends LitElement {
   private matchesTab(it: Item): boolean {
     if (this.tab === "all") return true;
     if (this.tab === "rented") return (it.active_now ?? 0) > 0;
+    if (this.tab === "repair") return it.lifecycle !== "retired" && (it.qty_repair ?? 0) > 0;
     // 소모품은 '대여' 대상이 아니다 — 요약 숫자와 같은 규칙
     return it.kind !== "consumable" && availableQty(it) > 0;
-  }
-
-  private setTab(key: TabKey) {
-    if (this.tab === key) return;
-    this.tab = key;
-    this.shown = PAGE_SIZE;
-    if (this.isAdmin) return;
-    // 검색 결과는 이미 전부 받아 두었으니 클라이언트에서 거르고,
-    // 탐색은 서버에서 상태 필터로 다시 받는다 (페이지네이션이 걸려 있다).
-    if (!this.q) {
-      // 이전 탭의 행이 남아 보이지 않게 비우고 로딩 상태로 되돌린다
-      this.items = [];
-      this.loading = true;
-      void this.fetchItems();
-    }
   }
 
   private hrefFor(it: Item): string {
@@ -376,61 +404,76 @@ export class ItemExplorer extends LitElement {
   }
 
   private displayedSummary(): CatalogSummary {
+    if (this.isAdmin) return catalogSummary(this.adminQueryMatches);
     return this.summary ?? { types: 0, available: 0, rented: 0, repair: 0 };
   }
 
-  // 요약은 page-home 이 그린다 — 모바일에서 요약 → 검색 → 탭 순서를 맞추기 위해
-  // 데이터 소유자(explorer)가 값만 올려보낸다. 값이 바뀔 때만 이벤트를 낸다.
-  protected updated(changed: PropertyValues) {
-    super.updated(changed);
-    const s = this.displayedSummary();
-    const key = `${s.types}/${s.available}/${s.rented}/${s.repair}`;
-    if (key === this.lastSummaryKey) return;
-    this.lastSummaryKey = key;
-    this.dispatchEvent(
-      new CustomEvent<CatalogSummary>("summary-change", {
-        detail: s,
-        bubbles: true,
-        composed: true,
-      }),
-    );
+  // 검색어 지우기는 home 이 소유한다 (URL·입력값 동기화)
+  private clearSearch() {
+    this.dispatchEvent(new CustomEvent("clear-search", { bubbles: true, composed: true }));
   }
 
-  private tabCount(key: TabKey): number {
-    const s = this.displayedSummary();
-    if (key === "all") return s.types;
-    if (key === "rented") return s.rented;
-    return s.available;
-  }
-
-  private emptyText(): string {
-    if (this.q) return `'${this.q}'로 찾은 물품이 없어요`;
+  // 빈 상태 문구 — 제목과 다음 행동을 나눠 x-empty 에 넘긴다
+  private emptyCopy(): { title: string; subtitle: string } {
+    if (this.q) {
+      return {
+        title: `'${this.q}'로 찾은 물품이 없어요`,
+        subtitle: "다른 이름이나 위치로 검색해 보세요.",
+      };
+    }
     const label = TABS.find((t) => t.key === this.tab)?.label;
-    if (label && this.tab !== "all") return `'${label}' 물품이 없어요`;
-    return "등록된 물품이 없어요";
+    if (label && this.tab !== "all") {
+      return {
+        title: `'${label}' 물품이 없어요`,
+        subtitle: "다른 상태를 선택해 보세요.",
+      };
+    }
+    return {
+      title: "등록된 물품이 없어요",
+      subtitle: this.isAdmin
+        ? "첫 물품을 등록하면 회원이 바로 대여할 수 있어요."
+        : "관리자가 물품을 등록하면 여기에 표시돼요.",
+    };
   }
 
   // ===== 렌더 =====
 
-  render() {
+  // 로딩·빈 상태·오류도 목록과 같은 시트 안에 그려 화면이 튀지 않게 한다
+  private renderSkeleton() {
     return html`
-      <div class="tabs" role="group" aria-label="물품 상태">
-        ${TABS.map(
-          (t) => html`
-            <button
-              type="button"
-              class="tab"
-              aria-pressed=${this.tab === t.key}
-              @click=${() => this.setTab(t.key)}
-            >
-              ${t.label} ${this.tabCount(t.key).toLocaleString("ko-KR")}
-            </button>
+      <div class="grid" role="status" aria-label="물품 목록을 불러오는 중">
+        ${Array.from(
+          { length: 5 },
+          () => html`
+            <div class="skeleton-card" aria-hidden="true">
+              <div class="sk-photo"></div>
+              <div class="sk-body">
+                <div class="sk-line title"></div>
+                <div class="sk-line short"></div>
+                <div class="sk-line mid"></div>
+              </div>
+            </div>
           `,
         )}
       </div>
-
-      ${this.isAdmin ? this.renderAdmin() : this.renderMember()}
     `;
+  }
+
+  private renderState(
+    state: "loading" | "empty" | "error",
+    text = "",
+    action: unknown = "",
+    subtitle = "",
+  ) {
+    return html`
+      <div class="panel">
+        <x-empty state=${state} text=${text} subtitle=${subtitle}>${action}</x-empty>
+      </div>
+    `;
+  }
+
+  render() {
+    return html`${this.isAdmin ? this.renderAdmin() : this.renderMember()}`;
   }
 
   private renderMember() {
@@ -438,100 +481,115 @@ export class ItemExplorer extends LitElement {
     const matched = this.q ? this.items.filter((it) => this.matchesTab(it)) : this.items;
     const visible = this.q ? matched.slice(0, this.shown) : matched;
     if (this.error) {
-      return html`<x-empty state="error" text=${this.error}>
-        <x-button variant="secondary" size="sm" @click=${() => void this.fetchItems()}>
+      return this.renderState(
+        "error",
+        this.error,
+        html`<x-button variant="secondary" @click=${() => void this.fetchItems()}>
           다시 시도
-        </x-button>
-      </x-empty>`;
+        </x-button>`,
+        "연결 상태를 확인하고 다시 시도해 주세요.",
+      );
     }
-    if (this.loading) return html`<x-empty state="loading"></x-empty>`;
+    if (this.loading) return this.renderSkeleton();
     if (visible.length === 0) {
-      return html`<x-empty state="empty" text=${this.emptyText()}></x-empty>`;
+      const copy = this.emptyCopy();
+      return this.renderState(
+        "empty",
+        copy.title,
+        this.q
+          ? html`<x-button variant="secondary" @click=${this.clearSearch}>
+              검색어 지우기
+            </x-button>`
+          : "",
+        copy.subtitle,
+      );
     }
     return html`
       ${this.noticeMsg
         ? html`
-            <x-notice>
-              ${this.noticeMsg}
-              <x-button variant="secondary" size="sm" @click=${() => void this.retryMore()}>
-                다시 시도
-              </x-button>
-            </x-notice>
+            <div class="notice">
+              <x-notice>
+                ${this.noticeMsg}
+                <x-button
+                  slot="action"
+                  variant="secondary"
+                  @click=${() => void this.retryMore()}
+                >
+                  다시 시도
+                </x-button>
+              </x-notice>
+            </div>
           `
         : ""}
-      ${this.renderHead()}
-      <div class="table" role="list">
-        ${visible.map(
-          (it) => html`<div role="listitem">
-            <item-list-row .item=${it} href=${this.hrefFor(it)}></item-list-row>
-          </div>`,
-        )}
-      </div>
-      ${(this.q ? matched.length > this.shown : this.hasMore) ? this.renderMore() : ""}
+      ${this.renderGrid(
+        visible,
+        this.q ? matched.length > this.shown : this.hasMore,
+      )}
     `;
   }
 
   private renderAdmin() {
-    if (this.adminLoading) return html`<x-empty state="loading"></x-empty>`;
+    if (this.adminLoading) return this.renderSkeleton();
     if (this.adminError) {
-      return html`<x-empty state="error" text=${this.adminError}>
-        <x-button variant="secondary" size="sm" @click=${() => void this.loadAdmin()}>
+      return this.renderState(
+        "error",
+        this.adminError,
+        html`<x-button variant="secondary" @click=${() => void this.loadAdmin()}>
           다시 시도
-        </x-button>
-      </x-empty>`;
+        </x-button>`,
+        "연결 상태를 확인하고 다시 시도해 주세요.",
+      );
     }
     const visible = this.adminVisible;
     if (visible.length === 0) {
-      return html`<x-empty compact state="empty" text=${this.emptyText()}></x-empty>`;
+      const copy = this.emptyCopy();
+      return this.renderState(
+        "empty",
+        copy.title,
+        this.q
+          ? html`<x-button variant="secondary" @click=${this.clearSearch}>
+              검색어 지우기
+            </x-button>`
+          : html`<x-button variant="primary" @click=${() => navigate("/items/new")}>
+              물품 등록
+            </x-button>`,
+        copy.subtitle,
+      );
     }
-    const page = visible.slice(0, this.shown);
     return html`
       ${this.truncated
         ? html`<p class="truncated">1000건까지만 불러왔어요 — 목록이 잘렸을 수 있어요</p>`
         : ""}
-      ${this.renderHead()}
-      <div class="table" role="list">
-        ${page.map(
-          (it) => html`<div role="listitem">
-            <item-list-row .item=${it} href=${this.hrefFor(it)}></item-list-row>
-          </div>`,
-        )}
-      </div>
-      ${this.shown < visible.length ? this.renderMore() : ""}
+      ${this.renderGrid(visible.slice(0, this.shown), this.shown < visible.length)}
     `;
   }
 
-  private lastSummaryKey = "";
-
-  private renderHead() {
+  // 회원·관리자 공용 카드 그리드
+  private renderGrid(items: Item[], hasMore: boolean) {
     return html`
-      <div class="head" aria-hidden="true">
-        <span class="h-name">물품명</span>
-        <span class="h-cat">분류</span>
-        <span class="h-loc">보관 위치</span>
-        <span class="h-status">상태</span>
+      <div class="grid" role="list">
+        ${items.map(
+          (it) => html`<item-card
+            role="listitem"
+            .item=${it}
+            href=${this.hrefFor(it)}
+          ></item-card>`,
+        )}
       </div>
+      ${hasMore ? this.renderMore() : ""}
     `;
   }
 
   private renderMore() {
     return html`
       <div class="more-row">
-        <button
-          type="button"
-          class="more"
-          ?disabled=${this.loadingMore}
+        <x-button
+          variant="secondary"
+          ?loading=${this.loadingMore}
           @click=${() => this.more()}
         >
-          ${this.loadingMore
-            ? "불러오는 중…"
-            : html`
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-                더보기
-              `}
-        </button>
+          ${this.loadingMore ? "불러오는 중…" : "더보기"}
+        </x-button>
       </div>
     `;
   }

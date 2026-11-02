@@ -18,5 +18,9 @@ dist/
 # DB 스크립트 생성물 (db:seed·db:import-items·db:export-neon)
 server/scripts/out/
 
-# 디자인 원본은 pen.dev 공유 링크로 관리한다 (README '디자인' 참고)
+# 시각 회귀 실패 시 저장되는 현재 스크린샷 (기준 이미지는 커밋한다)
+web/tests/visual/current/
+
+# 디자인 값은 tokens.css 가 단일 출처다 (README '디자인' 참고).
+# 예전 pen.dev 원본은 더 이상 쓰지 않지만, 실수로 커밋되지 않게 계속 무시한다.
 item-rental.pen

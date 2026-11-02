@@ -68,7 +68,7 @@ function categoryWhere(category: string | null | undefined): string {
   return "";
 }
 
-// 대여 가능 조건 — shared/stock.isItemAvailable 과 같은 규칙 (유일한 차이는 SQL 표현).
+// 대여 가능 조건 — shared/stock 의 availableQty 와 같은 규칙 (유일한 차이는 SQL 표현).
 // 소모품은 대여 대상이 아니므로 항상 "가능". 폐기(lifecycle)와 수리 소진·재고 0은 제외.
 const AVAILABLE_SQL = `(items.kind = 'consumable'
    OR (items.lifecycle = 'active'
@@ -83,24 +83,33 @@ const RENTED_SQL = `EXISTS (SELECT 1 FROM reservations r
 // 대여 가능 종류 — 소모품은 '대여' 대상이 아니다 (요약 숫자와 같은 규칙)
 const RENTAL_AVAILABLE_SQL = `(items.kind = 'rental' AND ${AVAILABLE_SQL})`;
 
+// 수리 중 — 수리 수량이 있는 물품 (상태 탭 '수리 중')
+const REPAIR_SQL = `items.qty_repair > 0`;
+
 // 상태 탭 필터 — 이슈 #12 §6.2 의 상태 칸과 같은 축.
 //   rented    = 지금 대여 중 수량이 있는 물품 (종류)
 //   available = 지금 빌릴 수 있는 대여품 (종류)
-const stateWhere = (state: "rented" | "available" | null | undefined): string => {
-  if (state === "rented") return ` AND ${RENTED_SQL}`;
-  if (state === "available") return ` AND ${RENTAL_AVAILABLE_SQL}`;
+//   repair    = 수리 중 수량이 있는 물품 (종류)
+// WHERE 절과 COUNT 식이 같은 조건을 쓰도록 식 하나만 만든다.
+const stateExpr = (state: "rented" | "available" | "repair" | null | undefined): string => {
+  if (state === "rented") return RENTED_SQL;
+  if (state === "available") return RENTAL_AVAILABLE_SQL;
+  if (state === "repair") return REPAIR_SQL;
   return "";
+};
+
+const stateWhere = (state: "rented" | "available" | "repair" | null | undefined): string => {
+  const expr = stateExpr(state);
+  return expr ? ` AND ${expr}` : "";
 };
 
 // ===== 전체 목록 (탐색 — 무한스크롤) =====
 
 export type BrowseList = {
   items: ListItemWithBadge[];
-  // state 필터를 무시한 전체 수 — '전체' 배지
+  // state 필터를 무시한 전체 수 — 관리자 목록의 hasMore 계산용
   total: number;
-  // available 필터를 적용한 수 — '대여 가능만' 배지
-  available_total: number;
-  // 실제로 적용된 필터(state·available)를 모두 통과한 수 — hasMore 계산용.
+  // 실제로 적용된 필터(state·category·text)를 모두 통과한 수 — hasMore 계산용.
   // total 은 필터와 무관하므로 페이지네이션 종료 판정에 쓰면 안 된다(무한 루프).
   matched: number;
   // 목록 상단 요약 — state 필터와 무관한 모집단(폐기 제외) 기준
@@ -136,31 +145,23 @@ export async function listItems(
   opts: {
     limit: number;
     offset: number;
-    available: boolean;
     category?: string | null;
     withCategories?: boolean;
     includeRetired?: boolean;
     q?: string;
     // 상태 탭 — null 이면 전체. summary·total 은 이 필터의 영향을 받지 않는다.
-    state?: "rented" | "available" | null;
+    state?: "rented" | "available" | "repair" | null;
   },
 ): Promise<BrowseList> {
   const retired = opts.includeRetired ?? false;
   const tf = textFilter(opts.q);
   const state = opts.state ?? null;
   const where =
-    (opts.available ? ` AND ${AVAILABLE_SQL}` : "") +
     stateWhere(state) +
     categoryWhere(opts.category) +
     tf.sql;
   // 행 필터 전체를 그대로 적용한 개수 — hasMore 종료 판정용
-  const matchExpr =
-    [
-      opts.available ? AVAILABLE_SQL : "",
-      state === "rented" ? RENTED_SQL : state === "available" ? RENTAL_AVAILABLE_SQL : "",
-    ]
-      .filter(Boolean)
-      .join(" AND ") || "1=1";
+  const matchExpr = stateExpr(state) || "1=1";
   const [rows, counts] = (await Promise.all([
     db.query(
       `${buildListSql(where, opts.withCategories ?? false, retired)} LIMIT ${opts.limit} OFFSET ${opts.offset}`,
@@ -170,7 +171,6 @@ export async function listItems(
     // retired 는 counts 에는 포함되지만(includeRetired) 요약에는 들어가지 않는다.
     db.query(
       `SELECT COUNT(*) AS total,
-              COALESCE(SUM(CASE WHEN ${AVAILABLE_SQL} THEN 1 ELSE 0 END), 0) AS available_total,
               COALESCE(SUM(CASE WHEN ${matchExpr} THEN 1 ELSE 0 END), 0) AS matched,
               COALESCE(SUM(CASE WHEN items.lifecycle <> 'retired' THEN 1 ELSE 0 END), 0) AS types,
               COALESCE(SUM(CASE WHEN items.lifecycle <> 'retired' AND COALESCE(r.borrowed, 0) > 0 THEN 1 ELSE 0 END), 0) AS rented,
@@ -191,7 +191,6 @@ export async function listItems(
     ListItemRow[],
     {
       total: number;
-      available_total: number;
       matched: number;
       types: number;
       rented: number;
@@ -203,7 +202,6 @@ export async function listItems(
   return {
     items: parseListRows(rows).map(withAvailabilityBadge),
     total: Number(c.total),
-    available_total: Number(c.available_total),
     matched: Number(c.matched),
     summary: {
       types: Number(c.types),

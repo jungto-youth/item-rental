@@ -5,22 +5,25 @@ import { customElement, state } from "lit/decorators.js";
 import type { AdminReservation, ReservationStatus } from "../../types";
 import { api } from "../../api/client";
 import { reduceMotion } from "../../styles/motion";
+import { sideCardCss } from "../../styles/ui";
 import "../../components/admin/admin-page";
 import "../../components/ui/empty";
 import "../../components/ui/button";
 import "../../components/ui/chip";
 import "../../components/common/reservation-row";
 
+type Filter = "" | ReservationStatus;
+
 // 대여 관리: 반납 처리만 (admin 전용)
 // 승인·거절·수령이 없어졌다 — 회원이 신청하면 즉시 대여 중이고, 관리자는 돌려받았을 때 반납을 누른다
 @customElement("page-admin-reservations")
 export class PageAdminReservations extends LitElement {
+  // 전체를 받아 두고 필터·칩 숫자를 클라이언트에서 계산한다 (시안의 칩 카운트)
   @state() private reservations: AdminReservation[] = [];
   // 500건 하드 리밋으로 잘렸는지 — 잘렸으면 '500건까지만 표시' 안내
   @state() private truncated = false;
-  @state() private filter: "" | ReservationStatus = "";
+  @state() private filter: Filter = "";
   @state() private loading = true; /* 초기 로드 전 — "없어요" 깜빡임 방지 */
-  @state() private busy = false;
   // 반납 처리 중인 예약 id — 해당 행 버튼만 스피너를 띄운다
   @state() private processingId: number | null = null;
   @state() private message = "";
@@ -30,25 +33,42 @@ export class PageAdminReservations extends LitElement {
 
   static styles = [
     reduceMotion,
+    sideCardCss,
     css`
+      :host {
+        display: block;
+      }
       x-chip {
         display: block;
-        margin-bottom: var(--space-4, 16px);
+        margin-top: var(--space-3);
       }
-      .count {
-        margin: 0 0 var(--space-2);
-        font-size: var(--text-caption);
-        color: var(--color-muted);
+      .result {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+        margin: var(--space-2) 0 var(--space-1);
+        color: var(--ink-2);
+        font-size: var(--text-fine);
+      }
+      .result p {
+        margin: 0;
       }
       .trunc {
-        color: var(--tone-warning-text);
+        color: var(--danger);
       }
       .tel {
-        color: var(--tone-primary-text);
-        text-decoration: none;
+        color: var(--ink-1);
+        text-decoration: underline;
+        text-underline-offset: 2px;
       }
       .tel:hover {
         text-decoration: underline;
+      }
+      .list {
+        display: grid;
+        gap: var(--space-1);
+        margin-top: var(--space-1);
       }
     `,
   ];
@@ -69,11 +89,10 @@ export class PageAdminReservations extends LitElement {
     // 바뀌어, 느린 네트워크에서 "먹힌" 것처럼 보인다
     this.loading = true;
     try {
-      const qs = this.filter ? `?status=${this.filter}` : "";
       const res = await api<{
         reservations: AdminReservation[];
         truncated?: boolean;
-      }>(`/api/admin/reservations${qs}`);
+      }>("/api/admin/reservations");
       this.reservations = res.reservations;
       this.truncated = res.truncated === true;
     } catch (e) {
@@ -83,21 +102,27 @@ export class PageAdminReservations extends LitElement {
     }
   }
 
-  // 상태 필터 전환 — 여러 번 눌러도 마지막 요청이 이긴다
+  // 상태 필터 전환 — 서버 재조회 없이 이미 받은 목록을 거른다
   private setFilter(v: string) {
-    const next = v as "" | ReservationStatus;
-    if (next === this.filter) return;
-    this.filter = next;
-    void this.reload();
+    this.filter = v as Filter;
+  }
+
+  private get filtered(): AdminReservation[] {
+    if (!this.filter) return this.reservations;
+    return this.reservations.filter((r) => r.status === this.filter);
+  }
+
+  private countFor(status: Filter): number {
+    if (!status) return this.reservations.length;
+    return this.reservations.filter((r) => r.status === status).length;
   }
 
   // 반납 처리 — 이 화면의 유일한 상태 전이
   private async markReturned(r: AdminReservation) {
-    if (this.busy) return;
+    if (this.processingId !== null) return;
     const label = r.qty > 1 ? `'${r.item_name}' ${r.qty}개` : `'${r.item_name}'`;
-    if (!(await confirmDialog(`${label}를 반납 처리할까요?`, { confirmLabel: "반납 처리", danger: false })))
+    if (!(await confirmDialog(`${label}를 반납 처리할까요?`, { confirmLabel: "반납 처리" })))
       return;
-    this.busy = true;
     this.processingId = r.id;
     try {
       await api(`/api/admin/reservations/${r.id}/return`, { method: "POST" });
@@ -109,50 +134,66 @@ export class PageAdminReservations extends LitElement {
       this.messageTone = "error";
       await this.reload();
     } finally {
-      this.busy = false;
       this.processingId = null;
     }
   }
 
   render() {
+    const list = this.filtered;
     return html`
       <admin-page
         title="대여 관리"
+        subtitle="회원이 빌린 물품과 반납 상태를 확인해요."
         ?loading=${this.loading}
         .error=${this.error}
         .message=${this.message}
         .messageTone=${this.messageTone}
         @retry=${() => void this.reload()}
+        side
       >
         <x-chip
+          layout="grid"
           ariaLabel="상태 필터"
           .value=${this.filter}
           .options=${[
-            { value: "", label: "전체" },
-            { value: "rented", label: "대여 중" },
-            { value: "returned", label: "반납 완료" },
-            { value: "cancelled", label: "취소" },
+            { value: "", label: "전체", count: this.countFor("") },
+            { value: "rented", label: "대여 중", count: this.countFor("rented") },
+            { value: "returned", label: "반납 완료", count: this.countFor("returned") },
+            { value: "cancelled", label: "취소", count: this.countFor("cancelled") },
           ]}
           @change=${(e: CustomEvent<{ value: string }>) => this.setFilter(e.detail.value)}
-        >
-        ${this.reservations.length === 0
-          ? html`<x-empty compact state="empty" text="대여가 없어요"></x-empty>`
-          : html`
-              <p class="count" role="status">
-                ${this.reservations.length}개
-                ${this.truncated
-                  ? html` <span class="trunc">(500건까지만 표시 — 더 오래된 건은 여기 없어요)</span>`
-                  : ""}
-              </p>
-              ${this.renderCards()}
-            `}
-      </admin-page>
-    `;
-  }
+        ></x-chip>
 
-  private renderCards() {
-    return html`
-      <div>${this.reservations.map((r) => this.renderCard(r))}</div>
+        ${list.length === 0
+          ? html`<div class="list">
+              <x-empty
+                state="empty"
+                text=${this.filter ? "해당 상태의 대여가 없어요" : "대여가 없어요"}
+                subtitle=${this.filter ? "다른 상태를 선택해 보세요." : ""}
+              ></x-empty>
+            </div>`
+          : html`
+              <div class="result">
+                <p role="status">
+                  ${list.length}개
+                  ${this.truncated
+                    ? html` <span class="trunc">(500건까지만 표시 — 더 오래된 건은 여기 없어요)</span>`
+                    : ""}
+                </p>
+                <p>최근 대여 순</p>
+              </div>
+              <div class="list">
+                ${list.map((r) => this.renderCard(r))}
+              </div>
+            `}
+        <section slot="side" class="side-card">
+          <h2>반납 처리 안내</h2>
+          <p>
+            물품을 돌려받았으면 <b>반납</b>을 눌러 상태를 바꿔 주세요. 회원이 직접
+            반납한 건은 목록에서 따로 표시돼요.
+          </p>
+        </section>
+      </admin-page>
     `;
   }
 
@@ -170,9 +211,8 @@ export class PageAdminReservations extends LitElement {
           ? html`<x-button
               slot="actions"
               variant="secondary"
-              size="sm"
               ?loading=${processing}
-              ?disabled=${this.busy && !processing}
+              ?disabled=${this.processingId !== null && !processing}
               @click=${() => this.markReturned(r)}
             >
               반납
@@ -200,7 +240,7 @@ export class PageAdminReservations extends LitElement {
     const phone = r.member_phone;
     const contact = phone
       ? html`<a class="tel" href="tel:${phone.replace(/[^+\d]/g, "")}">${phone}</a>`
-      : (r.member_email ?? "연락처 미등록");
+      : (r.member_email || "연락처 미등록");
     return html`<span>${r.member_name || "—"} · ${contact}</span>`;
   }
 }

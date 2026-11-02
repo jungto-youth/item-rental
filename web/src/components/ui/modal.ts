@@ -1,16 +1,16 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import "./icon-btn";
 
 @customElement("x-modal")
 export class XModal extends LitElement {
   @property({ type: Boolean, reflect: true }) open = false;
   @property() title = "";
   @property() maxWidth = "500px";
+  @state() private hasFooter = false;
 
   // 접근성 — 열릴 때 첫 포커스로 이동하고 Tab이 대화상자 안을 돌게 하며,
   // 닫힐 때 열었던 요소로 포커스를 되돌린다. 이름은 title에서 붙인다.
-  @state() private titleId = `x-modal-title-${Math.random().toString(36).slice(2)}`;
+  private readonly titleId = `x-modal-title-${Math.random().toString(36).slice(2)}`;
   private lastFocused: HTMLElement | null = null;
 
   // 열린 모달 스택 — Esc·Tab은 맨 위 모달만 처리한다. confirmDialog가 페이지 모달 위에
@@ -73,13 +73,13 @@ export class XModal extends LitElement {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.45);
+      background: rgba(23, 23, 23, 0.45);
+      backdrop-filter: blur(3px);
       z-index: 100;
       align-items: center;
       justify-content: center;
-      padding: var(--space-4, 16px);
+      padding: var(--space-3);
       box-sizing: border-box;
-      backdrop-filter: blur(2px);
       animation: fadeIn 0.15s ease-out;
     }
 
@@ -88,16 +88,18 @@ export class XModal extends LitElement {
     }
 
     .dialog {
-      background: var(--color-bg);
-      color: var(--color-text);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg, 12px);
+      background: var(--surface);
+      color: var(--ink-1);
+      border: 0;
+      border-radius: var(--radius);
       width: 100%;
       max-height: 90vh;
       display: flex;
       flex-direction: column;
+      gap: var(--space-2);
+      padding: var(--space-3);
       box-sizing: border-box;
-      animation: slideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: var(--shadow-modal);
       overflow: hidden;
     }
 
@@ -105,52 +107,39 @@ export class XModal extends LitElement {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: var(--space-4, 16px) var(--space-5, 20px);
-      border-bottom: 1px solid var(--color-border);
+      padding: 0;
     }
 
     .title {
-      font-size: var(--text-heading, 17px);
-      font-weight: 600;
+      font-size: var(--text-heading);
+      font-weight: 700;
       margin: 0;
       line-height: 1.3;
     }
 
     .body {
-      padding: var(--space-5, 20px);
+      padding: 0;
       overflow-y: auto;
       flex: 1;
+      min-height: 0;
+      line-height: var(--line-height);
     }
 
     .footer {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      gap: var(--space-2, 8px);
-      padding: var(--space-3-5, 14px) var(--space-5, 20px);
-      border-top: 1px solid var(--color-border);
-      background: var(--color-surface);
+      gap: var(--space-1);
+      padding: 0;
     }
 
-    /* 슬롯이 비었을 때 footer 감춤 */
-    .footer:empty {
+    .footer.empty {
       display: none;
     }
 
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
-    }
-
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(8px) scale(0.98);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
     }
   `;
 
@@ -185,6 +174,15 @@ export class XModal extends LitElement {
     }
   }
 
+  private onFooterSlotChange(e: Event) {
+    const nodes = (e.target as HTMLSlotElement).assignedNodes({ flatten: true });
+    this.hasFooter = nodes.some(
+      (n) =>
+        n.nodeType === Node.ELEMENT_NODE ||
+        (n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim() !== ""),
+    );
+  }
+
   close() {
     this.dispatchEvent(new CustomEvent("close", { bubbles: true, composed: true }));
   }
@@ -198,18 +196,18 @@ export class XModal extends LitElement {
           class="dialog"
           style="max-width: ${this.maxWidth}"
           role="dialog"
+          tabindex="-1"
           aria-modal="true"
           aria-labelledby=${this.titleId}
         >
           <div class="header">
             <h3 class="title" id=${this.titleId}>${this.title}</h3>
-            <x-icon-btn label="닫기" @click=${this.close}>×</x-icon-btn>
           </div>
           <div class="body">
             <slot></slot>
           </div>
-          <div class="footer">
-            <slot name="footer"></slot>
+          <div class="footer ${this.hasFooter ? "" : "empty"}">
+            <slot name="footer" @slotchange=${this.onFooterSlotChange}></slot>
           </div>
         </div>
       </div>

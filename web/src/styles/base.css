@@ -1,0 +1,31 @@
+/* 모든 shadow root에 깔리는 공통 규칙.
+   tokens.css가 문서(body, button, input)에 하던 일을 shadow root 안에서 되풀이한다.
+   즉 "전역 스타일이 없다"는 감각을 없애기 위한 파일이다.
+
+   규칙: 여기에는 레이아웃을 바꾸는 값을 넣지 않는다.
+   margin·padding 리셋을 넣으면 UA 기본 여백에 기대는 화면이 조용히 틀어진다. */
+
+:host {
+  box-sizing: border-box;
+  font-family: var(--font-body);
+  line-height: var(--line-height);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* 토큰 파일의 전역 규칙과 같은 내용 — shadow root에는 닿지 않으므로 여기서 복원한다 */
+button {
+  font-family: inherit;
+  line-height: var(--line-height-button);
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  line-height: var(--line-height);
+}

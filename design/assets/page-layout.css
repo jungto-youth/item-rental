@@ -1,0 +1,39 @@
+/* 공통 2열 페이지 셸 — 왼쪽 주 컨텐츠, 오른쪽 보조 패널.
+   홈은 검색/필터 위치가 달라 index.html 안에서 별도 grid를 쓴다. */
+
+.page-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+
+.page-main {
+  min-width: 0;
+}
+
+.page-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .page-split {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+  }
+  .page-side {
+    position: sticky;
+    top: 96px;
+  }
+}
+
+/* 모바일에서는 필터를 목록 위로 올리고, 보조 설명 카드는 숨긴다 */
+@media (max-width: 1023px) {
+  .page-split.side-first .page-side {
+    order: -1;
+  }
+  .page-side-hide {
+    display: none;
+  }
+}

@@ -4,7 +4,7 @@ import { numberInputCss } from "../../styles/ui";
 
 // 라벨 + 입력 필드 — 페이지마다 흩어져 있던 input 스타일(높이·라운드·포커스)을 통일한다.
 // Form-Associated Custom Element: required 검증이 내부 input의 shadow에 묻히지 않도록
-// elementInternals로 폼 제출에 직접 참여한다 (44px 터치 타깃).
+// elementInternals로 폼 제출에 직접 참여한다 (40px 터치 타깃).
 @customElement("x-input")
 export class XInput extends LitElement {
   static formAssociated = true;
@@ -15,6 +15,8 @@ export class XInput extends LitElement {
   @property() value = "";
   @property({ type: Boolean, reflect: true }) required = false;
   @property({ type: Boolean, reflect: true }) disabled = false;
+  // 필드 오류 — 테두리만 위험색으로. 문구는 사용처가 소유한다
+  @property({ type: Boolean, reflect: true }) invalid = false;
   // type="textarea"일 때 행 수
   @property({ type: Number }) rows = 2;
   // type="number"일 때 최솟값 — 네이티브 전달용(스피너·키보드 힌트), 폼 검증은 required 범위만
@@ -30,54 +32,53 @@ export class XInput extends LitElement {
     :host {
       display: flex;
       flex-direction: column;
-      gap: var(--space-1, 4px);
+      gap: var(--space-1);
       width: 100%;
       box-sizing: border-box;
     }
     label {
-      font-size: var(--text-caption, 13px);
-      color: var(--color-muted);
-      font-weight: 500;
+      font-size: var(--text-fine);
+      color: var(--ink-2);
+      font-weight: 400;
     }
     .control {
       width: 100%;
       box-sizing: border-box;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md, 8px);
-      background: var(--color-surface);
-      color: var(--color-text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--ink-1);
       font-family: inherit;
-      transition: border-color 0.15s ease, background-color 0.15s ease;
+      line-height: var(--line-height-button);
     }
     .control::placeholder {
-      color: var(--color-muted);
+      color: var(--ink-2);
     }
     .control:focus {
       outline: none;
-      border-color: var(--color-primary);
-      background: var(--color-bg);
+      border-color: var(--primary);
+      background: var(--surface);
     }
-    .control:focus-visible {
-      outline: 2px solid var(--color-primary-focus);
-      outline-offset: 1px;
+    :host([invalid]) .control {
+      border-color: var(--danger);
     }
     .control:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
     input.control {
-      height: 44px;
-      padding: 0 14px;
-      font-size: var(--text-body, 15px);
+      height: 40px;
+      padding: var(--space-1) var(--space-2);
+      font-size: var(--text-body);
     }
     /* textarea — 고정 높이 대신 세로 확장 */
     textarea.control {
       height: auto;
-      padding: 10px 14px;
-      font-size: var(--text-body, 15px);
-      line-height: 1.5;
+      padding: var(--space-2);
+      font-size: var(--text-body);
+      line-height: var(--line-height);
       resize: vertical;
-      min-height: 60px;
+      min-height: 72px;
     }
   `,
   ];

@@ -117,34 +117,3 @@ export type AdminReservation = MyReservation & {
   // 관리자가 반납 처리할 때 남기는 메모 — 지금은 writer 가 없어 null 이다.
   admin_memo: string | null;
 };
-
-// 관리자 대시보드 () — /api/admin/dashboard
-// 날짜 개념이 없어져 '오늘 수령/반납 예정'과 '연체'가 사라졌다. 대신 전체 물품(폐기 포함)을
-// 내려줘서 화면이 물품별 현재 상태를 그룹으로 나눠 보여준다.
-export type DashboardRenter = {
-  member_name: string;
-  member_phone: string | null;
-  // 부분 대여 수량 — 반납 시 실제로 챙길 개수
-  qty: number;
-};
-
-export type DashboardItem = {
-  id: number;
-  name: string;
-  kind: ItemKind;
-  lifecycle: ItemLifecycle;
-  total_qty: number;
-  qty_repair: number;
-  // 대여가능 수량 = total_qty - qty_repair (서버가 계산해 내려줌)
-  rentable_qty: number;
-  // 현재 대여 중인 수량 합 — 가용성 판정의 유일한 근거
-  active_now: number;
-  // 대표 사진 URL (첫번째 사진). 없으면 null
-  photo: string | null;
-  // 현재 이 물품을 대여 중인 회원 목록
-  current_renters: DashboardRenter[];
-};
-
-export type Dashboard = {
-  items: DashboardItem[];
-};

@@ -5,6 +5,7 @@ import type { Bindings } from "../types";
 import type { Item } from "../../../shared/api-types";
 import { embedItem, uncacheVec } from "../embedding";
 import { ftsDeleteSql, ftsInsertSql, ftsResyncByIds } from "./item-fts.service";
+import { MAX_PHOTOS } from "../../../shared/photo-limits";
 
 // D1 의 json_group_array 는 TEXT 를 돌려준다 — Postgres 드라이버는 json 타입을 파싱해 줬으므로
 // 그 자리를 이 헬퍼가 대신한다 (문자열이 아니면 이미 파싱된 값으로 간주)
@@ -40,8 +41,10 @@ export type ListItemRow = ItemAttrs & {
 };
 
 // 컴파일 타임 가드 — SQL 행이 클라이언트 뷰(shared Item)를 만족하는지 검사한다.
-// 어느 쪽이 어긋나면 이 타입이 never 가 되어 tsc 가 에러를 낸다.
-type _ListItemRowIsItem = ListItemRow extends Item ? true : never;
+// (타입 별칭만 선언하면 never 여도 에러가 나지 않는다. 조건을 extends true 로 묶어야
+//  어긋났을 때 tsc 가 실제로 실패한다)
+type Assert<T extends true> = T;
+type _ListItemRowIsItem = Assert<ListItemRow extends Item ? true : false>;
 
 // 관리자용 Item 행 — categories 는 단건 SQL (=0021 태그 조인)이 채운다
 export type AdminItemRow = {
@@ -364,8 +367,6 @@ export async function deleteItem(
 }
 
 // ===== 사진 관리 () =====
-
-export const MAX_PHOTOS = 3; //  사진 최대 3장
 
 // 사진 추가 결과 — too_many: 최대 장수 초과 (라우트가 409 응답)
 type AddPhotoResult =
