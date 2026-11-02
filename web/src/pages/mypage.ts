@@ -7,6 +7,7 @@ import "../components/ui/notice";
 import "../components/ui/page-header";
 import "../components/common/profile-form";
 import { reduceMotion } from "../styles/motion";
+import { pageSplitCss, sideCardCss } from "../styles/ui";
 
 // 내 정보 페이지: 계정 정보 (상단 배너 + 계정 정보 카드)
 // 수정 폼은 profile-form 공용 (온보딩과 동일 입력·검증·저장).
@@ -20,11 +21,11 @@ export class PageMypage extends LitElement {
 
   static styles = [
     reduceMotion,
+    pageSplitCss,
+    sideCardCss,
     css`
       :host {
         display: block;
-        max-width: var(--layout-form);
-        margin: 0 auto;
       }
 
       .content {
@@ -238,64 +239,77 @@ export class PageMypage extends LitElement {
         subtitle="계정 정보와 연락처를 관리해요."
       ></x-page-header>
 
-      <div class="content">
-        ${this.banner}
+      <div class="split">
+        <div class="main content">
+          ${this.banner}
 
-        <section>
-          <h2>계정 정보</h2>
+          <section>
+            <h2>계정 정보</h2>
 
-          ${this.editing
-            ? html`
-                <profile-form
-                  title="계정 정보 수정"
-                  hint="이메일은 변경할 수 없어요."
-                  avatar
-                  cancellable
-                  .email=${u.email}
-                  accountLabel="이메일"
-                  .initialName=${u.name}
-                  .initialPhone=${u.phone ?? ""}
-                  @saved=${this.onSaved}
-                  @cancel=${() => (this.editing = false)}
-                ></profile-form>
-              `
-            : html`
-                <div class="card">
-                  <div class="view-head">
-                    <div class="who">
-                      <span class="avatar" aria-hidden="true">${initial}</span>
-                      <div>
-                        <p class="name">${u.name || u.email}</p>
-                        <p class="org">정토회</p>
+            ${this.editing
+              ? html`
+                  <profile-form
+                    title="계정 정보 수정"
+                    hint="이메일은 변경할 수 없어요."
+                    avatar
+                    cancellable
+                    .email=${u.email}
+                    accountLabel="이메일"
+                    .initialName=${u.name}
+                    .initialPhone=${u.phone ?? ""}
+                    @saved=${this.onSaved}
+                    @cancel=${() => (this.editing = false)}
+                  ></profile-form>
+                `
+              : html`
+                  <div class="card">
+                    <div class="view-head">
+                      <div class="who">
+                        <span class="avatar" aria-hidden="true">${initial}</span>
+                        <div>
+                          <p class="name">${u.name || u.email}</p>
+                          <p class="org">정토회</p>
+                        </div>
                       </div>
+                      <x-button variant="secondary" type="button" @click=${this.startEdit}>
+                        수정
+                      </x-button>
                     </div>
-                    <x-button variant="secondary" type="button" @click=${this.startEdit}>
-                      수정
-                    </x-button>
+
+                    <dl>
+                      <div class="row">
+                        <dt>이메일</dt>
+                        <dd title=${u.email}>${u.email}</dd>
+                      </div>
+                      <div class="row">
+                        <dt>연락처</dt>
+                        <dd>${u.phone || "미등록"}</dd>
+                      </div>
+                    </dl>
+
+                    <p class="saved" role="status" ?hidden=${!this.saved}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                      저장했어요
+                    </p>
                   </div>
+                `}
+          </section>
+        </div>
 
-                  <dl>
-                    <div class="row">
-                      <dt>이메일</dt>
-                      <dd title=${u.email}>${u.email}</dd>
-                    </div>
-                    <div class="row">
-                      <dt>연락처</dt>
-                      <dd>${u.phone || "미등록"}</dd>
-                    </div>
-                  </dl>
+        <aside class="side side-hide" aria-label="계정 안내">
+          <section class="side-card">
+            <h2>대여 현황</h2>
+            <p>대여 중인 물품은 <b>대여 내역</b>에서 확인할 수 있어요.</p>
+            <a href="/my/rentals">대여 내역 보기</a>
+          </section>
 
-                  <p class="saved" role="status" ?hidden=${!this.saved}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                    저장했어요
-                  </p>
-                </div>
-              `}
-        </section>
-
-        <p class="footnote">연락처는 물품 대여·반납 안내에만 사용해요.</p>
+          <section class="side-card">
+            <h2>연락처 안내</h2>
+            <p>연락처는 물품 대여·반납 안내에만 사용해요. 번호가 바뀌면 내 정보에서 수정해 주세요.</p>
+          </section>
+        </aside>
       </div>
     `;
   }

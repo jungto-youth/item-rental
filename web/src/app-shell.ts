@@ -155,14 +155,15 @@ export class AppShell extends LitElement {
     return this.user?.role === "admin" && location.pathname === "/";
   }
 
-  private get isLogin(): boolean {
-    return location.pathname === "/login";
+  // 로그인과 프로필 등록은 헤더·푸터 없는 전체 화면 — 시안과 같은 온보딩 2단계
+  private get isPlain(): boolean {
+    return location.pathname === "/login" || location.pathname === "/signup/profile";
   }
 
   // 로그인만 빼고 모든 화면 하단에 공통 푸터를 둔다.
   // 404는 흰 면(surface), 그 외는 캔버스 바탕.
   private get footerMode(): "none" | "default" | "surface" {
-    if (this.isLogin) return "none";
+    if (this.isPlain) return "none";
     const path = location.pathname;
     if (path === "/") return "default";
     if (path.startsWith("/policy/")) return "default";
@@ -182,14 +183,14 @@ export class AppShell extends LitElement {
   render() {
     const footer = this.footerMode;
     return html`
-      ${this.isLogin
+      ${this.isPlain
         ? ""
         : html`<app-header
             .user=${this.user}
             .route=${location.pathname}
           ></app-header>`}
 
-      <main class=${this.isLogin ? "plain" : this.showFab ? "has-fab" : ""}>
+      <main class=${this.isPlain ? "plain" : this.showFab ? "has-fab" : ""}>
         ${this.router.outlet()}
       </main>
 

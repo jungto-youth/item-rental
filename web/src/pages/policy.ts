@@ -69,9 +69,16 @@ export class PagePolicy extends LitElement {
       margin-top: var(--space-4);
     }
     @media (min-width: 1024px) {
+      /* 본문이 왼쪽, 목차가 오른쪽 320px — 마크업 순서는 목차가 먼저라 order 로 뒤집는다 */
       .layout {
-        grid-template-columns: 200px minmax(0, 1fr);
-        gap: 48px;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: var(--space-3);
+      }
+      article {
+        order: 1;
+      }
+      aside {
+        order: 2;
       }
     }
 

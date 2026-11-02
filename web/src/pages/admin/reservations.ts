@@ -5,6 +5,7 @@ import { customElement, state } from "lit/decorators.js";
 import type { AdminReservation, ReservationStatus } from "../../types";
 import { api } from "../../api/client";
 import { reduceMotion } from "../../styles/motion";
+import { sideCardCss } from "../../styles/ui";
 import "../../components/admin/admin-page";
 import "../../components/ui/empty";
 import "../../components/ui/button";
@@ -32,6 +33,7 @@ export class PageAdminReservations extends LitElement {
 
   static styles = [
     reduceMotion,
+    sideCardCss,
     css`
       :host {
         display: block;
@@ -147,6 +149,7 @@ export class PageAdminReservations extends LitElement {
         .message=${this.message}
         .messageTone=${this.messageTone}
         @retry=${() => void this.reload()}
+        side
       >
         <x-chip
           layout="grid"
@@ -183,6 +186,13 @@ export class PageAdminReservations extends LitElement {
                 ${list.map((r) => this.renderCard(r))}
               </div>
             `}
+        <section slot="side" class="side-card">
+          <h2>반납 처리 안내</h2>
+          <p>
+            물품을 돌려받았으면 <b>반납</b>을 눌러 상태를 바꿔 주세요. 회원이 직접
+            반납한 건은 목록에서 따로 표시돼요.
+          </p>
+        </section>
       </admin-page>
     `;
   }

@@ -20,6 +20,9 @@ export class PageSignupProfile extends LitElement {
         display: block;
         max-width: var(--layout-onboarding);
         margin: 0 auto;
+        /* 셸 헤더가 없는 전체 화면이라 여백을 직접 갖는다 */
+        padding: var(--space-4) var(--space-3);
+        box-sizing: border-box;
       }
       .head {
         text-align: center;
@@ -47,10 +50,29 @@ export class PageSignupProfile extends LitElement {
         font-size: var(--text-fine);
         text-align: center;
       }
-      @media (min-width: 640px) {
-        :host {
-          padding-top: var(--space-4);
-        }
+      /* 헤더가 없는 전체 화면 — 계정 전환 출구와 정책 링크를 화면 안에 둔다 */
+      .alt {
+        margin: var(--space-3) 0 0;
+        text-align: center;
+      }
+      .alt a,
+      .policy a {
+        color: var(--ink-2);
+        font-size: var(--text-fine);
+        text-decoration: none;
+      }
+      .alt a:hover,
+      .policy a:hover {
+        color: var(--ink-1);
+        text-decoration: underline;
+      }
+      .policy {
+        display: flex;
+        justify-content: center;
+        gap: var(--space-2);
+        margin: var(--space-2) 0 0;
+        color: var(--ink-3);
+        font-size: var(--text-fine);
       }
     `,
   ];
@@ -83,6 +105,14 @@ export class PageSignupProfile extends LitElement {
       ></profile-form>
 
       <p class="privacy">입력한 정보는 물품 대여 연락에만 사용해요.</p>
+
+      <p class="alt"><a href="/login">다른 계정으로 로그인</a></p>
+
+      <nav class="policy" aria-label="정책">
+        <a href="/policy/terms">이용약관</a>
+        <span aria-hidden="true">·</span>
+        <a href="/policy/privacy">개인정보처리방침</a>
+      </nav>
     `;
   }
 }

@@ -8,6 +8,7 @@ import { MAX_PHOTOS } from "../../../../shared/photo-limits";
 import { navigate } from "../../router";
 import { type Item, type ItemKind, type ItemLifecycle, type Photo } from "../../types";
 import { reduceMotion } from "../../styles/motion";
+import { sideCardCss } from "../../styles/ui";
 import "../../components/admin/admin-page";
 import "../../components/ui/button";
 import "../../components/ui/chip";
@@ -96,11 +97,10 @@ export class PageAdminItemForm extends LitElement {
 
   static styles = [
     reduceMotion,
+    sideCardCss,
     css`
       :host {
         display: block;
-        max-width: var(--layout-form);
-        margin: 0 auto;
       }
 
       .wrap {
@@ -552,6 +552,7 @@ export class PageAdminItemForm extends LitElement {
         ?loading=${this.loading}
         .error=${this.loadError}
         @retry=${() => this.init()}
+        side
       >
         <div class="wrap">
           <form @submit=${this.handleSave}>
@@ -704,6 +705,21 @@ export class PageAdminItemForm extends LitElement {
             </div>
           </form>
         </div>
+        <section slot="side" class="side-card">
+          <h2>작성 안내</h2>
+          <p>
+            이름과 보유 수량은 필수예요. 수리중 수량은 대여할 수 없는 수량이라
+            보유 수량을 넘을 수 없어요.
+          </p>
+        </section>
+
+        <section slot="side" class="side-card">
+          <h2>사진 안내</h2>
+          <p>
+            사진은 최대 3장까지 등록할 수 있어요. 첫 사진이 대표 사진이 되고,
+            추가·삭제는 저장할 때 함께 반영돼요.
+          </p>
+        </section>
       </admin-page>
     `;
   }

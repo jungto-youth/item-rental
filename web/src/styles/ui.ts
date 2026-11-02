@@ -4,6 +4,89 @@ import { css } from "lit";
 // controls.ts(검색 input)·sections.ts(섹션 제목·링크 버튼)를 흡수했다.
 // 규칙: 이 파일에 없는 값(raw px·스케일 밖 폰트)은 새로 만들지 않는다.
 
+// 2열 페이지 셸 — 왼쪽 주 컨텐츠, 오른쪽 320px 보조 패널.
+// 1024px 미만은 한 열로 쌓고, 보조 설명은 본문을 밀어내지 않도록 숨긴다(.side-hide).
+export const pageSplitCss = css`
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+    align-items: start;
+  }
+  .main {
+    min-width: 0;
+  }
+  .side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  @media (min-width: 1024px) {
+    .split {
+      grid-template-columns: minmax(0, 1fr) 320px;
+    }
+    .side {
+      position: sticky;
+      top: 96px;
+    }
+  }
+  @media (max-width: 1023px) {
+    .side-hide {
+      display: none;
+    }
+  }
+`;
+
+// 보조 패널 카드 — 제목 한 줄 + 설명. 링크는 .side-card a 로 덧붙인다.
+export const sideCardCss = css`
+  .side-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--space-2);
+  }
+  .side-card h2 {
+    margin: 0;
+    color: var(--ink-1);
+    font-size: var(--text-body);
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+  }
+  .side-card p {
+    margin: var(--space-1) 0 0;
+    color: var(--ink-2);
+    font-size: var(--text-fine);
+    line-height: var(--line-height);
+  }
+  .side-card b {
+    color: var(--ink-1);
+    font-weight: 600;
+  }
+  .side-card a {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    margin-top: var(--space-2);
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink-1);
+    font-size: var(--text-fine);
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s ease;
+  }
+  .side-card a:hover {
+    background: var(--surface-muted);
+  }
+  .side-card a:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+`;
+
+
 // number input — 브라우저 기본 스피너(▲▼) 숨김.
 // shadow DOM 안의 input에는 전역 CSS(tokens.css)가 침투하지 않으므로,
 // number input을 쓰는 컴포넌트에서 이 조각을 import 해야 한다.

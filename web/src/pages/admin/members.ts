@@ -4,6 +4,7 @@ import { customElement, state } from "lit/decorators.js";
 import { api, ApiError } from "../../api/client";
 import type { AdminMember, AllowedEmail, Role } from "../../types";
 import { reduceMotion } from "../../styles/motion";
+import { sideCardCss } from "../../styles/ui";
 import { searchFieldCss } from "../../styles/ui";
 import "../../components/admin/admin-page";
 import "../../components/ui/empty";
@@ -41,6 +42,7 @@ export class PageAdminMembers extends LitElement {
   static styles = [
     reduceMotion,
     searchFieldCss,
+    sideCardCss,
     css`
       :host {
         display: block;
@@ -505,6 +507,7 @@ export class PageAdminMembers extends LitElement {
         .message=${this.message}
         .messageTone=${this.messageTone}
         @retry=${() => void this.reload()}
+        side
       >
         <x-chip
           class="tab"
@@ -519,6 +522,22 @@ export class PageAdminMembers extends LitElement {
             (this.tab = e.detail.value as "members" | "emails")}
         ></x-chip>
         ${this.tab === "members" ? this.renderMembers() : this.renderEmails()}
+
+        <section slot="side" class="side-card">
+          <h2>역할 안내</h2>
+          <p>
+            <b>회원</b>은 물품을 찾아 대여하고 반납해요. <b>관리자</b>는 물품
+            등록·수정과 회원 관리, 반납 처리를 맡아요.
+          </p>
+        </section>
+
+        <section slot="side" class="side-card">
+          <h2>마지막 관리자 보호</h2>
+          <p>
+            마지막 남은 관리자는 역할을 바꾸거나 탈퇴시킬 수 없어요. 탈퇴
+            회원이라도 대여 중인 물품이 있으면 등록 정보를 삭제할 수 없어요.
+          </p>
+        </section>
       </admin-page>
     `;
   }

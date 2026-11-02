@@ -4,7 +4,7 @@ import { navigate, syncScrollKey } from "../router";
 import { session } from "../context/session";
 import { type CatalogSummary } from "../types";
 import { reduceMotion } from "../styles/motion";
-import { searchFieldCss } from "../styles/ui";
+import { searchFieldCss, sideCardCss } from "../styles/ui";
 import "../components/ui/button";
 import "../components/ui/chip";
 import "../components/ui/page-header";
@@ -34,23 +34,42 @@ export class PageHome extends LitElement {
   static styles = [
     reduceMotion,
     searchFieldCss,
+    sideCardCss,
     css`
       :host {
         display: block;
       }
 
-      /* 제목은 x-page-header, 검색·필터·등록 액션은 그 아래 툴바가 소유한다 */
-      .toolbar {
+      /* ===== 홈 2열 — 검색은 왼쪽 위, 보조 패널은 오른쪽 =====
+         1024px 미만은 검색 → 필터 → 목록 한 열로 쌓고 보조 패널을 숨긴다.
+         등록은 좁은 화면에서 앱 셸의 FAB 가 맡는다. */
+      .home-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+          "search"
+          "main";
+        column-gap: var(--space-3);
+        row-gap: var(--space-2);
+      }
+      .home-search {
+        grid-area: search;
+        max-width: 560px;
+      }
+      .home-main {
+        grid-area: main;
+        min-width: 0;
+      }
+      .home-side {
+        grid-area: side;
         display: flex;
         flex-direction: column;
         gap: var(--space-2);
-        margin-bottom: var(--space-3);
       }
 
       .controls {
         position: relative;
         width: 100%;
-        max-width: 560px;
       }
 
       .search-icon {
@@ -102,6 +121,7 @@ export class PageHome extends LitElement {
       .filters {
         display: flex;
         min-width: 0;
+        margin-bottom: var(--space-2);
       }
 
       x-chip {
@@ -109,8 +129,8 @@ export class PageHome extends LitElement {
         min-width: 0;
       }
 
-      x-button.add {
-        display: none;
+      .home-side x-button {
+        width: 100%;
       }
 
       .notice {
@@ -119,18 +139,24 @@ export class PageHome extends LitElement {
       }
 
       @media (min-width: 1024px) {
-        .toolbar {
-          flex-direction: row;
-          align-items: center;
+        .home-layout {
+          grid-template-columns: minmax(0, 1fr) 320px;
+          grid-template-areas:
+            "search side"
+            "main side";
+          align-items: start;
         }
-        .controls {
+        .home-search {
           max-width: 400px;
         }
-        .filters {
-          margin-left: auto;
+        .home-side {
+          position: sticky;
+          top: 96px;
         }
-        x-button.add {
-          display: inline-block;
+      }
+      @media (max-width: 1023px) {
+        .home-side {
+          display: none;
         }
       }
     `,
@@ -200,94 +226,105 @@ export class PageHome extends LitElement {
       <div class="page">
         <x-page-header title="물품 현황" subtitle=${this.subtitle}></x-page-header>
 
-        <div class="toolbar">
-          <div class="controls">
-            <svg
-              class="search-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-            <input
-              class="search-input search"
-              type="search"
-              aria-label="물품 검색"
-              placeholder="이름, 위치, 분류 검색"
-              .value=${this.q}
-              @input=${this.onSearch}
-              @keydown=${(e: KeyboardEvent) => {
-                // Esc 로 검색어 비우기 — type="search" 브라우저 기본 동작에 의존하지 않는다
-                if (e.key === "Escape" && this.q) {
-                  e.preventDefault();
-                  this.clearSearch();
-                }
-              }}
-            />
-            ${this.q
+        <div class="home-layout">
+          <div class="home-search">
+            <div class="controls">
+              <svg
+                class="search-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <input
+                class="search-input search"
+                type="search"
+                aria-label="물품 검색"
+                placeholder="이름, 위치, 분류 검색"
+                .value=${this.q}
+                @input=${this.onSearch}
+                @keydown=${(e: KeyboardEvent) => {
+                  // Esc 로 검색어 비우기 — type="search" 브라우저 기본 동작에 의존하지 않는다
+                  if (e.key === "Escape" && this.q) {
+                    e.preventDefault();
+                    this.clearSearch();
+                  }
+                }}
+              />
+              ${this.q
+                ? html`
+                    <button
+                      type="button"
+                      class="clear-btn"
+                      aria-label="검색어 지우기"
+                      title="검색어 지우기"
+                      @click=${this.clearSearch}
+                    >
+                      ✕
+                    </button>
+                  `
+                : ""}
+            </div>
+          </div>
+
+          <aside class="home-side" aria-label="물품 등록과 대여 안내">
+            ${this.isAdmin
+              ? html`<x-button
+                  variant="primary"
+                  @click=${() => navigate("/items/new")}
+                >
+                  물품 등록
+                </x-button>`
+              : ""}
+
+            <section class="side-card">
+              <h2>대여 안내</h2>
+              <p>신청하면 바로 대여 중이 돼요. 반납은 대여 기록에서 할 수 있어요.</p>
+              <a href="/my/rentals">내 대여 보기</a>
+            </section>
+          </aside>
+
+          <div class="home-main">
+            <div class="filters">
+              <x-chip
+                layout="grid"
+                ariaLabel="물품 상태 필터"
+                .value=${this.tab}
+                .options=${TABS.map((t) => ({
+                  value: t.key,
+                  label: t.label,
+                  count: this.tabCount(t.key),
+                }))}
+                @change=${(e: CustomEvent<{ value: string }>) =>
+                  (this.tab = e.detail.value as TabKey)}
+              ></x-chip>
+            </div>
+
+            ${this.denied
               ? html`
-                  <button
-                    type="button"
-                    class="clear-btn"
-                    aria-label="검색어 지우기"
-                    title="검색어 지우기"
-                    @click=${this.clearSearch}
-                  >
-                    ✕
-                  </button>
+                  <div class="notice">
+                    <x-notice tone="danger" alert>
+                      관리자 권한이 필요해요 — 일반 회원 계정으로는 관리자 화면에 접근할 수 없어요.
+                    </x-notice>
+                  </div>
                 `
               : ""}
-          </div>
 
-          <div class="filters">
-            <x-chip
-              layout="grid"
-              ariaLabel="물품 상태 필터"
-              .value=${this.tab}
-              .options=${TABS.map((t) => ({
-                value: t.key,
-                label: t.label,
-                count: this.tabCount(t.key),
-              }))}
-              @change=${(e: CustomEvent<{ value: string }>) =>
-                (this.tab = e.detail.value as TabKey)}
-            ></x-chip>
+            <item-explorer
+              .q=${this.q}
+              .tab=${this.tab}
+              @counts-change=${(e: CustomEvent<CatalogSummary>) =>
+                (this.summary = e.detail)}
+              @clear-search=${this.clearSearch}
+            ></item-explorer>
           </div>
-
-          ${this.isAdmin
-            ? html`<x-button
-                class="add"
-                variant="primary"
-                @click=${() => navigate("/items/new")}
-              >
-                물품 등록
-              </x-button>`
-            : ""}
         </div>
-
-        ${this.denied
-          ? html`
-              <div class="notice">
-                <x-notice tone="danger" alert>
-                  관리자 권한이 필요해요 — 일반 회원 계정으로는 관리자 화면에 접근할 수 없어요.
-                </x-notice>
-              </div>
-            `
-          : ""}
-
-        <item-explorer
-          .q=${this.q}
-          .tab=${this.tab}
-          @counts-change=${(e: CustomEvent<CatalogSummary>) =>
-            (this.summary = e.detail)}
-          @clear-search=${this.clearSearch}
-        ></item-explorer>
       </div>
     `;
   }

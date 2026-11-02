@@ -310,7 +310,8 @@ await mkdir(currentDir, { recursive: true });
 
 const server = await createServer({
   configFile: fileURLToPath(new URL("../../vite.config.ts", import.meta.url)),
-  server: { host: "127.0.0.1", port: 0 },
+  // 개발 서버가 5173을 쓰고 있어도 테스트는 임의 포트로 뜬다 (strictPort 해제)
+  server: { host: "127.0.0.1", port: 0, strictPort: false },
 });
 
 let browser;

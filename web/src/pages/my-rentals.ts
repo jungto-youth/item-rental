@@ -11,6 +11,7 @@ import "../components/ui/page-header";
 import "../components/common/reservation-row";
 import type { MyReservation } from "../types";
 import { reduceMotion } from "../styles/motion";
+import { pageSplitCss, sideCardCss } from "../styles/ui";
 
 // 대여 내역 페이지: 현재 대여 중 + 대여 이력 + 반납·취소
 @customElement("page-my-rentals")
@@ -27,6 +28,8 @@ export class PageMyRentals extends LitElement {
 
   static styles = [
     reduceMotion,
+    pageSplitCss,
+    sideCardCss,
     css`
       :host {
         display: block;
@@ -279,54 +282,74 @@ export class PageMyRentals extends LitElement {
         subtitle="지금 빌린 물품과 지난 기록을 확인해요."
       ></x-page-header>
 
-      ${this.message
-        ? html`<p
-            class="msg ${this.messageTone}"
-            role=${this.messageTone === "error" ? "alert" : "status"}
-          >
-            ${this.messageTone === "success"
-              ? html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>`
-              : ""}
-            <span>${this.message}</span>
-          </p>`
-        : ""}
+      <div class="split">
+        <div class="main">
+          ${this.message
+            ? html`<p
+                class="msg ${this.messageTone}"
+                role=${this.messageTone === "error" ? "alert" : "status"}
+              >
+                ${this.messageTone === "success"
+                  ? html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>`
+                  : ""}
+                <span>${this.message}</span>
+              </p>`
+            : ""}
 
-      <!-- 1순위: 현재 대여 중인 물품 -->
-      <section>
-        <h2>현재 대여 중 (${rentedList.length})</h2>
-        ${rentedList.length > 0
-          ? html`<div class="list">
-              ${rentedList.map((r) => this.renderActiveRow(r))}
-            </div>`
-          : html`
-              <div class="empty-card">
-                <p class="empty-title">현재 대여 중인 물품이 없어요</p>
-                <p class="empty-sub">필요한 물품을 찾아 바로 대여할 수 있어요.</p>
-                <x-button variant="secondary" @click=${() => navigate("/")}>
-                  물품 둘러보기
-                </x-button>
-              </div>
-            `}
-      </section>
+          <!-- 1순위: 현재 대여 중인 물품 -->
+          <section>
+            <h2>현재 대여 중 (${rentedList.length})</h2>
+            ${rentedList.length > 0
+              ? html`<div class="list">
+                  ${rentedList.map((r) => this.renderActiveRow(r))}
+                </div>`
+              : html`
+                  <div class="empty-card">
+                    <p class="empty-title">현재 대여 중인 물품이 없어요</p>
+                    <p class="empty-sub">필요한 물품을 찾아 바로 대여할 수 있어요.</p>
+                    <x-button variant="secondary" @click=${() => navigate("/")}>
+                      물품 둘러보기
+                    </x-button>
+                  </div>
+                `}
+          </section>
 
-      <!-- 2순위: 과거 대여 이력 -->
-      ${historyList.length > 0
-        ? html`
-            <details ?open=${rentedList.length === 0}>
-              <summary>
-                <span>대여 이력 (${historyList.length})</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </summary>
-              <div class="history-list">
-                ${historyList.map((r) => this.renderHistoryRow(r))}
-              </div>
-            </details>
-          `
-        : ""}
+          <!-- 2순위: 과거 대여 이력 -->
+          ${historyList.length > 0
+            ? html`
+                <details ?open=${rentedList.length === 0}>
+                  <summary>
+                    <span>대여 이력 (${historyList.length})</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </summary>
+                  <div class="history-list">
+                    ${historyList.map((r) => this.renderHistoryRow(r))}
+                  </div>
+                </details>
+              `
+            : ""}
+        </div>
+
+        <aside class="side side-hide" aria-label="대여 안내">
+          <section class="side-card">
+            <h2>반납 안내</h2>
+            <p>
+              대여 중인 물품은 <b>반납하기</b>를 눌러 바로 반납할 수 있어요.
+              취소는 빌리지 않기로 한 경우에만 사용해요.
+            </p>
+            <a href="/">물품 둘러보기</a>
+          </section>
+
+          <section class="side-card">
+            <h2>대여 이력</h2>
+            <p>반납·취소한 물품은 아래 접이식 이력에서 다시 확인할 수 있어요.</p>
+          </section>
+        </aside>
+      </div>
     `;
   }
 }

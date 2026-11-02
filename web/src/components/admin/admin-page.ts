@@ -1,6 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { reduceMotion } from "../../styles/motion";
+import { pageSplitCss } from "../../styles/ui";
 import "../ui/empty";
 import "../ui/button";
 import "../ui/page-header";
@@ -21,9 +22,12 @@ export class AdminPage extends LitElement {
   // message의 성격 — 실패를 message로 보낼 때 "error"를 같이 줘야 사용자가
   // 성공과 구분할 수 있다(색만 다르게, 오류는 assertive로 읽는다)
   @property() messageTone: "info" | "success" | "error" = "info";
+  // 오른쪽 320px 보조 패널을 쓰려면 켠다 — slot="side" 로 내용을 넘긴다
+  @property({ type: Boolean }) side = false;
 
   static styles = [
     reduceMotion,
+    pageSplitCss,
     css`
       :host {
         display: block;
@@ -59,13 +63,7 @@ export class AdminPage extends LitElement {
 
   render() {
     const tone = this.messageTone;
-    return html`
-      ${this.title
-        ? html`<x-page-header
-            title=${this.title}
-            subtitle=${this.subtitle}
-          ></x-page-header>`
-        : ""}
+    const body = html`
       <slot name="toolbar"></slot>
       ${this.message
         ? html`<p
@@ -89,6 +87,25 @@ export class AdminPage extends LitElement {
               </x-button>
             </x-empty>`
           : html`<slot></slot>`}
+    `;
+
+    return html`
+      ${this.title
+        ? html`<x-page-header
+            title=${this.title}
+            subtitle=${this.subtitle}
+          ></x-page-header>`
+        : ""}
+      ${this.side
+        ? html`
+            <div class="split">
+              <div class="main">${body}</div>
+              <aside class="side side-hide" aria-label="안내">
+                <slot name="side"></slot>
+              </aside>
+            </div>
+          `
+        : body}
     `;
   }
 }
