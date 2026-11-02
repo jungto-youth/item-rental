@@ -82,7 +82,7 @@ shared/api-types.ts   — 서버·웹이 함께 쓰는 API 타입 계약
 migrations-d1/        — D1 스키마 마이그레이션 (기준선 이후 변경을 순서대로 적용)
 server/tests/         — 단위 테스트(가짜 DB) + 실 SQLite 통합 테스트
 server/scripts/       — 시드·시트 반영 SQL 생성기
-docs/design-system/   — 디자인 원칙·감사·토큰·컴포넌트·검증 문서
+DESIGN.md             — 디자인 원칙·토큰·레이아웃·컴포넌트·검증
 ```
 
 API 목록은 `server/src/routes/`, 스키마 정의는 `migrations-d1/`를 본다.
@@ -97,10 +97,10 @@ API 목록은 `server/src/routes/`, 스키마 정의는 `migrations-d1/`를 본�
 새 색·크기가 필요하면 먼저 토큰에 추가하고, 그 밖의 hex·중간 px 값은 만들지 않는다.
 
 스타일은 Lit `css`와 `web/src/styles/ui.ts`의 공유 조각으로만 쓴다. Tailwind·유틸리티
-클래스는 쓰지 않는다. 컴포넌트 계약·검증 절차는 [`docs/design-system/`](docs/design-system/README.md)에 있다.
+클래스는 쓰지 않는다. 컴포넌트 계약·검증 절차는 [`DESIGN.md`](DESIGN.md)에 있다.
 
 화면 감사·토큰 구조·컴포넌트 계약·검증 절차는
-[`docs/design-system/`](docs/design-system/README.md)에 정리되어 있다.
+[`DESIGN.md`](DESIGN.md)에 정리되어 있다.
 
 리뷰용 HTML 시안은 `design/`에 있다 — 물품(`index`, `item-detail`, `item-form`), 상태(`states`),
 계정(`login`, `signup-profile`, `mypage`), 대여·관리(`my-rentals`, `admin-reservations`,
