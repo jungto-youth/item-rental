@@ -78,6 +78,11 @@ export class PageAdminMembers extends LitElement {
       .emails[open] summary svg {
         transform: rotate(180deg);
       }
+      .emails summary:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+        border-radius: var(--radius);
+      }
       .search-wrap {
         position: relative;
         margin-top: var(--space-2);
