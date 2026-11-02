@@ -11,14 +11,12 @@ import "../../components/ui/empty";
 import "../../components/ui/button";
 import "../../components/ui/input";
 import "../../components/ui/badge";
-import "../../components/ui/chip";
 
 // 회원 관리: 회원 목록·역할·탈퇴 + 허용 이메일 탭. 모두 admin 전용.
 // 역할 변경 보호장치는 서버가 강제: 마지막 관리자 해임 불가.
 // 허용 이메일(@jungto.org 외 계정 로그인 허용)은 빈도가 낮아 단독 화면 대신 탭으로 둔다.
 @customElement("page-admin-members")
 export class PageAdminMembers extends LitElement {
-  @state() private tab: "members" | "emails" = "members";
 
   // ===== 회원 목록 =====
   @state() private members: AdminMember[] = [];
@@ -47,9 +45,38 @@ export class PageAdminMembers extends LitElement {
       :host {
         display: block;
       }
-      x-chip.tab {
-        display: block;
-        margin-top: var(--space-3);
+      /* 허용 이메일은 목록 아래 접이식 섹션 — 탭으로 화면을 나누지 않는다 */
+      .emails {
+        margin-top: var(--space-4);
+        padding-top: var(--space-3);
+        border-top: 1px solid var(--border);
+      }
+      .emails summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+        cursor: pointer;
+        color: var(--ink-1);
+        font-size: var(--text-heading);
+        font-weight: 600;
+        letter-spacing: var(--tracking-tight);
+      }
+      .emails .count {
+        margin-left: 4px;
+        color: var(--ink-2);
+        font-size: var(--text-fine);
+        font-weight: 400;
+      }
+      .emails summary svg {
+        width: 20px;
+        height: 20px;
+        flex: none;
+        color: var(--ink-2);
+        transition: transform 0.15s ease;
+      }
+      .emails[open] summary svg {
+        transform: rotate(180deg);
       }
       .search-wrap {
         position: relative;
@@ -509,19 +536,28 @@ export class PageAdminMembers extends LitElement {
         @retry=${() => void this.reload()}
         side
       >
-        <x-chip
-          class="tab"
-          layout="grid"
-          ariaLabel="회원 관리 탭"
-          .value=${this.tab}
-          .options=${[
-            { value: "members", label: "회원 목록", count: this.members.length },
-            { value: "emails", label: "허용 이메일", count: this.emails.length },
-          ]}
-          @change=${(e: CustomEvent<{ value: string }>) =>
-            (this.tab = e.detail.value as "members" | "emails")}
-        ></x-chip>
-        ${this.tab === "members" ? this.renderMembers() : this.renderEmails()}
+        ${this.renderMembers()}
+
+        <details class="emails">
+          <summary>
+            <span>
+              로그인 허용 이메일
+              <span class="count">${this.emails.length}</span>
+            </span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </summary>
+          ${this.renderEmails()}
+        </details>
 
         <section slot="side" class="side-card">
           <h2>역할 안내</h2>
