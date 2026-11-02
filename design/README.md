@@ -19,7 +19,11 @@
 | `admin-members.html` | 회원 관리 — 역할·탈퇴·허용 이메일 |
 | `policy.html` | 이용약관 · 개인정보 처리방침 |
 | `not-found.html` | 404 |
+| `build.ts` | 공통 조각 빌드 — `partials/`를 각 페이지 마커에 채웁니다 |
+| `partials/head.html` | 공통 `<head>` — meta·폰트·테마 토큰 (화면별 `<title>`은 페이지가 소유) |
+| `partials/footer.html` | 공통 푸터 원본 (한 벌만 둡니다) |
 | `preview.js` | 12개 페이지 공통 미리보기 바 (화면 선택·역할 전환) |
+| `assets/components.css` | 여러 화면이 같이 쓰는 규칙 — 기본 리셋·필터 칩·상태 배지·인풋 유효성 |
 | `assets/logo.png` | 실제 앱 로고 |
 | `assets/page-layout.css` | 공통 2열 셸 — 왼쪽 주 컨텐츠 · 오른쪽 보조 패널 |
 
@@ -40,6 +44,46 @@ open design/not-found.html
 
 Tailwind v4 브라우저 CDN, Google Fonts(Noto Sans KR), Unsplash 사진을 사용하므로
 **인터넷이 필요합니다.** 배포용이 아니라 리뷰용 시안입니다.
+
+## 공통 조각
+
+푸터처럼 여러 화면에 같은 마크업이 들어가는 부분은 `partials/`에 **한 벌만** 두고,
+각 페이지의 마커 사이에 채웁니다. 페이지에는 마크업이 남지 않습니다.
+
+| 조각 | 담는 것 | 남는 것 |
+| --- | --- | --- |
+| `head` | meta·폰트·Tailwind CDN·테마 토큰 | `<title>`, `page-layout.css` 링크, 화면별 `<style>` |
+| `footer` | `<footer>` 전체 | 없음 (변형은 마커 인자) |
+
+```html
+<!-- @begin head -->
+<!-- @end head -->
+
+<!-- @begin footer -->
+<!-- @end footer -->
+```
+
+CSS도 같은 원칙입니다. 여러 화면이 똑같이 쓰는 규칙(기본 리셋, 필터 칩, 상태 배지, 인풋 유효성)은
+`assets/components.css`에만 두고, 화면별 레이아웃(`.home-layout`, `.policy-layout`)만 각 페이지 `<style>`에 남깁니다.
+
+마커 이름 뒤에 붙인 토큰은 partial의 `{{class}}` 자리로 갑니다. 화면별 변형은 이 한 줄로 끝납니다.
+
+```html
+<!-- @begin footer -->                  → <footer class="border-t border-line">
+<!-- @begin footer bg-surface -->       → <footer class="border-t border-line bg-surface">
+<!-- @begin footer mt-10 -->            → <footer class="border-t border-line mt-10">
+```
+
+```bash
+node design/build.ts          # 마커 사이를 채운다
+node design/build.ts --check  # 최신인지 확인 (npm run check 에 포함)
+```
+
+- 마커 **안쪽은 생성 영역**입니다. 직접 고치면 다음 빌드에 덮이므로 `partials/footer.html`을 고칩니다.
+- 마커 쌍은 지우지 마세요. 빌더가 이 자리를 찾아 다시 채우며, 그래서 몇 번을 실행해도 같은 결과가 나옵니다.
+- 결과는 순수 정적 HTML이라 `file://`로 그대로 열립니다. (`fetch` 주입은 `file://`에서 차단되고, ES 모듈도 막히므로 로더는 JS가 아니라 빌드입니다.)
+- 마커는 HTML 주석이라 브라우저가 무시합니다. `<component id="footer">` 같은 비표준 태그를 쓰면 빌드를 빠뜨렸을 때 푸터가 **소리 없이** 사라집니다.
+- 로그인·프로필 등록의 작은 정책 링크 줄과 `states.html`의 시안 목차는 다른 조각이라 공유하지 않습니다.
 
 ## 미리보기 조작
 
@@ -169,6 +213,7 @@ Tailwind v4 브라우저 CDN, Google Fonts(Noto Sans KR), Unsplash 사진을 사
 - **로그인·프로필 등록을 제외한 모든 화면** 하단에 공통 푸터(브랜드 한 줄 + 이용약관·개인정보처리방침)를 둡니다.
   두 온보딩 화면은 정책 링크만 작게 남깁니다.
   404는 흰 면(`bg-surface`), 그 외는 캔버스 바탕입니다.
+  푸터는 `partials/footer.html`이 유일한 원본이고, 화면별 차이는 마커 인자(`bg-surface`, `mt-10`)로만 넘깁니다.
 - 공통 규칙은 `assets/page-layout.css`의 `.page-split` · `.page-side`가 소유합니다.
 
 ### 9. 디자인 시스템 유지

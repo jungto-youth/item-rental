@@ -1,15 +1,16 @@
 <!doctype html>
 <html lang="ko">
   <head>
+    <!-- @begin head -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>페이지를 찾을 수 없어요 — 물품 대여</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="assets/components.css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style type="text/tailwindcss">
       @theme {
@@ -50,26 +51,11 @@
         --shadow-modal: 0 24px 64px rgba(23, 23, 23, 0.18);
       }
     </style>
+    <!-- @end head -->
+    <title>페이지를 찾을 수 없어요 — 물품 대여</title>
+
     <style>
-      html {
-        -webkit-text-size-adjust: 100%;
-      }
-      body {
-        font-family: var(--font-sans);
-        background: var(--color-canvas);
-        color: var(--color-ink-1);
-      }
-      ::selection {
-        background: var(--color-primary-soft);
-      }
-      @media (prefers-reduced-motion: reduce) {
-        *,
-        *::before,
-        *::after {
-          transition-duration: 0.01ms !important;
-          animation-duration: 0.01ms !important;
-        }
-      }
+
     </style>
   </head>
 
@@ -124,15 +110,19 @@
       </div>
     </main>
 
+    <!-- @begin footer bg-surface -->
     <footer class="border-t border-line bg-surface">
-      <div class="mx-auto flex max-w-[1000px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div
+        class="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+      >
         <p>정토회 · 함께 쓰는 물품</p>
         <nav class="flex gap-4" aria-label="정책">
           <a href="policy.html?kind=terms" class="transition-colors hover:text-ink-1 hover:underline">이용약관</a>
-          <a href="policy.html?kind=privacy" class="transition-colors hover:text-ink-1 hover:underline">개인정보 처리방침</a>
+          <a href="policy.html?kind=privacy" class="transition-colors hover:text-ink-1 hover:underline">개인정보처리방침</a>
         </nav>
       </div>
     </footer>
+    <!-- @end footer -->
     <script src="preview.js"></script>
   </body>
 </html>
