@@ -48,9 +48,69 @@
 
   const style = document.createElement("style");
   style.textContent = `
+    /* 역할 전환은 모든 페이지에서 같은 규칙을 쓴다. */
+    [data-role="member"] .admin-only {
+      display: none !important;
+    }
+    [data-role="admin"] .member-only {
+      display: none !important;
+    }
+    /* 관리자 전용 화면을 회원 역할로 열면 앱과 같이 권한 안내만 남긴다. */
+    main.preview-denied > * {
+      display: none !important;
+    }
+    main.preview-denied > .preview-guard {
+      display: block !important;
+    }
+    .preview-guard {
+      display: none;
+      box-sizing: border-box;
+      max-width: 520px;
+      margin: 48px auto;
+      padding: 32px 24px;
+      border: 1px solid var(--color-line, #e5e7eb);
+      border-radius: var(--radius-card, 8px);
+      background: var(--color-surface, #fff);
+      text-align: center;
+    }
+    .preview-guard-title {
+      margin: 0;
+      color: var(--color-ink-1, #111827);
+      font-size: 1.25rem;
+      font-weight: 600;
+      line-height: 1.4;
+      letter-spacing: -0.015em;
+    }
+    .preview-guard-text {
+      margin: 8px 0 0;
+      color: var(--color-ink-2, #4b5563);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+    .preview-guard-role {
+      margin-top: 20px;
+      padding: 8px 16px;
+      border: 1px solid var(--color-line-strong, #d1d5db);
+      border-radius: var(--radius-card, 8px);
+      background: var(--color-surface, #fff);
+      color: var(--color-ink-1, #111827);
+      font: inherit;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      cursor: pointer;
+    }
+    .preview-guard-role:hover {
+      background: var(--color-surface-muted, #f3f4f6);
+    }
+    .preview-guard-role:focus-visible {
+      outline: 2px solid var(--color-primary, #ea580c);
+      outline-offset: 2px;
+    }
+    /* 페이지의 @theme 토큰은 Tailwind가 쓰임새에 따라 지울 수 있다.
+       미리보기 바는 어느 페이지에서도 같게 보여야 하므로 fallback 값을 둔다. */
     .preview-bar {
-      border-bottom: 1px dashed var(--color-line-strong);
-      background: var(--color-surface-muted);
+      border-bottom: 1px dashed var(--color-line-strong, #d1d5db);
+      background: var(--color-surface-muted, #f3f4f6);
     }
     .preview-bar-inner {
       display: flex;
@@ -59,12 +119,17 @@
       gap: 16px;
       box-sizing: border-box;
       height: 40px;
-      max-width: 1200px;
+      max-width: 1280px;
       margin: 0 auto;
       padding: 0 16px;
     }
+    @media (min-width: 640px) {
+      .preview-bar-inner {
+        padding: 0 24px;
+      }
+    }
     .preview-bar-label {
-      color: var(--color-ink-2);
+      color: var(--color-ink-2, #4b5563);
       font-size: 0.875rem;
       line-height: 1.5;
       white-space: nowrap;
@@ -84,17 +149,17 @@
       min-width: 0;
       height: 32px;
       padding: 0 8px;
-      border: 1px solid var(--color-line-strong);
+      border: 1px solid var(--color-line-strong, #d1d5db);
       border-radius: 8px;
-      background: var(--color-surface);
-      color: var(--color-ink-1);
+      background: var(--color-surface, #fff);
+      color: var(--color-ink-1, #111827);
       font: inherit;
       font-size: 0.875rem;
       line-height: 1.5;
       cursor: pointer;
     }
     .preview-bar-select:focus-visible {
-      outline: 2px solid var(--color-primary);
+      outline: 2px solid var(--color-primary, #ea580c);
       outline-offset: 2px;
     }
     .role-switch {
@@ -103,7 +168,7 @@
       gap: 4px;
       padding: 4px;
       border-radius: 999px;
-      background: var(--color-ink-1);
+      background: var(--color-ink-1, #111827);
     }
     .role-btn {
       padding: 4px 8px;
@@ -122,17 +187,16 @@
     }
     .role-btn[aria-pressed="true"] {
       background: #fff;
-      color: var(--color-ink-1);
+      color: var(--color-ink-1, #111827);
       font-weight: 600;
     }
     .role-btn:focus-visible {
-      outline: 2px solid var(--color-primary);
+      outline: 2px solid var(--color-primary, #ea580c);
       outline-offset: 2px;
     }
     @media (max-width: 639px) {
       .preview-bar-inner {
         gap: 8px;
-        padding: 0 16px;
       }
       .preview-bar-label-full {
         display: none;
@@ -198,23 +262,68 @@
   });
 
   // 역할 전환 — 홈·상세·상태의 관리자 전용 UI를 보여줄 때 쓴다.
+  // 화면을 옮겨 다녀도 미리보기 역할이 유지되도록 sessionStorage에 남긴다.
   const root = document.documentElement;
-  const role = root.dataset.role === "admin" ? "admin" : "member";
-  root.dataset.role = role;
+  const ROLE_KEY = "preview-role";
+  let storedRole = null;
+  try {
+    storedRole = sessionStorage.getItem(ROLE_KEY);
+  } catch {
+    // file:// 등 저장소를 쓸 수 없는 환경에서는 현재 값만 쓴다.
+  }
+  const role =
+    storedRole === "admin" || storedRole === "member"
+      ? storedRole
+      : root.dataset.role === "admin"
+        ? "admin"
+        : "member";
+
+  // 관리자 전용 화면 — 앱은 회원이 열면 홈으로 돌려보낸다(/?role=denied).
+  // 미리보기에서는 보던 화면을 잃지 않도록 같은 자리에서 권한 안내만 띄운다.
+  const ADMIN_SCREENS = new Set([
+    "item-form.html",
+    "admin-reservations.html",
+    "admin-members.html",
+  ]);
+  const isAdminScreen = ADMIN_SCREENS.has(file);
+  const main = document.querySelector("main");
+  let guard = null;
+  if (main && isAdminScreen) {
+    guard = document.createElement("section");
+    guard.className = "preview-guard";
+    guard.setAttribute("role", "status");
+    guard.innerHTML = `
+      <h2 class="preview-guard-title">관리자 권한이 필요해요</h2>
+      <p class="preview-guard-text">일반 회원 계정으로는 관리자 화면에 접근할 수 없어요.</p>
+      <button type="button" class="preview-guard-role">관리자로 보기</button>
+    `;
+    main.append(guard);
+  }
 
   const roleButtons = [...document.querySelectorAll("[data-role-btn]")];
   const setRole = (next) => {
     root.dataset.role = next;
+    try {
+      sessionStorage.setItem(ROLE_KEY, next);
+    } catch {
+      // 저장에 실패해도 화면 전환은 그대로 동작한다.
+    }
     roleButtons.forEach((button) => {
       button.setAttribute(
         "aria-pressed",
         String(button.dataset.roleBtn === next),
       );
     });
+    if (main && isAdminScreen) {
+      main.classList.toggle("preview-denied", next === "member");
+    }
   };
 
   roleButtons.forEach((button) => {
     button.addEventListener("click", () => setRole(button.dataset.roleBtn));
   });
+  guard
+    ?.querySelector(".preview-guard-role")
+    .addEventListener("click", () => setRole("admin"));
   setRole(role);
 })();

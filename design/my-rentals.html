@@ -63,16 +63,12 @@
       ::selection {
         background: var(--color-primary-soft);
       }
-      .preview-bar {
-        border-bottom: 1px dashed var(--color-line-strong);
-        background: var(--color-surface-muted);
-      }
       .status-badge {
-        position: relative;
         display: inline-flex;
         align-items: center;
+        gap: 6px;
         height: 24px;
-        padding: 0 12px;
+        padding: 0 10px;
         border-radius: 999px;
         background: var(--color-surface-muted);
         color: var(--color-ink-2);
@@ -80,16 +76,13 @@
         line-height: 1;
         white-space: nowrap;
       }
-      /* 점은 왼쪽 패딩 안에 두고, 텍스트는 좌우 12px로 대칭을 맞춘다. */
+      /* 점과 텍스트를 흐름 안에 두고, 좌우 10px 패딩으로 묶음을 가운데 맞춘다. */
       .status-dot {
-        position: absolute;
-        left: 4px;
-        top: 50%;
+        flex: none;
         width: 6px;
         height: 6px;
         border-radius: 50%;
         background: var(--color-ink-3);
-        transform: translateY(-50%);
       }
       details > summary {
         list-style: none;
@@ -108,15 +101,10 @@
           animation-duration: 0.01ms !important;
         }
       }
-      @media print {
-        .preview-bar {
-          display: none !important;
-        }
-      }
     </style>
   </head>
 
-  <body class="antialiased">
+  <body class="flex min-h-dvh flex-col antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
     
     <!-- ===== 공통 헤더 ===== -->
@@ -129,6 +117,7 @@
         <nav class="flex min-w-0 items-center gap-4 sm:gap-6" aria-label="주 메뉴">
           <a href="index.html" class="flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">물품 현황</a>
           <a href="my-rentals.html" aria-current="page" class="flex h-14 items-center border-b-2 border-primary text-body font-semibold text-ink-1 sm:h-16">대여 기록</a>
+          <a href="admin-members.html" class="admin-only flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">회원 관리</a>
         </nav>
 
         <div class="relative ml-auto flex flex-none items-center">
@@ -158,7 +147,7 @@
       </div>
     </header>
 
-    <main class="mx-auto max-w-[1280px] px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
+    <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
       <div>
         <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">대여 내역</h1>
         <p class="mt-2 text-fine text-ink-2">지금 빌린 물품과 지난 기록을 확인해요.</p>
@@ -316,6 +305,18 @@
         </aside>
       </div>
     </main>
+
+    <footer class="border-t border-line">
+      <div
+        class="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+      >
+        <p>정토회 · 함께 쓰는 물품</p>
+        <nav class="flex gap-4" aria-label="정책">
+          <a href="policy.html?kind=terms" class="transition-colors hover:text-ink-1 hover:underline">이용약관</a>
+          <a href="policy.html?kind=privacy" class="transition-colors hover:text-ink-1 hover:underline">개인정보처리방침</a>
+        </nav>
+      </div>
+    </footer>
 
     <!-- 확인 모달 -->
     <div

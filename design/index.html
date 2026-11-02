@@ -62,50 +62,9 @@
       ::selection {
         background: var(--color-primary-soft);
       }
-      [data-role="member"] .admin-only {
-        display: none !important;
-      }
-      [data-role="admin"] .member-only {
-        display: none !important;
-      }
-      .preview-bar {
-        border-bottom: 1px dashed var(--color-line-strong);
-        background: var(--color-surface-muted);
-      }
-      .role-switch {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px;
-        border-radius: 999px;
-        background: var(--color-ink-1);
-      }
-      .role-btn {
-        padding: 4px 8px;
-        border: 0;
-        border-radius: 999px;
-        background: transparent;
-        color: rgba(255, 255, 255, 0.65);
-        font: inherit;
-        cursor: pointer;
-        white-space: nowrap;
-      }
-      .role-btn:hover {
-        color: #fff;
-      }
-      .role-btn[aria-pressed="true"] {
-        background: #fff;
-        color: var(--color-ink-1);
-        font-weight: 600;
-      }
-      .role-btn:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
-      }
       .filter-chip {
         display: inline-flex;
         align-items: center;
-        justify-content: space-between;
         gap: 8px;
         height: 36px;
         padding: 0 16px;
@@ -141,11 +100,6 @@
         outline: 2px solid var(--color-primary);
         outline-offset: 2px;
       }
-      @media (min-width: 640px) {
-        .filter-chip {
-          justify-content: flex-start;
-        }
-      }
 
       /* ===== 홈 2열 — 왼쪽 주 컨텐츠, 오른쪽 보조 패널 ===== */
       .home-layout {
@@ -153,9 +107,9 @@
         grid-template-columns: minmax(0, 1fr);
         grid-template-areas:
           "search"
-          "side"
           "main";
-        gap: 24px;
+        column-gap: 24px;
+        row-gap: 16px;
       }
       .home-search {
         grid-area: search;
@@ -170,11 +124,6 @@
         display: flex;
         flex-direction: column;
         gap: 16px;
-      }
-      /* 사이드바 칩은 폭을 꽉 채우고 라벨·숫자를 양끝에 둔다 */
-      .side-filter {
-        width: 100%;
-        justify-content: space-between;
       }
       @media (min-width: 1024px) {
         .home-layout {
@@ -192,9 +141,9 @@
           top: 96px;
         }
       }
-      /* 모바일에서는 안내 카드 없이 검색 → 필터 → 목록 순서 */
+      /* 모바일·태블릿에서는 오른쪽 보조 패널 없이 검색 → 필터 → 목록 순서 */
       @media (max-width: 1023px) {
-        .home-guide {
+        .home-side {
           display: none;
         }
       }
@@ -207,15 +156,10 @@
           animation-duration: 0.01ms !important;
         }
       }
-      @media print {
-        .preview-bar {
-          display: none !important;
-        }
-      }
     </style>
   </head>
 
-  <body class="antialiased">
+  <body class="flex min-h-dvh flex-col antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
     
     <!-- ===== 공통 헤더 ===== -->
@@ -290,11 +234,11 @@
       </div>
     </header>
 
-    <main class="mx-auto max-w-[1280px] px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
+    <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
       <!-- ===== 페이지 헤더 ===== -->
       <div>
         <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">물품 현황</h1>
-        <p class="mt-2 text-fine text-ink-2">함께 쓰는 물품 24종</p>
+        <p class="mt-2 text-fine text-ink-2">함께 쓰는 물품과 대여 상태를 확인해요.</p>
       </div>
 
       <!-- ===== 2열: 왼쪽 주 컨텐츠 · 오른쪽 보조 패널 ===== -->
@@ -322,22 +266,7 @@
           />
         </div>
 
-        <aside class="home-side" aria-label="물품 필터와 안내">
-          <div class="grid grid-cols-2 gap-2 lg:flex lg:flex-col lg:items-stretch" aria-label="물품 상태 필터">
-            <button type="button" class="filter-chip side-filter" data-filter="all" aria-pressed="true">
-              전체 <span class="count">24</span>
-            </button>
-            <button type="button" class="filter-chip side-filter" data-filter="available" aria-pressed="false">
-              대여 가능 <span class="count">18</span>
-            </button>
-            <button type="button" class="filter-chip side-filter" data-filter="rented" aria-pressed="false">
-              대여 중 <span class="count">4</span>
-            </button>
-            <button type="button" class="filter-chip side-filter" data-filter="repair" aria-pressed="false">
-              수리 중 <span class="count">2</span>
-            </button>
-          </div>
-
+        <aside class="home-side" aria-label="물품 등록과 대여 안내">
           <a
             href="item-form.html"
             class="admin-only hidden h-10 w-full items-center justify-center gap-2 rounded-card bg-primary-strong px-4 text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:inline-flex"
@@ -373,8 +302,23 @@
         </aside>
 
         <div class="home-main">
+          <div class="flex flex-wrap items-center gap-2" aria-label="물품 상태 필터">
+            <button type="button" class="filter-chip" data-filter="all" aria-pressed="true">
+              전체 <span class="count">24</span>
+            </button>
+            <button type="button" class="filter-chip" data-filter="available" aria-pressed="false">
+              대여 가능 <span class="count">18</span>
+            </button>
+            <button type="button" class="filter-chip" data-filter="rented" aria-pressed="false">
+              대여 중 <span class="count">4</span>
+            </button>
+            <button type="button" class="filter-chip" data-filter="repair" aria-pressed="false">
+              수리 중 <span class="count">2</span>
+            </button>
+          </div>
+
           <!-- ===== 물품 그리드 ===== -->
-          <div class="grid grid-cols-3 gap-2 md:grid-cols-4 xl:grid-cols-5" role="list">
+          <div class="mt-4 grid grid-cols-3 gap-2 md:grid-cols-4 xl:grid-cols-5" role="list">
         <!-- 1 -->
         <a
           role="listitem"

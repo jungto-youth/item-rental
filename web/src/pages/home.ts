@@ -189,8 +189,10 @@ export class PageHome extends LitElement {
     return this.summary.repair;
   }
 
+  // 부제는 고정 문구 — 물품 종 수는 데이터에 따라 달라지므로 숫자를 넣지 않는다.
+  // 현재 종 수는 상태 필터 칩(전체)이 보여준다.
   private get subtitle(): string {
-    return this.summary ? `함께 쓰는 물품 ${this.summary.types}종` : "함께 쓰는 물품";
+    return "함께 쓰는 물품과 대여 상태를 확인해요.";
   }
 
   render() {

@@ -159,14 +159,14 @@ export class AppShell extends LitElement {
     return location.pathname === "/login";
   }
 
-  // 시안에서 하단 푸터를 가진 화면만 — 홈·상세·정책·404.
-  // 계정·대여·관리 화면은 본문에 집중하도록 푸터를 두지 않는다.
-  private get footerMode(): "none" | "default" | "policy" | "surface" {
+  // 로그인만 빼고 모든 화면 하단에 공통 푸터를 둔다.
+  // 404는 흰 면(surface), 그 외는 캔버스 바탕.
+  private get footerMode(): "none" | "default" | "surface" {
     if (this.isLogin) return "none";
     const path = location.pathname;
     if (path === "/") return "default";
-    if (path.startsWith("/policy/")) return "policy";
-    if (path === "/items/new" || path.endsWith("/edit")) return "none";
+    if (path.startsWith("/policy/")) return "default";
+    if (path === "/items/new" || path.endsWith("/edit")) return "default";
     if (path.startsWith("/items/")) return "default";
     const known = [
       "/mypage",
@@ -175,7 +175,7 @@ export class AppShell extends LitElement {
       "/admin/reservations",
       "/admin/members",
     ];
-    if (known.includes(path)) return "none";
+    if (known.includes(path)) return "default";
     return "surface"; // 404
   }
 

@@ -62,10 +62,6 @@
       ::selection {
         background: var(--color-primary-soft);
       }
-      .preview-bar {
-        border-bottom: 1px dashed var(--color-line-strong);
-        background: var(--color-surface-muted);
-      }
       .field-input.is-invalid {
         border-color: var(--color-danger);
       }
@@ -81,111 +77,80 @@
           animation-duration: 0.01ms !important;
         }
       }
-      @media print {
-        .preview-bar {
-          display: none !important;
-        }
-      }
     </style>
   </head>
 
-  <body class="antialiased">
+  <body class="flex min-h-dvh flex-col antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
-    
-    <!-- ===== 공통 헤더 ===== -->
-    <header class="sticky top-0 z-30 border-b border-line bg-surface">
-      <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6">
-        <a href="index.html" class="flex flex-none items-center gap-2" aria-label="물품 현황 — 홈">
-          <img src="assets/logo.png" alt="" class="h-7 w-7 rounded-card" />
-        </a>
 
-        <nav class="flex min-w-0 items-center gap-4 sm:gap-6" aria-label="주 메뉴">
-          <a href="index.html" class="flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">물품 현황</a>
-          <a href="my-rentals.html" class="flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">대여 기록</a>
-        </nav>
+    <!-- 로그인에 이어지는 온보딩 2단계 — 셸 헤더·푸터 없이 한 화면에 집중한다 -->
+    <main class="flex flex-1 flex-col items-center px-6 py-8">
+      <div class="my-auto w-full max-w-[340px]">
+        <div class="text-center">
+          <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">반가워요</h1>
+          <p class="mt-2 text-body leading-[1.5] text-ink-2">물품을 빌리려면 이름과 연락처가 필요해요.</p>
+        </div>
 
-        <div class="relative ml-auto flex flex-none items-center">
-          <button
-            type="button"
-            class="flex h-10 items-center gap-2 rounded-pill text-body text-ink-2 transition-colors hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            id="account-btn"
-            aria-expanded="false"
-            aria-haspopup="menu"
-            aria-label="계정 메뉴 — 김하늘"
-          >
-            <span class="flex h-8 w-8 items-center justify-center rounded-pill bg-primary-soft text-fine font-semibold text-primary-strong" aria-hidden="true">김</span>
-            <span class="hidden max-w-[140px] truncate md:block">김하늘</span>
-            <svg class="hidden h-4 w-4 sm:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="m6 9 6 6 6-6" />
+        <form id="profile-form" class="mt-6 rounded-card border border-line bg-surface p-6 max-sm:p-4">
+          <div class="mb-4 flex items-center gap-2 rounded-card bg-surface-muted px-4 py-2 text-fine">
+            <svg class="h-4 w-4 flex-none text-primary-strong" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 6 9 17l-5-5" />
             </svg>
-          </button>
-          <div
-            id="account-menu"
-            class="absolute right-0 top-[calc(100%+8px)] z-20 hidden min-w-[176px] overflow-hidden rounded-card border border-line bg-surface shadow-menu"
-            role="menu"
-          >
-            <a href="mypage.html" role="menuitem" class="block px-4 py-2 text-body text-ink-1 transition-colors hover:bg-surface-muted">내 정보</a>
-            <a href="login.html" role="menuitem" class="block px-4 py-2 text-body text-danger transition-colors hover:bg-surface-muted">로그아웃</a>
+            <span class="text-ink-2">로그인한 계정</span>
+            <span class="ml-auto truncate text-ink-1">haneul@jungto.org</span>
           </div>
+
+          <label class="block">
+            <span class="text-fine font-medium text-ink-2">이름 <span class="text-danger">*</span></span>
+            <input
+              id="name"
+              name="name"
+              autocomplete="name"
+              value="김하늘"
+              aria-required="true"
+              aria-describedby="form-error"
+              class="field-input mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </label>
+
+          <label class="mt-4 block">
+            <span class="text-fine font-medium text-ink-2">휴대폰 번호 <span class="text-danger">*</span></span>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              inputmode="tel"
+              autocomplete="tel"
+              placeholder="010-1234-5678"
+              aria-required="true"
+              aria-describedby="form-error"
+              class="field-input mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </label>
+
+          <p id="form-error" class="mt-2 hidden text-fine text-danger" role="alert">이름과 연락처를 모두 입력해 주세요.</p>
+
+          <button
+            type="submit"
+            class="mt-6 flex h-10 w-full items-center justify-center rounded-card bg-primary-strong text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            저장
+          </button>
+          <p class="mt-2 text-center text-fine text-ink-2">저장하면 바로 물품을 둘러볼 수 있어요.</p>
+        </form>
+
+        <p class="mt-4 text-center text-fine text-ink-2">입력한 정보는 물품 대여 연락에만 사용해요.</p>
+
+        <div class="mt-6 text-center">
+          <a href="login.html" class="text-fine text-ink-2 transition-colors hover:text-ink-1 hover:underline">다른 계정으로 로그인</a>
         </div>
+
+        <footer class="mt-4 flex items-center justify-center gap-4 text-fine text-ink-2">
+          <a href="policy.html?kind=terms" class="transition-colors hover:text-ink-1 hover:underline">이용약관</a>
+          <span class="text-line-strong" aria-hidden="true">·</span>
+          <a href="policy.html?kind=privacy" class="transition-colors hover:text-ink-1 hover:underline">개인정보처리방침</a>
+        </footer>
       </div>
-    </header>
-
-    <main class="mx-auto max-w-[400px] px-4 pb-10 pt-10 sm:px-6 sm:pt-16">
-      <div class="text-center">
-        <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">반가워요</h1>
-        <p class="mt-2 text-body leading-[1.5] text-ink-2">물품을 빌리려면 이름과 연락처가 필요해요.</p>
-      </div>
-
-      <form id="profile-form" class="mt-6 rounded-card border border-line bg-surface p-6 max-sm:p-4">
-        <div class="mb-4 flex items-center gap-2 rounded-card bg-surface-muted px-4 py-2 text-fine">
-          <svg class="h-4 w-4 flex-none text-primary-strong" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-          <span class="text-ink-2">로그인한 계정</span>
-          <span class="ml-auto truncate text-ink-1">haneul@jungto.org</span>
-        </div>
-
-        <label class="block">
-          <span class="text-fine font-medium text-ink-2">이름 <span class="text-danger">*</span></span>
-          <input
-            id="name"
-            name="name"
-            autocomplete="name"
-            value="김하늘"
-            aria-required="true"
-            aria-describedby="form-error"
-            class="field-input mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-        </label>
-
-        <label class="mt-4 block">
-          <span class="text-fine font-medium text-ink-2">휴대폰 번호 <span class="text-danger">*</span></span>
-          <input
-            id="phone"
-            name="phone"
-            type="tel"
-            inputmode="tel"
-            autocomplete="tel"
-            placeholder="010-1234-5678"
-            aria-required="true"
-            aria-describedby="form-error"
-            class="field-input mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-        </label>
-
-        <p id="form-error" class="mt-2 hidden text-fine text-danger" role="alert">이름과 연락처를 모두 입력해 주세요.</p>
-
-        <button
-          type="submit"
-          class="mt-6 flex h-10 w-full items-center justify-center rounded-card bg-primary-strong text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          저장
-        </button>
-        <p class="mt-2 text-center text-fine text-ink-2">저장하면 바로 물품을 둘러볼 수 있어요.</p>
-      </form>
-
-      <p class="mt-4 text-center text-fine text-ink-2">입력한 정보는 물품 대여 연락에만 사용해요.</p>
     </main>
 
     <script>
@@ -226,29 +191,6 @@
 
         location.href = "mypage.html";
       });
-
-      // ===== 계정 메뉴 =====
-      const accountBtn = document.getElementById("account-btn");
-      const accountMenu = document.getElementById("account-menu");
-      if (accountBtn && accountMenu) {
-        const closeAccountMenu = () => {
-          accountMenu.classList.add("hidden");
-          accountBtn.setAttribute("aria-expanded", "false");
-        };
-        accountBtn.addEventListener("click", (event) => {
-          event.stopPropagation();
-          const hidden = accountMenu.classList.toggle("hidden");
-          accountBtn.setAttribute("aria-expanded", String(!hidden));
-        });
-        document.addEventListener("pointerdown", (event) => {
-          if (accountMenu.classList.contains("hidden")) return;
-          if (event.composedPath().includes(accountBtn) || event.composedPath().includes(accountMenu)) return;
-          closeAccountMenu();
-        });
-        window.addEventListener("keydown", (event) => {
-          if (event.key === "Escape") closeAccountMenu();
-        });
-      }
     </script>
     <script src="preview.js"></script>
   </body>

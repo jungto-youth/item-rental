@@ -62,21 +62,12 @@
       ::selection {
         background: var(--color-primary-soft);
       }
-      .preview-bar {
-        border-bottom: 1px dashed var(--color-line-strong);
-        background: var(--color-surface-muted);
-      }
       @media (prefers-reduced-motion: reduce) {
         *,
         *::before,
         *::after {
           transition-duration: 0.01ms !important;
           animation-duration: 0.01ms !important;
-        }
-      }
-      @media print {
-        .preview-bar {
-          display: none !important;
         }
       }
     </style>

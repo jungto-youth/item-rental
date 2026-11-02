@@ -70,24 +70,6 @@
       input[type="number"] {
         -moz-appearance: textfield;
       }
-      [data-role="member"] .admin-only {
-        display: none !important;
-      }
-      [data-role="admin"] .member-only {
-        display: none !important;
-      }
-      .preview-bar {
-        border-bottom: 1px dashed var(--color-line-strong);
-        background: var(--color-surface-muted);
-      }
-      .role-switch {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px;
-        border-radius: 999px;
-        background: var(--color-ink-1);
-      }
       .thumb {
         border: 1px solid var(--color-line);
       }
@@ -100,28 +82,6 @@
       .thumb[data-active="true"]:hover {
         border-color: var(--color-ink-1);
       }
-      .role-btn {
-        padding: 4px 8px;
-        border: 0;
-        border-radius: 999px;
-        background: transparent;
-        color: rgba(255, 255, 255, 0.65);
-        font: inherit;
-        cursor: pointer;
-        white-space: nowrap;
-      }
-      .role-btn:hover {
-        color: #fff;
-      }
-      .role-btn[aria-pressed="true"] {
-        background: #fff;
-        color: var(--color-ink-1);
-        font-weight: 600;
-      }
-      .role-btn:focus-visible {
-        outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
-      }
       @media (prefers-reduced-motion: reduce) {
         *,
         *::before,
@@ -130,15 +90,10 @@
           animation-duration: 0.01ms !important;
         }
       }
-      @media print {
-        .preview-bar {
-          display: none !important;
-        }
-      }
     </style>
   </head>
 
-  <body class="antialiased">
+  <body class="flex min-h-dvh flex-col antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
     
     <!-- ===== 공통 헤더 ===== -->
@@ -213,7 +168,7 @@
       </div>
     </header>
 
-    <main class="mx-auto max-w-[1280px] px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
+    <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
       <!-- ===== 상단 이동 ===== -->
       <div class="flex items-center justify-between gap-4">
         <a

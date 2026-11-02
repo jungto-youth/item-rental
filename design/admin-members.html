@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-role="admin">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -63,16 +63,12 @@
       ::selection {
         background: var(--color-primary-soft);
       }
-      .preview-bar {
-        border-bottom: 1px dashed var(--color-line-strong);
-        background: var(--color-surface-muted);
-      }
       .status-badge {
-        position: relative;
         display: inline-flex;
         align-items: center;
+        gap: 6px;
         height: 24px;
-        padding: 0 12px;
+        padding: 0 10px;
         border-radius: 999px;
         background: var(--color-surface-muted);
         color: var(--color-ink-2);
@@ -80,58 +76,28 @@
         line-height: 1;
         white-space: nowrap;
       }
-      /* 점은 왼쪽 패딩 안에 두고, 텍스트는 좌우 12px로 대칭을 맞춘다. */
+      /* 점과 텍스트를 흐름 안에 두고, 좌우 10px 패딩으로 묶음을 가운데 맞춘다. */
       .status-dot {
-        position: absolute;
-        left: 4px;
-        top: 50%;
+        flex: none;
         width: 6px;
         height: 6px;
         border-radius: 50%;
         background: var(--color-ink-3);
-        transform: translateY(-50%);
       }
-      .filter-chip {
-        display: inline-flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        height: 36px;
-        padding: 0 16px;
-        border: 1px solid var(--color-line);
-        border-radius: 999px;
-        background: var(--color-surface);
-        color: var(--color-ink-1);
-        font: inherit;
-        font-size: 1rem;
-        line-height: 1.2;
-        white-space: nowrap;
-        cursor: pointer;
+      /* 허용 이메일 — 낮은 빈도의 설정이라 회원 목록 아래 접이식 섹션으로 둔다. */
+      .email-section > summary {
+        list-style: none;
       }
-      .filter-chip:hover {
-        border-color: var(--color-line-strong);
-        background: var(--color-surface-muted);
+      .email-section > summary::-webkit-details-marker {
+        display: none;
       }
-      .filter-chip[aria-pressed="true"] {
-        border-color: var(--color-ink-1);
-        background: var(--color-ink-1);
-        color: #fff;
-        font-weight: 600;
+      .email-section[open] .chevron {
+        transform: rotate(180deg);
       }
-      .filter-chip .count {
-        font-size: 0.875rem;
-        font-weight: 400;
-        color: var(--color-ink-2);
-      }
-      .filter-chip[aria-pressed="true"] .count {
-        color: rgba(255, 255, 255, 0.75);
-      }
-      .filter-chip:focus-visible {
+      .email-section > summary:focus-visible {
         outline: 2px solid var(--color-primary);
-        outline-offset: 2px;
-      }
-      .filter-chip.tab-chip {
-        justify-content: flex-start;
+        outline-offset: 4px;
+        border-radius: var(--radius-card);
       }
       .role-select {
         height: 36px;
@@ -172,15 +138,10 @@
           animation-duration: 0.01ms !important;
         }
       }
-      @media print {
-        .preview-bar {
-          display: none !important;
-        }
-      }
     </style>
   </head>
 
-  <body class="antialiased">
+  <body class="flex min-h-dvh flex-col antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
     
     <!-- ===== 공통 헤더 (관리자) ===== -->
@@ -192,8 +153,8 @@
 
         <nav class="flex min-w-0 items-center gap-4 sm:gap-6" aria-label="주 메뉴">
           <a href="index.html" class="flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">물품 현황</a>
-          <a href="admin-reservations.html" class="flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">대여 관리</a>
-          <a href="admin-members.html" aria-current="page" class="flex h-14 items-center border-b-2 border-primary text-body font-semibold text-ink-1 sm:h-16">회원 관리</a>
+          <a href="admin-reservations.html" class="admin-only flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">대여 관리</a>
+          <a href="admin-members.html" aria-current="page" class="admin-only flex h-14 items-center border-b-2 border-primary text-body font-semibold text-ink-1 sm:h-16">회원 관리</a>
         </nav>
 
         <div class="relative ml-auto flex flex-none items-center">
@@ -223,7 +184,7 @@
       </div>
     </header>
 
-    <main class="mx-auto max-w-[1280px] px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
+    <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
       <div>
         <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">회원 관리</h1>
         <p class="mt-2 text-fine text-ink-2">회원 역할과 로그인 허용 이메일을 관리해요.</p>
@@ -237,36 +198,24 @@
       </p>
       <p id="page-error" class="mt-3 hidden text-fine text-danger" role="alert"></p>
 
-      <div class="mt-6 flex flex-wrap items-center gap-2" aria-label="회원 관리 탭">
-        <button type="button" class="filter-chip tab-chip" data-tab="members" aria-pressed="true">
-          회원 목록 <span class="count" id="members-tab-count">6</span>
-        </button>
-        <button type="button" class="filter-chip tab-chip" data-tab="emails" aria-pressed="false">
-          허용 이메일 <span class="count" id="emails-tab-count">3</span>
-        </button>
-      </div>
-
-      <div class="page-split mt-4">
+      <div class="page-split mt-6">
         <div class="page-main">
+          <div id="member-search-box" class="relative">
+            <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              id="member-search"
+              type="search"
+              aria-label="회원 검색"
+              placeholder="이름, 이메일, 연락처 검색…"
+              class="h-10 w-full rounded-card border border-line bg-surface pl-10 pr-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
           <!-- ===== 회원 목록 ===== -->
-          <div id="panel-members" data-panel="members">
-        <div class="relative">
-          <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-          <input
-            id="member-search"
-            type="search"
-            aria-label="회원 검색"
-            placeholder="이름, 이메일, 연락처 검색…"
-            class="h-10 w-full rounded-card border border-line bg-surface pl-10 pr-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-        </div>
-
-        <p id="member-count" class="mt-4 text-fine text-ink-2" role="status">6명</p>
-
-        <div id="member-list" class="mt-2 space-y-2">
+          <div id="member-list" class="mt-4 space-y-2">
           <!-- 관리자 · 마지막 관리자 -->
           <article
             data-member
@@ -281,7 +230,10 @@
               <div class="flex min-w-0 flex-1 items-center gap-3">
                 <span data-avatar class="flex h-9 w-9 flex-none items-center justify-center rounded-pill bg-primary-soft text-fine font-semibold text-primary-strong" aria-hidden="true">김</span>
                 <div class="min-w-0">
-                  <p data-member-name class="truncate text-body font-semibold text-ink-1">김하늘</p>
+                  <div class="flex min-w-0 items-center gap-2">
+                    <p data-member-name class="min-w-0 truncate text-body font-semibold text-ink-1">김하늘</p>
+                    <span data-status-badge class="hidden flex-none"><span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span></span>
+                  </div>
                   <p data-member-contact class="mt-1 truncate text-fine text-ink-2">haneul@jungto.org · 010-1234-5678</p>
                 </div>
               </div>
@@ -306,7 +258,6 @@
                 </button>
               </div>
               <div data-withdrawn-actions class="hidden w-full items-center gap-2 sm:w-auto">
-                <span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span>
                 <button data-delete class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">등록 정보 삭제</button>
               </div>
             </div>
@@ -326,7 +277,10 @@
               <div class="flex min-w-0 flex-1 items-center gap-3">
                 <span data-avatar class="flex h-9 w-9 flex-none items-center justify-center rounded-pill bg-primary-soft text-fine font-semibold text-primary-strong" aria-hidden="true">박</span>
                 <div class="min-w-0">
-                  <p data-member-name class="truncate text-body font-semibold text-ink-1">박서연</p>
+                  <div class="flex min-w-0 items-center gap-2">
+                    <p data-member-name class="min-w-0 truncate text-body font-semibold text-ink-1">박서연</p>
+                    <span data-status-badge class="hidden flex-none"><span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span></span>
+                  </div>
                   <p data-member-contact class="mt-1 truncate text-fine text-ink-2">seoyeon@jungto.org · 010-2345-6789</p>
                 </div>
               </div>
@@ -343,7 +297,6 @@
                 <button type="button" data-withdraw class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">탈퇴</button>
               </div>
               <div data-withdrawn-actions class="hidden w-full items-center gap-2 sm:w-auto">
-                <span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span>
                 <button data-delete class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">등록 정보 삭제</button>
               </div>
             </div>
@@ -362,7 +315,10 @@
               <div class="flex min-w-0 flex-1 items-center gap-3">
                 <span data-avatar class="flex h-9 w-9 flex-none items-center justify-center rounded-pill bg-primary-soft text-fine font-semibold text-primary-strong" aria-hidden="true">이</span>
                 <div class="min-w-0">
-                  <p data-member-name class="truncate text-body font-semibold text-ink-1">이준호</p>
+                  <div class="flex min-w-0 items-center gap-2">
+                    <p data-member-name class="min-w-0 truncate text-body font-semibold text-ink-1">이준호</p>
+                    <span data-status-badge class="hidden flex-none"><span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span></span>
+                  </div>
                   <p data-member-contact class="mt-1 truncate text-fine text-ink-2">junho@jungto.org · 010-3456-7890</p>
                 </div>
               </div>
@@ -379,7 +335,6 @@
                 <button type="button" data-withdraw class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">탈퇴</button>
               </div>
               <div data-withdrawn-actions class="hidden w-full items-center gap-2 sm:w-auto">
-                <span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span>
                 <button data-delete class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">등록 정보 삭제</button>
               </div>
             </div>
@@ -398,7 +353,10 @@
               <div class="flex min-w-0 flex-1 items-center gap-3">
                 <span data-avatar class="flex h-9 w-9 flex-none items-center justify-center rounded-pill bg-primary-soft text-fine font-semibold text-primary-strong" aria-hidden="true">최</span>
                 <div class="min-w-0">
-                  <p data-member-name class="truncate text-body font-semibold text-ink-1">최유진</p>
+                  <div class="flex min-w-0 items-center gap-2">
+                    <p data-member-name class="min-w-0 truncate text-body font-semibold text-ink-1">최유진</p>
+                    <span data-status-badge class="hidden flex-none"><span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span></span>
+                  </div>
                   <p data-member-contact class="mt-1 truncate text-fine text-ink-2">yujin@jungto.org · 연락처 미등록</p>
                 </div>
               </div>
@@ -415,7 +373,6 @@
                 <button type="button" data-withdraw class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">탈퇴</button>
               </div>
               <div data-withdrawn-actions class="hidden w-full items-center gap-2 sm:w-auto">
-                <span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span>
                 <button data-delete class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">등록 정보 삭제</button>
               </div>
             </div>
@@ -435,7 +392,10 @@
               <div class="flex min-w-0 flex-1 items-center gap-3">
                 <span data-avatar class="flex h-9 w-9 flex-none items-center justify-center rounded-pill bg-surface-muted text-fine font-semibold text-ink-2" aria-hidden="true">정</span>
                 <div class="min-w-0">
-                  <p data-member-name class="truncate text-body font-semibold text-ink-1">정민지</p>
+                  <div class="flex min-w-0 items-center gap-2">
+                    <p data-member-name class="min-w-0 truncate text-body font-semibold text-ink-1">정민지</p>
+                    <span data-status-badge class="flex-none"><span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span></span>
+                  </div>
                   <p data-member-contact class="mt-1 truncate text-fine text-ink-2">minji@jungto.org · 010-4567-8901</p>
                 </div>
               </div>
@@ -452,7 +412,6 @@
                 <button type="button" data-withdraw class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">탈퇴</button>
               </div>
               <div data-withdrawn-actions class="flex w-full items-center gap-2 sm:w-auto">
-                <span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span>
                 <button
                   type="button"
                   data-delete
@@ -480,7 +439,10 @@
               <div class="flex min-w-0 flex-1 items-center gap-3">
                 <span data-avatar class="flex h-9 w-9 flex-none items-center justify-center rounded-pill bg-surface-muted text-fine font-semibold text-ink-2" aria-hidden="true">한</span>
                 <div class="min-w-0">
-                  <p data-member-name class="truncate text-body font-semibold text-ink-1">한지우</p>
+                  <div class="flex min-w-0 items-center gap-2">
+                    <p data-member-name class="min-w-0 truncate text-body font-semibold text-ink-1">한지우</p>
+                    <span data-status-badge class="flex-none"><span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span></span>
+                  </div>
                   <p data-member-contact class="mt-1 truncate text-fine text-ink-2">jiwoo@jungto.org · 010-5678-9012</p>
                 </div>
               </div>
@@ -497,7 +459,6 @@
                 <button type="button" data-withdraw class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">탈퇴</button>
               </div>
               <div data-withdrawn-actions class="flex w-full items-center gap-2 sm:w-auto">
-                <span class="status-badge"><span class="status-dot bg-ink-3"></span>탈퇴</span>
                 <button data-delete class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">등록 정보 삭제</button>
               </div>
             </div>
@@ -509,74 +470,84 @@
           <p class="text-body font-semibold text-ink-1">검색 결과가 없어요</p>
           <p class="mt-2 text-fine text-ink-2">다른 이름이나 연락처로 검색해 보세요.</p>
         </div>
-      </div>
 
-          <!-- ===== 허용 이메일 ===== -->
-          <div id="panel-emails" data-panel="emails" class="hidden">
-        <div class="rounded-card border border-line bg-surface p-4">
-          <p class="text-fine text-ink-2">정토회(@jungto.org) 계정 외에 로그인을 허용할 이메일입니다.</p>
-          <form id="email-form" class="mt-4">
-            <div class="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-              <label class="block">
-                <span class="text-fine font-medium text-ink-2">이메일</span>
-                <input
-                  id="email-input"
-                  type="email"
-                  autocomplete="off"
-                  placeholder="oper@example.com"
-                  aria-describedby="email-error"
-                  class="field-input mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </label>
-              <label class="block">
-                <span class="text-fine font-medium text-ink-2">메모 (선택)</span>
-                <input
-                  id="email-note"
-                  autocomplete="off"
-                  placeholder="누구 계정인지"
-                  class="mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </label>
-              <button
-                type="submit"
-                class="h-10 w-full rounded-card bg-primary-strong px-4 text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:w-auto"
-              >
-                추가
-              </button>
-            </div>
-            <p id="email-error" class="mt-2 hidden text-fine text-danger" role="alert">올바른 이메일을 입력해 주세요</p>
-          </form>
-        </div>
+          <!-- ===== 허용 이메일 (보조 설정) ===== -->
+          <details id="email-section" class="email-section mt-8 border-t border-line pt-6">
+            <summary class="flex cursor-pointer items-center justify-between gap-4">
+              <span class="text-heading font-semibold tracking-[-0.015em] text-ink-1">
+                로그인 허용 이메일
+                <span id="email-count" class="ml-1 text-fine font-normal text-ink-2">3</span>
+              </span>
+              <svg class="chevron h-5 w-5 flex-none text-ink-2 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </summary>
 
-        <div id="email-list" class="mt-4 divide-y divide-line rounded-card border border-line bg-surface">
-          <div data-email-row class="flex flex-wrap items-center gap-3 p-4">
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-body font-medium text-ink-1">oper@example.com</p>
-              <p class="mt-1 text-fine text-ink-2">운영팀 공용 · 등록: 김하늘 · 2026-09-12</p>
-            </div>
-            <button data-remove-email class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">제거</button>
-          </div>
-          <div data-email-row class="flex flex-wrap items-center gap-3 p-4">
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-body font-medium text-ink-1">guest@example.com</p>
-              <p class="mt-1 text-fine text-ink-2">행사 도우미 · 등록: 김하늘 · 2026-10-02</p>
-            </div>
-            <button data-remove-email class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">제거</button>
-          </div>
-          <div data-email-row class="flex flex-wrap items-center gap-3 p-4">
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-body font-medium text-ink-1">partner@example.com</p>
-              <p class="mt-1 text-fine text-ink-2">협력 기관 · 등록: 김하늘 · 2026-10-20</p>
-            </div>
-            <button data-remove-email class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">제거</button>
-          </div>
-        </div>
+            <p class="mt-2 text-fine text-ink-2">정토회(@jungto.org) 계정 외에 로그인을 허용할 이메일입니다.</p>
 
-        <div id="email-empty" class="mt-4 hidden rounded-card border border-line bg-surface px-6 py-10 text-center">
-          <p class="text-body font-semibold text-ink-1">아직 등록된 이메일이 없어요</p>
-          <p class="mt-2 text-fine text-ink-2">로그인을 허용할 이메일을 추가해 보세요.</p>
-        </div>
-      </div>
+            <div class="mt-4 rounded-card border border-line bg-surface p-4">
+              <form id="email-form">
+                <div class="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <label class="block">
+                    <span class="text-fine font-medium text-ink-2">이메일</span>
+                    <input
+                      id="email-input"
+                      type="email"
+                      autocomplete="off"
+                      placeholder="oper@example.com"
+                      aria-describedby="email-error"
+                      class="field-input mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </label>
+                  <label class="block">
+                    <span class="text-fine font-medium text-ink-2">메모 (선택)</span>
+                    <input
+                      id="email-note"
+                      autocomplete="off"
+                      placeholder="누구 계정인지"
+                      class="mt-2 h-10 w-full rounded-card border border-line bg-surface px-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    class="h-10 w-full rounded-card bg-primary-strong px-4 text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:w-auto"
+                  >
+                    추가
+                  </button>
+                </div>
+                <p id="email-error" class="mt-2 hidden text-fine text-danger" role="alert">올바른 이메일을 입력해 주세요</p>
+              </form>
+            </div>
+
+            <div id="email-list" class="mt-4 divide-y divide-line rounded-card border border-line bg-surface">
+              <div data-email-row class="flex flex-wrap items-center gap-3 p-4">
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-body font-medium text-ink-1">oper@example.com</p>
+                  <p class="mt-1 text-fine text-ink-2">운영팀 공용 · 등록: 김하늘 · 2026-09-12</p>
+                </div>
+                <button data-remove-email class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">제거</button>
+              </div>
+              <div data-email-row class="flex flex-wrap items-center gap-3 p-4">
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-body font-medium text-ink-1">guest@example.com</p>
+                  <p class="mt-1 text-fine text-ink-2">행사 도우미 · 등록: 김하늘 · 2026-10-02</p>
+                </div>
+                <button data-remove-email class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">제거</button>
+              </div>
+              <div data-email-row class="flex flex-wrap items-center gap-3 p-4">
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-body font-medium text-ink-1">partner@example.com</p>
+                  <p class="mt-1 text-fine text-ink-2">협력 기관 · 등록: 김하늘 · 2026-10-20</p>
+                </div>
+                <button data-remove-email class="h-9 flex-none rounded-card border border-danger bg-surface px-4 text-body font-medium text-danger transition-colors hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">제거</button>
+              </div>
+            </div>
+
+            <div id="email-empty" class="mt-4 hidden rounded-card border border-line bg-surface px-6 py-10 text-center">
+              <p class="text-body font-semibold text-ink-1">아직 등록된 이메일이 없어요</p>
+              <p class="mt-2 text-fine text-ink-2">로그인을 허용할 이메일을 추가해 보세요.</p>
+            </div>
+          </details>
         </div>
 
         <aside class="page-side page-side-hide" aria-label="회원 관리 안내">
@@ -598,6 +569,18 @@
         </aside>
       </div>
     </main>
+
+    <footer class="border-t border-line">
+      <div
+        class="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+      >
+        <p>정토회 · 함께 쓰는 물품</p>
+        <nav class="flex gap-4" aria-label="정책">
+          <a href="policy.html?kind=terms" class="transition-colors hover:text-ink-1 hover:underline">이용약관</a>
+          <a href="policy.html?kind=privacy" class="transition-colors hover:text-ink-1 hover:underline">개인정보처리방침</a>
+        </nav>
+      </div>
+    </footer>
 
     <!-- 확인 모달 -->
     <div
@@ -654,25 +637,9 @@
         message.classList.remove("flex");
       }
 
-      // ===== 탭 =====
-      const tabs = [...document.querySelectorAll("[data-tab]")];
-      const panels = [...document.querySelectorAll("[data-panel]")];
-
-      tabs.forEach((tab) => {
-        tab.addEventListener("click", () => {
-          tabs.forEach((item) => {
-            item.setAttribute("aria-pressed", String(item === tab));
-          });
-          panels.forEach((panel) => {
-            panel.classList.toggle("hidden", panel.dataset.panel !== tab.dataset.tab);
-          });
-        });
-      });
-
       // ===== 회원 검색 =====
       const search = document.getElementById("member-search");
       const memberCards = [...document.querySelectorAll("[data-member]")];
-      const memberCount = document.getElementById("member-count");
       const memberEmpty = document.getElementById("member-empty");
 
       function filterMembers() {
@@ -685,7 +652,6 @@
           if (show) visible += 1;
         });
 
-        memberCount.textContent = `${visible}명`;
         memberEmpty.classList.toggle("hidden", visible !== 0);
       }
 
@@ -784,6 +750,9 @@
             avatar.classList.add("bg-surface-muted", "text-ink-2");
           }
 
+          const statusBadge = card.querySelector("[data-status-badge]");
+          if (statusBadge) statusBadge.classList.remove("hidden");
+
           const note = card.querySelector("[data-guard-note]");
           if (note) note.classList.add("hidden");
 
@@ -820,11 +789,11 @@
       const emailError = document.getElementById("email-error");
       const emailList = document.getElementById("email-list");
       const emailEmpty = document.getElementById("email-empty");
-      const emailsTabCount = document.getElementById("emails-tab-count");
+      const emailCount = document.getElementById("email-count");
 
       function updateEmailCount() {
         const count = emailList.querySelectorAll("[data-email-row]").length;
-        emailsTabCount.textContent = String(count);
+        emailCount.textContent = String(count);
         emailList.classList.toggle("hidden", count === 0);
         emailEmpty.classList.toggle("hidden", count !== 0);
       }

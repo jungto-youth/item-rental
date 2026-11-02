@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-role="admin">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -63,16 +63,12 @@
       ::selection {
         background: var(--color-primary-soft);
       }
-      .preview-bar {
-        border-bottom: 1px dashed var(--color-line-strong);
-        background: var(--color-surface-muted);
-      }
       .status-badge {
-        position: relative;
         display: inline-flex;
         align-items: center;
+        gap: 6px;
         height: 24px;
-        padding: 0 12px;
+        padding: 0 10px;
         border-radius: 999px;
         background: var(--color-surface-muted);
         color: var(--color-ink-2);
@@ -80,21 +76,17 @@
         line-height: 1;
         white-space: nowrap;
       }
-      /* 점은 왼쪽 패딩 안에 두고, 텍스트는 좌우 12px로 대칭을 맞춘다. */
+      /* 점과 텍스트를 흐름 안에 두고, 좌우 10px 패딩으로 묶음을 가운데 맞춘다. */
       .status-dot {
-        position: absolute;
-        left: 4px;
-        top: 50%;
+        flex: none;
         width: 6px;
         height: 6px;
         border-radius: 50%;
         background: var(--color-ink-3);
-        transform: translateY(-50%);
       }
       .filter-chip {
         display: inline-flex;
         align-items: center;
-        justify-content: space-between;
         gap: 8px;
         height: 36px;
         padding: 0 16px;
@@ -130,11 +122,6 @@
         outline: 2px solid var(--color-primary);
         outline-offset: 2px;
       }
-      @media (min-width: 640px) {
-        .filter-chip {
-          justify-content: flex-start;
-        }
-      }
       @media (prefers-reduced-motion: reduce) {
         *,
         *::before,
@@ -143,15 +130,10 @@
           animation-duration: 0.01ms !important;
         }
       }
-      @media print {
-        .preview-bar {
-          display: none !important;
-        }
-      }
     </style>
   </head>
 
-  <body class="antialiased">
+  <body class="flex min-h-dvh flex-col antialiased">
     <!-- 디자인 미리보기 전용 — 제품 UI 아님 -->
     
     <!-- ===== 공통 헤더 (관리자) ===== -->
@@ -163,8 +145,8 @@
 
         <nav class="flex min-w-0 items-center gap-4 sm:gap-6" aria-label="주 메뉴">
           <a href="index.html" class="flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">물품 현황</a>
-          <a href="admin-reservations.html" aria-current="page" class="flex h-14 items-center border-b-2 border-primary text-body font-semibold text-ink-1 sm:h-16">대여 관리</a>
-          <a href="admin-members.html" class="flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">회원 관리</a>
+          <a href="admin-reservations.html" aria-current="page" class="admin-only flex h-14 items-center border-b-2 border-primary text-body font-semibold text-ink-1 sm:h-16">대여 관리</a>
+          <a href="admin-members.html" class="admin-only flex h-14 items-center border-b-2 border-transparent text-body text-ink-2 transition-colors hover:text-ink-1 sm:h-16">회원 관리</a>
         </nav>
 
         <div class="relative ml-auto flex flex-none items-center">
@@ -194,7 +176,7 @@
       </div>
     </header>
 
-    <main class="mx-auto max-w-[1280px] px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
+    <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
       <div>
         <h1 class="text-page-title font-bold tracking-[-0.015em] text-ink-1">대여 관리</h1>
         <p class="mt-2 text-fine text-ink-2">회원이 빌린 물품과 반납 상태를 확인해요.</p>
@@ -209,12 +191,22 @@
 
       <div class="page-split side-first mt-6">
         <div class="page-main">
-          <div class="flex items-center justify-between gap-4">
-            <p id="result-count" class="text-fine text-ink-2" role="status">6개</p>
-            <p class="text-fine text-ink-2">최근 대여 순</p>
+          <div class="flex flex-wrap items-center gap-2" aria-label="대여 상태 필터">
+            <button type="button" class="filter-chip" data-filter="all" aria-pressed="true">
+              전체 <span class="count" data-count-for="all">6</span>
+            </button>
+            <button type="button" class="filter-chip" data-filter="rented" aria-pressed="false">
+              대여 중 <span class="count" data-count-for="rented">3</span>
+            </button>
+            <button type="button" class="filter-chip" data-filter="returned" aria-pressed="false">
+              반납 완료 <span class="count" data-count-for="returned">2</span>
+            </button>
+            <button type="button" class="filter-chip" data-filter="cancelled" aria-pressed="false">
+              취소 <span class="count" data-count-for="cancelled">1</span>
+            </button>
           </div>
 
-          <div id="reservation-list" class="mt-2 space-y-2">
+          <div id="reservation-list" class="mt-4 space-y-2">
         <!-- 대여 중 -->
         <article
           data-reservation
@@ -338,23 +330,8 @@
           </div>
         </div>
 
-        <aside class="page-side" aria-label="대여 필터와 안내">
-          <div class="grid grid-cols-2 gap-2 lg:flex lg:flex-col lg:items-stretch" aria-label="대여 상태 필터">
-            <button type="button" class="filter-chip side-filter" data-filter="all" aria-pressed="true">
-              전체 <span class="count" data-count-for="all">6</span>
-            </button>
-            <button type="button" class="filter-chip side-filter" data-filter="rented" aria-pressed="false">
-              대여 중 <span class="count" data-count-for="rented">3</span>
-            </button>
-            <button type="button" class="filter-chip side-filter" data-filter="returned" aria-pressed="false">
-              반납 완료 <span class="count" data-count-for="returned">2</span>
-            </button>
-            <button type="button" class="filter-chip side-filter" data-filter="cancelled" aria-pressed="false">
-              취소 <span class="count" data-count-for="cancelled">1</span>
-            </button>
-          </div>
-
-          <section class="page-side-hide rounded-card border border-line bg-surface p-4">
+        <aside class="page-side page-side-hide" aria-label="반납 처리 안내">
+          <section class="rounded-card border border-line bg-surface p-4">
             <h2 class="text-body font-semibold tracking-[-0.015em] text-ink-1">반납 처리 안내</h2>
             <p class="mt-2 text-fine leading-[1.5] text-ink-2">
               물품을 돌려받았으면 <b class="font-semibold text-ink-1">반납</b>을 눌러 상태를 바꿔 주세요.
@@ -364,6 +341,18 @@
         </aside>
       </div>
     </main>
+
+    <footer class="border-t border-line">
+      <div
+        class="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+      >
+        <p>정토회 · 함께 쓰는 물품</p>
+        <nav class="flex gap-4" aria-label="정책">
+          <a href="policy.html?kind=terms" class="transition-colors hover:text-ink-1 hover:underline">이용약관</a>
+          <a href="policy.html?kind=privacy" class="transition-colors hover:text-ink-1 hover:underline">개인정보처리방침</a>
+        </nav>
+      </div>
+    </footer>
 
     <!-- 확인 모달 -->
     <div
@@ -399,7 +388,6 @@
     <script>
       const cards = [...document.querySelectorAll("[data-reservation]")];
       const chips = [...document.querySelectorAll("[data-filter]")];
-      const resultCount = document.getElementById("result-count");
       const filterEmpty = document.getElementById("filter-empty");
       const message = document.getElementById("page-message");
       const messageText = document.getElementById("page-message-text");
@@ -422,7 +410,6 @@
           if (show) visible += 1;
         });
 
-        resultCount.textContent = `${visible}개`;
         filterEmpty.classList.toggle("hidden", visible !== 0);
         chips.forEach((chip) => {
           chip.setAttribute("aria-pressed", String(chip.dataset.filter === filter));
