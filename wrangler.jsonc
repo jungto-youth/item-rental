@@ -17,7 +17,7 @@
     {
       "binding": "DB",
       "database_name": "item-rental-db",
-      "database_id": "4f220ed2-dd45-41dc-ba1e-075889a4589a",
+      "database_id": "438ffd44-c072-4465-a02d-3f53e2fd75b6",
       "migrations_dir": "migrations-d1"
     }
   ],
