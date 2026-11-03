@@ -273,7 +273,7 @@ export default function AdminMembers() {
         : "";
 
     return (
-      <article class="member box-border rounded-card border border-line bg-surface p-4">
+      <article class="member box-border min-w-0 rounded-card border border-line bg-surface p-4">
         <div class="flex flex-wrap items-start gap-3">
           <div class="flex min-w-0 flex-1 items-center gap-3">
             <span class={`flex size-9 shrink-0 items-center justify-center rounded-pill text-fine font-semibold ${withdrawn ? "bg-surface-muted text-ink-2" : "bg-primary-soft text-primary-strong"}`} aria-hidden="true">

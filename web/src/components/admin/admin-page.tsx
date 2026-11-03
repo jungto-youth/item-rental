@@ -14,6 +14,8 @@ type Props = {
   messageTone?: "info" | "success" | "error";
   side?: boolean;
   onRetry?: () => void;
+  /** 페이지 제목 오른쪽 액션 — 내비게이션·보조 동작 */
+  action?: JSX.Element;
   toolbar?: JSX.Element;
   children?: JSX.Element;
   sideContent?: JSX.Element;
@@ -46,7 +48,11 @@ export function AdminPage(props: Props) {
 
   return (
     <div class="admin-page block">
-      <PageHeader title={props.title} subtitle={props.subtitle} />
+      <PageHeader
+        title={props.title}
+        subtitle={props.subtitle}
+        action={props.action}
+      />
       <Show when={props.message}>
         <p
           class={`mb-6 flex items-center gap-1 text-fine ${

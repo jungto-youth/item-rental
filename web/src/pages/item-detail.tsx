@@ -13,11 +13,13 @@ import { availableQty } from "../utils/stock";
 import { Button } from "../components/ui/button";
 import { Empty } from "../components/ui/empty";
 import { InfoList } from "../components/ui/info-list";
+import { TextButton } from "../components/ui/text-button";
 import { ChevronLeftIcon } from "../components/icons";
 import { ItemGallery } from "../components/features/item/item-gallery";
 import { ItemRentalForm } from "../components/features/item/item-rental-form";
 import { RentalSteps } from "../components/features/item/rental-steps";
 import { ItemCard } from "../components/features/item/item-card";
+import { InventoryAdjustModal } from "../components/features/item/inventory-adjust-modal";
 
 export default function ItemDetail(props: { params: Record<string, string> }) {
   const [item, setItem] = createSignal<Item | null>(null);
@@ -27,6 +29,7 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
   const [relatedCategory, setRelatedCategory] = createSignal("");
   const [user, setUser] = createSignal<SessionUser | null>(null);
   const [userReady, setUserReady] = createSignal(false);
+  const [adjustOpen, setAdjustOpen] = createSignal(false);
 
   let loadGen = 0;
   const itemId = () => props.params.id;
@@ -119,20 +122,24 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
 
   const topNav = () => (
     <div class="mb-4 flex items-center justify-between gap-4">
-      <a
-        class="inline-flex h-9 items-center gap-1 rounded-card text-body font-medium text-ink-2 no-underline hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [&_svg]:size-4"
+      <TextButton
         href={window.location.search ? `/${window.location.search}` : "/"}
+        icon={<ChevronLeftIcon />}
       >
-        <ChevronLeftIcon />
         목록으로
-      </a>
+      </TextButton>
       <Show when={item() && isAdmin()}>
-        <Button
-          variant="secondary"
-          onClick={() => navigate(`/items/${item()!.id}/edit`)}
-        >
-          수정
-        </Button>
+        <div class="flex items-center gap-2">
+          <TextButton onClick={() => setAdjustOpen(true)}>
+            수량 조정
+          </TextButton>
+          <Button
+            variant="secondary"
+            onClick={() => navigate(`/items/${item()!.id}/edit`)}
+          >
+            수정
+          </Button>
+        </div>
       </Show>
     </div>
   );
@@ -254,6 +261,29 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
                     </For>
                   </div>
                 </section>
+              </Show>
+
+              <Show when={isAdmin()}>
+                <InventoryAdjustModal
+                  itemId={it().id}
+                  itemName={it().name}
+                  totalQty={it().total_qty}
+                  open={adjustOpen()}
+                  onClose={() => setAdjustOpen(false)}
+                  onAdjusted={(totalQty) => {
+                    setItem((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            total_qty: totalQty,
+                            rentable_qty:
+                              totalQty - (prev.qty_repair ?? 0),
+                          }
+                        : prev,
+                    );
+                    void load(true);
+                  }}
+                />
               </Show>
             </>
           );

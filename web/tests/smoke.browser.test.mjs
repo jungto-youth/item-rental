@@ -206,6 +206,18 @@ let members = [
     created_at: "2026-01-01",
     active_rental_count: 0,
   },
+  // 긴 이름·이메일·소속 — 모바일에서 카드가 화면 밖으로 밀려나는지 검사한다.
+  {
+    id: "long",
+    name: "아주아주아주긴이름의회원",
+    email: "very.long.email.address.for.testing.overflow@example.invalid",
+    phone: "010-1234-5678",
+    affiliation: "아주 긴 소속 이름을 가진 부서입니다 정말로",
+    role: "user",
+    deactivated_at: null,
+    created_at: "2026-01-01",
+    active_rental_count: 0,
+  },
 ];
 
 async function mockApi(page, user, options = {}) {
@@ -479,23 +491,35 @@ try {
     await mockApi(page, ADMIN);
     await page.goto(new URL("items/101/edit", base).href);
     await page.getByRole("heading", { name: "물품 수정", exact: true }).waitFor();
+    assert.equal(await page.getByRole("heading", { name: "수량 조정", exact: true }).count(), 0);
     assert.equal(await page.getByLabel("이름 *").inputValue(), "4인용 텐트");
     assert.equal(await page.getByLabel("보관 위치").inputValue(), "7층 비품실");
     await page.locator(".category-tags-input .tag").filter({ hasText: "캠핑" }).waitFor();
+    const saveBox = await page.getByRole("button", { name: "저장", exact: true }).boundingBox();
+    assert.ok(saveBox && saveBox.y + saveBox.height <= 900, "저장 버튼이 첫 화면에 보여야 한다");
     console.log("PASS edit form hydrates from admin and public detail");
     await context.close();
   }
 
-  // 8-1) 수량 조정 — 보유 수량을 바로 바꾸고 이력을 남긴다.
+  // 8-1) 수량 조정 — 물품 상세의 모달에서 보유 수량을 바꾸고 이력을 남긴다.
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
     await mockApi(page, ADMIN);
     let posted = null;
+    let totalQty = 5;
+    await page.route("**/api/items/101", async (route) => {
+      await route.fulfill({
+        json: {
+          item: { ...ITEMS[0], total_qty: totalQty, rentable_qty: totalQty - 1 },
+        },
+      });
+    });
     await page.route("**/api/admin/items/101/adjustments", async (route) => {
       if (route.request().method() === "POST") {
         posted = route.request().postDataJSON();
-        await route.fulfill({ json: { ok: true, total_qty: 6 } });
+        totalQty = 6;
+        await route.fulfill({ json: { ok: true, total_qty: totalQty } });
         return;
       }
       await route.fulfill({
@@ -517,20 +541,25 @@ try {
         },
       });
     });
-    await page.goto(new URL("items/101/edit", base).href);
-    await page.getByRole("heading", { name: "물품 수정", exact: true }).waitFor();
-    await page.getByRole("heading", { name: "수량 조정", exact: true }).waitFor();
-    await page.getByRole("button", { name: "망실", exact: true }).click();
-    await page.getByLabel("수량 *", { exact: true }).fill("1");
-    await page.getByLabel("사유 메모 (선택)").fill("파손");
+    await page.goto(new URL("items/101", base).href);
     await page.getByRole("button", { name: "수량 조정", exact: true }).click();
-    await page
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: "망실", exact: true }).click();
+    await dialog.getByLabel("수량 *", { exact: true }).fill("1");
+    await dialog.getByLabel("사유 메모 (선택)").fill("파손");
+    await dialog.getByRole("button", { name: "수량 조정", exact: true }).click();
+    await dialog
       .getByText("망실 1개를 반영했어요. 현재 보유 6개", { exact: true })
       .waitFor();
     assert.deepEqual(posted, { kind: "lost", qty: 1, memo: "파손" });
-    assert.equal(await page.getByLabel("보유 수량 *").inputValue(), "6");
-    await page.getByText("보유 7 → 6", { exact: false }).waitFor();
-    console.log("PASS item quantity adjustment");
+    await dialog.getByText("보유 7 → 6", { exact: false }).waitFor();
+    await dialog.getByRole("button", { name: "닫기", exact: true }).click();
+    await page
+      .locator("dl > div")
+      .filter({ hasText: "전체 보유" })
+      .getByText("6개", { exact: true })
+      .waitFor();
+    console.log("PASS item quantity adjustment from detail modal");
     await context.close();
   }
 
@@ -653,12 +682,15 @@ try {
     await context.close();
   }
 
-  // 14) 모바일 폭에서 가로 스크롤이 없다.
-  {
+  // 15) 모바일 폭에서 가로 스크롤이 없다 — 긴 이름·이메일·소속 카드 포함.
+  for (const [user, routes] of [
+    [MEMBER, ["/", "/items/101", "/mypage", "/my/rentals", "/policy/privacy"]],
+    [ADMIN, ["/admin/members", "/admin/reservations"]],
+  ]) {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
-    await mockApi(page, MEMBER);
-    for (const route of ["/", "/items/101", "/mypage", "/my/rentals", "/policy/privacy"]) {
+    await mockApi(page, user);
+    for (const route of routes) {
       await page.goto(new URL(route.replace(/^\//, ""), base).href, {
         waitUntil: "networkidle",
       });
@@ -667,9 +699,9 @@ try {
       );
       assert.ok(overflow <= 1, `${route} horizontal overflow ${overflow}px`);
     }
-    console.log("PASS no horizontal overflow at 390px");
     await context.close();
   }
+  console.log("PASS no horizontal overflow at 390px");
 
   await writeFile(path.join(screenshotDir, ".gitkeep"), "");
 } finally {

@@ -1,30 +1,22 @@
 import {
-  For,
   Show,
   createEffect,
   createSignal,
   onSettled,
   untrack,
 } from "solid-js";
-import { api, ApiError } from "../../api/client";
+import { api } from "../../api/client";
 import { navigate } from "../../router";
 import { confirmDialog } from "../../utils/confirm";
-import { fmtKstDate } from "../../utils/date";
 import { getCategories, resolveCategoryIds } from "../../utils/categories";
 import { processPhoto } from "../../utils/photo";
 import { MAX_PHOTOS } from "../../../../shared/photo-limits";
-import type {
-  AdminInventoryAdjustment,
-  InventoryAdjustmentKind,
-  Item,
-  ItemKind,
-  ItemLifecycle,
-  Photo,
-} from "../../types";
+import type { Item, ItemKind, ItemLifecycle, Photo } from "../../types";
 import { AdminPage } from "../../components/admin/admin-page";
 import { Button } from "../../components/ui/button";
 import { Chip } from "../../components/ui/chip";
 import { Input } from "../../components/ui/input";
+import { TextButton } from "../../components/ui/text-button";
 import { CategoryTagsInput } from "../../components/features/category/category-tags-input";
 import {
   PhotoUploader,
@@ -65,18 +57,6 @@ type AdminItemDetail = {
 
 type StagedPhoto = { file: File; url: string };
 
-const ADJUSTMENT_LABELS: Record<InventoryAdjustmentKind, string> = {
-  add: "추가",
-  lost: "망실",
-  dispose: "폐기",
-};
-
-const ADJUSTMENT_OPTIONS = [
-  { value: "add", label: "추가" },
-  { value: "lost", label: "망실" },
-  { value: "dispose", label: "폐기" },
-];
-
 export default function AdminItemForm(props: { params: Record<string, string> }) {
   const [form, setForm] = createSignal<ItemFormModel>({ ...EMPTY_FORM });
   const [photos, setPhotos] = createSignal<Photo[]>([]);
@@ -90,15 +70,6 @@ export default function AdminItemForm(props: { params: Record<string, string> })
   const [processingPhotos, setProcessingPhotos] = createSignal(false);
   const [error, setFormError] = createSignal("");
   const [createdId, setCreatedId] = createSignal<number | null>(null);
-
-  const [adjustments, setAdjustments] = createSignal<AdminInventoryAdjustment[]>([]);
-  const [adjustmentsLoading, setAdjustmentsLoading] = createSignal(false);
-  const [adjustKind, setAdjustKind] = createSignal<InventoryAdjustmentKind>("add");
-  const [adjustQty, setAdjustQty] = createSignal("1");
-  const [adjustMemo, setAdjustMemo] = createSignal("");
-  const [adjusting, setAdjusting] = createSignal(false);
-  const [adjustError, setAdjustError] = createSignal("");
-  const [adjustMessage, setAdjustMessage] = createSignal("");
 
   let loadGen = 0;
   let photoGeneration = 0;
@@ -143,20 +114,6 @@ export default function AdminItemForm(props: { params: Record<string, string> })
     }
   };
 
-  const loadAdjustments = async (id: number | string) => {
-    setAdjustmentsLoading(true);
-    try {
-      const res = await api<{ adjustments: AdminInventoryAdjustment[] }>(
-        `/api/admin/items/${id}/adjustments`,
-      );
-      setAdjustments(res.adjustments);
-    } catch {
-      setAdjustments([]);
-    } finally {
-      setAdjustmentsLoading(false);
-    }
-  };
-
   const loadItem = async (gen: number) => {
     try {
       const [detailRes, publicRes] = await Promise.all([
@@ -178,7 +135,6 @@ export default function AdminItemForm(props: { params: Record<string, string> })
       setPhotos(publicRes?.item.photos ?? []);
       setLoading(false);
       commitBaseline();
-      void loadAdjustments(itemId());
     } catch (err) {
       if (gen !== loadGen) return;
       setLoading(false);
@@ -205,11 +161,6 @@ export default function AdminItemForm(props: { params: Record<string, string> })
     setFormError("");
     setCreatedId(null);
     setLoadError("");
-    setAdjustments([]);
-    setAdjustError("");
-    setAdjustMessage("");
-    setAdjustQty("1");
-    setAdjustMemo("");
     baseline = "";
     void loadCategoryOptions();
     if (itemId() === "new") {
@@ -404,73 +355,6 @@ export default function AdminItemForm(props: { params: Record<string, string> })
     }
   };
 
-  const handleAdjust = async (event: SubmitEvent) => {
-    event.preventDefault();
-    if (adjusting() || isCreate()) return;
-
-    const qty = Number(adjustQty());
-    if (!Number.isInteger(qty) || qty < 1) {
-      setAdjustError("수량을 1 이상 입력해 주세요.");
-      setAdjustMessage("");
-      return;
-    }
-
-    setAdjusting(true);
-    setAdjustError("");
-    setAdjustMessage("");
-    try {
-      const res = await api<{ ok: true; total_qty: number }>(
-        `/api/admin/items/${targetId()}/adjustments`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            kind: adjustKind(),
-            qty,
-            memo: adjustMemo().trim() || undefined,
-          }),
-        },
-      );
-      // 저장된 보유 수량에 즉시 반영된다. 폼에 다른 미저장 변경이 있으면 dirty 를 유지하고,
-      // 없으면 새 수량을 기준선으로 삼아 "저장 안 됨" 표시가 생기지 않게 한다.
-      const wasDirty = dirty();
-      const next = { ...form(), total_qty: res.total_qty };
-      setForm(next);
-      if (!wasDirty) {
-        baseline = JSON.stringify({
-          f: next,
-          t: [...tagNames()].sort(),
-          p: staged().length,
-          r: [...removedIds()].sort(),
-        });
-      }
-      setAdjustQty("1");
-      setAdjustMemo("");
-      setAdjustMessage(
-        `${ADJUSTMENT_LABELS[adjustKind()]} ${qty}개를 반영했어요. 현재 보유 ${res.total_qty}개`,
-      );
-      await loadAdjustments(targetId());
-    } catch (err) {
-      const code = err instanceof ApiError ? err.code : undefined;
-      if (code === "rented_qty_constraint") {
-        setAdjustError("대여 중인 수량보다 적게 줄일 수 없어요.");
-      } else if (code === "repair_qty_constraint") {
-        setAdjustError("수리 중 수량보다 적게 줄일 수 없어요.");
-      } else if (code === "min_qty") {
-        setAdjustError(
-          "보유 수량은 1개 이상이어야 해요. 물품을 폐기하려면 상태를 폐기로 바꿔 주세요.",
-        );
-      } else if (code === "conflict") {
-        setAdjustError("다른 변경이 있었어요. 새로고침 후 다시 시도해 주세요.");
-      } else {
-        setAdjustError(
-          err instanceof Error ? err.message : "수량을 조정하지 못했어요.",
-        );
-      }
-    } finally {
-      setAdjusting(false);
-    }
-  };
-
   const handleDelete = async () => {
     if (
       !(await confirmDialog("", {
@@ -496,6 +380,13 @@ export default function AdminItemForm(props: { params: Record<string, string> })
     navigate("/");
   };
 
+  // 공개 보기 — 폼 액션이 아니라 이동이지만, 미저장 변경은 취소와 같은
+  // 기준으로 보호한다 (지금까지는 확인 없이 바로 이동했다).
+  const handlePublicView = async () => {
+    if (!(await confirmLeave())) return;
+    navigate(`/items/${targetId()}`);
+  };
+
   return (
     <AdminPage
       title={isCreate() ? "물품 등록" : "물품 수정"}
@@ -507,6 +398,13 @@ export default function AdminItemForm(props: { params: Record<string, string> })
       loading={loading()}
       error={loadError()}
       onRetry={init}
+      action={
+        <Show when={!isCreate()}>
+          <TextButton onClick={() => void handlePublicView()}>
+            공개 보기
+          </TextButton>
+        </Show>
+      }
       side
       sideContent={
         <>
@@ -515,6 +413,10 @@ export default function AdminItemForm(props: { params: Record<string, string> })
             <p class="mt-2 text-fine leading-normal text-ink-2">
               이름과 보유 수량은 필수예요. 수리 중 수량은 대여할 수 없는 수량이라
               보유 수량을 넘을 수 없어요.
+            </p>
+            <p class="mt-2 text-fine leading-normal text-ink-2">
+              보유 수량을 직접 바꾸면 이력이 남지 않아요. 추가·망실·폐기는 물품
+              상세의 ‘수량 조정’에서 처리해 주세요.
             </p>
           </section>
           <section class="rounded-card border border-line bg-surface p-4">
@@ -643,22 +545,17 @@ export default function AdminItemForm(props: { params: Record<string, string> })
             </p>
           </section>
 
-          <div class="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex min-w-0 flex-wrap items-center gap-2">
-              <Show when={!isCreate()}>
-                <Button variant="danger" type="button" onClick={() => void handleDelete()}>
-                  물품 삭제
-                </Button>
-                <Button
-                  variant="secondary"
-                  type="button"
-                  onClick={() => navigate(`/items/${targetId()}`)}
-                >
-                  공개 보기
-                </Button>
-              </Show>
-            </div>
-            <div class="flex shrink-0 justify-end gap-2">
+          <div class="sticky bottom-0 z-10 mt-2 flex flex-wrap items-center gap-2 border-t border-line bg-surface pt-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))]">
+            <Show when={!isCreate()}>
+              <TextButton
+                tone="danger"
+                disabled={saving() || processingPhotos()}
+                onClick={() => void handleDelete()}
+              >
+                물품 삭제
+              </TextButton>
+            </Show>
+            <div class="ml-auto flex shrink-0 justify-end gap-2">
               <Button
                 variant="secondary"
                 type="button"
@@ -677,116 +574,6 @@ export default function AdminItemForm(props: { params: Record<string, string> })
             </div>
           </div>
         </form>
-
-        <Show when={!isCreate()}>
-          <section
-            class="mt-8 box-border rounded-card border border-line bg-surface p-6 max-sm:p-4"
-            aria-labelledby="adjust-title"
-          >
-            <h2
-              id="adjust-title"
-              class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1"
-            >
-              수량 조정
-            </h2>
-            <p class="mt-2 m-0 text-fine leading-normal text-ink-2">
-              추가·망실·폐기를 이력으로 남겨요. 저장된 보유 수량에 바로 적용되고,
-              이름·사진 같은 다른 변경은 위 저장 버튼으로 반영해요.
-            </p>
-
-            <form class="mt-4 flex flex-col gap-4" onSubmit={handleAdjust}>
-              <div class="grid gap-4 min-[720px]:grid-cols-2">
-                <span class="flex flex-col gap-2 text-fine font-normal text-ink-2">
-                  구분
-                  <Chip
-                    ariaLabel="수량 조정 구분"
-                    value={adjustKind()}
-                    options={ADJUSTMENT_OPTIONS}
-                    onChange={(value) =>
-                      setAdjustKind(value as InventoryAdjustmentKind)
-                    }
-                  />
-                </span>
-                <Input
-                  label="수량 *"
-                  type="number"
-                  inputmode="numeric"
-                  min="1"
-                  value={adjustQty()}
-                  onInput={setAdjustQty}
-                />
-              </div>
-              <Input
-                label="사유 메모 (선택)"
-                placeholder="예: 신규 구입, 파손 폐기"
-                value={adjustMemo()}
-                onInput={setAdjustMemo}
-              />
-
-              <Show when={adjustError()}>
-                <p class="m-0 text-fine leading-normal text-danger" role="alert">
-                  {adjustError()}
-                </p>
-              </Show>
-              <Show when={adjustMessage()}>
-                <p class="m-0 text-fine leading-normal text-ink-2" role="status">
-                  {adjustMessage()}
-                </p>
-              </Show>
-
-              <div class="flex justify-end">
-                <Button variant="secondary" type="submit" loading={adjusting()}>
-                  수량 조정
-                </Button>
-              </div>
-            </form>
-
-            <div class="mt-8">
-              <h3 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">
-                조정 이력
-              </h3>
-              <Show
-                when={!adjustmentsLoading()}
-                fallback={
-                  <p class="mt-2 m-0 text-fine text-ink-2" role="status">
-                    조정 이력을 불러오는 중…
-                  </p>
-                }
-              >
-                <Show
-                  when={adjustments().length > 0}
-                  fallback={
-                    <p class="mt-2 m-0 text-fine text-ink-2">
-                      아직 조정 이력이 없어요.
-                    </p>
-                  }
-                >
-                  <ul class="mt-4 m-0 grid list-none gap-2 p-0">
-                    <For each={adjustments()}>
-                      {(entry) => (
-                        <li class="box-border rounded-card border border-line bg-surface-muted px-4 py-2 text-fine leading-normal text-ink-2">
-                          <div class="flex flex-wrap items-center justify-between gap-2">
-                            <span class="font-semibold text-ink-1">
-                              {ADJUSTMENT_LABELS[entry.kind]} {entry.qty}개
-                            </span>
-                            <span>{fmtKstDate(entry.created_at)}</span>
-                          </div>
-                          <p class="m-0 mt-2">
-                            보유 {entry.total_qty_before} → {entry.total_qty_after}
-                            {entry.actor_name ? ` · ${entry.actor_name}` : ""}
-                          </p>
-                          <Show when={entry.memo}>
-                            <p class="m-0 mt-2">사유: {entry.memo}</p>
-                          </Show>
-                        </li>
-                      )}
-                    </For>
-                  </ul>
-                </Show>
-              </Show>
-            </div>
-          </section>
-        </Show>
       </div>
     </AdminPage>
   );

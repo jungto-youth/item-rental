@@ -92,6 +92,7 @@
 | 컴포넌트 | 변형 | 반드시 정의할 상태 |
 | --- | --- | --- |
 | 버튼 | primary / secondary / danger | hover, focus-visible, disabled, loading |
+| 텍스트 버튼 | 링크 / 동작 | hover, focus-visible, disabled, loading |
 | 인풋 | text / textarea / number | focus, disabled, required, error |
 | 칩 | sm / lg | active(`aria-pressed`), disabled, focus-visible |
 | 배지 | 상태 텍스트 | — (읽기 전용) |
@@ -108,6 +109,9 @@
 
 - **버튼** 약 37px, 16px/600. primary는 `--primary` 채움(hover `--primary-strong`),
   secondary는 흰 바탕 + `--border`, danger는 `--danger` 테두리·글자.
+- **텍스트 버튼** 36px, 16px/500. 테두리·배경 없이 `--ink-2` 글자만 두고,
+  hover는 배경 없이 `--ink-1`로 글자색만 바뀐다. 아이콘은 16px, 글자와 8px 간격.
+  '목록으로' 같은 보조 내비게이션과 '더보기' 같은 반복 동작에 쓴다.
 - **인풋** 40px, label 14px + 8px + 컨트롤. focus는 `--primary` 테두리,
   오류는 `--danger` 테두리 + 메시지, textarea 최소 72px.
 - **칩** 약 37px(개수는 14px), `lg`는 44px. 알약. active는 `--ink-1` 채움 + 흰 글자 + 600.
@@ -127,7 +131,7 @@ disabled / loading / error / empty / mobile 390을 확인한다.
   `tailwind.css`의 `@theme inline`으로 노출한 토큰 유틸리티(`bg-surface`, `text-ink-2`,
   `rounded-card`)로만 참조한다. 임의 hex·중간 px 값은 만들지 않는다.
 - 같은 규격이 2곳 이상에서 반복되면 `components/ui/`의 컴포넌트로 올린다
-  (`Button`, `Badge`, `Chip`, `Empty`, `Input`, `Modal`, `Notice`, `PageHeader`, `InfoList`).
+  (`Button`, `TextButton`, `Badge`, `Chip`, `Empty`, `Input`, `Modal`, `Notice`, `PageHeader`, `InfoList`).
 - **`web-lit/`(Lit 원본, deprecated)은 Shadow DOM 안에서 `css` 템플릿을 쓴다.** 공유 규격은
   `web-lit/src/styles/ui.ts`로 올린다.
 

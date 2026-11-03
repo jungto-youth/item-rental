@@ -26,6 +26,17 @@ export const buttonVariantsCss = css`
     background: var(--surface-muted);
   }
 
+  /* Quiet: 테두리·면 없는 텍스트 버튼 — '더보기' 같은 반복 동작.
+     hover는 배경 없이 글자색만 바뀐다. */
+  .variant-quiet {
+    background: transparent;
+    color: var(--ink-2);
+    border: 1px solid transparent;
+  }
+  .variant-quiet:hover:not(:disabled) {
+    color: var(--ink-1);
+  }
+
   /* Danger: 파괴적 액션 — 위험색 아웃라인 */
   .variant-danger {
     background: var(--surface);

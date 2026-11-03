@@ -17,6 +17,8 @@ import type { JSX } from "@solidjs/web";
 import { Button } from "../../ui/button";
 import { Empty } from "../../ui/empty";
 import { Notice } from "../../ui/notice";
+import { TextButton } from "../../ui/text-button";
+import { ChevronDownIcon } from "../../icons";
 import { ItemCard } from "./item-card";
 
 export type TabKey = "all" | "available" | "rented" | "repair";
@@ -317,13 +319,13 @@ export function ItemExplorer(props: {
       </div>
       <Show when={more()}>
         <div class="mb-8 flex justify-center">
-          <Button
-            variant="secondary"
+          <TextButton
             loading={loadingMore()}
+            iconAfter={<ChevronDownIcon />}
             onClick={() => void moreItems()}
           >
             {loadingMore() ? "불러오는 중…" : "더보기"}
-          </Button>
+          </TextButton>
         </div>
       </Show>
     </>

@@ -549,7 +549,7 @@ export class ItemExplorer extends LitElement {
     return html`
       <div class="more-row">
         <x-button
-          variant="secondary"
+          variant="quiet"
           ?loading=${this.loadingMore}
           @click=${() => this.more()}
         >

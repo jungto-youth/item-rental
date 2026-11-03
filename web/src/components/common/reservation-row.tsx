@@ -13,7 +13,7 @@ type Props = {
 
 export function ReservationRow(props: Props) {
   return (
-    <div class="reservation-row block">
+    <div class="reservation-row block min-w-0">
       <div
         class={`box-border rounded-card border bg-surface p-4 ${
           props.active ? "border-ink-1" : "border-line"

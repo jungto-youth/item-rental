@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { buttonVariantsCss } from "./variants";
 
-export type ButtonVariant = "primary" | "secondary" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "quiet" | "danger";
 
 // 버튼 규격 — 높이를 고정하지 않는다.
 // 높이는 "내용(글자 줄높이) + 위아래 패딩 + 테두리"로 정해진다.
