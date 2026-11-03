@@ -36,9 +36,6 @@ export class ReservationRow extends LitElement {
       :host {
         display: block;
       }
-      .card {
-        margin-bottom: var(--space-1);
-      }
       :host([active]) .card {
         border-color: var(--ink-1);
       }
