@@ -33,8 +33,8 @@ export default function SignupProfile() {
             </h1>
             <p class="mt-2 text-body leading-normal text-ink-2">
               {hasName()
-                ? "물품을 빌리려면 전화번호가 필요해요."
-                : "물품을 빌리려면 이름과 전화번호가 필요해요."}
+                ? "물품을 빌리려면 전화번호가 필요합니다."
+                : "물품을 빌리려면 이름과 전화번호가 필요합니다."}
             </p>
           </div>
 
@@ -47,14 +47,14 @@ export default function SignupProfile() {
             accountLabel="로그인한 계정"
             accountVerified
             hint=""
-            note="저장하면 바로 물품을 둘러볼 수 있어요."
+            note="저장하면 바로 물품을 둘러볼 수 있습니다."
             onSaved={() => navigate("/mypage")}
           />
 
           <p class="mt-4 text-center text-fine leading-normal text-ink-2">
-            입력한 정보는 물품 대여 연락에만 사용해요.
+            입력한 정보는 물품 대여 연락에만 사용합니다.
             <br />
-            가입은 회원으로 시작하고, 관리자 지정은 기존 관리자가 해요.
+            가입은 회원으로 시작하고, 관리자 지정은 기존 관리자가 합니다.
           </p>
 
           <p class="mt-6 text-center">

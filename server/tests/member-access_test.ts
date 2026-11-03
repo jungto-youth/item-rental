@@ -178,7 +178,7 @@ test("item quantity: a PUT that would drop stock below what is already rented is
       body: JSON.stringify({ total_qty: 1 }),
     });
     expect(blocked.status).toBe(400);
-    expect(await blocked.json()).toEqual({ error: "대여 중인 물품 수량보다 적게 줄일 수 없어요" });
+    expect(await blocked.json()).toEqual({ error: "대여 중인 물품 수량보다 적게 줄일 수 없습니다" });
     expect(db.prepare("SELECT total_qty FROM items WHERE id = 1").get()?.total_qty).toBe(3);
 
     // 경계값 — 대여 중인 수량까지 줄이는 것은 통과한다

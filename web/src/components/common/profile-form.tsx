@@ -36,7 +36,7 @@ export function ProfileForm(props: Props) {
   const [busy, setBusy] = createSignal(false);
 
   const initial = () => (name() || props.email || "").trim().charAt(0).toUpperCase();
-  const hint = () => props.hint ?? "대여 연락 목적으로만 사용돼요";
+  const hint = () => props.hint ?? "대여 연락 목적으로만 사용됩니다";
 
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
@@ -61,7 +61,7 @@ export function ProfileForm(props: Props) {
       await session.refresh();
       props.onSaved?.();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "저장에 실패했어요");
+      setMessage(err instanceof Error ? err.message : "저장에 실패했습니다");
     } finally {
       setBusy(false);
     }

@@ -73,7 +73,7 @@ export default function Home() {
     <div class="block">
       <PageHeader
         title="물품 현황"
-        subtitle="함께 쓰는 물품과 대여 상태를 확인해요."
+        subtitle="함께 쓰는 물품과 대여 상태를 확인합니다."
       />
 
       <div class="grid grid-cols-1 gap-x-6 gap-y-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
@@ -121,8 +121,8 @@ export default function Home() {
             </h2>
             <p class="mt-2 text-fine leading-normal text-ink-2">
               {isAdmin()
-                ? "물품 등록·수정과 반납 처리는 상단 메뉴에서 할 수 있어요."
-                : "신청 후 관리자가 승인하면 대여가 시작돼요. 진행 상황은 대여 내역에서 확인해요."}
+                ? "물품 등록·수정과 반납 처리는 상단 메뉴에서 할 수 있습니다."
+                : "신청 후 관리자가 승인하면 대여가 시작됩니다. 진행 상황은 대여 내역에서 확인합니다."}
             </p>
             <div class="mt-4 flex flex-wrap gap-2">
               <Show when={isAdmin()}>
@@ -156,7 +156,7 @@ export default function Home() {
           <Show when={denied}>
             <div class="mb-4 block">
               <Notice tone="danger" alert>
-                관리자 권한이 필요해요 — 일반 회원 계정으로는 관리자 화면에 접근할 수 없어요.
+                관리자 권한이 필요합니다 — 일반 회원 계정으로는 관리자 화면에 접근할 수 없습니다.
               </Notice>
             </div>
           </Show>

@@ -17,8 +17,8 @@ export function Empty(props: Props) {
     (state() === "loading"
       ? "불러오는 중…"
       : state() === "error"
-        ? "오류가 발생했어요"
-        : "내용이 없어요");
+        ? "오류가 발생했습니다"
+        : "내용이 없습니다");
 
   const boxClass = () => {
     if (props.compact) return "block border-0 bg-transparent p-0 text-left";

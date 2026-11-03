@@ -16,7 +16,6 @@ import { AdminPage } from "../../components/admin/admin-page";
 import { Button } from "../../components/ui/button";
 import { Chip } from "../../components/ui/chip";
 import { Input } from "../../components/ui/input";
-import { TextButton } from "../../components/ui/text-button";
 import { CategoryTagsInput } from "../../components/features/category/category-tags-input";
 import {
   PhotoUploader,
@@ -122,7 +121,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
       ]);
       if (gen !== loadGen) return;
       const item = detailRes.item;
-      setForm({
+      const nextForm: ItemFormModel = {
         name: item.name,
         kind: item.kind ?? "rental",
         total_qty: item.total_qty ?? 1,
@@ -130,16 +129,27 @@ export default function AdminItemForm(props: { params: Record<string, string> })
         lifecycle: item.lifecycle ?? "active",
         location: item.location ?? "",
         description: item.description ?? "",
-      });
-      setTagNames((item.categories ?? []).map((category) => category.name));
+      };
+      const nextTags = (item.categories ?? []).map(
+        (category) => category.name,
+      );
+      setForm(nextForm);
+      setTagNames(nextTags);
       setPhotos(publicRes?.item.photos ?? []);
+      // setForm 직후 form()을 읽으면 아직 이전 값이다. 불러온 값으로 기준선을
+      // 직접 만들어, 저장하지 않은 변경이 없다고 정확히 판단하게 한다.
+      baseline = JSON.stringify({
+        f: nextForm,
+        t: [...nextTags].sort(),
+        p: 0,
+        r: [],
+      });
       setLoading(false);
-      commitBaseline();
     } catch (err) {
       if (gen !== loadGen) return;
       setLoading(false);
       setLoadError(
-        err instanceof Error ? err.message : "물품 정보를 불러오지 못했어요",
+        err instanceof Error ? err.message : "물품 정보를 불러오지 못했습니다",
       );
     }
   };
@@ -164,8 +174,8 @@ export default function AdminItemForm(props: { params: Record<string, string> })
     baseline = "";
     void loadCategoryOptions();
     if (itemId() === "new") {
+      baseline = JSON.stringify({ f: { ...EMPTY_FORM }, t: [], p: 0, r: [] });
       setLoading(false);
-      commitBaseline();
       return;
     }
     setLoading(true);
@@ -182,8 +192,8 @@ export default function AdminItemForm(props: { params: Record<string, string> })
   const confirmLeave = async () => {
     if (!dirty()) return true;
     return await confirmDialog("", {
-      title: "저장하지 않은 변경이 있어요.",
-      description: "떠나면 변경 사항이 사라져요.",
+      title: "저장하지 않은 변경이 있습니다.",
+      description: "떠나면 변경 사항이 사라집니다.",
       confirmLabel: "나가기",
       cancelLabel: "계속 수정",
       danger: true,
@@ -225,7 +235,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
     try {
       for (const file of files) {
         if (photoCount() >= MAX_PHOTOS) {
-          setError(`사진은 최대 ${MAX_PHOTOS}장까지 등록할 수 있어요`);
+          setError(`사진은 최대 ${MAX_PHOTOS}장까지 등록할 수 있습니다`);
           break;
         }
         try {
@@ -311,7 +321,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
       return;
     }
     if (form().kind === "rental" && form().qty_repair > form().total_qty) {
-      setError("수리 중 수량은 보유 수량을 넘을 수 없어요.");
+      setError("수리 중 수량은 보유 수량을 넘을 수 없습니다.");
       return;
     }
     setSaving(true);
@@ -336,19 +346,20 @@ export default function AdminItemForm(props: { params: Record<string, string> })
       const failed = await flushPhotos(id);
       if (failed.length > 0) {
         setError(
-          `물품은 저장됐어요. 사진 처리만 실패했어요: ${failed.join(", ")}`,
+          `물품은 저장되었습니다. 사진 처리만 실패했습니다: ${failed.join(", ")}`,
         );
         return;
       }
       commitBaseline();
-      navigate("/");
+      // 저장 결과를 바로 확인할 수 있게 상세로 돌아간다 (등록도 새 물품 상세).
+      navigate(`/items/${id}`);
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : isCreate()
-            ? "물품 등록에 실패했어요"
-            : "수정 저장에 실패했어요",
+            ? "물품 등록에 실패했습니다"
+            : "수정 저장에 실패했습니다",
       );
     } finally {
       setSaving(false);
@@ -358,8 +369,8 @@ export default function AdminItemForm(props: { params: Record<string, string> })
   const handleDelete = async () => {
     if (
       !(await confirmDialog("", {
-        title: `'${form().name.trim() || "물품"}' 물품을 정말 삭제할까요?`,
-        description: "연결된 대여 이력은 남고 복구할 수 없어요.",
+        title: `'${form().name.trim() || "물품"}' 물품을 정말 삭제하시겠습니까?`,
+        description: "연결된 대여 이력은 남고 복구할 수 없습니다.",
         confirmLabel: "삭제",
         danger: true,
       }))
@@ -374,17 +385,12 @@ export default function AdminItemForm(props: { params: Record<string, string> })
     }
   };
 
+  // 수정은 상세에서 들어오므로 취소하면 그 상세로 돌아간다.
+  // 등록은 돌아갈 상세가 없으니 목록으로 보낸다.
   const handleCancel = async () => {
     if (!(await confirmLeave())) return;
     baseline = "";
-    navigate("/");
-  };
-
-  // 공개 보기 — 폼 액션이 아니라 이동이지만, 미저장 변경은 취소와 같은
-  // 기준으로 보호한다 (지금까지는 확인 없이 바로 이동했다).
-  const handlePublicView = async () => {
-    if (!(await confirmLeave())) return;
-    navigate(`/items/${targetId()}`);
+    navigate(isCreate() ? "/" : `/items/${targetId()}`);
   };
 
   return (
@@ -392,17 +398,30 @@ export default function AdminItemForm(props: { params: Record<string, string> })
       title={isCreate() ? "물품 등록" : "물품 수정"}
       subtitle={
         isCreate()
-          ? "새 물품의 정보와 사진을 등록해요."
-          : "물품 정보와 사진을 수정해요."
+          ? "새 물품의 정보와 사진을 등록합니다."
+          : "물품 정보와 사진을 수정합니다."
       }
       loading={loading()}
       error={loadError()}
       onRetry={init}
       action={
-        <Show when={!isCreate()}>
-          <TextButton onClick={() => void handlePublicView()}>
-            공개 보기
-          </TextButton>
+        <Show when={!loading() && !loadError()}>
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={() => void handleCancel()}
+          >
+            취소
+          </Button>
+          <Button
+            variant="primary"
+            type="submit"
+            form="item-form"
+            loading={saving()}
+            disabled={processingPhotos()}
+          >
+            저장
+          </Button>
         </Show>
       }
       side
@@ -411,26 +430,26 @@ export default function AdminItemForm(props: { params: Record<string, string> })
           <section class="rounded-card border border-line bg-surface p-4">
             <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">작성 안내</h2>
             <p class="mt-2 text-fine leading-normal text-ink-2">
-              이름과 보유 수량은 필수예요. 수리 중 수량은 대여할 수 없는 수량이라
-              보유 수량을 넘을 수 없어요.
+              이름과 보유 수량은 필수입니다. 수리 중 수량은 대여할 수 없는 수량이라
+              보유 수량을 넘을 수 없습니다.
             </p>
             <p class="mt-2 text-fine leading-normal text-ink-2">
-              보유 수량을 직접 바꾸면 이력이 남지 않아요. 추가·망실·폐기는 물품
-              상세의 ‘수량 조정’에서 처리해 주세요.
+              보유 수량을 바꾸면 저장 시 반영됩니다. 대여 중·수리 중 수량보다
+              적게 줄일 수 없습니다.
             </p>
           </section>
           <section class="rounded-card border border-line bg-surface p-4">
             <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">사진 안내</h2>
             <p class="mt-2 text-fine leading-normal text-ink-2">
-              사진은 최대 3장까지 등록할 수 있어요. 첫 사진이 대표 사진이 되고,
-              추가·삭제는 저장할 때 함께 반영돼요.
+              사진은 최대 3장까지 등록할 수 있습니다. 첫 사진이 대표 사진이 되고,
+              추가·삭제는 저장할 때 함께 반영됩니다.
             </p>
           </section>
         </>
       }
     >
       <div class="max-w-full">
-        <form class="flex flex-col gap-4" onSubmit={handleSave}>
+        <form id="item-form" class="flex flex-col gap-4" onSubmit={handleSave}>
           <Show when={error()}>
             <p class="m-0 rounded-card border border-danger bg-danger-soft px-4 py-2 text-fine leading-normal text-danger" role="alert" tabindex="-1" ref={errorBanner}>
               {error()}
@@ -503,7 +522,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
           </section>
 
           <section class="flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4">
-            <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">재고 · 사진</h2>
+            <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">재고</h2>
             <div class="grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
               <Input
                 label="보유 수량 *"
@@ -526,10 +545,17 @@ export default function AdminItemForm(props: { params: Record<string, string> })
             </div>
             <Show when={form().kind === "rental"}>
               <p class="m-0 text-fine text-ink-2">
-                수리 중 수량은 대여 불가 수량이에요 (보유 수량을 넘을 수 없어요)
+                수리 중 수량은 대여 불가 수량입니다 (보유 수량을 넘을 수 없습니다)
               </p>
             </Show>
+            <p class="m-0 text-fine text-ink-2">
+              보유 수량을 바꾸면 저장 시 반영됩니다. 대여 중·수리 중 수량보다
+              적게 줄일 수 없습니다.
+            </p>
+          </section>
 
+          <section class="flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4">
+            <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">사진</h2>
             <PhotoUploader
               multiple
               disabled={processingPhotos() || saving()}
@@ -538,41 +564,30 @@ export default function AdminItemForm(props: { params: Record<string, string> })
               onRemove={onPhotoRemove}
             />
             <Show when={processingPhotos()}>
-              <p class="text-fine text-ink-2" role="status">사진을 축소하고 있어요…</p>
+              <p class="text-fine text-ink-2" role="status">사진을 축소하고 있습니다…</p>
             </Show>
             <p class="m-0 text-fine text-ink-2">
-              사진 추가·삭제는 저장할 때 함께 반영돼요. 첫 사진이 대표 사진이에요.
+              사진 추가·삭제는 저장할 때 함께 반영됩니다. 첫 사진이 대표 사진입니다.
             </p>
           </section>
 
-          <div class="sticky bottom-0 z-10 mt-2 flex flex-wrap items-center gap-2 border-t border-line bg-surface pt-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))]">
-            <Show when={!isCreate()}>
-              <TextButton
-                tone="danger"
+          <Show when={!isCreate()}>
+            <section class="flex flex-wrap items-center justify-between gap-4 rounded-card border border-line bg-surface p-6 max-sm:flex-col max-sm:items-start max-sm:p-4">
+              <div class="min-w-0">
+                <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">위험 영역</h2>
+                <p class="mt-2 text-fine leading-normal text-ink-2">
+                  물품을 삭제하면 목록에서 사라지고 복구할 수 없습니다. 연결된 대여 이력은 남습니다.
+                </p>
+              </div>
+              <Button
+                variant="danger"
                 disabled={saving() || processingPhotos()}
                 onClick={() => void handleDelete()}
               >
                 물품 삭제
-              </TextButton>
-            </Show>
-            <div class="ml-auto flex shrink-0 justify-end gap-2">
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={() => void handleCancel()}
-              >
-                취소
               </Button>
-              <Button
-                variant="primary"
-                type="submit"
-                loading={saving()}
-                disabled={processingPhotos()}
-              >
-                저장
-              </Button>
-            </div>
-          </div>
+            </section>
+          </Show>
         </form>
       </div>
     </AdminPage>

@@ -80,8 +80,10 @@ export function ItemExplorer(props: {
     return item.kind !== "consumable" && availableQty(item) > 0;
   };
 
+  // 관리자도 목록에서는 공개 상세로 들어간다 — 수정은 상세의 '수정' 버튼이 맡는다.
+  // 검색·상태 필터를 쿼리로 넘겨, 상세의 '목록으로'가 같은 목록으로 돌아오게 한다.
   const hrefFor = (item: Item) =>
-    isAdmin() ? `/items/${item.id}/edit` : `/items/${item.id}${window.location.search}`;
+    `/items/${item.id}${window.location.search}`;
 
   const syncRole = () => {
     const admin = session.isAdmin();
@@ -111,7 +113,7 @@ export function ItemExplorer(props: {
     } catch (err) {
       if (gen !== adminGen || !untrack(isAdmin)) return;
       setAdminError(
-        err instanceof Error ? err.message : "물품 목록을 불러오지 못했어요",
+        err instanceof Error ? err.message : "물품 목록을 불러오지 못했습니다",
       );
     } finally {
       if (gen === adminGen && untrack(isAdmin)) setAdminLoading(false);
@@ -168,7 +170,7 @@ export function ItemExplorer(props: {
     } catch (err) {
       if (gen !== fetchGen || untrack(isAdmin)) return;
       setError(
-        err instanceof Error ? err.message : "물품 목록을 불러오지 못했어요",
+        err instanceof Error ? err.message : "물품 목록을 불러오지 못했습니다",
       );
     } finally {
       if (gen === fetchGen && !untrack(isAdmin)) setLoading(false);
@@ -190,7 +192,7 @@ export function ItemExplorer(props: {
       setItems([...items(), ...res.items]);
       setHasMore(res.hasMore);
     } catch {
-      setNoticeMsg("더 불러오지 못했어요 — 다시 시도해 주세요");
+      setNoticeMsg("더 불러오지 못했습니다 — 다시 시도해 주세요");
     } finally {
       setLoadingMore(false);
     }
@@ -257,22 +259,22 @@ export function ItemExplorer(props: {
   const emptyCopy = () => {
     if (props.q) {
       return {
-        title: `'${props.q}'로 찾은 물품이 없어요`,
+        title: `'${props.q}'로 찾은 물품이 없습니다`,
         subtitle: "다른 이름이나 위치로 검색해 보세요.",
       };
     }
     const label = TABS.find((tab) => tab.key === props.tab)?.label;
     if (label && props.tab !== "all") {
       return {
-        title: `'${label}' 물품이 없어요`,
+        title: `'${label}' 물품이 없습니다`,
         subtitle: "다른 상태를 선택해 보세요.",
       };
     }
     return {
-      title: "등록된 물품이 없어요",
+      title: "등록된 물품이 없습니다",
       subtitle: isAdmin()
-        ? "첫 물품을 등록하면 회원이 대여를 신청할 수 있어요."
-        : "관리자가 물품을 등록하면 여기에 표시돼요.",
+        ? "첫 물품을 등록하면 회원이 대여를 신청할 수 있습니다."
+        : "관리자가 물품을 등록하면 여기에 표시됩니다.",
     };
   };
 
@@ -426,7 +428,7 @@ export function ItemExplorer(props: {
         <Show when={!adminLoading() && !adminError() && visible().length > 0}>
           <Show when={truncated()}>
             <p class="mb-4 text-fine leading-normal text-ink-2">
-              1000건까지만 불러왔어요 — 목록이 잘렸을 수 있어요
+              1000건까지만 불러왔습니다 — 목록이 잘렸을 수 있습니다
             </p>
           </Show>
           {renderGrid(

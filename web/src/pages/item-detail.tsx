@@ -19,7 +19,6 @@ import { ItemGallery } from "../components/features/item/item-gallery";
 import { ItemRentalForm } from "../components/features/item/item-rental-form";
 import { RentalSteps } from "../components/features/item/rental-steps";
 import { ItemCard } from "../components/features/item/item-card";
-import { InventoryAdjustModal } from "../components/features/item/inventory-adjust-modal";
 
 export default function ItemDetail(props: { params: Record<string, string> }) {
   const [item, setItem] = createSignal<Item | null>(null);
@@ -29,7 +28,6 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
   const [relatedCategory, setRelatedCategory] = createSignal("");
   const [user, setUser] = createSignal<SessionUser | null>(null);
   const [userReady, setUserReady] = createSignal(false);
-  const [adjustOpen, setAdjustOpen] = createSignal(false);
 
   let loadGen = 0;
   const itemId = () => props.params.id;
@@ -71,7 +69,7 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
       if (gen !== loadGen) return;
       if (!quiet) {
         setError(
-          err instanceof Error ? err.message : "물품 정보를 불러오지 못했어요",
+          err instanceof Error ? err.message : "물품 정보를 불러오지 못했습니다",
         );
       }
     } finally {
@@ -129,17 +127,12 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
         목록으로
       </TextButton>
       <Show when={item() && isAdmin()}>
-        <div class="flex items-center gap-2">
-          <TextButton onClick={() => setAdjustOpen(true)}>
-            수량 조정
-          </TextButton>
-          <Button
-            variant="secondary"
-            onClick={() => navigate(`/items/${item()!.id}/edit`)}
-          >
-            수정
-          </Button>
-        </div>
+        <Button
+          variant="secondary"
+          onClick={() => navigate(`/items/${item()!.id}/edit`)}
+        >
+          수정
+        </Button>
       </Show>
     </div>
   );
@@ -151,7 +144,7 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
         <Empty
           state="error"
           text={error()}
-          subtitle="삭제되었거나 연결이 불안정해요."
+          subtitle="삭제되었거나 연결이 불안정합니다."
         >
           <Button variant="primary" onClick={() => void load()}>
             다시 시도
@@ -247,7 +240,7 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
                   <div class="flex items-end justify-between gap-4">
                     <div>
                       <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">{relatedCategory()} 물품 더 보기</h2>
-                      <p class="mt-2 text-fine text-ink-2">함께 쓰면 좋은 물품이에요</p>
+                      <p class="mt-2 text-fine text-ink-2">함께 쓰면 좋은 물품입니다</p>
                     </div>
                     <a class="text-body font-medium text-primary-strong no-underline hover:text-primary" href="/">전체 보기</a>
                   </div>
@@ -261,29 +254,6 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
                     </For>
                   </div>
                 </section>
-              </Show>
-
-              <Show when={isAdmin()}>
-                <InventoryAdjustModal
-                  itemId={it().id}
-                  itemName={it().name}
-                  totalQty={it().total_qty}
-                  open={adjustOpen()}
-                  onClose={() => setAdjustOpen(false)}
-                  onAdjusted={(totalQty) => {
-                    setItem((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            total_qty: totalQty,
-                            rentable_qty:
-                              totalQty - (prev.qty_repair ?? 0),
-                          }
-                        : prev,
-                    );
-                    void load(true);
-                  }}
-                />
               </Show>
             </>
           );

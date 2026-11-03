@@ -103,7 +103,6 @@ D1 테이블은 `migrations-d1/`이 정의한다. 주요 축은 다음과 같다
 | 물품 | `items`, `item_photos` | 생애주기 `active`/`retired`, 수량 상태 `total_qty`·`qty_repair` |
 | 분류 | `categories`, `item_categories` | 다대다 |
 | 대여 | `reservations` | 신청 대기·대여 중·반납·취소·거절, 반납 예정일(`due_at`), 승인·거절 처리자 |
-| 재고 | `inventory_adjustments` | 보유 수량 추가·망실·폐기 이력 (사유·처리자) |
 | 검색 | `items_fts` (FTS5) | 키워드 색인, 임베딩은 `items`에 저장 |
 
 - 물품 상태 배지는 `available` · `rented` · `repair` · `retired` 네 가지다.

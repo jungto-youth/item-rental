@@ -42,7 +42,7 @@ export default function AdminMembers() {
       setMembers(res.members);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "회원 목록을 불러오지 못했어요",
+        err instanceof Error ? err.message : "회원 목록을 불러오지 못했습니다",
       );
     } finally {
       setLoading(false);
@@ -106,9 +106,9 @@ export default function AdminMembers() {
     const who = member.name || member.email || "이 회원";
     if (
       !(await confirmDialog("", {
-        title: `'${who}' 님을 탈퇴 처리할까요?`,
+        title: `'${who}' 님을 탈퇴 처리하시겠습니까?`,
         description:
-          "탈퇴하면 지금 로그인된 세션이 끊기고, 다시 로그인하면 계정이 복구돼요. 대신 역할은 일반 회원으로 초기화되고, 대여·관리 이력은 그대로 남아요.",
+          "탈퇴하면 지금 로그인된 세션이 끊기고, 다시 로그인하면 계정이 복구됩니다. 대신 역할은 일반 회원으로 초기화되고, 대여·관리 이력은 그대로 남습니다.",
         confirmLabel: "탈퇴",
         danger: true,
       }))
@@ -118,13 +118,13 @@ export default function AdminMembers() {
     setProcessingKey(keyOf(member, "withdraw"));
     try {
       await api(`/api/admin/members/${member.id}/withdraw`, { method: "POST" });
-      setMessage(`${who}님을 탈퇴 처리했어요`);
+      setMessage(`${who}님을 탈퇴 처리했습니다`);
       setMessageTone("success");
       await reload();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       if (code === "last_admin") {
-        setMessage("마지막 관리자는 탈퇴 처리할 수 없어요");
+        setMessage("마지막 관리자는 탈퇴 처리할 수 없습니다");
       } else if (err instanceof ApiError) {
         setMessage(err.message);
       } else {
@@ -142,9 +142,9 @@ export default function AdminMembers() {
     const who = member.name || member.email;
     if (
       !(await confirmDialog("", {
-        title: `'${who}' 님의 등록 정보를 삭제할까요?`,
+        title: `'${who}' 님의 등록 정보를 삭제하시겠습니까?`,
         description:
-          "이름·이메일·연락처가 제거되고, 완료된 대여·관리 이력은 익명으로 보존돼요. 되돌릴 수 없어요.",
+          "이름·이메일·연락처가 제거되고, 완료된 대여·관리 이력은 익명으로 보존됩니다. 되돌릴 수 없습니다.",
         confirmLabel: "등록 정보 삭제",
         danger: true,
       }))
@@ -154,18 +154,18 @@ export default function AdminMembers() {
     setProcessingKey(keyOf(member, "delete"));
     try {
       await api(`/api/admin/members/${member.id}`, { method: "DELETE" });
-      setMessage(`${who}님의 등록 정보를 삭제했어요`);
+      setMessage(`${who}님의 등록 정보를 삭제했습니다`);
       setMessageTone("success");
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       setMessage(
         code === "has_active_rentals"
-          ? "대여 중인 물품이 있어 삭제할 수 없어요. 먼저 반납 또는 취소 처리해 주세요"
+          ? "대여 중인 물품이 있어 삭제할 수 없습니다. 먼저 반납 또는 취소 처리해 주세요"
           : code === "active_member"
-            ? "활성 회원은 바로 삭제할 수 없어요. 먼저 탈퇴 처리해 주세요"
+            ? "활성 회원은 바로 삭제할 수 없습니다. 먼저 탈퇴 처리해 주세요"
             : err instanceof Error
               ? err.message
-              : "등록 정보 삭제에 실패했어요",
+              : "등록 정보 삭제에 실패했습니다",
       );
       setMessageTone("error");
     } finally {
@@ -184,14 +184,14 @@ export default function AdminMembers() {
         body: JSON.stringify({ role }),
       });
       setMessage(
-        `${member.name || member.email}님의 역할을 '${label[role]}'(으)로 바꿨어요`,
+        `${member.name || member.email}님의 역할을 '${label[role]}'(으)로 바꿨습니다`,
       );
       setMessageTone("success");
       await reload();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       if (code === "last_admin") {
-        setMessage("마지막 관리자는 해임할 수 없어요");
+        setMessage("마지막 관리자는 해임할 수 없습니다");
       } else if (err instanceof ApiError) {
         setMessage(err.message);
       } else {
@@ -221,14 +221,14 @@ export default function AdminMembers() {
           note: noteValue().trim() || undefined,
         }),
       });
-      setMessage(`${email} 계정의 로그인을 허용했어요`);
+      setMessage(`${email} 계정의 로그인을 허용했습니다`);
       setMessageTone("success");
       setEmailValue("");
       setNoteValue("");
       await reloadEmails();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
-      if (code === "duplicate") setMessage("이미 등록된 이메일이에요");
+      if (code === "duplicate") setMessage("이미 등록된 이메일입니다");
       else if (err instanceof ApiError) setMessage(err.message);
       else setMessage("추가 실패");
       setMessageTone("error");
@@ -242,7 +242,7 @@ export default function AdminMembers() {
     setEmailBusy(true);
     try {
       await api(`/api/admin/allowed-emails/${email.id}`, { method: "DELETE" });
-      setMessage(`${email.email} 계정을 제거했어요`);
+      setMessage(`${email.email} 계정을 제거했습니다`);
       setMessageTone("success");
       await reloadEmails();
     } catch (err) {
@@ -267,9 +267,9 @@ export default function AdminMembers() {
     const withdrawKey = keyOf(member, "withdraw");
     const initial = (member.name || member.email).trim().charAt(0).toUpperCase();
     const note = lastAdmin
-      ? "마지막 관리자는 탈퇴할 수 없어요."
+      ? "마지막 관리자는 탈퇴할 수 없습니다."
       : withdrawn && (member.active_rental_count ?? 0) > 0
-        ? `대여 중 ${member.active_rental_count}건 · 등록 정보 삭제 전 반납 또는 취소 처리가 필요해요.`
+        ? `대여 중 ${member.active_rental_count}건 · 등록 정보 삭제 전 반납 또는 취소 처리가 필요합니다.`
         : "";
 
     return (
@@ -304,7 +304,7 @@ export default function AdminMembers() {
                   class="w-full sm:w-auto"
                   title={
                     (member.active_rental_count ?? 0) > 0
-                      ? "대여 중인 물품이 있어요"
+                      ? "대여 중인 물품이 있습니다"
                       : ""
                   }
                   loading={processingKey() === keyOf(member, "delete")}
@@ -340,7 +340,7 @@ export default function AdminMembers() {
               </span>
               <Button
                 variant="danger"
-                title={lastAdmin ? "마지막 관리자는 탈퇴할 수 없어요" : ""}
+                title={lastAdmin ? "마지막 관리자는 탈퇴할 수 없습니다" : ""}
                 loading={processingKey() === withdrawKey}
                 disabled={lastAdmin || otherRowBusy(member, "withdraw")}
                 onClick={() => void withdraw(member)}
@@ -400,7 +400,7 @@ export default function AdminMembers() {
           <div class="mt-4 grid gap-2">
             <Empty
               state="empty"
-              text="아직 등록된 이메일이 없어요"
+              text="아직 등록된 이메일이 없습니다"
               subtitle="로그인을 허용할 이메일을 추가해 보세요."
             />
           </div>
@@ -440,7 +440,7 @@ export default function AdminMembers() {
   return (
     <AdminPage
       title="회원 관리"
-      subtitle="회원 역할과 로그인 허용 이메일을 관리해요."
+      subtitle="회원 역할과 로그인 허용 이메일을 관리합니다."
       loading={loading()}
       error={error()}
       message={message()}
@@ -452,15 +452,15 @@ export default function AdminMembers() {
           <section class="rounded-card border border-line bg-surface p-4">
             <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">역할 안내</h2>
             <p class="mt-2 text-fine leading-normal text-ink-2">
-              <b class="font-semibold text-ink-1">회원</b>은 물품을 찾아 대여하고 반납해요. <b class="font-semibold text-ink-1">관리자</b>는 물품
-              등록·수정과 회원 관리, 반납 처리를 맡아요.
+              <b class="font-semibold text-ink-1">회원</b>은 물품을 찾아 대여하고 반납합니다. <b class="font-semibold text-ink-1">관리자</b>는 물품
+              등록·수정과 회원 관리, 반납 처리를 맡습니다.
             </p>
           </section>
           <section class="rounded-card border border-line bg-surface p-4">
             <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">마지막 관리자 보호</h2>
             <p class="mt-2 text-fine leading-normal text-ink-2">
-              마지막 남은 관리자는 역할을 바꾸거나 탈퇴시킬 수 없어요. 탈퇴 회원이라도
-              대여 중인 물품이 있으면 등록 정보를 삭제할 수 없어요.
+              마지막 남은 관리자는 역할을 바꾸거나 탈퇴시킬 수 없습니다. 탈퇴 회원이라도
+              대여 중인 물품이 있으면 등록 정보를 삭제할 수 없습니다.
             </p>
           </section>
         </>
@@ -501,7 +501,7 @@ export default function AdminMembers() {
           <div class="mt-4 grid gap-2">
             <Empty
               state="empty"
-              text={q() ? "검색 결과가 없어요" : "아직 회원이 없어요"}
+              text={q() ? "검색 결과가 없습니다" : "아직 회원이 없습니다"}
               subtitle={
                 q() ? "다른 이름이나 연락처로 검색해 보세요." : ""
               }

@@ -12,12 +12,6 @@ import {
   addPhoto,
   deletePhoto,
 } from "../../services/items.service";
-import {
-  ADJUSTMENT_KINDS,
-  adjustItemQuantity,
-  listAdjustments,
-} from "../../services/inventory.service";
-import type { InventoryAdjustmentKind } from "../../../../shared/api-types";
 import { listItems } from "../../services/search.service";
 
 // /api/admin/items (물품 CRUD + 사진 관리, admin 전용)
@@ -132,61 +126,6 @@ adminItemsRoute.get("/:id", async (c) => {
   return c.json({ item });
 });
 
-// 재고 수량 조정 이력 — 최근 20건(최대 100).
-adminItemsRoute.get("/:id/adjustments", async (c) => {
-  const id = Number(c.req.param("id"));
-  if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
-  const db: Sql = getDb(c.env);
-  const adjustments = await listAdjustments(db, id);
-  return c.json({ adjustments });
-});
-
-// 재고 수량 조정 — 추가/망실/폐기. 보유 수량과 이력을 한 트랜잭션으로 반영한다.
-adminItemsRoute.post("/:id/adjustments", async (c) => {
-  const id = Number(c.req.param("id"));
-  if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
-
-  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-  const kind = body.kind;
-  if (
-    typeof kind !== "string" ||
-    !ADJUSTMENT_KINDS.includes(kind as InventoryAdjustmentKind)
-  ) {
-    return c.json({ error: "invalid_kind" }, 400);
-  }
-  const qty = Number(body.qty);
-  if (!Number.isInteger(qty) || qty < 1 || qty > 100_000) {
-    return c.json({ error: "invalid_qty" }, 400);
-  }
-  const memo =
-    typeof body.memo === "string" && body.memo.trim()
-      ? body.memo.trim().slice(0, 500)
-      : null;
-
-  const db: Sql = getDb(c.env);
-  const result = await adjustItemQuantity(db, {
-    itemId: id,
-    actorId: c.get("user")!.id,
-    kind: kind as InventoryAdjustmentKind,
-    qty,
-    memo,
-  });
-  if ("ok" in result) {
-    return c.json({ ok: true, total_qty: result.total_qty }, 201);
-  }
-  if (result.error === "not_found") {
-    return c.json({ error: "not_found" }, 404);
-  }
-  if (
-    result.error === "invalid_kind" ||
-    result.error === "invalid_qty" ||
-    result.error === "min_qty"
-  ) {
-    return c.json({ error: result.error }, 400);
-  }
-  return c.json({ error: result.error }, 409);
-});
-
 // 등록 — 새 카테고리명은 클라이언트가 /api/admin/categories 로 먼저 만들고 id 를 보낸다.
 // (FK 위반은 500 이 아니라 명시 오류가 낫겠지만, 카테고리 생성+물품 등록이 같은 화면에서
 //  순차로 일어나고 조회·생성 모두 같은 세션에 묶여 실제로 닿지 않는다 — 승인 경로만 거친다.)
@@ -258,7 +197,7 @@ adminItemsRoute.put("/:id", async (c) => {
   if ("ok" in result) return c.json({ ok: true });
   if (result.error === "not_found") return c.json({ error: "not_found" }, 404);
   if (result.error === "rented_qty_constraint") {
-    return c.json({ error: "대여 중인 물품 수량보다 적게 줄일 수 없어요" }, 400);
+    return c.json({ error: "대여 중인 물품 수량보다 적게 줄일 수 없습니다" }, 400);
   }
   return c.json({ error: "수리중 수량은 보유 수량 이하" }, 400);
 });
@@ -272,7 +211,7 @@ adminItemsRoute.delete("/:id", async (c) => {
   if ("ok" in result) return c.json({ ok: true });
   if (result.error === "has_history") {
     return c.json(
-      { error: "이력이 있어 삭제 불가 — 상태를 폐기로 변경하세요" },
+      { error: "이력이 있어 삭제 불가 — 상태를 폐기로 변경해 주세요" },
       409,
     );
   }

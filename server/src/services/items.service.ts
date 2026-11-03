@@ -337,15 +337,12 @@ export async function deleteItem(
   env: Bindings,
   itemId: number,
 ): Promise<DeleteItemResult> {
-  // 이력 확인 — 대여 이력이나 재고 조정 이력이 있으면 삭제 대신 폐기를 권한다.
-  // 조정 이력은 "언제 왜 수량이 줄었는지"의 근거라, 물품을 지우면 함께 사라지면 안 된다.
+  // 대여 이력이 있으면 삭제 대신 폐기를 권한다.
   const [history] = (await db.query(
-    `SELECT
-       (SELECT COUNT(*) FROM reservations WHERE item_id = ?1) AS reservations,
-       (SELECT COUNT(*) FROM inventory_adjustments WHERE item_id = ?1) AS adjustments`,
+    `SELECT COUNT(*) AS reservations FROM reservations WHERE item_id = ?1`,
     [itemId],
-  )) as { reservations: number; adjustments: number }[];
-  if (history.reservations > 0 || history.adjustments > 0) {
+  )) as { reservations: number }[];
+  if (history.reservations > 0) {
     return { error: "has_history" };
   }
 

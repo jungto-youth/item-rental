@@ -8,6 +8,8 @@ type Props = {
   disabled?: boolean;
   loading?: boolean;
   type?: "button" | "submit";
+  /** 폼 밖에서 제출할 때 연결할 form id */
+  form?: string;
   title?: string;
   ariaLabel?: string;
   class?: string;
@@ -34,6 +36,7 @@ export function Button(props: Props) {
         type={props.type ?? "button"}
         class={`inline-flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-card border px-4 text-body leading-[1.2] font-semibold whitespace-nowrap no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1 disabled:cursor-not-allowed disabled:opacity-45 ${VARIANTS[variant()]}`}
         disabled={props.disabled || props.loading}
+        form={props.form}
         title={props.title}
         aria-label={props.ariaLabel}
         onClick={(event) => props.onClick?.(event)}

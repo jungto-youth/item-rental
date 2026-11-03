@@ -8,7 +8,7 @@ const JPEG_QUALITY = 0.85;
 export async function processPhoto(file: File): Promise<File> {
   if (!PHOTO_OK.includes(file.type))
     throw new Error(
-      `JPEG/PNG/WebP만 가능해요 (선택한 형식: ${file.type || "알 수 없음"}). HEIC/HEIF 사진은 JPEG로 변환해주세요`,
+      `JPEG/PNG/WebP만 가능합니다 (선택한 형식: ${file.type || "알 수 없음"}). HEIC/HEIF 사진은 JPEG로 변환해주세요`,
     );
 
   let bitmap: ImageBitmap;
@@ -16,7 +16,7 @@ export async function processPhoto(file: File): Promise<File> {
     bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   } catch {
     throw new Error(
-      `이미지를 읽을 수 없어요 (원본 ${(file.size / 1024 / 1024).toFixed(1)}MB). JPEG 사진으로 다시 시도해주세요`,
+      `이미지를 읽을 수 없습니다 (원본 ${(file.size / 1024 / 1024).toFixed(1)}MB). JPEG 사진으로 다시 시도해주세요`,
     );
   }
 
@@ -29,7 +29,7 @@ export async function processPhoto(file: File): Promise<File> {
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     bitmap.close();
-    throw new Error("이미지 처리에 실패했어요");
+    throw new Error("이미지 처리에 실패했습니다");
   }
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, w, h);
@@ -45,7 +45,7 @@ export async function processPhoto(file: File): Promise<File> {
       return renamed(webp, file.name, "webp");
     }
     const jpg = await toBlob(canvas, "image/jpeg", JPEG_QUALITY);
-    if (!jpg || jpg.type !== "image/jpeg") throw new Error("이미지 변환에 실패했어요");
+    if (!jpg || jpg.type !== "image/jpeg") throw new Error("이미지 변환에 실패했습니다");
     return renamed(jpg, file.name, "jpg");
   } finally {
     canvas.width = canvas.height = 0;
@@ -63,7 +63,7 @@ function toBlob(
 function renamed(blob: Blob, name: string, ext: string): File {
   if (blob.size > MAX_PHOTO_UPLOAD_BYTES) {
     throw new Error(
-      `사진을 축소한 뒤에도 2MB를 넘어요 (${(blob.size / 1024 / 1024).toFixed(1)}MB). 사진 해상도를 낮춰 다시 시도해주세요`,
+      `사진을 축소한 뒤에도 2MB를 넘습니다 (${(blob.size / 1024 / 1024).toFixed(1)}MB). 사진 해상도를 낮춰 다시 시도해주세요`,
     );
   }
   const base = name.replace(/\.[^.]+$/, "") || "photo";

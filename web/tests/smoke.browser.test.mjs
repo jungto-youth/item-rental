@@ -42,7 +42,7 @@ const ITEMS = [
     rentable_qty: 4,
     kind: "rental",
     location: "7층 비품실",
-    description: "바닥재와 팩이 함께 들어 있어요.",
+    description: "바닥재와 팩이 함께 들어 있습니다.",
     photos: [],
     availability_badge: "available",
     active_now: 1,
@@ -152,7 +152,7 @@ const RESERVATIONS = [
     due_at: null,
     is_overdue: false,
     decided_at: "2026-10-31T03:00:00.000Z",
-    rejected_reason: "해당 기간에 이미 대여가 잡혀 있어요",
+    rejected_reason: "해당 기간에 이미 대여가 잡혀 있습니다",
   },
 ];
 
@@ -289,14 +289,6 @@ async function mockApi(page, user, options = {}) {
     await page.route("**/api/admin/items**", (route) => {
       const url = new URL(route.request().url());
       const parts = url.pathname.split("/").filter(Boolean);
-      if (parts.length === 5 && parts[4] === "adjustments") {
-        if (route.request().method() === "POST") {
-          return route.fulfill({
-            json: { ok: true, total_qty: ITEMS[0].total_qty },
-          });
-        }
-        return route.fulfill({ json: { adjustments: [] } });
-      }
       if (parts.length === 4) {
         return route.fulfill({
           json: {
@@ -422,7 +414,7 @@ try {
     await page.goto(new URL("items/101", base).href);
     await page.getByLabel("메모 *").fill("청년 모임용");
     await page.getByRole("button", { name: "대여하기", exact: true }).click();
-    await page.getByText("대여를 신청했어요", { exact: true }).waitFor();
+    await page.getByText("대여를 신청했습니다", { exact: true }).waitFor();
     console.log("PASS rental success state");
     await context.close();
   }
@@ -512,75 +504,12 @@ try {
     await mockApi(page, ADMIN);
     await page.goto(new URL("items/101/edit", base).href);
     await page.getByRole("heading", { name: "물품 수정", exact: true }).waitFor();
-    assert.equal(await page.getByRole("heading", { name: "수량 조정", exact: true }).count(), 0);
     assert.equal(await page.getByLabel("이름 *").inputValue(), "4인용 텐트");
     assert.equal(await page.getByLabel("보관 위치").inputValue(), "7층 비품실");
     await page.locator(".category-tags-input .tag").filter({ hasText: "캠핑" }).waitFor();
     const saveBox = await page.getByRole("button", { name: "저장", exact: true }).boundingBox();
     assert.ok(saveBox && saveBox.y + saveBox.height <= 900, "저장 버튼이 첫 화면에 보여야 한다");
     console.log("PASS edit form hydrates from admin and public detail");
-    await context.close();
-  }
-
-  // 8-1) 수량 조정 — 물품 상세의 모달에서 보유 수량을 바꾸고 이력을 남긴다.
-  {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-    const page = await context.newPage();
-    await mockApi(page, ADMIN);
-    let posted = null;
-    let totalQty = 5;
-    await page.route("**/api/items/101", async (route) => {
-      await route.fulfill({
-        json: {
-          item: { ...ITEMS[0], total_qty: totalQty, rentable_qty: totalQty - 1 },
-        },
-      });
-    });
-    await page.route("**/api/admin/items/101/adjustments", async (route) => {
-      if (route.request().method() === "POST") {
-        posted = route.request().postDataJSON();
-        totalQty = 6;
-        await route.fulfill({ json: { ok: true, total_qty: totalQty } });
-        return;
-      }
-      await route.fulfill({
-        json: {
-          adjustments: [
-            {
-              id: 1,
-              item_id: 101,
-              kind: "lost",
-              qty: 1,
-              total_qty_before: 7,
-              total_qty_after: 6,
-              memo: "파손",
-              actor_id: "admin",
-              actor_name: "김운영",
-              created_at: "2026-11-03T00:00:00.000Z",
-            },
-          ],
-        },
-      });
-    });
-    await page.goto(new URL("items/101", base).href);
-    await page.getByRole("button", { name: "수량 조정", exact: true }).click();
-    const dialog = page.getByRole("dialog");
-    await dialog.getByRole("button", { name: "망실", exact: true }).click();
-    await dialog.getByLabel("수량 *", { exact: true }).fill("1");
-    await dialog.getByLabel("사유 메모 (선택)").fill("파손");
-    await dialog.getByRole("button", { name: "수량 조정", exact: true }).click();
-    await dialog
-      .getByText("망실 1개를 반영했어요. 현재 보유 6개", { exact: true })
-      .waitFor();
-    assert.deepEqual(posted, { kind: "lost", qty: 1, memo: "파손" });
-    await dialog.getByText("보유 7 → 6", { exact: false }).waitFor();
-    await dialog.getByRole("button", { name: "닫기", exact: true }).click();
-    await page
-      .locator("dl > div")
-      .filter({ hasText: "전체 보유" })
-      .getByText("6개", { exact: true })
-      .waitFor();
-    console.log("PASS item quantity adjustment from detail modal");
     await context.close();
   }
 
@@ -605,11 +534,45 @@ try {
     await page.getByLabel("이름 *").fill("새 텐트");
     await page.getByLabel("보관 위치").fill("3층 창고");
     await page.getByRole("button", { name: "저장", exact: true }).click();
-    await page.waitForURL(base);
+    await page.waitForURL(new URL("items/999", base).href);
     assert.equal(createBody.name, "새 텐트");
     assert.equal(createBody.location, "3층 창고");
     assert.deepEqual(createBody.category_ids, []);
     console.log("PASS item create validation and POST");
+    await context.close();
+  }
+
+  // 9-1) 한글 IME 조합 중 엔터 — 마지막 글자가 별도 태그로 남지 않는다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, ADMIN);
+    await page.goto(new URL("items/new", base).href);
+    await page.getByRole("heading", { name: "물품 등록", exact: true }).waitFor();
+    const input = page.locator(".category-tags-input input");
+    await input.click();
+    // 실제 IME 순서를 흉내 낸다: 조합 중 엔터 keydown(isComposing) →
+    // compositionend. 조합 중에 커밋하면 입력값이 비워지면서 조합 중이던
+    // 마지막 글자가 따로 남아 태그가 둘로 갈라진다.
+    await input.fill("불교대");
+    await input.evaluate((el) => {
+      el.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true, data: "" }));
+      el.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          code: "Enter",
+          bubbles: true,
+          cancelable: true,
+          isComposing: true,
+        }),
+      );
+      el.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data: "대" }));
+    });
+    await page.locator(".category-tags-input .tag", { hasText: "불교대" }).waitFor();
+    await page.waitForTimeout(50);
+    assert.equal(await page.locator(".category-tags-input .tag").count(), 1);
+    assert.equal(await input.inputValue(), "");
+    console.log("PASS korean IME enter does not split tag");
     await context.close();
   }
 
@@ -622,6 +585,28 @@ try {
     await page.locator(".item-card").first().waitFor();
     await page.locator(".home-side").getByText("물품 등록", { exact: true }).waitFor();
     console.log("PASS admin home list and register entry");
+    await context.close();
+  }
+
+  // 10-1) 관리자 목록 카드는 상세로 가고, 상세의 '수정'으로 수정 화면에 들어간다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, ADMIN);
+    await page.goto(base);
+    await page.locator(".item-card").first().click();
+    await page.waitForURL(new URL("items/101", base).href);
+    await page.locator(".item-rental-form").waitFor();
+    await page.getByRole("button", { name: "수정", exact: true }).click();
+    await page.waitForURL(new URL("items/101/edit", base).href);
+    await page.getByRole("heading", { name: "물품 수정", exact: true }).waitFor();
+    assert.equal(
+      await page.getByRole("button", { name: "공개 보기", exact: true }).count(),
+      0,
+    );
+    await page.getByRole("button", { name: "취소", exact: true }).click();
+    await page.waitForURL(new URL("items/101", base).href);
+    console.log("PASS admin list opens detail, edit returns to detail");
     await context.close();
   }
 
@@ -653,7 +638,7 @@ try {
     await page.getByRole("button", { name: "기한 지남", exact: true }).click();
     await page.waitForTimeout(100);
     assert.equal(await page.locator(".reservation-row").count(), 1);
-    await page.getByText(/기한이 지났어요/).waitFor();
+    await page.getByText(/기한이 지났습니다/).waitFor();
     console.log("PASS admin overdue filter");
     await context.close();
   }
@@ -679,13 +664,13 @@ try {
     const rejectDialog = page.getByRole("dialog");
     await rejectDialog.getByLabel("거절 사유 *").fill("재고 부족");
     await rejectDialog.getByRole("button", { name: "거절", exact: true }).click();
-    await page.getByText("신청을 거절했어요", { exact: true }).waitFor();
+    await page.getByText("신청을 거절했습니다", { exact: true }).waitFor();
     assert.deepEqual(rejectBody, { reason: "재고 부족" });
 
     await pending.getByRole("button", { name: "승인", exact: true }).click();
     const confirm = page.getByRole("dialog");
     await confirm.getByRole("button", { name: "승인", exact: true }).click();
-    await page.getByText("신청을 승인했어요", { exact: true }).waitFor();
+    await page.getByText("신청을 승인했습니다", { exact: true }).waitFor();
     assert.equal(approved, true);
     console.log("PASS admin approve and reject flows");
     await context.close();
@@ -697,7 +682,7 @@ try {
     const page = await context.newPage();
     await mockApi(page, MEMBER);
     await page.goto(new URL("admin/members", base).href);
-    await page.getByText(/관리자 권한이 필요해요/).waitFor();
+    await page.getByText(/관리자 권한이 필요합니다/).waitFor();
     assert.equal(page.url(), base);
     console.log("PASS member admin route redirects with denied notice");
     await context.close();

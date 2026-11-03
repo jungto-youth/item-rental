@@ -104,7 +104,7 @@ const routes: RouteDef[] = [
 const fallbackRoute: RouteDef = {
   pattern: "*",
   component: NotFound,
-  title: () => `페이지를 찾을 수 없어요 — ${APP_NAME}`,
+  title: () => `페이지를 찾을 수 없습니다 — ${APP_NAME}`,
 };
 
 function readLocation(): Location {

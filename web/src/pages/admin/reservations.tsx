@@ -42,7 +42,7 @@ export default function AdminReservations() {
       setTruncated(res.truncated === true);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "대여 목록을 불러오지 못했어요",
+        err instanceof Error ? err.message : "대여 목록을 불러오지 못했습니다",
       );
     } finally {
       setLoading(false);
@@ -94,8 +94,8 @@ export default function AdminReservations() {
         : `'${reservation.item_name}'`;
     if (
       !(await confirmDialog("", {
-        title: `${label}를 반납 처리할까요?`,
-        description: "반납 처리하면 재고가 바로 돌아오고, 대여 이력에 남아요.",
+        title: `${label}를 반납 처리하시겠습니까?`,
+        description: "반납 처리하면 재고가 바로 돌아오고, 대여 이력에 남습니다.",
         confirmLabel: "반납",
       }))
     )
@@ -105,11 +105,11 @@ export default function AdminReservations() {
       await api(`/api/admin/reservations/${reservation.id}/return`, {
         method: "POST",
       });
-      setMessage("반납 처리했어요");
+      setMessage("반납 처리했습니다");
       setMessageTone("success");
       await reload();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "처리에 실패했어요");
+      setMessage(err instanceof Error ? err.message : "처리에 실패했습니다");
       setMessageTone("error");
       await reload();
     } finally {
@@ -125,9 +125,9 @@ export default function AdminReservations() {
         : `'${reservation.item_name}'`;
     if (
       !(await confirmDialog("", {
-        title: `${label} 신청을 승인할까요?`,
+        title: `${label} 신청을 승인하시겠습니까?`,
         description:
-          "승인하면 대여가 시작되고 재고가 확정돼요. 재고가 없으면 승인되지 않아요.",
+          "승인하면 대여가 시작되고 재고가 확정됩니다. 재고가 없으면 승인되지 않습니다.",
         confirmLabel: "승인",
       }))
     )
@@ -138,21 +138,21 @@ export default function AdminReservations() {
       await api(`/api/admin/reservations/${reservation.id}/approve`, {
         method: "POST",
       });
-      setMessage("신청을 승인했어요");
+      setMessage("신청을 승인했습니다");
       setMessageTone("success");
       await reload();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       setMessage(
         code === "no_availability"
-          ? "재고가 없어 승인할 수 없어요. 반납 후 다시 시도해 주세요"
+          ? "재고가 없어 승인할 수 없습니다. 반납 후 다시 시도해 주세요"
           : code === "due_date_passed"
-            ? "희망 반납일이 지나 승인할 수 없어요. 거절 후 다시 신청받아 주세요"
+            ? "희망 반납일이 지나 승인할 수 없습니다. 거절 후 다시 신청받아 주세요"
             : code === "item_not_active" || code === "consumable"
-              ? "지금은 대여할 수 없는 물품이에요"
+              ? "지금은 대여할 수 없는 물품입니다"
               : err instanceof Error
                 ? err.message
-                : "승인에 실패했어요",
+                : "승인에 실패했습니다",
       );
       setMessageTone("error");
       await reload();
@@ -187,7 +187,7 @@ export default function AdminReservations() {
         method: "POST",
         body: JSON.stringify({ reason }),
       });
-      setMessage("신청을 거절했어요");
+      setMessage("신청을 거절했습니다");
       setMessageTone("success");
       setRejectTarget(null);
       await reload();
@@ -195,10 +195,10 @@ export default function AdminReservations() {
       const code = err instanceof ApiError ? err.code : undefined;
       setRejectError(
         code === "bad_status"
-          ? "이미 처리된 신청이에요. 목록을 새로고침해 주세요."
+          ? "이미 처리된 신청입니다. 목록을 새로고침해 주세요."
           : err instanceof Error
             ? err.message
-            : "거절하지 못했어요",
+            : "거절하지 못했습니다",
       );
       await reload();
     } finally {
@@ -228,7 +228,7 @@ export default function AdminReservations() {
   return (
     <AdminPage
       title="대여 관리"
-      subtitle="신청을 승인·거절하고 대여·반납 상태를 확인해요."
+      subtitle="신청을 승인·거절하고 대여·반납 상태를 확인합니다."
       loading={loading()}
       error={error()}
       message={message()}
@@ -239,12 +239,12 @@ export default function AdminReservations() {
         <section class="rounded-card border border-line bg-surface p-4">
           <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">반납 처리 안내</h2>
           <p class="mt-2 text-fine leading-normal text-ink-2">
-            신청 대기 건은 <b class="font-semibold text-ink-1">승인</b> 또는
-            <b class="font-semibold text-ink-1">거절</b>로 처리해요. 승인할 때 재고를 다시 확인하고,
-            승인하면 대여가 시작돼요. 물품을 돌려받았으면
+            신청 대기 건은 <b class="font-semibold text-ink-1">승인</b> 또는{" "}
+            <b class="font-semibold text-ink-1">거절</b>로 처리합니다. 승인할 때 재고를 다시 확인하고,
+            승인하면 대여가 시작됩니다. 물품을 돌려받았으면{" "}
             <b class="font-semibold text-ink-1">반납</b>을 눌러 주세요. 회원이 직접 반납한 건은
-            목록에서 따로 표시되고, 반납 예정일이 지난 건은
-            <b class="font-semibold text-ink-1">기한 지남</b> 필터로 볼 수 있어요.
+            목록에서 따로 표시되고, 반납 예정일이 지난 건은{" "}
+            <b class="font-semibold text-ink-1">기한 지남</b> 필터로 볼 수 있습니다.
           </p>
         </section>
       }
@@ -271,7 +271,7 @@ export default function AdminReservations() {
           <div class="mt-4 grid gap-2">
             <Empty
               state="empty"
-              text={filter() ? "해당 상태의 대여가 없어요" : "대여가 없어요"}
+              text={filter() ? "해당 상태의 대여가 없습니다" : "대여가 없습니다"}
               subtitle={filter() ? "다른 상태를 선택해 보세요." : ""}
             />
           </div>
@@ -279,7 +279,7 @@ export default function AdminReservations() {
       >
         <Show when={truncated()}>
           <p class="mt-4 text-fine leading-normal text-ink-2" role="status">
-            500건까지만 표시 — 더 오래된 건은 여기 없어요
+            500건까지만 표시 — 더 오래된 건은 여기 없습니다
           </p>
         </Show>
         <div class="mt-4 grid gap-2">
@@ -341,7 +341,7 @@ export default function AdminReservations() {
                   <Show when={reservation.due_at}>
                     <span class={reservation.is_overdue ? "text-danger" : ""}>
                       반납 예정 {fmtKstDate(reservation.due_at!)}
-                      {reservation.is_overdue ? " · 기한이 지났어요" : ""}
+                      {reservation.is_overdue ? " · 기한이 지났습니다" : ""}
                     </span>
                   </Show>
                   <Show when={reservation.status === "rejected" && reservation.rejected_reason}>
@@ -360,7 +360,7 @@ export default function AdminReservations() {
                   </Show>
                   <Show when={reservation.returned_by_member}>
                     <span class="text-fine text-danger">
-                      회원이 직접 반납했어요 — 물품 회수 여부를 확인해 주세요
+                      회원이 직접 반납했습니다 — 물품 회수 여부를 확인해 주세요
                     </span>
                   </Show>
                   <Show when={reservation.member_memo}>
@@ -394,15 +394,15 @@ export default function AdminReservations() {
         }
       >
         <p class="m-0 text-fine leading-normal text-ink-2">
-          '{rejectTarget()?.item_name ?? "물품"}' 신청을 거절해요. 사유는 회원의 대여
-          이력에 남아요.
+          '{rejectTarget()?.item_name ?? "물품"}' 신청을 거절합니다. 사유는 회원의 대여
+          이력에 남습니다.
         </p>
         <Input
           class="mt-4"
           label="거절 사유 *"
           type="textarea"
           rows={3}
-          placeholder="예: 해당 기간에 이미 대여가 잡혀 있어요"
+          placeholder="예: 해당 기간에 이미 대여가 잡혀 있습니다"
           value={rejectReason()}
           onInput={setRejectReason}
         />

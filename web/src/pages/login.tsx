@@ -18,10 +18,10 @@ export default function Login() {
       setMessage("정토회 계정(@jungto.org) 또는 관리자가 허용한 계정으로 로그인해 주세요");
       window.history.replaceState(null, "", window.location.pathname);
     } else if (error === "AccountDeactivated") {
-      setMessage("등록 정보가 삭제된 계정이에요. 관리자에게 문의해 주세요");
+      setMessage("등록 정보가 삭제된 계정입니다. 관리자에게 문의해 주세요");
       window.history.replaceState(null, "", window.location.pathname);
     } else if (error === "SessionUnavailable") {
-      setMessage("로그인 상태를 확인할 수 없어요. 연결 상태를 확인하고 다시 시도해 주세요");
+      setMessage("로그인 상태를 확인할 수 없습니다. 연결 상태를 확인하고 다시 시도해 주세요");
       window.history.replaceState(null, "", window.location.pathname);
     }
   });
@@ -56,10 +56,10 @@ export default function Login() {
         }),
       });
       const { url } = (await res.json()) as { url?: string };
-      if (!url) throw new Error("로그인 URL을 받지 못했어요");
+      if (!url) throw new Error("로그인 URL을 받지 못했습니다");
       window.location.assign(url);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "로그인에 실패했어요");
+      setMessage(err instanceof Error ? err.message : "로그인에 실패했습니다");
       setBusy(false);
     }
   };
@@ -77,7 +77,7 @@ export default function Login() {
       setDevelopmentCode("");
       window.location.assign("/");
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "테스트 로그인에 실패했어요");
+      setMessage(err instanceof Error ? err.message : "테스트 로그인에 실패했습니다");
       setBusy(false);
     }
   };
@@ -98,7 +98,7 @@ export default function Login() {
 
           <p class="mt-6 w-full rounded-card border border-line bg-surface px-4 py-2 text-fine leading-normal text-ink-2">
             정토회 계정(<span class="font-medium text-ink-1">@jungto.org</span>) 또는
-            관리자가 허용한 계정만 로그인할 수 있어요.
+            관리자가 허용한 계정만 로그인할 수 있습니다.
             <br />
             예외 계정은 관리자에게 문의해 주세요.
           </p>
@@ -130,9 +130,9 @@ export default function Login() {
           </p>
 
           <p class={`mt-4 text-fine leading-normal text-ink-2 ${message() ? "hidden" : ""}`}>
-            처음 로그인하면 회원으로 시작해요.
+            처음 로그인하면 회원으로 시작합니다.
             <br />
-            관리자 지정은 기존 관리자가 해요.
+            관리자 지정은 기존 관리자가 합니다.
           </p>
 
           <Show when={localTestLogin()}>

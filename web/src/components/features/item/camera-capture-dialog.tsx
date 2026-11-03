@@ -56,14 +56,14 @@ export function CameraCaptureDialog(props: {
           () => {
             if (stream !== next) return;
             stopCamera();
-            setError("카메라 연결이 끊겼어요. 연결을 확인하고 다시 시도해 주세요");
+            setError("카메라 연결이 끊겼습니다. 연결을 확인하고 다시 시도해 주세요");
           },
           { once: true },
         );
       }
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       if (gen !== generation || !props.open) return;
-      if (!video) throw new Error("카메라 미리보기를 열 수 없어요");
+      if (!video) throw new Error("카메라 미리보기를 열 수 없습니다");
       video.srcObject = next;
       await video.play();
       if (gen !== generation || !props.open) return;
@@ -73,13 +73,13 @@ export function CameraCaptureDialog(props: {
       stopCamera();
       const name = err instanceof DOMException ? err.name : "";
       if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-        setError("카메라 사용 권한이 없어요. 브라우저와 기기 설정에서 카메라를 허용해 주세요");
+        setError("카메라 사용 권한이 없습니다. 브라우저와 기기 설정에서 카메라를 허용해 주세요");
       } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-        setError("사용할 수 있는 카메라가 없어요. 카메라 연결과 기기 설정을 확인해 주세요");
+        setError("사용할 수 있는 카메라가 없습니다. 카메라 연결과 기기 설정을 확인해 주세요");
       } else if (name === "NotReadableError" || name === "TrackStartError") {
-        setError("카메라를 사용할 수 없어요. 다른 앱에서 사용 중인지 확인해 주세요");
+        setError("카메라를 사용할 수 없습니다. 다른 앱에서 사용 중인지 확인해 주세요");
       } else {
-        setError("카메라를 열 수 없어요. 브라우저와 카메라 설정을 확인해 주세요");
+        setError("카메라를 열 수 없습니다. 브라우저와 카메라 설정을 확인해 주세요");
       }
     } finally {
       if (gen === generation) setStarting(false);
@@ -106,13 +106,13 @@ export function CameraCaptureDialog(props: {
       canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
       canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
       const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("사진을 만들 수 없어요");
+      if (!ctx) throw new Error("사진을 만들 수 없습니다");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, "image/png"),
       );
       if (gen !== generation || !props.open) return;
-      if (!blob) throw new Error("사진을 만들 수 없어요");
+      if (!blob) throw new Error("사진을 만들 수 없습니다");
       const file = new File([blob], `camera-${Date.now()}.png`, {
         type: blob.type,
       });
@@ -120,7 +120,7 @@ export function CameraCaptureDialog(props: {
       close();
     } catch {
       if (gen === generation && props.open) {
-        setError("사진 촬영에 실패했어요. 다시 시도해 주세요");
+        setError("사진 촬영에 실패했습니다. 다시 시도해 주세요");
       }
     } finally {
       canvas.width = canvas.height = 0;
@@ -194,7 +194,7 @@ export function CameraCaptureDialog(props: {
       />
       <Show when={starting()}>
         <p class="mt-4 text-fine" role="status">
-          카메라를 열고 있어요. 권한 요청이 나오면 허용해 주세요
+          카메라를 열고 있습니다. 권한 요청이 나오면 허용해 주세요
         </p>
       </Show>
       <Show when={error()}>

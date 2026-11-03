@@ -31,7 +31,7 @@ export default function MyRentals() {
       setReservations(res.reservations);
     } catch (err) {
       setMessage(
-        err instanceof Error ? err.message : "대여 내역을 불러오지 못했어요",
+        err instanceof Error ? err.message : "대여 내역을 불러오지 못했습니다",
       );
       setMessageTone("error");
     }
@@ -49,11 +49,11 @@ export default function MyRentals() {
     setProcessing({ id: reservation.id, kind: "cancel" });
     try {
       await api(`/api/reservations/${reservation.id}/cancel`, { method: "POST" });
-      setMessage(`${reservation.item_name} 대여를 취소했어요`);
+      setMessage(`${reservation.item_name} 대여를 취소했습니다`);
       setMessageTone("success");
       await loadReservations();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "취소하지 못했어요");
+      setMessage(err instanceof Error ? err.message : "취소하지 못했습니다");
       setMessageTone("error");
     } finally {
       setProcessing(null);
@@ -65,11 +65,11 @@ export default function MyRentals() {
     setProcessing({ id: reservation.id, kind: "return" });
     try {
       await api(`/api/reservations/${reservation.id}/return`, { method: "POST" });
-      setMessage(`${reservation.item_name} 반납 완료했어요`);
+      setMessage(`${reservation.item_name} 반납 완료했습니다`);
       setMessageTone("success");
       await loadReservations();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "반납 처리하지 못했어요");
+      setMessage(err instanceof Error ? err.message : "반납 처리하지 못했습니다");
       setMessageTone("error");
     } finally {
       setProcessing(null);
@@ -80,8 +80,8 @@ export default function MyRentals() {
     if (processing()) return;
     if (
       !(await confirmDialog("", {
-        title: `'${reservation.item_name}'를 반납할까요?`,
-        description: "반납하면 재고가 바로 돌아오고, 대여 이력에 남아요.",
+        title: `'${reservation.item_name}'를 반납하시겠습니까?`,
+        description: "반납하면 재고가 바로 돌아오고, 대여 이력에 남습니다.",
         confirmLabel: "반납",
       }))
     )
@@ -93,8 +93,8 @@ export default function MyRentals() {
     if (processing()) return;
     if (
       !(await confirmDialog("", {
-        title: `'${reservation.item_name}' 대여를 취소할까요?`,
-        description: "취소하면 대여하지 않은 것으로 기록돼요.",
+        title: `'${reservation.item_name}' 대여를 취소하시겠습니까?`,
+        description: "취소하면 대여하지 않은 것으로 기록됩니다.",
         confirmLabel: "대여 취소",
       }))
     )
@@ -108,7 +108,7 @@ export default function MyRentals() {
         <Show
           when={session.user()}
           fallback={
-            <Empty state="empty" text="로그인이 필요해요">
+            <Empty state="empty" text="로그인이 필요합니다">
               <Button variant="primary" onClick={() => navigate("/login")}>
                 로그인
               </Button>
@@ -134,7 +134,7 @@ export default function MyRentals() {
               <>
                 <PageHeader
                   title="대여 내역"
-                  subtitle="신청한 물품의 승인 상태와 지난 기록을 확인해요."
+                  subtitle="신청한 물품의 승인 상태와 지난 기록을 확인합니다."
                 />
 
                 <Show when={message()}>
@@ -157,7 +157,7 @@ export default function MyRentals() {
                           승인 대기
                         </h2>
                         <p class="mt-2 text-fine leading-normal text-ink-2">
-                          관리자가 재고를 확인하고 있어요. 승인 전에는 재고가 확정되지 않아요.
+                          관리자가 재고를 확인하고 있습니다. 승인 전에는 재고가 확정되지 않습니다.
                         </p>
                         <div class="mt-4 grid gap-2">
                           <For each={pendingList()}>
@@ -209,9 +209,9 @@ export default function MyRentals() {
                         when={rentedList().length > 0}
                         fallback={
                           <div class="mt-4 box-border rounded-card border border-line bg-surface px-6 py-10 text-center">
-                            <p class="m-0 text-body font-semibold text-ink-1">현재 대여 중인 물품이 없어요</p>
+                            <p class="m-0 text-body font-semibold text-ink-1">현재 대여 중인 물품이 없습니다</p>
                             <p class="mt-2 text-fine text-ink-2">
-                              필요한 물품을 찾아 대여를 신청할 수 있어요.
+                              필요한 물품을 찾아 대여를 신청할 수 있습니다.
                             </p>
                             <Button
                               class="mt-4"
@@ -275,7 +275,7 @@ export default function MyRentals() {
                                     >
                                       반납 예정 {fmtKstDate(reservation.due_at!)}
                                       {reservation.is_overdue
-                                        ? " · 기한이 지났어요"
+                                        ? " · 기한이 지났습니다"
                                         : ""}
                                     </span>
                                   </Show>
@@ -333,9 +333,9 @@ export default function MyRentals() {
                       <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">반납 안내</h2>
                       <p class="mt-2 text-fine leading-normal text-ink-2">
                         승인 대기 중인 신청은 <b class="font-semibold text-ink-1">신청 취소</b>로
-                        취소할 수 있어요. 대여가 시작되면 <b class="font-semibold text-ink-1">반납하기</b>를
-                        눌러 바로 반납해요. 반납 예정일이 지나면
-                        <b class="font-semibold text-ink-1">기한 지남</b>으로 표시돼요.
+                        취소할 수 있습니다. 대여가 시작되면 <b class="font-semibold text-ink-1">반납하기</b>를
+                        눌러 바로 반납합니다. 반납 예정일이 지나면{" "}
+                        <b class="font-semibold text-ink-1">기한 지남</b>으로 표시됩니다.
                       </p>
                       <a class="mt-4 inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1" href="/">물품 둘러보기</a>
                     </section>
@@ -344,7 +344,7 @@ export default function MyRentals() {
                       <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">대여 이력</h2>
                       <p class="mt-2 text-fine leading-normal text-ink-2">
                         반납·취소한 물품은 아래 접이식 이력에서 다시 확인할 수
-                        있어요.
+                        있습니다.
                       </p>
                     </section>
                   </aside>

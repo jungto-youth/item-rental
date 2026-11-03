@@ -9,6 +9,11 @@ export function CategoryTagsInput(props: {
   const listId = createUniqueId();
   const [draft, setDraft] = createSignal("");
   const placeholder = () => props.placeholder ?? "태그 추가";
+  // 한글 IME 로 "불교대" 를 치는 중 마지막 "대" 는 아직 조합 중이라
+  // 조합이 끝나기 전에 확정(commit)하면 입력값을 비우는 순간 조합 중이던
+  // 글자가 다시 input 에 남아 별도 태그가 된다. 조합이 끝난 뒤 확정한다.
+  let composing = false;
+  let commitAfterComposition = false;
 
   const hasName = (name: string) => {
     const lower = name.toLowerCase();
@@ -30,7 +35,16 @@ export function CategoryTagsInput(props: {
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
+    // keyCode 229 는 구형 브라우저에서 조합 중 keydown 을 알리는 값이다.
+    const inComposition =
+      composing || event.isComposing || event.keyCode === 229;
     if (event.key === "Enter" || event.key === ",") {
+      if (inComposition) {
+        // 조합 중 Enter 는 IME 의 조합 확정 키다. preventDefault 로 막거나
+        // 지금 커밋하면 마지막 글자가 떨어져 나간다. 조합이 끝난 뒤 커밋한다.
+        if (event.key === "Enter") commitAfterComposition = true;
+        return;
+      }
       event.preventDefault();
       commit();
     } else if (
@@ -40,6 +54,21 @@ export function CategoryTagsInput(props: {
     ) {
       removeTag(props.value.length - 1);
     }
+  };
+
+  const onCompositionStart = () => {
+    composing = true;
+  };
+
+  const onCompositionEnd = (event: CompositionEvent) => {
+    composing = false;
+    const input = event.currentTarget as HTMLInputElement | null;
+    if (input) setDraft(input.value);
+    if (!commitAfterComposition) return;
+    commitAfterComposition = false;
+    // 조합 확정 직후 브라우저가 input 이벤트로 값을 다시 채우므로,
+    // 그 처리가 끝난 다음에 확정한다.
+    setTimeout(commit, 0);
   };
 
   return (
@@ -67,6 +96,8 @@ export function CategoryTagsInput(props: {
         value={draft()}
         onInput={(event) => setDraft(event.currentTarget.value)}
         onKeyDown={onKeyDown}
+        onCompositionStart={onCompositionStart}
+        onCompositionEnd={onCompositionEnd}
         onBlur={commit}
       />
       <datalist id={listId}>

@@ -10,11 +10,11 @@ export default function NotFound() {
       </span>
 
       <p class="mt-4 text-fine font-semibold text-primary-strong">404</p>
-      <h1 class="mt-2 text-page-title font-bold tracking-tight text-ink-1">페이지를 찾을 수 없어요</h1>
+      <h1 class="mt-2 text-page-title font-bold tracking-tight text-ink-1">페이지를 찾을 수 없습니다</h1>
       <p class="mt-2 max-w-[320px] text-body leading-normal text-ink-2">
-        주소가 바뀌었거나 삭제된 페이지예요.
+        주소가 바뀌었거나 삭제된 페이지입니다.
         <br />
-        물품 현황으로 돌아가 볼까요?
+        물품 현황으로 돌아가시겠습니까?
       </p>
 
       <div class="mt-6 flex flex-wrap justify-center gap-2">

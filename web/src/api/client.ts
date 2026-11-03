@@ -34,8 +34,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(
       0,
       err instanceof DOMException && err.name === "AbortError"
-        ? "요청이 오래 걸려 중단됐어요 — 잠시 후 다시 시도해 주세요"
-        : "네트워크에 연결할 수 없어요 — 연결 상태를 확인해 주세요",
+        ? "요청이 오래 걸려 중단되었습니다 — 잠시 후 다시 시도해 주세요"
+        : "네트워크에 연결할 수 없습니다 — 연결 상태를 확인해 주세요",
     );
   } finally {
     clearTimeout(timer);

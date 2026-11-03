@@ -134,21 +134,3 @@ export type AdminReservation = MyReservation & {
   admin_memo: string | null;
 };
 
-// 재고 수량 조정 — 보유 수량(total_qty)의 증감만 기록한다.
-//   add     추가(+)
-//   lost    망실(-)
-//   dispose 폐기(-)
-export type InventoryAdjustmentKind = "add" | "lost" | "dispose";
-
-export type AdminInventoryAdjustment = {
-  id: number;
-  item_id: number;
-  kind: InventoryAdjustmentKind;
-  qty: number;
-  total_qty_before: number;
-  total_qty_after: number;
-  memo: string | null;
-  actor_id: string;
-  actor_name: string | null;
-  created_at: string;
-};

@@ -45,8 +45,8 @@ export function PhotoUploader(props: {
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
       setCameraMessage(
         !window.isSecureContext
-          ? "실시간 카메라는 HTTPS 또는 localhost에서 사용할 수 있어요. 여기서는 기기의 촬영/파일 선택 화면을 사용해요"
-          : "실시간 카메라를 지원하지 않는 브라우저예요. 기기의 촬영/파일 선택 화면을 사용해요",
+          ? "실시간 카메라는 HTTPS 또는 localhost에서 사용할 수 있습니다. 여기서는 기기의 촬영/파일 선택 화면을 사용합니다"
+          : "실시간 카메라를 지원하지 않는 브라우저입니다. 기기의 촬영/파일 선택 화면을 사용합니다",
       );
       cameraInput?.click();
       return;
@@ -170,7 +170,7 @@ export function PhotoUploader(props: {
           </Button>
         }
       >
-        <p class="mb-4 text-fine text-ink-2">사진을 추가할 방법을 선택하세요.</p>
+        <p class="mb-4 text-fine text-ink-2">사진을 추가할 방법을 선택해 주세요.</p>
         <div class="grid grid-cols-2 gap-2 max-[420px]:grid-cols-1">
           <Button variant="secondary" onClick={chooseCamera}>
             사진 촬영

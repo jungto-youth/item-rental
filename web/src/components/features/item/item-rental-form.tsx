@@ -46,7 +46,7 @@ export function ItemRentalForm(props: {
     if (saving() || !props.item) return;
 
     if (qty() > availableNow()) {
-      setMessage(`현재 최대 ${availableNow()}개까지 대여할 수 있어요`);
+      setMessage(`현재 최대 ${availableNow()}개까지 대여할 수 있습니다`);
       setIsSuccess(false);
       return;
     }
@@ -86,9 +86,9 @@ export function ItemRentalForm(props: {
       setIsSuccess(false);
       const code = err instanceof ApiError ? err.code : undefined;
       if (code === "no_availability") {
-        setMessage("방금 대여가 마감되었어요. 반납 후 다시 시도해 주세요.");
+        setMessage("방금 대여가 마감되었습니다. 반납 후 다시 시도해 주세요.");
       } else if (code === "too_many") {
-        setMessage("요청 수량이 대여 가능 수량보다 많아요.");
+        setMessage("요청 수량이 대여 가능 수량보다 많습니다.");
       } else if (code === "phone_required") {
         setMessage("내 정보에서 연락처를 먼저 등록해 주세요.");
       } else if (code === "memo_required") {
@@ -96,7 +96,7 @@ export function ItemRentalForm(props: {
       } else if (code === "bad_due_date" || code === "due_date_out_of_range") {
         setMessage("반납 예정일을 내일부터 30일 이내로 선택해 주세요.");
       } else {
-        setMessage(err instanceof Error ? err.message : "대여 신청에 실패했어요.");
+        setMessage(err instanceof Error ? err.message : "대여 신청에 실패했습니다.");
       }
     } finally {
       setSaving(false);
@@ -125,12 +125,12 @@ export function ItemRentalForm(props: {
               </svg>
             </span>
             <p class="mt-4 text-body font-semibold leading-normal text-ink-1">
-              대여를 신청했어요
+              대여를 신청했습니다
             </p>
             <p class="mt-2 text-fine leading-normal text-ink-2">
-              '{props.item.name}' {rentedQty()}개 신청을 접수했어요.
+              '{props.item.name}' {rentedQty()}개 신청을 접수했습니다.
               <br />
-              관리자가 승인하면 대여가 시작돼요. 희망 반납일은 {submittedDueDate()}이에요.
+              관리자가 승인하면 대여가 시작됩니다. 희망 반납일은 {submittedDueDate()}입니다.
               진행 상황은 대여 내역에서 확인해 주세요.
             </p>
             <div class="mt-4 flex flex-wrap justify-center gap-2">
@@ -159,21 +159,21 @@ export function ItemRentalForm(props: {
                     </Button>
                   }
                 >
-                  대여하려면 로그인이 필요해요.
+                  대여하려면 로그인이 필요합니다.
                 </Notice>
               }
             >
               <Show
                 when={props.item.lifecycle === "active"}
                 fallback={
-                  <Notice tone="danger">더 이상 대여하지 않는 물품이에요.</Notice>
+                  <Notice tone="danger">더 이상 대여하지 않는 물품입니다.</Notice>
                 }
               >
                 <Show
                   when={availableNow() > 0}
                   fallback={
                     <Notice tone="danger">
-                      지금은 재고가 없어요 — 반납 후 다시 시도해 주세요.
+                      지금은 재고가 없습니다 — 반납 후 다시 시도해 주세요.
                     </Notice>
                   }
                 >
@@ -277,7 +277,7 @@ export function ItemRentalForm(props: {
                       대여하기
                     </Button>
                     <p class="mt-2 text-fine leading-normal text-ink-2">
-                      신청 후 관리자가 승인하면 대여가 시작돼요. 승인 전에는 재고가 확정되지 않아요.
+                      신청 후 관리자가 승인하면 대여가 시작됩니다. 승인 전에는 재고가 확정되지 않습니다.
                     </p>
                   </form>
                 </Show>
@@ -286,7 +286,7 @@ export function ItemRentalForm(props: {
           </Show>
           <Show when={props.item.kind === "consumable"}>
             <Notice>
-              소모품이에요 — 별도 대여 신청 없이 관리자에게 문의해 주세요.
+              소모품입니다 — 별도 대여 신청 없이 관리자에게 문의해 주세요.
             </Notice>
           </Show>
         </Show>
