@@ -108,7 +108,7 @@ export default function AdminMembers() {
       !(await confirmDialog("", {
         title: `'${who}' 님을 탈퇴 처리할까요?`,
         description:
-          "탈퇴하면 계정 접근이 차단되고, 대여·관리 이력은 익명으로 보존돼요.",
+          "탈퇴하면 지금 로그인된 세션이 끊기고, 다시 로그인하면 계정이 복구돼요. 대신 역할은 일반 회원으로 초기화되고, 대여·관리 이력은 그대로 남아요.",
         confirmLabel: "탈퇴",
         danger: true,
       }))

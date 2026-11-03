@@ -79,10 +79,22 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
         }
         try {
           const sql: Sql = db()
-          const [existing] = await sql.query<{ deactivated_at: string | null; registration_deleted_at: string | null }>(
-            'SELECT deactivated_at, registration_deleted_at FROM members WHERE email = ?1', [user.email],
+          const [existing] = await sql.query<{ id: string; deactivated_at: string | null; registration_deleted_at: string | null }>(
+            'SELECT id, deactivated_at, registration_deleted_at FROM members WHERE email = ?1', [user.email],
           )
-          if (existing?.deactivated_at || existing?.registration_deleted_at) return '/login?error=AccountDeactivated'
+          // 등록 정보가 삭제된 행은 이메일이 이미 익명화되어 여기서 조회되지 않는다. 그래도
+          // 남아 있는 경우에는 새 가입으로 취급하지 않고 거부한다.
+          if (existing?.registration_deleted_at) return '/login?error=AccountDeactivated'
+          // 탈퇴는 소프트 삭제다 — 탈퇴 회원이 다시 로그인하면 같은 행을 복구하되,
+          // 역할은 일반 회원으로 초기화한다. 대여·관리 이력은 그대로 남고, 기존 세션은
+          // 로그인 전까지 계속 무효다.
+          if (existing?.deactivated_at) {
+            await sql.query(
+              `UPDATE members SET deactivated_at = NULL, role = 'user'
+                WHERE id = ?1 AND registration_deleted_at IS NULL`,
+              [existing.id],
+            )
+          }
           await sql.query(
             `INSERT INTO members (email, name) VALUES (?1, ?2) ON CONFLICT (email) DO NOTHING`,
             [user.email, user.name ?? ''],

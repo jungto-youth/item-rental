@@ -42,7 +42,7 @@ test("inventory: active members can read, responses are private and generated ph
   } finally { db.close(); }
 });
 
-test("membership: admin withdrawal immediately revokes an existing session including direct photo access", async () => {
+test("membership: withdrawal revokes existing sessions, and logging in again restores the same account", async () => {
   const fixture = httpFixture();
   const { db, request, member } = fixture;
   try {
@@ -54,7 +54,25 @@ test("membership: admin withdrawal immediately revokes an existing session inclu
     expect(fixture.photoReads).toBe(0);
     expect(await (await request("/api/me", { headers: { cookie: user } })).json()).toEqual({ user: null });
     const signIn = authConfig(fixture.env).callbacks!.signIn!;
-    expect(await signIn({ user: { id: "google-user", email: "user@jungto.org" }, account: null, profile: { email_verified: true } })).toBe("/login?error=AccountDeactivated");
+    expect(await signIn({ user: { id: "google-user", email: "user@jungto.org" }, account: null, profile: { email_verified: true } })).toBe(true);
+    expect(db.prepare("SELECT deactivated_at, role FROM members WHERE id = 'user'").get()).toEqual({ deactivated_at: null, role: "user" });
+    expect((await request("/api/items", { headers: { cookie: user } })).status).toBe(200);
+    expect(await (await request("/api/me", { headers: { cookie: user } })).json()).toMatchObject({ user: { id: "user" } });
+  } finally { db.close(); }
+});
+
+test("membership: a withdrawn admin who signs in again comes back as a regular user", async () => {
+  const fixture = httpFixture();
+  const { db, member } = fixture;
+  try {
+    await member("admin", "admin");
+    await member("former-admin", "admin", true);
+    expect(db.prepare("SELECT deactivated_at, role FROM members WHERE id = 'former-admin'").get()).toEqual({ deactivated_at: "2026-01-01", role: "admin" });
+
+    const signIn = authConfig(fixture.env).callbacks!.signIn!;
+    expect(await signIn({ user: { id: "google-former-admin", email: "former-admin@jungto.org" }, account: null, profile: { email_verified: true } })).toBe(true);
+    // 계정은 복구되지만 역할은 일반 회원으로 초기화된다 — 이력은 그대로 남는다.
+    expect(db.prepare("SELECT deactivated_at, role FROM members WHERE id = 'former-admin'").get()).toEqual({ deactivated_at: null, role: "user" });
   } finally { db.close(); }
 });
 

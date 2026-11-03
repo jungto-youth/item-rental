@@ -358,6 +358,27 @@ try {
     console.log("PASS anonymous home redirects to login");
   }
 
+  // 1-1) 연락처가 없으면 회원·관리자 모두 로그인 후 프로필 등록으로 이동한다.
+  for (const [label, user, path] of [
+    ["member", { ...MEMBER, phone: null }, "/"],
+    ["admin", { ...ADMIN, phone: null }, "/admin/members"],
+  ]) {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    await mockApi(page, user);
+    await page.goto(new URL(path.replace(/^\//, ""), base).href);
+    await page.waitForURL(base + "signup/profile");
+    await page.locator(".profile-form").waitFor();
+    assert.deepEqual(errors, [], `${label} console errors`);
+    await context.close();
+    console.log(`PASS ${label} without phone redirects to profile`);
+  }
+
   // 2) 모든 화면이 렌더되고 콘솔 오류가 없다.
   for (const screen of SCREENS) {
     const context = await browser.newContext({

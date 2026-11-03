@@ -18,7 +18,7 @@ export default function Login() {
       setMessage("정토회 계정(@jungto.org) 또는 관리자가 허용한 계정으로 로그인해 주세요");
       window.history.replaceState(null, "", window.location.pathname);
     } else if (error === "AccountDeactivated") {
-      setMessage("탈퇴 처리된 계정이에요. 관리자에게 문의해 주세요");
+      setMessage("등록 정보가 삭제된 계정이에요. 관리자에게 문의해 주세요");
       window.history.replaceState(null, "", window.location.pathname);
     } else if (error === "SessionUnavailable") {
       setMessage("로그인 상태를 확인할 수 없어요. 연결 상태를 확인하고 다시 시도해 주세요");

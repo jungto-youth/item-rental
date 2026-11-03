@@ -27,6 +27,9 @@ type RouteDef = {
 
 export type Match = { route: RouteDef; params: Record<string, string> };
 
+// 연락처가 없는 회원은 역할과 무관하게 이 화면에서 전화번호를 먼저 받는다.
+const PROFILE_ROUTE = "/signup/profile";
+
 const routes: RouteDef[] = [
   {
     pattern: "/",
@@ -211,6 +214,13 @@ async function resolve() {
     if (guard === "admin" && user.role !== "admin") {
       setPending(false);
       redirectTo("/?role=denied");
+      return;
+    }
+    // 관리자를 포함한 모든 회원 — 연락처가 없으면 프로필 등록으로 보낸다.
+    // 프로필 화면 자체는 막지 않는다(입력 후 저장하면 다음 이동부터 통과).
+    if (!user.phone && next.route.pattern !== PROFILE_ROUTE) {
+      setPending(false);
+      redirectTo(PROFILE_ROUTE);
       return;
     }
   }

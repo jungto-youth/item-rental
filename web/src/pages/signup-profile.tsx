@@ -6,13 +6,18 @@ import { ProfileForm } from "../components/common/profile-form";
 export default function SignupProfile() {
   const [name, setName] = createSignal("");
   const [phone, setPhone] = createSignal("");
+  const [affiliation, setAffiliation] = createSignal("");
   const [email, setEmail] = createSignal("");
   const [ready, setReady] = createSignal(false);
+
+  // 구글 계정에 이름이 있으면 전화번호만 받는다 — 연락처 미등록 회원의 공통 진입 화면.
+  const hasName = () => name().trim().length > 0;
 
   onSettled(() => {
     void session.ensure().then((user) => {
       setName(user?.name ?? "");
       setPhone(user?.phone ?? "");
+      setAffiliation(user?.affiliation ?? "");
       setEmail(user?.email ?? "");
       setReady(true);
     });
@@ -23,14 +28,21 @@ export default function SignupProfile() {
       <Show when={ready()}>
         <div class="w-full max-w-[340px]">
           <div class="text-center">
-            <h1 class="m-0 text-page-title font-bold tracking-tight text-ink-1">반가워요</h1>
-            <p class="mt-2 text-body leading-normal text-ink-2">물품을 빌리려면 이름과 연락처가 필요해요.</p>
+            <h1 class="m-0 text-page-title font-bold tracking-tight text-ink-1">
+              {hasName() ? "연락처를 등록해 주세요" : "반가워요"}
+            </h1>
+            <p class="mt-2 text-body leading-normal text-ink-2">
+              {hasName()
+                ? "물품을 빌리려면 전화번호가 필요해요."
+                : "물품을 빌리려면 이름과 전화번호가 필요해요."}
+            </p>
           </div>
 
           <ProfileForm
             class="mt-6"
             initialName={name()}
             initialPhone={phone()}
+            initialAffiliation={affiliation()}
             email={email()}
             accountLabel="로그인한 계정"
             accountVerified
