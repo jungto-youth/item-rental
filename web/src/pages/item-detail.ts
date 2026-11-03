@@ -229,9 +229,25 @@ export class PageItemDetail extends LitElement {
       }
 
       /* 상세 로딩 — 실제 2열 골격을 그대로 쓴다 */
+      .sk-media {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+      }
       .sk-gallery {
         aspect-ratio: 4 / 3;
         border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface-muted);
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+      .sk-thumbs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--space-1);
+      }
+      .sk-thumb {
+        aspect-ratio: 4 / 3;
         border-radius: var(--radius);
         background: var(--surface-muted);
         animation: pulse 1.4s ease-in-out infinite;
@@ -382,7 +398,7 @@ export class PageItemDetail extends LitElement {
           >
             <path d="m15 18-6-6 6-6" />
           </svg>
-          물품 현황
+          목록으로
         </a>
         ${it && this.isAdmin
           ? html`
@@ -405,8 +421,15 @@ export class PageItemDetail extends LitElement {
         <x-empty
           state="error"
           text=${this.error}
-          subtitle="목록으로 돌아가 다시 시도해 주세요."
-        ></x-empty>
+          subtitle="삭제되었거나 연결이 불안정해요."
+        >
+          <x-button variant="primary" @click=${() => void this.load()}>
+            다시 시도
+          </x-button>
+          <x-button variant="secondary" @click=${() => navigate("/")}>
+            목록으로
+          </x-button>
+        </x-empty>
       `;
     }
 
@@ -414,7 +437,14 @@ export class PageItemDetail extends LitElement {
       return html`
         ${this.renderTopNav()}
         <div class="content-col" role="status" aria-label="물품 정보를 불러오는 중">
-          <div class="sk-gallery" aria-hidden="true"></div>
+          <div class="sk-media" aria-hidden="true">
+            <div class="sk-gallery"></div>
+            <div class="sk-thumbs">
+              <div class="sk-thumb"></div>
+              <div class="sk-thumb"></div>
+              <div class="sk-thumb"></div>
+            </div>
+          </div>
           <div class="sk-info" aria-hidden="true">
             <div class="sk-line title"></div>
             <div class="sk-line wide"></div>

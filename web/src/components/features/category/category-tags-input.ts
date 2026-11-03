@@ -39,12 +39,13 @@ export class CategoryTagsInput extends LitElement {
       display: inline-flex;
       align-items: center;
       gap: var(--space-1);
+      height: 28px;
       background: var(--primary-soft);
       border: 0;
       border-radius: var(--radius-pill);
       padding: 0 var(--space-1);
       font-size: var(--text-fine);
-      line-height: 24px;
+      line-height: var(--line-height-button);
       color: var(--primary-strong);
     }
     .tag button {
@@ -126,7 +127,7 @@ export class CategoryTagsInput extends LitElement {
       ${this.value.map(
         (name, i) => html`
           <span class="tag">
-            ${name}
+            #${name}
             <button
               type="button"
               aria-label="${name} 태그 제거"

@@ -25,5 +25,8 @@ jobs:
       - name: Unit tests (DB 불필요 — Sql 스텁)
         run: npm test
 
+      - name: Build SolidJS app
+        run: npm run build:web-solid
+
       - name: Verify production excludes development authentication
         run: npm run build && npm run check:production

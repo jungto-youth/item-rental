@@ -105,6 +105,10 @@ export class XEmpty extends LitElement {
       animation: spin 0.6s linear infinite;
     }
     .action {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-1);
       margin-top: var(--space-2);
     }
     .action.hidden {

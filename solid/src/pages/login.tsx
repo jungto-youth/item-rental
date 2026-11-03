@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "@solidjs/router";
+import logoUrl from "../logo";
 import { Show, createMemo } from "solid-js";
 import { GoogleIcon } from "../components/icons";
 import { PolicyLinks } from "../components/layout";
@@ -24,7 +25,7 @@ export default function Login() {
       <div class="w-full max-w-[340px]">
         <div class="flex flex-col items-center text-center">
           <img
-            src="./logo.png"
+            src={logoUrl}
             alt=""
             class="h-10 w-10 rounded-card sm:h-12 sm:w-12"
           />

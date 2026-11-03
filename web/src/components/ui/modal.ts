@@ -112,9 +112,10 @@ export class XModal extends LitElement {
 
     .title {
       font-size: var(--text-heading);
-      font-weight: 700;
+      font-weight: 600;
+      letter-spacing: var(--tracking-tight);
       margin: 0;
-      line-height: 1.3;
+      line-height: 1.4;
     }
 
     .body {

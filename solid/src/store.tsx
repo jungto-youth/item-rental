@@ -1,9 +1,9 @@
 import {
   createContext,
+  createStore,
   useContext,
   type ParentComponent,
 } from "solid-js";
-import { createStore, produce } from "solid-js/store";
 import {
   initialAllowedEmails,
   initialItems,
@@ -56,7 +56,9 @@ function createAppStore() {
   });
 
   const setRole = (role: Role) => {
-    setState("role", role);
+    setState((draft) => {
+      draft.role = role;
+    });
     try {
       sessionStorage.setItem(ROLE_KEY, role);
     } catch {
@@ -67,22 +69,23 @@ function createAppStore() {
   const isAdmin = () => state.role === "admin";
 
   const updateUser = (name: string, phone: string | null) => {
-    setState("user", { name, phone });
+    setState((draft) => {
+      draft.user.name = name;
+      draft.user.phone = phone;
+    });
   };
 
   const findItem = (id: string) => state.items.find((item) => item.id === id);
 
   const changeAvailable = (itemId: string, delta: number) => {
-    setState(
-      "items",
-      (item) => item.id === itemId,
-      produce((item) => {
-        item.available = Math.max(
-          0,
-          Math.min(item.total - item.repair, item.available + delta),
-        );
-      }),
-    );
+    setState((draft) => {
+      const item = draft.items.find((entry) => entry.id === itemId);
+      if (!item) return;
+      item.available = Math.max(
+        0,
+        Math.min(item.total - item.repair, item.available + delta),
+      );
+    });
   };
 
   const rentItem = (itemId: string, qty: number, memo: string) => {
@@ -102,114 +105,110 @@ function createAppStore() {
       status: "rented",
       memo: memo.trim() || undefined,
     };
-    setState("myReservations", (rows) => [reservation, ...rows]);
+    setState((draft) => {
+      draft.myReservations.unshift(reservation);
+    });
     return reservation;
   };
 
   const returnMyReservation = (id: string) => {
     const row = state.myReservations.find((entry) => entry.id === id);
     if (!row || row.status !== "rented") return;
-    setState(
-      "myReservations",
-      (entry) => entry.id === id,
-      produce((entry) => {
-        entry.status = "returned";
-        entry.returnedAt = POLICY_TODAY;
-      }),
-    );
+    setState((draft) => {
+      const entry = draft.myReservations.find((item) => item.id === id);
+      if (!entry) return;
+      entry.status = "returned";
+      entry.returnedAt = POLICY_TODAY;
+    });
     changeAvailable(row.itemId, row.qty);
   };
 
   const cancelMyReservation = (id: string) => {
     const row = state.myReservations.find((entry) => entry.id === id);
     if (!row || row.status !== "rented") return;
-    setState(
-      "myReservations",
-      (entry) => entry.id === id,
-      produce((entry) => {
-        entry.status = "cancelled";
-      }),
-    );
+    setState((draft) => {
+      const entry = draft.myReservations.find((item) => item.id === id);
+      if (!entry) return;
+      entry.status = "cancelled";
+    });
     changeAvailable(row.itemId, row.qty);
   };
 
   const returnReservation = (id: string) => {
     const row = state.reservations.find((entry) => entry.id === id);
     if (!row || row.status !== "rented") return;
-    setState(
-      "reservations",
-      (entry) => entry.id === id,
-      produce((entry) => {
-        entry.status = "returned";
-        entry.returnedAt = POLICY_TODAY;
-        entry.processedBy = state.user.name;
-      }),
-    );
+    setState((draft) => {
+      const entry = draft.reservations.find((item) => item.id === id);
+      if (!entry) return;
+      entry.status = "returned";
+      entry.returnedAt = POLICY_TODAY;
+      entry.processedBy = state.user.name;
+    });
     changeAvailable(row.itemId, row.qty);
   };
 
   const setMemberRole = (id: string, role: Member["role"]) => {
-    setState(
-      "members",
-      (member) => member.id === id,
-      produce((member) => {
-        member.role = role;
-      }),
-    );
+    setState((draft) => {
+      const member = draft.members.find((entry) => entry.id === id);
+      if (member) member.role = role;
+    });
   };
 
   const withdrawMember = (id: string) => {
-    setState(
-      "members",
-      (member) => member.id === id,
-      produce((member) => {
-        member.deactivated = true;
-      }),
-    );
+    setState((draft) => {
+      const member = draft.members.find((entry) => entry.id === id);
+      if (member) member.deactivated = true;
+    });
   };
 
   const deleteMemberInfo = (id: string) => {
-    setState(
-      "members",
-      (member) => member.id === id,
-      produce((member) => {
-        member.name = "—";
-        member.email = "";
-        member.phone = null;
-        member.infoDeleted = true;
-        member.activeRentals = 0;
-      }),
-    );
+    setState((draft) => {
+      const member = draft.members.find((entry) => entry.id === id);
+      if (!member) return;
+      member.name = "—";
+      member.email = "";
+      member.phone = null;
+      member.infoDeleted = true;
+      member.activeRentals = 0;
+    });
   };
 
   const addAllowedEmail = (email: string, note: string) => {
-    setState("allowedEmails", (rows) => [
-      {
+    setState((draft) => {
+      draft.allowedEmails.unshift({
         email,
         note: note.trim() || undefined,
         addedBy: state.user.name,
         addedAt: POLICY_TODAY,
-      },
-      ...rows,
-    ]);
+      });
+    });
   };
 
   const removeAllowedEmail = (email: string) => {
-    setState("allowedEmails", (rows) =>
-      rows.filter((row) => row.email !== email),
-    );
+    setState((draft) => {
+      const index = draft.allowedEmails.findIndex((row) => row.email === email);
+      if (index >= 0) draft.allowedEmails.splice(index, 1);
+    });
   };
 
   const updateItem = (id: string, patch: Partial<Item>) => {
-    setState("items", (item) => item.id === id, patch);
+    setState((draft) => {
+      const item = draft.items.find((entry) => entry.id === id);
+      if (item) Object.assign(item, patch);
+    });
   };
 
   const addItem = (item: Item) => {
-    setState("items", (rows) => [item, ...rows]);
+    setState((draft) => {
+      draft.items.unshift(item);
+    });
   };
 
   const removeItem = (id: string) => {
-    setState("items", (rows) => rows.filter((item) => item.id !== id));
+    setState((draft) => {
+      const index = draft.items.findIndex((item) => item.id === id);
+      if (index >= 0) draft.items.splice(index, 1);
+    });
   };
 
   return {
@@ -239,13 +238,9 @@ const StoreContext = createContext<AppStore>();
 
 export const StoreProvider: ParentComponent = (props) => {
   const store = createAppStore();
-  return (
-    <StoreContext.Provider value={store}>{props.children}</StoreContext.Provider>
-  );
+  return <StoreContext value={store}>{props.children}</StoreContext>;
 };
 
 export function useAppStore() {
-  const store = useContext(StoreContext);
-  if (!store) throw new Error("StoreProvider 안에서만 useAppStore 를 쓸 수 있어요");
-  return store;
+  return useContext(StoreContext);
 }

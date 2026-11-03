@@ -16,13 +16,18 @@ export class PageSignupProfile extends LitElement {
   static styles = [
     reduceMotion,
     css`
+      /* 로그인에 이어지는 온보딩 2단계 — 셸 헤더·푸터 없이 화면 가운데에 모은다 */
       :host {
-        display: block;
-        max-width: var(--layout-onboarding);
-        margin: 0 auto;
-        /* 셸 헤더가 없는 전체 화면이라 여백을 직접 갖는다 */
-        padding: var(--space-4) var(--space-3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
         box-sizing: border-box;
+        min-height: 100dvh;
+        padding: var(--space-4) var(--space-3);
+      }
+      .stage {
+        width: 100%;
+        max-width: 340px;
       }
       .head {
         text-align: center;
@@ -89,30 +94,33 @@ export class PageSignupProfile extends LitElement {
   render() {
     if (!this.ready) return html``;
     return html`
-      <div class="head">
-        <h1>반가워요</h1>
-        <p class="sub">물품을 빌리려면 이름과 연락처가 필요해요.</p>
+      <div class="stage">
+        <div class="head">
+          <h1>반가워요</h1>
+          <p class="sub">물품을 빌리려면 이름과 연락처가 필요해요.</p>
+        </div>
+
+        <profile-form
+          .initialName=${this.name}
+          .initialPhone=${this.phone}
+          .email=${this.email}
+          accountLabel="로그인한 계정"
+          accountVerified
+          hint=""
+          note="저장하면 바로 물품을 둘러볼 수 있어요."
+          @saved=${() => navigate("/mypage")}
+        ></profile-form>
+
+        <p class="privacy">입력한 정보는 물품 대여 연락에만 사용해요.</p>
+
+        <p class="alt"><a href="/login">다른 계정으로 로그인</a></p>
+
+        <nav class="policy" aria-label="정책">
+          <a href="/policy/terms">이용약관</a>
+          <span aria-hidden="true">·</span>
+          <a href="/policy/privacy">개인정보처리방침</a>
+        </nav>
       </div>
-
-      <profile-form
-        .initialName=${this.name}
-        .initialPhone=${this.phone}
-        .email=${this.email}
-        accountLabel="로그인한 계정"
-        hint=""
-        note="저장하면 바로 물품을 둘러볼 수 있어요."
-        @saved=${() => navigate("/mypage")}
-      ></profile-form>
-
-      <p class="privacy">입력한 정보는 물품 대여 연락에만 사용해요.</p>
-
-      <p class="alt"><a href="/login">다른 계정으로 로그인</a></p>
-
-      <nav class="policy" aria-label="정책">
-        <a href="/policy/terms">이용약관</a>
-        <span aria-hidden="true">·</span>
-        <a href="/policy/privacy">개인정보처리방침</a>
-      </nav>
     `;
   }
 }

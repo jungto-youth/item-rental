@@ -75,7 +75,8 @@
         display: flex;
         align-items: center;
         gap: var(--space-1);
-        padding: var(--space-1) 0;
+        height: 40px;
+        padding: 0;
         border: none;
         background: none;
         font-family: inherit;
@@ -159,10 +160,11 @@
       .btn-login {
         display: flex;
         align-items: center;
-        padding: var(--space-1) var(--space-2);
-        border: 1px solid var(--primary);
+        height: 36px;
+        padding: 0 var(--space-2);
+        border: 1px solid var(--primary-strong);
         border-radius: var(--radius);
-        background: var(--primary);
+        background: var(--primary-strong);
         color: #fff;
         text-decoration: none;
         font-family: inherit;
@@ -171,6 +173,19 @@
         line-height: var(--line-height-button);
         letter-spacing: var(--tracking-tight);
         cursor: pointer;
+      }
+      .btn-login:hover {
+        border-color: var(--primary-deep);
+        background: var(--primary-deep);
+      }
+      .btn-login:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+      @media (min-width: 640px) {
+        .nav {
+          gap: var(--space-3);
+        }
       }
       @media (min-width: 768px) {
         .bar {

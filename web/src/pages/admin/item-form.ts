@@ -218,14 +218,6 @@ export class PageAdminItemForm extends LitElement {
         gap: var(--space-1);
         flex-shrink: 0;
       }
-      @media (max-width: 639px) {
-        .btn-group {
-          width: 100%;
-        }
-        .btn-group x-button {
-          flex: 1;
-        }
-      }
     `,
   ];
 
@@ -277,10 +269,13 @@ export class PageAdminItemForm extends LitElement {
   // 사진 추가·삭제도 스테이징이라 저장 전엔 서버에 닿지 않는다.
   private async confirmLeave(): Promise<boolean> {
     if (!this.dirty) return true;
-    return await confirmDialog(
-      "저장하지 않은 변경이 있어요.\n떠나면 변경 사항이 사라져요.",
-      { confirmLabel: "버리고 나가기", cancelLabel: "계속 편집", danger: true },
-    );
+    return await confirmDialog("", {
+      title: "저장하지 않은 변경이 있어요.",
+      description: "떠나면 변경 사항이 사라져요.",
+      confirmLabel: "나가기",
+      cancelLabel: "계속 수정",
+      danger: true,
+    });
   }
 
   private init() {
@@ -454,16 +449,16 @@ export class PageAdminItemForm extends LitElement {
     if (this.saving || this.processingPhotos) return;
     // 자체 검증 — 폼 required 의 무음 차단 대신 명시적 오류 문구를 보여준다
     if (!this.form.name.trim()) {
-      this.setError("이름을 입력해주세요");
+      this.setError("물품 이름을 입력해 주세요.");
       return;
     }
     if (!(this.form.total_qty >= 1)) {
-      this.setError("보유 수량은 1 이상이어야 해요");
+      this.setError("보유 수량을 1 이상 입력해 주세요.");
       return;
     }
     // 수리중 수량이 보유 수량을 넘으면 대여 가능 계산이 음수가 된다
     if (this.form.kind === "rental" && this.form.qty_repair > this.form.total_qty) {
-      this.setError("수리중 수량은 보유 수량보다 클 수 없어요");
+      this.setError("수리중 수량은 보유 수량을 넘을 수 없어요.");
       return;
     }
     this.saving = true;
@@ -512,7 +507,12 @@ export class PageAdminItemForm extends LitElement {
   }
 
   private async handleDelete() {
-    if (!(await confirmDialog(`'${this.form.name}' 물품을 정말 삭제할까요?\n연결된 대여 이력은 남고 복구할 수 없어요.`, { confirmLabel: "삭제", danger: true })))
+    if (!(await confirmDialog("", {
+      title: `'${this.form.name.trim() || "물품"}' 물품을 정말 삭제할까요?`,
+      description: "연결된 대여 이력은 남고 복구할 수 없어요.",
+      confirmLabel: "삭제",
+      danger: true,
+    })))
       return;
     try {
       await api(`/api/admin/items/${this.targetId}`, { method: "DELETE" });
@@ -579,7 +579,7 @@ export class PageAdminItemForm extends LitElement {
               <x-input
                 label="설명"
                 type="textarea"
-                rows="2"
+                rows="3"
                 placeholder="물품 설명이나 주의사항을 적어주세요"
                 .value=${f.description}
                 @input=${(e: Event) =>
@@ -656,7 +656,9 @@ export class PageAdminItemForm extends LitElement {
                     `
                   : ""}
               </div>
-              <p class="hint">수리중 수량은 대여 불가 수량이에요 (보유 수량을 넘을 수 없어요)</p>
+              ${f.kind === "rental"
+                ? html`<p class="hint">수리중 수량은 대여 불가 수량이에요 (보유 수량을 넘을 수 없어요)</p>`
+                : ""}
 
               <photo-uploader
                 multiple

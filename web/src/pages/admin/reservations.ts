@@ -41,23 +41,11 @@ export class PageAdminReservations extends LitElement {
       x-chip {
         display: block;
       }
-      .result {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--space-2);
-        margin: var(--space-2) 0 var(--space-1);
-        color: var(--ink-2);
-        font-size: var(--text-fine);
-      }
-      .result p {
-        margin: 0;
-      }
-      .result .sort {
-        margin-left: auto;
-      }
       .trunc {
+        margin: var(--space-2) 0 0;
         color: var(--danger);
+        font-size: var(--text-fine);
+        line-height: var(--line-height);
       }
       .tel {
         color: var(--ink-1);
@@ -70,7 +58,7 @@ export class PageAdminReservations extends LitElement {
       .list {
         display: grid;
         gap: var(--space-1);
-        margin-top: var(--space-1);
+        margin-top: var(--space-2);
       }
     `,
   ];
@@ -118,7 +106,13 @@ export class PageAdminReservations extends LitElement {
   private async markReturned(r: AdminReservation) {
     if (this.processingId !== null) return;
     const label = r.qty > 1 ? `'${r.item_name}' ${r.qty}개` : `'${r.item_name}'`;
-    if (!(await confirmDialog(`${label}를 반납 처리할까요?`, { confirmLabel: "반납 처리" })))
+    if (
+      !(await confirmDialog("", {
+        title: `${label}를 반납 처리할까요?`,
+        description: "반납 처리하면 재고가 바로 돌아오고, 대여 이력에 남아요.",
+        confirmLabel: "반납",
+      }))
+    )
       return;
     this.processingId = r.id;
     try {
@@ -149,7 +143,6 @@ export class PageAdminReservations extends LitElement {
         side
       >
         <x-chip
-          layout="grid"
           ariaLabel="상태 필터"
           .value=${this.filter}
           .options=${[
@@ -170,14 +163,11 @@ export class PageAdminReservations extends LitElement {
               ></x-empty>
             </div>`
           : html`
-              <div class="result">
-                ${this.truncated
-                  ? html`<p class="trunc" role="status">
-                      500건까지만 표시 — 더 오래된 건은 여기 없어요
-                    </p>`
-                  : ""}
-                <p class="sort">최근 대여 순</p>
-              </div>
+              ${this.truncated
+                ? html`<p class="trunc" role="status">
+                    500건까지만 표시 — 더 오래된 건은 여기 없어요
+                  </p>`
+                : ""}
               <div class="list">
                 ${list.map((r) => this.renderCard(r))}
               </div>
@@ -202,6 +192,7 @@ export class PageAdminReservations extends LitElement {
         .title=${`${r.item_name} · ${r.qty}개`}
         badgeKind=${r.status}
         ?active=${r.status === "rented"}
+        inline-actions
       >
         ${r.status === "rented"
           ? html`<x-button

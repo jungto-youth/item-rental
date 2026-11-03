@@ -1,4 +1,5 @@
-import { A, useParams } from "@solidjs/router";
+import { useParams } from "@solidjs/router";
+import { Link } from "../components/link";
 import { For, Show, createMemo, createSignal } from "solid-js";
 import {
   AlertCircleIcon,
@@ -98,9 +99,9 @@ export default function ItemDetail() {
                 >
                   다시 시도
                 </button>
-                <A href="/" class={btnSecondary}>
+                <Link href="/" class={btnSecondary}>
                   목록으로
-                </A>
+                </Link>
               </div>
             }
           />
@@ -110,20 +111,20 @@ export default function ItemDetail() {
       {(current) => (
         <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pt-8">
           <div class="flex items-center justify-between gap-4">
-            <A
+            <Link
               href="/"
               class="inline-flex h-9 items-center gap-1 rounded-card text-body font-medium text-ink-2 transition-colors hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <ArrowLeftIcon class="h-4 w-4" />
               목록으로
-            </A>
+            </Link>
             <Show when={store.isAdmin()}>
-              <A
+              <Link
                 href={`/items/${current().id}/edit`}
                 class={btnSecondarySmall}
               >
                 수정
-              </A>
+              </Link>
             </Show>
           </div>
 
@@ -361,12 +362,12 @@ export default function ItemDetail() {
                       반납은 대여 기록에서 할 수 있어요.
                     </p>
                     <div class="mt-4 flex flex-wrap justify-center gap-2">
-                      <A href="/my-rentals" class={btnPrimary}>
+                      <Link href="/my-rentals" class={btnPrimary}>
                         대여 기록
-                      </A>
-                      <A href="/" class={btnSecondary}>
+                      </Link>
+                      <Link href="/" class={btnSecondary}>
                         계속 둘러보기
-                      </A>
+                      </Link>
                     </div>
                   </div>
                 )}
@@ -385,12 +386,12 @@ export default function ItemDetail() {
                     함께 쓰면 좋은 물품이에요
                   </p>
                 </div>
-                <A
+                <Link
                   href="/"
                   class="text-body font-medium text-primary-strong transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   전체 보기
-                </A>
+                </Link>
               </div>
               <div
                 class="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4"

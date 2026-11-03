@@ -1,6 +1,10 @@
-import { HashRouter, Route, useLocation } from "@solidjs/router";
+import {
+  createRouter,
+  hashHistory,
+  useLocation,
+} from "@solidjs/router";
 import { Show, createEffect, type ParentComponent } from "solid-js";
-import { render } from "solid-js/web";
+import { render } from "@solidjs/web";
 import {
   FloatingAddButton,
   Footer,
@@ -69,9 +73,12 @@ const Shell: ParentComponent = (props) => {
   const notFound = () =>
     location.pathname === "/404" || !isKnownPath(location.pathname);
 
-  createEffect(() => {
-    document.title = titleFor(location.pathname, location.search);
-  });
+  createEffect(
+    () => titleFor(location.pathname, location.search),
+    (title) => {
+      document.title = title;
+    },
+  );
 
   return (
     <div class="flex min-h-dvh flex-col antialiased">
@@ -101,25 +108,30 @@ const Shell: ParentComponent = (props) => {
   );
 };
 
+const Router = createRouter({
+  history: hashHistory(),
+  routes: [
+    { path: "/", component: Home },
+    { path: "/items/new", component: ItemForm },
+    { path: "/items/:id/edit", component: ItemForm },
+    { path: "/items/:id", component: ItemDetail },
+    { path: "/login", component: Login },
+    { path: "/signup-profile", component: SignupProfile },
+    { path: "/mypage", component: MyPage },
+    { path: "/my-rentals", component: MyRentals },
+    { path: "/admin/reservations", component: AdminReservations },
+    { path: "/admin/members", component: AdminMembers },
+    { path: "/policy", component: Policy },
+    { path: "/states", component: States },
+    { path: "/404", component: NotFound },
+    { path: "*404", component: NotFound },
+  ],
+});
+
 function App() {
   return (
     <StoreProvider>
-      <HashRouter root={Shell}>
-        <Route path="/" component={Home} />
-        <Route path="/items/new" component={ItemForm} />
-        <Route path="/items/:id/edit" component={ItemForm} />
-        <Route path="/items/:id" component={ItemDetail} />
-        <Route path="/login" component={Login} />
-        <Route path="/signup-profile" component={SignupProfile} />
-        <Route path="/mypage" component={MyPage} />
-        <Route path="/my-rentals" component={MyRentals} />
-        <Route path="/admin/reservations" component={AdminReservations} />
-        <Route path="/admin/members" component={AdminMembers} />
-        <Route path="/policy" component={Policy} />
-        <Route path="/states" component={States} />
-        <Route path="/404" component={NotFound} />
-        <Route path="*" component={NotFound} />
-      </HashRouter>
+      <Router>{(props) => <Shell {...props} />}</Router>
     </StoreProvider>
   );
 }

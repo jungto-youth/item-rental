@@ -24,6 +24,8 @@ export class ProfileForm extends LitElement {
   // 로그인한 계정 — 값이 있으면 폼 맨 위에 계정 확인 줄을 그린다
   @property() email = "";
   @property() accountLabel = "이메일";
+  // 온보딩처럼 "확인된 계정"임을 체크 아이콘으로 보여줄 때
+  @property({ type: Boolean }) accountVerified = false;
   // 수정 모드 — 아바타 + 제목을 카드 안에 함께 보여준다
   @property({ type: Boolean }) avatar = false;
   // 저장 버튼 아래 안내
@@ -89,8 +91,7 @@ export class ProfileForm extends LitElement {
       .account {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: var(--space-2);
+        gap: var(--space-1);
         padding: var(--space-1) var(--space-2);
         border-radius: var(--radius);
         background: var(--surface-muted);
@@ -98,7 +99,19 @@ export class ProfileForm extends LitElement {
         font-size: var(--text-fine);
         box-sizing: border-box;
       }
+      .account svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        color: var(--primary-strong);
+      }
+      .account span:not(:last-child) {
+        flex: none;
+        white-space: nowrap;
+      }
       .account span:last-child {
+        margin-left: auto;
+        min-width: 0;
         color: var(--ink-1);
         overflow: hidden;
         text-overflow: ellipsis;
@@ -207,6 +220,11 @@ export class ProfileForm extends LitElement {
         ${heading}
         ${this.email
           ? html`<div class="account">
+              ${this.accountVerified
+                ? html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>`
+                : ""}
               <span>${this.accountLabel}</span>
               <span title=${this.email}>${this.email}</span>
             </div>`

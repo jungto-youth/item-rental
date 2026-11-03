@@ -1,4 +1,4 @@
-import { A } from "@solidjs/router";
+import { Link } from "../components/link";
 import { PackageIcon } from "../components/icons";
 import { btnPrimary, btnSecondary } from "../components/ui";
 
@@ -23,9 +23,9 @@ export default function NotFound() {
       </p>
 
       <div class="mt-6 flex flex-wrap justify-center gap-2">
-        <A href="/" class={btnPrimary}>
+        <Link href="/" class={btnPrimary}>
           물품 현황으로
-        </A>
+        </Link>
         <button
           type="button"
           class={btnSecondary}

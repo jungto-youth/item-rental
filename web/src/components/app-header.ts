@@ -37,23 +37,23 @@ export class AppHeader extends LitElement {
   }
 
   // 모바일·데스크톱 모두 같은 상단 메뉴를 쓴다.
-  // 관리자: 물품 현황 · 대여 기록(관리) · 회원 관리 / 회원: 물품 현황 · 대여 기록(내역)
+  // 관리자: 물품 현황 · 대여 관리 · 회원 관리 / 회원: 물품 현황 · 대여 기록
   private get navItems(): NavItem[] {
     if (!this.user) return [];
     const isAdmin = this.user.role === "admin";
     return [
       { href: "/", label: "물품 현황" },
-      {
-        href: isAdmin ? "/admin/reservations" : "/my/rentals",
-        label: "대여 기록",
-      },
+      isAdmin
+        ? { href: "/admin/reservations", label: "대여 관리" }
+        : { href: "/my/rentals", label: "대여 기록" },
       ...(isAdmin ? [{ href: "/admin/members", label: "회원 관리" }] : []),
     ];
   }
 
   private isActive(href: string): boolean {
     const path = this.route || location.pathname;
-    if (href === "/") return path === "/";
+    // 상세·등록·수정도 물품 현황 메뉴에 속한다 (시안과 같은 활성 표시)
+    if (href === "/") return path === "/" || path.startsWith("/items");
     return path === href || path.startsWith(`${href}/`);
   }
 

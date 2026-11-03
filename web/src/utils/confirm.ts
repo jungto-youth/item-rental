@@ -7,6 +7,10 @@ import "../components/ui/button";
 export function confirmDialog(
   message: string,
   opts: {
+    /** 질문형 제목 — 없으면 "확인" */
+    title?: string;
+    /** 제목 아래 결과·주의 설명 — 없으면 message 를 본문으로 쓴다 */
+    description?: string;
     confirmLabel?: string;
     cancelLabel?: string;
     /** 파괴적 동작(삭제·탈퇴)만 true — 기본은 primary 버튼 */
@@ -26,7 +30,7 @@ export function confirmDialog(
     const cancelBtn = document.createElement("x-button");
     cancelBtn.setAttribute("variant", "secondary");
     cancelBtn.setAttribute("slot", "footer");
-    cancelBtn.textContent = opts.cancelLabel ?? "취소";
+    cancelBtn.textContent = opts.cancelLabel ?? "닫기";
     cancelBtn.addEventListener("click", () => done(false));
     const okBtn = document.createElement("x-button");
     okBtn.setAttribute("variant", opts.danger ? "danger" : "primary");
@@ -35,7 +39,12 @@ export function confirmDialog(
     okBtn.addEventListener("click", () => done(true));
 
     render(
-      html`<x-modal open title="확인" @close=${() => done(false)}></x-modal>`,
+      html`<x-modal
+        open
+        maxWidth="400px"
+        title=${opts.title ?? "확인"}
+        @close=${() => done(false)}
+      ></x-modal>`,
       host,
     );
     const modal = host.querySelector("x-modal");
@@ -44,7 +53,7 @@ export function confirmDialog(
       return;
     }
     const p = document.createElement("p");
-    p.textContent = message;
+    p.textContent = opts.description ?? message;
     p.style.margin = "0";
     // 긴 경고(탈퇴 후 재로그인 불가, 삭제 시 대여 이력 등)는 여러 줄로 읽히는데,
     // 기본 white-space 는 \n 을 공백으로 뭉개 한 줄에 쑤셔 넣는다

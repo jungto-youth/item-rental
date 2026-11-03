@@ -4,8 +4,8 @@
 실제 앱(`web/src`, Lit)과 서버 API는 건드리지 않았고, 데이터는 모두 메모리 안의 샘플입니다.
 
 - 스타일: Tailwind CSS v4 + `design/`의 디자인 토큰
-- 라우팅: `@solidjs/router`의 `HashRouter` — 정적 서버 없이도 새로고침이 됩니다.
-- 상태: `src/store.tsx`의 Solid Store. 새로고침하면 초기 샘플로 돌아갑니다.
+- 라우팅: `@solidjs/router` 2의 `createRouter` + `hashHistory()` — 정적 서버 없이도 새로고침이 됩니다.
+- 상태: `src/store.tsx`의 Solid Store(draft setter). 새로고침하면 초기 샘플로 돌아갑니다.
 - 역할: 기본은 `회원`입니다. 관리자 전용 화면을 열면 권한 안내가 뜨고 `관리자로 보기`로 전환합니다. 로그아웃하면 다시 회원으로 돌아갑니다. 선택은 `sessionStorage`에 남습니다.
 
 ## 실행
@@ -17,6 +17,23 @@ npm run preview:solid  # 빌드 결과 미리보기
 ```
 
 루트 의존성을 함께 쓰므로 별도 `npm install`은 필요 없습니다.
+
+## Solid 2.0 기준
+
+2026-11에 **Solid 2.0 RC**(`solid-js@next`)와 **Solid Router 2**로 올렸습니다.
+1.x와 다른 점 중 이 목업에 실제로 적용된 것:
+
+- `solid-js/web` → `@solidjs/web` (`render`, `JSX` 타입). `tsconfig`의 `jsxImportSource`도 `@solidjs/web`.
+- 스토어는 `solid-js`에서 바로 가져오고, setter는 **draft를 직접 수정**합니다(`produce` 제거).
+  예: `setState("role", role)` → `setState(s => { s.role = role; })`
+- `onMount` → `onSettled`. 정리 함수는 `onCleanup` 등록 대신 **반환**합니다.
+- `createEffect(fn)` → `createEffect(compute, apply)`. `apply`가 cleanup을 반환합니다.
+- 컴포넌트 본문 최상위에서 signal/memo/store를 읽으면 경고가 나므로, 초기값은 `untrack`으로 한 번만 읽습니다.
+- 라우터: `<HashRouter>`/`<A>`가 없어졌습니다.
+  `createRouter({ history: hashHistory(), routes })`를 모듈 스코프에서 만들고 `<Router>{props => <Shell {...props} />}</Router>`로 마운트합니다.
+  링크는 평범한 `<a>`이고, 해시 URL이 유지되도록 `src/components/link.tsx`가 `useHref`로 `#`을 붙입니다.
+- JSX의 `src="./logo.png"` 같은 상대 경로를 번들러가 모듈로 해석하므로, 로고는 `src/logo.ts`에서 import 합니다.
+
 
 ## 화면
 

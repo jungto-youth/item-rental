@@ -1,5 +1,6 @@
-import { A } from "@solidjs/router";
-import { For, Show, type JSX } from "solid-js";
+import { Link } from "../components/link";
+import { For, Show } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import {
   AlertCircleIcon,
   CheckIcon,
@@ -124,9 +125,9 @@ export default function States() {
               }
               action={
                 <Show when={store.isAdmin()}>
-                  <A href="/items/new" class={btnPrimary}>
+                  <Link href="/items/new" class={btnPrimary}>
                     물품 등록
-                  </A>
+                  </Link>
                 </Show>
               }
             />
@@ -257,9 +258,9 @@ export default function States() {
                   <button type="button" class={btnPrimary}>
                     다시 시도
                   </button>
-                  <A href="/" class={btnSecondary}>
+                  <Link href="/" class={btnSecondary}>
                     목록으로
-                  </A>
+                  </Link>
                 </>
               }
             />
@@ -279,12 +280,12 @@ export default function States() {
               }
               action={
                 <>
-                  <A href="/my-rentals" class={btnPrimary}>
+                  <Link href="/my-rentals" class={btnPrimary}>
                     대여 기록
-                  </A>
-                  <A href="/" class={btnSecondary}>
+                  </Link>
+                  <Link href="/" class={btnSecondary}>
                     계속 둘러보기
-                  </A>
+                  </Link>
                 </>
               }
             />
@@ -304,9 +305,9 @@ export default function States() {
                   <p class="text-fine text-ink-1">
                     대여하려면 로그인이 필요해요.
                   </p>
-                  <A href="/login" class={`${btnPrimary} h-8 px-4 text-fine`}>
+                  <Link href="/login" class={`${btnPrimary} h-8 px-4 text-fine`}>
                     로그인
-                  </A>
+                  </Link>
                 </div>
               </div>
               <div class="rounded-card border border-line bg-surface p-4">

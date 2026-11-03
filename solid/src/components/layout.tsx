@@ -1,6 +1,8 @@
-import { A, useLocation } from "@solidjs/router";
-import { Show, createSignal, onCleanup, onMount } from "solid-js";
+import { useLocation } from "@solidjs/router";
+import logoUrl from "../logo";
+import { Show, createSignal, onSettled } from "solid-js";
 import { useAppStore } from "../store";
+import { Link } from "./link";
 import { PlusIcon } from "./icons";
 
 function AccountMenu() {
@@ -8,7 +10,7 @@ function AccountMenu() {
   const [open, setOpen] = createSignal(false);
   let root: HTMLDivElement | undefined;
 
-  onMount(() => {
+  onSettled(() => {
     const onPointerDown = (event: PointerEvent) => {
       if (!open()) return;
       if (root && !event.composedPath().includes(root)) setOpen(false);
@@ -18,10 +20,10 @@ function AccountMenu() {
     };
     document.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("keydown", onKeyDown);
-    onCleanup(() => {
+    return () => {
       document.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("keydown", onKeyDown);
-    });
+    };
   });
 
   const initial = () => store.state.user.name.charAt(0).toUpperCase() || "?";
@@ -31,7 +33,7 @@ function AccountMenu() {
       <button
         type="button"
         class="flex h-10 items-center gap-2 rounded-pill text-body text-ink-2 transition-colors hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        aria-expanded={open()}
+        aria-expanded={open() ? "true" : "false"}
         aria-haspopup="menu"
         aria-label={`계정 메뉴 — ${store.state.user.name}`}
         onClick={() => setOpen((value) => !value)}
@@ -63,15 +65,15 @@ function AccountMenu() {
           class="absolute right-0 top-[calc(100%+8px)] z-20 min-w-[176px] overflow-hidden rounded-card border border-line bg-surface shadow-menu"
           role="menu"
         >
-          <A
+          <Link
             href="/mypage"
             role="menuitem"
             class="block px-4 py-2 text-body text-ink-1 transition-colors hover:bg-surface-muted"
             onClick={() => setOpen(false)}
           >
             내 정보
-          </A>
-          <A
+          </Link>
+          <Link
             href="/login"
             role="menuitem"
             class="block px-4 py-2 text-body text-danger transition-colors hover:bg-surface-muted"
@@ -81,7 +83,7 @@ function AccountMenu() {
             }}
           >
             로그아웃
-          </A>
+          </Link>
         </div>
       </Show>
     </div>
@@ -105,44 +107,44 @@ export function Header() {
   return (
     <header class="sticky top-0 z-30 border-b border-line bg-surface">
       <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-4 px-4 sm:h-16 sm:gap-6 sm:px-6">
-        <A
+        <Link
           href="/"
           class="flex flex-none items-center gap-2"
           aria-label="물품 현황 — 홈"
         >
-          <img src="./logo.png" alt="" class="h-7 w-7 rounded-card" />
-        </A>
+          <img src={logoUrl} alt="" class="h-7 w-7 rounded-card" />
+        </Link>
 
         <nav
           class="flex min-w-0 items-center gap-4 sm:gap-6"
           aria-label="주 메뉴"
         >
-          <A href="/" end class={navClass(isItems())}>
+          <Link href="/" class={navClass(isItems())}>
             물품 현황
-          </A>
+          </Link>
           <Show
             when={store.isAdmin()}
             fallback={
-              <A
+              <Link
                 href="/my-rentals"
                 class={navClass(location.pathname === "/my-rentals")}
               >
                 대여 기록
-              </A>
+              </Link>
             }
           >
-            <A
+            <Link
               href="/admin/reservations"
               class={navClass(location.pathname === "/admin/reservations")}
             >
               대여 관리
-            </A>
-            <A
+            </Link>
+            <Link
               href="/admin/members"
               class={navClass(location.pathname === "/admin/members")}
             >
               회원 관리
-            </A>
+            </Link>
           </Show>
         </nav>
 
@@ -156,19 +158,19 @@ export function PublicHeader() {
   return (
     <header class="border-b border-line bg-surface">
       <div class="mx-auto flex h-14 max-w-[1280px] items-center justify-between gap-4 px-4 sm:h-16 sm:px-6">
-        <A
+        <Link
           href="/"
           class="flex min-w-0 items-center gap-2"
           aria-label="물품 현황 — 홈"
         >
-          <img src="./logo.png" alt="" class="h-7 w-7 rounded-card" />
-        </A>
-        <A
+          <img src={logoUrl} alt="" class="h-7 w-7 rounded-card" />
+        </Link>
+        <Link
           href="/login"
           class="inline-flex h-9 flex-none items-center rounded-card bg-primary-strong px-4 text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           로그인
-        </A>
+        </Link>
       </div>
     </header>
   );
@@ -182,18 +184,18 @@ export function Footer(props: { surface?: boolean }) {
       <div class="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-8 text-fine text-ink-2 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <p>정토회 · 함께 쓰는 물품</p>
         <nav class="flex gap-4" aria-label="정책">
-          <A
+          <Link
             href="/policy?kind=terms"
             class="transition-colors hover:text-ink-1 hover:underline"
           >
             이용약관
-          </A>
-          <A
+          </Link>
+          <Link
             href="/policy?kind=privacy"
             class="transition-colors hover:text-ink-1 hover:underline"
           >
             개인정보처리방침
-          </A>
+          </Link>
         </nav>
       </div>
     </footer>
@@ -203,33 +205,33 @@ export function Footer(props: { surface?: boolean }) {
 export function PolicyLinks() {
   return (
     <footer class="flex items-center justify-center gap-4 text-fine text-ink-2">
-      <A
+      <Link
         href="/policy?kind=terms"
         class="transition-colors hover:text-ink-1 hover:underline"
       >
         이용약관
-      </A>
+      </Link>
       <span class="text-line-strong" aria-hidden="true">
         ·
       </span>
-      <A
+      <Link
         href="/policy?kind=privacy"
         class="transition-colors hover:text-ink-1 hover:underline"
       >
         개인정보처리방침
-      </A>
+      </Link>
     </footer>
   );
 }
 
 export function FloatingAddButton() {
   return (
-    <A
+    <Link
       href="/items/new"
       class="fixed bottom-4 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-pill bg-primary-strong text-white shadow-[0_8px_20px_rgba(226,87,30,0.28)] transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:hidden"
       aria-label="물품 등록"
     >
       <PlusIcon class="h-5 w-5" />
-    </A>
+    </Link>
   );
 }

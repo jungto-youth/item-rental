@@ -1,4 +1,4 @@
-import { A } from "@solidjs/router";
+import { Link } from "./link";
 import { Show } from "solid-js";
 import { itemStatus, type Item } from "../types";
 import { ImagePlaceholderIcon } from "./icons";
@@ -7,7 +7,7 @@ export function ItemCard(props: { item: Item }) {
   const status = () => itemStatus(props.item);
 
   return (
-    <A
+    <Link
       role="listitem"
       href={`/items/${props.item.id}`}
       class="group flex flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -80,7 +80,7 @@ export function ItemCard(props: { item: Item }) {
           </p>
         </Show>
       </div>
-    </A>
+    </Link>
   );
 }
 

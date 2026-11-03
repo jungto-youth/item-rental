@@ -23,7 +23,7 @@ export class XPageHeader extends LitElement {
       font-size: var(--text-page-title);
       font-weight: 700;
       letter-spacing: var(--tracking-tight);
-      line-height: 1.25;
+      line-height: 1.35;
       margin: 0;
       color: var(--ink-1);
     }

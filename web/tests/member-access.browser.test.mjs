@@ -52,8 +52,8 @@ try {
   await ready.getByRole("button", { name: "등록 정보 삭제", exact: true }).click();
   // Scope to the custom-element host so slotted message/footer content is included.
   const confirmation = page.locator("x-modal[open]");
-  await confirmation.getByText(/완료된 이력은 익명으로 보존/).waitFor();
-  await confirmation.getByRole("button", { name: "취소", exact: true }).click();
+  await confirmation.getByText(/완료된 대여·관리 이력은 익명으로 보존/).waitFor();
+  await confirmation.getByRole("button", { name: "닫기", exact: true }).click();
   assert.deepEqual(removed, []);
   await ready.getByRole("button", { name: "등록 정보 삭제", exact: true }).click();
   await confirmation.getByRole("button", { name: "등록 정보 삭제", exact: true }).click();

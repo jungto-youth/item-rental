@@ -209,12 +209,8 @@ export class PhotoUploader extends LitElement {
     }
 
     .add-tile:hover {
-      border-color: var(--primary);
-      background: var(--primary-soft);
-    }
-
-    .add-tile:hover .add-icon {
-      background: var(--surface);
+      border-color: var(--border-strong);
+      background: var(--surface-muted);
     }
 
     .add-tile:focus-visible {
@@ -348,7 +344,7 @@ export class PhotoUploader extends LitElement {
         <x-modal
           ?open=${this.chooserOpen}
           title="사진 추가"
-          maxWidth="420px"
+          maxWidth="400px"
           @close=${() => (this.chooserOpen = false)}
         >
           <p class="chooser-copy">사진을 추가할 방법을 선택하세요.</p>
@@ -365,7 +361,7 @@ export class PhotoUploader extends LitElement {
             variant="secondary"
             @click=${() => (this.chooserOpen = false)}
           >
-            취소
+            닫기
           </x-button>
         </x-modal>
         <p class="photo-hint">JPEG · PNG · WebP · 원본 용량 제한 없음 · 최대 ${MAX_PHOTOS}장 · 업로드 전 2MB 이하로 자동 축소</p>

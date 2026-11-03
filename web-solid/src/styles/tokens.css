@@ -1,0 +1,114 @@
+/* 디자인 토큰 — 값의 유일한 출처.
+   따뜻한 중립 회색 바탕 · 흰 카드 · 잉크 텍스트 · 오렌지 포인트.
+   간격은 8px 단위, 라운드는 컨트롤 8 / 카드 12 / 알약 999만 쓴다. */
+
+:root {
+  color-scheme: light;
+
+  /* ===== 색 ===== */
+  --ink-1: #111827;
+  /* 본문·제목 */
+  --ink-2: #4b5563;
+  /* 보조 설명·라벨 */
+  --ink-3: #9ca3af;
+  /* 비활성·아이콘 */
+  --bg: #f6f7f9;
+  /* 중립 회색 바탕 */
+  --surface: #ffffff;
+  /* 카드·필드 */
+  --surface-muted: #f3f4f6;
+  /* 사진 자리·호버 */
+  --border: #e5e7eb;
+  /* 1px 헤어라인 */
+  --border-strong: #d1d5db;
+  /* 입력 필드 경계 */
+  --primary: #ea580c;
+  /* 액션·선택 */
+  --primary-strong: #c2410c;
+  /* 채운 버튼 배경 — 흰 글자 대비 5.2:1 */
+  --primary-deep: #9a3412;
+  /* 채운 버튼 hover·눌림 */
+  --primary-soft: #fff1e8;
+  /* 연한 강조 면 */
+  --warning: #b45309;
+  /* 수리 중 */
+  --warning-soft: #fffbeb;
+  --danger: #dc2626;
+  /* 오류·삭제 */
+  --danger-soft: #fef2f2;
+  /* 오류 배너 면 */
+
+  /* ===== 라운드 ===== */
+  --radius: 8px;
+  /* 버튼·인풋·카드·모달·행 */
+  --radius-pill: 999px;
+  /* 칩·배지·아바타 */
+
+  /* ===== 간격 (8px 그리드) ===== */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+
+  /* ===== 레이아웃 ===== */
+  --layout-max: 1280px;
+  /* 헤더·본문·푸터 공통 최대 폭 */
+  --layout-form: 720px;
+  /* 폼·계정 카드의 읽기 좋은 최대 폭 */
+  --layout-onboarding: 400px;
+  /* 로그인 후 프로필 등록처럼 한 과업만 있는 화면 */
+  --layout-doc: 1280px;
+  /* 정책 문서의 목차 + 본문 묶음 — 다른 화면과 같은 1280 셸 */
+
+  /* ===== 글자 ===== */
+  --text-fine: 0.875rem;
+  /* 14 — 캡션·배지·라벨 */
+  --text-body: 1rem;
+  /* 16 — 본문·버튼·인풋 */
+  --text-heading: 1.25rem;
+  /* 20 — 섹션 제목 */
+  --text-page-title: 1.5rem;
+  /* 24 — 페이지 제목 */
+
+  --tracking-tight: -0.015em;
+
+  /* ===== 행간 ===== */
+  --line-height: 1.5;
+  /* 본문·인풋 */
+  --line-height-button: 1.2;
+  /* 버튼만 */
+
+  /* ===== 깊이 ===== */
+  --shadow-menu: 0 8px 24px rgba(23, 23, 23, 0.1);
+  --shadow-modal: 0 24px 64px rgba(23, 23, 23, 0.18);
+
+  --font-body: "Noto Sans KR Variable", "Noto Sans KR", system-ui, -apple-system,
+    BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink-1);
+  line-height: var(--line-height);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 버튼만 행간 1.2 — 라이트 DOM 기준. shadow DOM 안은 각 컴포넌트가 직접 쓴다. */
+button {
+  font-family: inherit;
+  line-height: var(--line-height-button);
+}
+
+input,
+select {
+  font-family: inherit;
+  line-height: var(--line-height);
+}
+
+a {
+  color: var(--primary-strong);
+  text-underline-offset: 2px;
+}

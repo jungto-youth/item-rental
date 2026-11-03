@@ -2,9 +2,9 @@ import {
   Show,
   createEffect,
   onCleanup,
-  type JSX,
   type ParentComponent,
 } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { CheckIcon, SearchIcon } from "./icons";
 
 export const btnPrimary =
@@ -34,7 +34,7 @@ export function FilterChip(props: {
     <button
       type="button"
       class="filter-chip"
-      aria-pressed={props.active}
+      aria-pressed={props.active ? "true" : "false"}
       onClick={props.onClick}
     >
       {props.children}
@@ -138,23 +138,26 @@ export function Modal(props: {
   let panel: HTMLDivElement | undefined;
   const titleId = () => props.labelledBy ?? "modal-title";
 
-  createEffect(() => {
-    if (!props.open) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    queueMicrotask(() => {
-      if (!props.open) return;
-      (
-        panel?.querySelector<HTMLElement>("[data-autofocus]") ??
-        panel?.querySelector<HTMLElement>(
-          "button:not([disabled]), a[href], input, select, textarea",
-        )
-      )?.focus();
-    });
-    onCleanup(() => {
-      document.body.style.overflow = previous;
-    });
-  });
+  createEffect(
+    () => props.open,
+    (open) => {
+      if (!open) return;
+      const previous = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      queueMicrotask(() => {
+        if (!props.open) return;
+        (
+          panel?.querySelector<HTMLElement>("[data-autofocus]") ??
+          panel?.querySelector<HTMLElement>(
+            "button:not([disabled]), a[href], input, select, textarea",
+          )
+        )?.focus();
+      });
+      return () => {
+        document.body.style.overflow = previous;
+      };
+    },
+  );
 
   const onKeyDown = (event: KeyboardEvent) => {
     if (!props.open) return;

@@ -73,12 +73,11 @@ export class PageAdminMembers extends LitElement {
       }
       .emails summary:focus-visible {
         outline: 2px solid var(--primary);
-        outline-offset: 2px;
+        outline-offset: 4px;
         border-radius: var(--radius);
       }
       .search-wrap {
         position: relative;
-        margin-top: var(--space-2);
       }
       .search-wrap svg {
         position: absolute;
@@ -98,7 +97,7 @@ export class PageAdminMembers extends LitElement {
       .list {
         display: grid;
         gap: var(--space-1);
-        margin-top: var(--space-1);
+        margin-top: var(--space-2);
       }
 
       /* 회원 카드 — 아바타 + 이름·연락처 + 역할/탈퇴 액션 */
@@ -139,8 +138,16 @@ export class PageAdminMembers extends LitElement {
         background: var(--surface-muted);
         color: var(--ink-2);
       }
+      /* 이름 줄 — 탈퇴 배지는 이름 옆에 붙여 상태를 한눈에 읽게 한다 */
+      .name-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        min-width: 0;
+      }
       .name {
         margin: 0;
+        min-width: 0;
         color: var(--ink-1);
         font-size: var(--text-body);
         font-weight: 600;
@@ -210,8 +217,8 @@ export class PageAdminMembers extends LitElement {
         cursor: not-allowed;
       }
       .role-select:focus-visible {
-        outline: none;
-        border-color: var(--primary);
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
       }
       .select-caret {
         position: absolute;
@@ -368,10 +375,13 @@ export class PageAdminMembers extends LitElement {
     if (this.processingKey) return;
     const who = m.name || m.email || "이 회원";
     if (
-      !(await confirmDialog(
-        `'${who}'님을 탈퇴 처리할까요?\n이후 다시 로그인할 수 없어요.\n대여 중인 물품은 본인이 반납할 수 없어 관리자가 대신 처리해야 해요.`,
-        { confirmLabel: "탈퇴 처리", danger: true },
-      ))
+      !(await confirmDialog("", {
+        title: `'${who}' 님을 탈퇴 처리할까요?`,
+        description:
+          "탈퇴하면 계정 접근이 차단되고, 대여·관리 이력은 익명으로 보존돼요.",
+        confirmLabel: "탈퇴",
+        danger: true,
+      }))
     )
       return;
     if (this.processingKey) return;
@@ -398,10 +408,13 @@ export class PageAdminMembers extends LitElement {
   private async deleteRegistration(m: AdminMember) {
     if (this.processingKey) return;
     const who = m.name || m.email;
-    if (!(await confirmDialog(
-      `'${who}'님의 등록 정보를 삭제할까요?\n대여 중인 물품이 없어야 해요. 이름·이메일·연락처는 제거하고 완료된 이력은 익명으로 보존해요.\n삭제 후에는 다시 로그인하여 새 일반 회원으로 등록할 수 있어요.`,
-      { confirmLabel: "등록 정보 삭제", danger: true },
-    ))) return;
+    if (!(await confirmDialog("", {
+      title: `'${who}' 님의 등록 정보를 삭제할까요?`,
+      description:
+        "이름·이메일·연락처가 제거되고, 완료된 대여·관리 이력은 익명으로 보존돼요. 되돌릴 수 없어요.",
+      confirmLabel: "등록 정보 삭제",
+      danger: true,
+    }))) return;
     if (this.processingKey) return;
     this.processingKey = this.keyOf(m, "delete");
     try {
@@ -429,15 +442,6 @@ export class PageAdminMembers extends LitElement {
       user: "회원",
       admin: "관리자",
     };
-    if (
-      !(await confirmDialog(
-        `'${m.name || m.email}'님의 역할을 '${label[role]}'(으)로 바꿀까요?`,
-        { confirmLabel: "변경" },
-      ))
-    ) {
-      return; // 취소 — 칩은 제어 컴포넌트라 역할 상태가 안 바뀌면 제자리에 머문다
-    }
-    if (this.processingKey) return;
     this.processingKey = this.keyOf(m, "role");
     try {
       await api(`/api/admin/members/${m.id}/role`, {
@@ -494,13 +498,6 @@ export class PageAdminMembers extends LitElement {
 
   // remove 는 LitElement(HTMLElement)가 이미 가진 메서드라 덮어쓸 수 없다
   private async removeEmail(m: AllowedEmail) {
-    if (
-      !(await confirmDialog(
-        `'${m.email}' 계정의 로그인을 허용 목록에서 제거할까요?\n제거 후 이 계정으로는 다시 로그인할 수 없어요.`,
-        { confirmLabel: "제거", danger: true },
-      ))
-    )
-      return;
     if (this.emailBusy) return;
     this.emailBusy = true;
     try {
@@ -591,7 +588,7 @@ export class PageAdminMembers extends LitElement {
         ? html`<div class="list">
             <x-empty
               state="empty"
-              text=${this.q ? `'${this.q}'로 찾은 회원이 없어요` : "아직 회원이 없어요"}
+              text=${this.q ? "검색 결과가 없어요" : "아직 회원이 없어요"}
               subtitle=${this.q ? "다른 이름이나 연락처로 검색해 보세요." : ""}
             ></x-empty>
           </div>`
@@ -618,7 +615,10 @@ export class PageAdminMembers extends LitElement {
           <div class="who">
             <span class="avatar" aria-hidden="true">${initial}</span>
             <div style="min-width:0">
-              <p class="name">${m.name || "—"}</p>
+              <div class="name-row">
+                <p class="name">${m.name || "—"}</p>
+                ${withdrawn ? html`<x-badge kind="withdrawn"></x-badge>` : ""}
+              </div>
               <p class="contact">${m.email} · ${this.phoneLine(m)}</p>
             </div>
           </div>
@@ -655,7 +655,6 @@ export class PageAdminMembers extends LitElement {
                   </x-button>
                 `
               : html`
-                  <x-badge kind="withdrawn"></x-badge>
                   <x-button
                     variant="danger"
                     title=${(m.active_rental_count ?? 0) > 0 ? "대여 중인 물품이 있어요" : ""}

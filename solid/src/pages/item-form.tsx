@@ -1,5 +1,6 @@
-import { A, useNavigate, useParams } from "@solidjs/router";
-import { For, Show, createMemo, createSignal } from "solid-js";
+import { useNavigate, useParams } from "@solidjs/router";
+import { Link } from "../components/link";
+import { For, Show, createMemo, createSignal, untrack } from "solid-js";
 import { AdminGuard } from "../components/admin-guard";
 import { CameraIcon, PlusIcon, UploadIcon } from "../components/icons";
 import {
@@ -28,21 +29,24 @@ export default function ItemForm() {
     params.id ? store.findItem(params.id) : undefined,
   );
 
-  const [name, setName] = createSignal(existing()?.name ?? "");
-  const [location, setLocation] = createSignal(existing()?.location ?? "");
+  // 2.0 은 컴포넌트 본문의 최상위 반응형 읽기를 경고한다 — 초기값은 한 번만 떼어 쓴다.
+  const initial = untrack(() => existing());
+
+  const [name, setName] = createSignal(initial?.name ?? "");
+  const [location, setLocation] = createSignal(initial?.location ?? "");
   const [description, setDescription] = createSignal(
-    existing()?.description ?? "",
+    initial?.description ?? "",
   );
-  const [total, setTotal] = createSignal(existing()?.total ?? 1);
-  const [repair, setRepair] = createSignal(existing()?.repair ?? 0);
-  const [tags, setTags] = createSignal<string[]>(existing()?.tags ?? []);
+  const [total, setTotal] = createSignal(initial?.total ?? 1);
+  const [repair, setRepair] = createSignal(initial?.repair ?? 0);
+  const [tags, setTags] = createSignal<string[]>(initial?.tags ?? []);
   const [tagInput, setTagInput] = createSignal("");
-  const [kind, setKind] = createSignal<ItemKind>(existing()?.kind ?? "rental");
+  const [kind, setKind] = createSignal<ItemKind>(initial?.kind ?? "rental");
   const [lifecycle, setLifecycle] = createSignal<ItemLifecycle>(
-    existing()?.lifecycle ?? "active",
+    initial?.lifecycle ?? "active",
   );
   const [photos, setPhotos] = createSignal<(string | null)[]>(
-    [0, 1, 2].map((index) => existing()?.photos[index] ?? null),
+    [0, 1, 2].map((index) => initial?.photos[index] ?? null),
   );
   const [dirty, setDirty] = createSignal(false);
   const [formError, setFormError] = createSignal("");
@@ -295,7 +299,7 @@ export default function ItemForm() {
                           <button
                             type="button"
                             class="choice-chip"
-                            aria-pressed={kind() === value}
+                            aria-pressed={kind() === value ? "true" : "false"}
                             onClick={() => {
                               setKind(value);
                               markDirty();
@@ -322,7 +326,7 @@ export default function ItemForm() {
                           <button
                             type="button"
                             class="choice-chip"
-                            aria-pressed={lifecycle() === value}
+                            aria-pressed={lifecycle() === value ? "true" : "false"}
                             onClick={() => {
                               setLifecycle(value);
                               markDirty();
@@ -462,14 +466,14 @@ export default function ItemForm() {
                     >
                       물품 삭제
                     </button>
-                    <A
+                    <Link
                       href={
                         existing() ? `/items/${existing()!.id}` : "/"
                       }
                       class={btnSecondary}
                     >
                       공개 보기
-                    </A>
+                    </Link>
                   </div>
                 </Show>
                 <div class="flex justify-end gap-2 sm:ml-auto">

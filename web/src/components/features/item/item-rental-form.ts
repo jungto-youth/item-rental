@@ -21,6 +21,8 @@ export class ItemRentalForm extends LitElement {
   @state() private saving = false;
   @state() private message = "";
   @state() private isSuccess = false;
+  // 성공 화면에 남길 대여 수량 — 성공 직후 스테퍼는 1로 되돌린다
+  @state() private rentedQty = 0;
 
   static styles = [
     numberInputCss,
@@ -156,11 +158,49 @@ export class ItemRentalForm extends LitElement {
       background: var(--surface);
     }
 
+    /* ===== 대여 완료 — 시안의 완료 상태 카드 ===== */
+    .box.success {
+      align-items: center;
+      text-align: center;
+    }
+    .success-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-pill);
+      background: var(--primary-soft);
+      color: var(--primary-strong);
+    }
+    .success-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+    .success-title {
+      margin: var(--space-2) 0 0;
+      color: var(--ink-1);
+      font-size: var(--text-body);
+      font-weight: 600;
+      line-height: var(--line-height);
+    }
+    .success-desc {
+      margin: var(--space-1) 0 0;
+      color: var(--ink-2);
+      font-size: var(--text-fine);
+      line-height: var(--line-height);
+    }
     .success-actions {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: var(--space-1);
-      margin-top: var(--space-1);
+      margin-top: var(--space-2);
+    }
+    .success-actions x-button {
+      display: inline-block;
+      width: auto;
+      margin-top: 0;
     }
 
     .msg {
@@ -200,12 +240,6 @@ export class ItemRentalForm extends LitElement {
       line-height: var(--line-height);
     }
 
-    .title.success-title {
-      color: var(--ink-1);
-    }
-    .success-actions x-button {
-      margin-top: 0;
-    }
   `,
   ];
 
@@ -259,7 +293,8 @@ export class ItemRentalForm extends LitElement {
       });
 
       this.isSuccess = true;
-      this.message = "대여가 완료되었어요!";
+      this.rentedQty = this.qty;
+      this.message = "";
       this.memo = "";
       this.qty = 1;
 
@@ -287,17 +322,23 @@ export class ItemRentalForm extends LitElement {
 
     if (this.isSuccess) {
       return html`
-        <div class="box">
-          <h3 class="title success-title">🎉 대여 완료</h3>
-          <p class="msg">
-            <b>${this.item.name}</b> 대여가 접수되었어요. 사용 후 대여 내역에서 반납해 주세요.
+        <div class="box success">
+          <span class="success-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </span>
+          <p class="success-title">대여했어요</p>
+          <p class="success-desc">
+            '${this.item.name}' ${this.rentedQty}개를 대여 중이에요.<br />
+            반납은 대여 기록에서 할 수 있어요.
           </p>
           <div class="success-actions">
             <x-button variant="primary" @click=${() => navigate("/my/rentals")}>
-              대여 내역 확인 / 반납하기
+              대여 기록
             </x-button>
             <x-button variant="secondary" @click=${() => navigate("/")}>
-              다른 물품 둘러보기
+              계속 둘러보기
             </x-button>
           </div>
         </div>

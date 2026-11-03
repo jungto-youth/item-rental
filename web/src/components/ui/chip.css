@@ -6,52 +6,25 @@
   min-width: 0;
 }
 
+/* 시안처럼 내용 폭만큼 나열하고, 폭이 모자라면 다음 줄로 넘긴다. */
 .row {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  /* 칩이 넘치는 화면에서 스크롤바 대신 스크롤 동작만 — 행 높이 일관 유지 */
-  scrollbar-width: none;
+  flex-wrap: wrap;
 }
 
-.row::-webkit-scrollbar {
-  display: none;
-}
-
-/* 좁은 화면에서는 옵션이 잘리지 않도록 두 줄까지 허용한다 */
-@media (max-width: 639px) {
-  .row {
-    flex-wrap: wrap;
-    overflow-x: visible;
-  }
-}
-
-/* 필터·탭처럼 4개 안팎의 칩은 모바일에서 2×2 그리드로 — 가로 스크롤로
-   마지막 칩이 잘리는 문제를 없앤다. */
-@media (max-width: 639px) {
-  :host([layout="grid"]) .row {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  :host([layout="grid"]) .chip {
-    justify-content: space-between;
-    width: 100%;
-  }
-}
-
-/* 미선택(흰 면) → 선택(잉크 채움). 8px/16px 패딩 알약. */
+/* 미선택(흰 면) → 선택(잉크 채움). 알약형 36px. */
 .chip {
-  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
+  height: 36px;
+  padding: 0 var(--space-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   background: var(--surface);
-  color: var(--ink-2);
+  color: var(--ink-1);
   font-size: var(--text-body);
   font-weight: 400;
   line-height: var(--line-height-button);
@@ -61,8 +34,8 @@
 }
 
 .chip:hover {
-  border-color: var(--ink-3);
-  color: var(--ink-1);
+  border-color: var(--border-strong);
+  background: var(--surface-muted);
 }
 
 .chip:focus-visible {
@@ -73,7 +46,7 @@
 .chip.active {
   border-color: var(--ink-1);
   background: var(--ink-1);
-  color: var(--surface);
+  color: #fff;
   font-weight: 600;
 }
 

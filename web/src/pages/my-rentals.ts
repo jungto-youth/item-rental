@@ -39,7 +39,7 @@ export class PageMyRentals extends LitElement {
         display: flex;
         align-items: center;
         gap: 4px;
-        margin: var(--space-1) 0 var(--space-2);
+        margin: 0 0 var(--space-3);
         color: var(--ink-1);
         font-size: var(--text-fine);
         min-height: 1.2em;
@@ -192,7 +192,9 @@ export class PageMyRentals extends LitElement {
     // 처리 중 확인은 다이얼로그보다 먼저 — 뒤에 두면 연타로 다이얼로그가 두 개 열린다
     if (this.processing) return;
     if (
-      !(await confirmDialog(`'${r.item_name}'를 반납할까요?`, {
+      !(await confirmDialog("", {
+        title: `'${r.item_name}'를 반납할까요?`,
+        description: "반납하면 재고가 바로 돌아오고, 대여 이력에 남아요.",
         confirmLabel: "반납",
       }))
     )
@@ -203,7 +205,9 @@ export class PageMyRentals extends LitElement {
   private async onCancel(r: MyReservation) {
     if (this.processing) return;
     if (
-      !(await confirmDialog(`'${r.item_name}' 대여를 취소할까요?`, {
+      !(await confirmDialog("", {
+        title: `'${r.item_name}' 대여를 취소할까요?`,
+        description: "취소하면 대여하지 않은 것으로 기록돼요.",
         confirmLabel: "대여 취소",
       }))
     )
@@ -279,22 +283,22 @@ export class PageMyRentals extends LitElement {
         subtitle="지금 빌린 물품과 지난 기록을 확인해요."
       ></x-page-header>
 
+      ${this.message
+        ? html`<p
+            class="msg ${this.messageTone}"
+            role=${this.messageTone === "error" ? "alert" : "status"}
+          >
+            ${this.messageTone === "success"
+              ? html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>`
+              : ""}
+            <span>${this.message}</span>
+          </p>`
+        : ""}
+
       <div class="split">
         <div class="main">
-          ${this.message
-            ? html`<p
-                class="msg ${this.messageTone}"
-                role=${this.messageTone === "error" ? "alert" : "status"}
-              >
-                ${this.messageTone === "success"
-                  ? html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>`
-                  : ""}
-                <span>${this.message}</span>
-              </p>`
-            : ""}
-
           <!-- 1순위: 현재 대여 중인 물품 -->
           <section>
             <h2>현재 대여 중</h2>

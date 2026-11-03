@@ -1,5 +1,6 @@
-import { A, useLocation } from "@solidjs/router";
-import { Show, createSignal } from "solid-js";
+import { useLocation } from "@solidjs/router";
+import { Link } from "../components/link";
+import { Show, createSignal, untrack } from "solid-js";
 import { CheckIcon } from "../components/icons";
 import {
   SideCard,
@@ -15,13 +16,15 @@ export default function MyPage() {
   const [editing, setEditing] = createSignal(false);
   const [saved, setSaved] = createSignal(false);
   const [error, setError] = createSignal("");
+  const initialUser = untrack(() => ({
+    name: store.state.user.name,
+    phone: store.state.user.phone ?? "",
+  }));
   const [missingPhone, setMissingPhone] = createSignal(
-    new URLSearchParams(location.search).get("nophone") === "1",
+    untrack(() => new URLSearchParams(location.search).get("nophone") === "1"),
   );
-  const [name, setName] = createSignal(store.state.user.name);
-  const [phone, setPhone] = createSignal(
-    store.state.user.phone ?? "",
-  );
+  const [name, setName] = createSignal(initialUser.name);
+  const [phone, setPhone] = createSignal(initialUser.phone);
 
   const initial = () =>
     (store.state.user.name.charAt(0) || "?").toUpperCase();
@@ -236,9 +239,9 @@ export default function MyPage() {
               있어요.
             </p>
             <div class="mt-4">
-              <A href="/my-rentals" class={btnSecondarySmall}>
+              <Link href="/my-rentals" class={btnSecondarySmall}>
                 대여 내역 보기
-              </A>
+              </Link>
             </div>
           </SideCard>
           <SideCard title="연락처 안내">

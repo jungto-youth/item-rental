@@ -38,7 +38,7 @@ export class AdminPage extends LitElement {
         gap: 4px;
         color: var(--ink-1);
         font-size: var(--text-fine);
-        margin: var(--space-1) 0 0;
+        margin: 0 0 var(--space-3);
       }
       .msg svg {
         width: 16px;
@@ -63,21 +63,21 @@ export class AdminPage extends LitElement {
 
   render() {
     const tone = this.messageTone;
+    const message = this.message
+      ? html`<p
+          class="msg ${tone}"
+          role=${tone === "error" ? "alert" : "status"}
+        >
+          ${tone === "success"
+            ? html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>`
+            : ""}
+          <span>${this.message}</span>
+        </p>`
+      : "";
     const body = html`
       <slot name="toolbar"></slot>
-      ${this.message
-        ? html`<p
-            class="msg ${tone}"
-            role=${tone === "error" ? "alert" : "status"}
-          >
-            ${tone === "success"
-              ? html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>`
-              : ""}
-            <span>${this.message}</span>
-          </p>`
-        : ""}
       ${this.loading
         ? html`<x-empty compact state="loading"></x-empty>`
         : this.error
@@ -96,6 +96,7 @@ export class AdminPage extends LitElement {
             subtitle=${this.subtitle}
           ></x-page-header>`
         : ""}
+      ${message}
       ${this.side
         ? html`
             <div class="split">

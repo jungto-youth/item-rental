@@ -1,4 +1,5 @@
-import { A, useNavigate } from "@solidjs/router";
+import { useNavigate } from "@solidjs/router";
+import { Link } from "../components/link";
 import { Show, createSignal } from "solid-js";
 import { CheckIcon } from "../components/icons";
 import { PolicyLinks } from "../components/layout";
@@ -110,12 +111,12 @@ export default function SignupProfile() {
         </p>
 
         <div class="mt-6 text-center">
-          <A
+          <Link
             href="/login"
             class="text-fine text-ink-2 transition-colors hover:text-ink-1 hover:underline"
           >
             다른 계정으로 로그인
-          </A>
+          </Link>
         </div>
 
         <div class="mt-4">

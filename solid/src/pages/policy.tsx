@@ -1,5 +1,7 @@
-import { A, useLocation } from "@solidjs/router";
-import { For, Show, createMemo, type JSX } from "solid-js";
+import { useLocation } from "@solidjs/router";
+import { Link } from "../components/link";
+import { For, Show, createMemo } from "solid-js";
+import type { JSX } from "@solidjs/web";
 
 type PolicyKind = "terms" | "privacy";
 
@@ -120,12 +122,12 @@ function TermsArticle() {
         <Paragraph>약관이 바뀌면 서비스 내 공지로 알려드려요.</Paragraph>
       </Section>
 
-      <A
+      <Link
         href="/policy?kind=terms#top"
         class="mt-10 inline-flex text-fine text-ink-2 underline underline-offset-2 transition-colors hover:text-ink-1"
       >
         맨 위로
-      </A>
+      </Link>
     </article>
   );
 }
@@ -245,12 +247,12 @@ function PrivacyArticle() {
         </Paragraph>
       </Section>
 
-      <A
+      <Link
         href="/policy?kind=privacy#top"
         class="mt-10 inline-flex text-fine text-ink-2 underline underline-offset-2 transition-colors hover:text-ink-1"
       >
         맨 위로
-      </A>
+      </Link>
     </article>
   );
 }
@@ -276,20 +278,20 @@ export default function Policy() {
       class="mx-auto w-full max-w-[1280px] flex-1 px-4 pb-16 pt-6 sm:px-6 sm:pt-8"
     >
       <nav class="flex gap-6 border-b border-line" aria-label="정책 종류">
-        <A
+        <Link
           href="/policy?kind=terms"
           class={tabClass(kind() === "terms")}
           aria-current={kind() === "terms" ? "page" : undefined}
         >
           이용약관
-        </A>
-        <A
+        </Link>
+        <Link
           href="/policy?kind=privacy"
           class={tabClass(kind() === "privacy")}
           aria-current={kind() === "privacy" ? "page" : undefined}
         >
           개인정보 처리방침
-        </A>
+        </Link>
       </nav>
 
       <div class="policy-layout mt-8">
@@ -304,12 +306,12 @@ export default function Policy() {
           <nav class="mt-2 space-y-2" aria-label="정책 목차">
             <For each={TOC[kind()]}>
               {([id, label]) => (
-                <A
+                <Link
                   href={`/policy?kind=${kind()}#${id}`}
                   class="block text-fine text-ink-2 transition-colors hover:text-ink-1"
                 >
                   {label}
-                </A>
+                </Link>
               )}
             </For>
           </nav>

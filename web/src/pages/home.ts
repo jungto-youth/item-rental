@@ -115,15 +115,9 @@ export class PageHome extends LitElement {
         color: var(--ink-1);
       }
 
+      /* 시안처럼 칩은 내용 폭만큼 나열되고, 좁으면 다음 줄로 넘긴다. */
       .filters {
-        display: flex;
-        min-width: 0;
         margin-bottom: var(--space-2);
-      }
-
-      x-chip {
-        flex: 1;
-        min-width: 0;
       }
 
       .home-side x-button {
@@ -281,7 +275,6 @@ export class PageHome extends LitElement {
           <div class="home-main">
             <div class="filters">
               <x-chip
-                layout="grid"
                 ariaLabel="물품 상태 필터"
                 .value=${this.tab}
                 .options=${TABS.map((t) => ({

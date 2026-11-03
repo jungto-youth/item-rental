@@ -1,4 +1,4 @@
-import { A } from "@solidjs/router";
+import { Link } from "../components/link";
 import { For, Show, createMemo, createSignal } from "solid-js";
 import { ItemCard } from "../components/item-card";
 import { PlusIcon } from "../components/icons";
@@ -67,13 +67,13 @@ export default function Home() {
 
         <aside class="home-side" aria-label="물품 등록과 대여 안내">
           <Show when={store.isAdmin()}>
-            <A
+            <Link
               href="/items/new"
               class="hidden h-10 w-full items-center justify-center gap-2 rounded-card bg-primary-strong px-4 text-body font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:inline-flex"
             >
               <PlusIcon class="h-4 w-4" />
               물품 등록
-            </A>
+            </Link>
           </Show>
 
           <section class="rounded-card border border-line bg-surface p-4">
@@ -83,9 +83,9 @@ export default function Home() {
             <p class="mt-2 text-fine leading-[1.5] text-ink-2">
               신청하면 바로 대여 중이 돼요. 반납은 대여 기록에서 할 수 있어요.
             </p>
-            <A href="/my-rentals" class={`${btnSecondarySmall} mt-4`}>
+            <Link href="/my-rentals" class={`${btnSecondarySmall} mt-4`}>
               내 대여 보기
-            </A>
+            </Link>
           </section>
         </aside>
 
@@ -128,9 +128,9 @@ export default function Home() {
                 }
                 action={
                   <Show when={store.isAdmin()}>
-                    <A href="/items/new" class={btnPrimary}>
+                    <Link href="/items/new" class={btnPrimary}>
                       물품 등록
-                    </A>
+                    </Link>
                   </Show>
                 }
               />

@@ -12,6 +12,8 @@ export class ReservationRow extends LitElement {
   @property() badgeKind = "";
   // 대여 중 강조 — 테두리를 잉크색으로 올려 현재 대여 건임을 알린다
   @property({ type: Boolean, reflect: true }) active = false;
+  // 관리자 목록처럼 액션이 하나뿐인 행은 모바일에서도 제목 옆에 인라인으로 둔다
+  @property({ type: Boolean, reflect: true }) inlineActions = false;
 
   // 슬롯이 비었으면 빈 상자를 그리지 않는다. (:empty 는 <slot> 자식 때문에 절대 매치되지 않는다)
   @state() private hasActions = false;
@@ -91,6 +93,17 @@ export class ReservationRow extends LitElement {
         }
         .actions ::slotted(*) {
           flex: 1;
+        }
+        /* 액션이 하나뿐인 관리자 행 — 시안처럼 제목·배지·버튼을 한 줄에 둔다 */
+        :host([inline-actions]) .row {
+          flex-wrap: nowrap;
+        }
+        :host([inline-actions]) .actions {
+          width: auto;
+          flex-shrink: 0;
+        }
+        :host([inline-actions]) .actions ::slotted(*) {
+          flex: none;
         }
       }
     `,

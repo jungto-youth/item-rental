@@ -27,11 +27,11 @@ export class XBadge extends LitElement {
     }
 
     .badge {
-      position: relative;
       display: inline-flex;
       align-items: center;
+      gap: 6px;
       height: 24px;
-      padding: 0 12px;
+      padding: 0 10px;
       border-radius: var(--radius-pill);
       background: var(--surface-muted);
       color: var(--ink-2);
@@ -52,16 +52,13 @@ export class XBadge extends LitElement {
       color: var(--warning);
     }
 
-    /* 점은 왼쪽 패딩 안에 두고 텍스트는 좌우 12px로 대칭을 맞춘다. */
+    /* 점과 텍스트를 흐름 안에 두고, 좌우 10px 패딩으로 묶음을 가운데 맞춘다. */
     .dot {
-      position: absolute;
-      left: 4px;
-      top: 50%;
+      flex: none;
       width: 6px;
       height: 6px;
       border-radius: 50%;
       background: var(--ink-3);
-      transform: translateY(-50%);
     }
 
     .dot.available,

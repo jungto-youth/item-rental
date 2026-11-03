@@ -1,4 +1,4 @@
-import { A } from "@solidjs/router";
+import { Link } from "../components/link";
 import { For, Show, createMemo, createSignal } from "solid-js";
 import {
   ConfirmModal,
@@ -79,9 +79,9 @@ export default function MyRentals() {
                   <p class="mt-2 text-fine text-ink-2">
                     필요한 물품을 찾아 바로 대여할 수 있어요.
                   </p>
-                  <A href="/" class={`${btnSecondary} mt-4`}>
+                  <Link href="/" class={`${btnSecondary} mt-4`}>
                     물품 둘러보기
-                  </A>
+                  </Link>
                 </div>
               }
             >
@@ -179,9 +179,9 @@ export default function MyRentals() {
               를 눌러 바로 반납할 수 있어요. 취소는 빌리지 않기로 한 경우에만
               사용해요.
             </p>
-            <A href="/" class={`${btnSecondarySmall} mt-4`}>
+            <Link href="/" class={`${btnSecondarySmall} mt-4`}>
               물품 둘러보기
-            </A>
+            </Link>
           </section>
 
           <SideCard title="대여 이력">

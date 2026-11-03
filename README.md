@@ -79,6 +79,7 @@ web/src/
   components/         — ui(재사용) + features(도메인) 컴포넌트
   api/ context/ utils/ styles/  — API 클라이언트, 세션, 헬퍼, 디자인 토큰
 solid/                — design/ 시안의 SolidJS 목업 (샘플 데이터, API 미연결)
+web-solid/            — web/src Lit 앱을 SolidJS로 옮긴 실제 API 연결 앱
 shared/api-types.ts   — 서버·웹이 함께 쓰는 API 타입 계약
 migrations-d1/        — D1 스키마 마이그레이션 (기준선 이후 변경을 순서대로 적용)
 server/tests/         — 단위 테스트(가짜 DB) + 실 SQLite 통합 테스트
@@ -111,6 +112,11 @@ API 목록은 `server/src/routes/`, 스키마 정의는 `migrations-d1/`를 본�
 같은 시안을 SolidJS로 옮긴 목업은 `solid/`에 있다. Tailwind v4와 샘플 데이터를 쓰고,
 `npm run dev:solid`로 연다. 화면·구조·실제 앱 연결 방법은 [`solid/README.md`](solid/README.md).
 
+`web/src`의 Lit 앱을 SolidJS로 옮긴 실제 앱은 `web-solid/`에 있다. API·세션·권한·사진
+업로드까지 같은 서버 계약에 연결하고, 경로 라우팅·가드·스크롤 복원을 직접 구현했다.
+`npm run dev:api`와 `npm run dev:web-solid`를 함께 띄우고, 구조·배포 방법은
+[`web-solid/README.md`](web-solid/README.md)를 본다.
+
 ## 개발
 
 ```bash
@@ -119,19 +125,22 @@ npm ci                # 의존성 설치
 # 개발
 npm run dev           # API(8787) + 웹 HMR(5173) 동시 실행 → http://localhost:5173
 npm run dev:solid     # design 시안의 SolidJS 목업 → http://localhost:5174
+npm run dev:web-solid # Lit 앱의 SolidJS 포팅 → http://localhost:5175 (dev:api 필요)
 npm run dev:api       # API 서버만 → localhost:8787
 npm run dev:web:hmr   # 웹 개발 서버만 → localhost:5173
 npm run dev:web       # 빌드 감시 → wrangler(8787)가 서빙하는 번들, 새로고침 필요
 npm run dev:lan       # 같은 API 서버를 0.0.0.0 에 → 폰/태블릿에서 실물로 검증
 
-npm run check         # 타입 검사 (웹 + 서버 + 테스트 + 스크립트)
+npm run check         # 타입 검사 (웹 + 서버 + 테스트 + 스크립트 + Solid)
 npm test              # 테스트
 npm run test:photos   # 사진 파이프라인 브라우저 테스트 (chromium 필요)
 npm run test:members  # 회원 전용 이동·등록 정보 삭제 브라우저 테스트 (chromium 필요)
 npm run test:profile  # 프로필 저장 브라우저 테스트 (chromium 필요)
 npm run test:visual   # 390/768/1280 시각 회귀 (fixture, chromium 필요)
+npm run test:web-solid # SolidJS 앱 390/1280 스모크 (fixture, chromium 필요)
 npm run test:visual:update  # 시각 회귀 기준선 갱신
 npm run build         # 빌드 → web/dist
+npm run build:web-solid # SolidJS 앱 빌드 → web-solid/dist
 npm run deploy        # 빌드 후 배포
 ```
 
