@@ -19,14 +19,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck (web + server + tests + scripts)
+      - name: Typecheck (web + web-lit + server + tests + scripts)
         run: npm run check
 
       - name: Unit tests (DB 불필요 — Sql 스텁)
         run: npm test
 
-      - name: Build SolidJS app
-        run: npm run build:web-solid
+      - name: Build deployed web app (SolidJS)
+        run: npm run build
+
+      - name: Build Lit app
+        run: npm run build:web-lit
 
       - name: Verify production excludes development authentication
-        run: npm run build && npm run check:production
+        run: npm run check:production

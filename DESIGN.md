@@ -1,9 +1,10 @@
 # DESIGN.md
 
 이 프로젝트의 UI 기준. **값의 단일 출처는 `web/src/styles/tokens.css`**이고, 이 문서는 그 값을
-어떻게 쓰는지에 대한 요약이다. 값과 문서가 어긋나면 코드가 맞다.
+어떻게 쓰는지에 대한 요약이다. Lit 원본(`web-lit/src/styles/tokens.css`)도 같은 값을 쓴다.
+값과 문서가 어긋나면 코드가 맞다.
 
-- 대상: Lit + Shadow DOM SPA (`web/src`)
+- 대상: 배포하는 SolidJS SPA (`web/`)와 Lit 원본 (`web-lit/`)
 - 룩: 중립 회색 바탕 · 흰 카드 · 오렌지 포인트 · 8px 간격
 - 시안: `design/` (리뷰용 HTML). 운영 방식은 `design/README.md` 참고
 
@@ -151,7 +152,7 @@ npm run test:visual:update # 의도한 변경이면 기준선 갱신
 npm run build && npm run check:production
 ```
 
-- 기준선은 `web/tests/visual/baseline/`, 실패 시 현재 화면은 `current/`(gitignore).
+- 기준선은 `web-lit/tests/visual/baseline/`, 실패 시 현재 화면은 `current/`(gitignore).
 - `test:visual`은 Vite를 띄우고 API를 고정 fixture로 대체해 D1·R2·로그인 없이 돈다.
 - 기준선은 **같은 브라우저/OS에서만** 일치한다. 다른 환경에서 갱신하면 전부 어긋난다.
 - 접근성 기준은 WCAG 2.2 AA. axe 자동 검사는 아직 도입하지 않았다.

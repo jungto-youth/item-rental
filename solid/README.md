@@ -1,7 +1,7 @@
 # 물품 대여 — SolidJS 목업
 
 `design/`의 정적 HTML 시안 12개 화면을 **SolidJS SPA**로 옮긴 리뷰용 목업입니다.
-실제 앱(`web/src`, Lit)과 서버 API는 건드리지 않았고, 데이터는 모두 메모리 안의 샘플입니다.
+실제 앱(`web-lit/src`, Lit)과 서버 API는 건드리지 않았고, 데이터는 모두 메모리 안의 샘플입니다.
 
 - 스타일: Tailwind CSS v4 + `design/`의 디자인 토큰
 - 라우팅: `@solidjs/router` 2의 `createRouter` + `hashHistory()` — 정적 서버 없이도 새로고침이 됩니다.
@@ -88,5 +88,5 @@ solid/
 ## 실제 앱에 연결할 때
 
 `src/store.tsx`의 액션(`rentItem`, `returnMyReservation`, `returnReservation`, …)을
-`web/src/api/client.ts` 호출로 바꾸고, `data/mock.ts` 초기값을 API 응답으로 교체하면 됩니다.
+`web-lit/src/api/client.ts` 호출로 바꾸고, `data/mock.ts` 초기값을 API 응답으로 교체하면 됩니다.
 화면 컴포넌트는 스토어 액션에만 의존하므로 페이지를 다시 쓰지 않아도 됩니다.

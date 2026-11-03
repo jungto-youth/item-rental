@@ -1,5 +1,5 @@
 {
-  // SPA 폴백 + API 분기
+  // SPA 폴백 + API 분기 — assets.directory 는 배포하는 SolidJS 앱(web/dist)이다
   "name": "item-rental",
   "main": "server/src/index.ts",
   "compatibility_date": "2026-09-01",

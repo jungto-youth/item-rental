@@ -51,7 +51,7 @@ Cloudflare 위에서 동작하고 운영 비용은 월 0원이다. 앱·서버 �
 | ---------- | ----------------------------------- | ------------------------------------------- |
 | 호스팅     | Cloudflare Workers                  | 무료 플랜, Static Assets로 SPA 서빙         |
 | 서버       | Hono 4                              | JSON API (라우팅·미들웨어)                  |
-| 클라이언트 | Lit 3 + TypeScript                  | Shadow DOM 웹 컴포넌트 SPA                  |
+| 클라이언트 | Solid 2 + TypeScript                | SolidJS SPA (`web/`, Lit 원본은 `web-lit/`) |
 | 빌드       | Vite                                | `web/dist` 산출물을 그대로 배포             |
 | DB         | Cloudflare D1 (SQLite)              | 바인딩 호출 — 서버리스 HTTP 왕복 없음       |
 | 검색       | FTS5 + Workers AI (`bge-m3`)        | 키워드·부분 일치·의미 검색을 합쳐 랭킹      |
@@ -74,12 +74,12 @@ server/src/
   middleware/auth.ts  — requireAuth · requireAdmin
   routes/             — items, categories, me, reservations + admin/*
   services/           — SQL과 도메인 로직 (SQL은 여기에만 존재)
-web/src/
+web/                  — 배포하는 SolidJS 앱 (API·세션·권한·사진 연결)
   pages/              — 화면 단위 (탐색·상세·로그인·마이페이지·관리자)
   components/         — ui(재사용) + features(도메인) 컴포넌트
   api/ context/ utils/ styles/  — API 클라이언트, 세션, 헬퍼, 디자인 토큰
+web-lit/              — web/의 원본 Lit + Shadow DOM 앱 (비교·시각 회귀 검증용)
 solid/                — design/ 시안의 SolidJS 목업 (샘플 데이터, API 미연결)
-web-solid/            — web/src Lit 앱을 SolidJS로 옮긴 실제 API 연결 앱
 shared/api-types.ts   — 서버·웹이 함께 쓰는 API 타입 계약
 migrations-d1/        — D1 스키마 마이그레이션 (기준선 이후 변경을 순서대로 적용)
 server/tests/         — 단위 테스트(가짜 DB) + 실 SQLite 통합 테스트
@@ -98,8 +98,9 @@ API 목록은 `server/src/routes/`, 스키마 정의는 `migrations-d1/`를 본�
 
 새 색·크기가 필요하면 먼저 토큰에 추가하고, 그 밖의 hex·중간 px 값은 만들지 않는다.
 
-스타일은 Lit `css`와 `web/src/styles/ui.ts`의 공유 조각으로만 쓴다. Tailwind·유틸리티
-클래스는 쓰지 않는다. 컴포넌트 계약·검증 절차는 [`DESIGN.md`](DESIGN.md)에 있다.
+스타일은 `web/src/styles/app.css`의 범위 클래스로만 쓴다 (Lit 원본은 `css`와
+`web-lit/src/styles/ui.ts`의 공유 조각). Tailwind·유틸리티 클래스는 쓰지 않는다.
+컴포넌트 계약·검증 절차는 [`DESIGN.md`](DESIGN.md)에 있다.
 
 화면 감사·토큰 구조·컴포넌트 계약·검증 절차는
 [`DESIGN.md`](DESIGN.md)에 정리되어 있다.
@@ -112,10 +113,11 @@ API 목록은 `server/src/routes/`, 스키마 정의는 `migrations-d1/`를 본�
 같은 시안을 SolidJS로 옮긴 목업은 `solid/`에 있다. Tailwind v4와 샘플 데이터를 쓰고,
 `npm run dev:solid`로 연다. 화면·구조·실제 앱 연결 방법은 [`solid/README.md`](solid/README.md).
 
-`web/src`의 Lit 앱을 SolidJS로 옮긴 실제 앱은 `web-solid/`에 있다. API·세션·권한·사진
-업로드까지 같은 서버 계약에 연결하고, 경로 라우팅·가드·스크롤 복원을 직접 구현했다.
-`npm run dev:api`와 `npm run dev:web-solid`를 함께 띄우고, 구조·배포 방법은
-[`web-solid/README.md`](web-solid/README.md)를 본다.
+`web/`이 배포하는 앱이다. `web-lit/`의 Lit 앱을 SolidJS로 옮겼고, API·세션·권한·사진
+업로드까지 같은 서버 계약에 연결하며 경로 라우팅·가드·스크롤 복원을 직접 구현했다.
+`npm run dev:api`와 `npm run dev:web:hmr`(또는 `npm run dev`)를 함께 띄우고, 구조·배포 방법은
+[`web/README.md`](web/README.md)를 본다. Lit 원본은 `web-lit/`에 남아 비교와
+시각 회귀 검증에 쓰인다.
 
 ## 개발
 
@@ -125,22 +127,22 @@ npm ci                # 의존성 설치
 # 개발
 npm run dev           # API(8787) + 웹 HMR(5173) 동시 실행 → http://localhost:5173
 npm run dev:solid     # design 시안의 SolidJS 목업 → http://localhost:5174
-npm run dev:web-solid # Lit 앱의 SolidJS 포팅 → http://localhost:5175 (dev:api 필요)
+npm run dev:web-lit   # Lit 원본 앱 → http://localhost:5175 (dev:api 필요)
 npm run dev:api       # API 서버만 → localhost:8787
-npm run dev:web:hmr   # 웹 개발 서버만 → localhost:5173
+npm run dev:web:hmr   # 웹(SolidJS) 개발 서버만 → localhost:5173
 npm run dev:web       # 빌드 감시 → wrangler(8787)가 서빙하는 번들, 새로고침 필요
 npm run dev:lan       # 같은 API 서버를 0.0.0.0 에 → 폰/태블릿에서 실물로 검증
 
-npm run check         # 타입 검사 (웹 + 서버 + 테스트 + 스크립트 + Solid)
+npm run check         # 타입 검사 (웹 + Lit + 서버 + 테스트 + 스크립트 + Solid 목업)
 npm test              # 테스트
-npm run test:photos   # 사진 파이프라인 브라우저 테스트 (chromium 필요)
-npm run test:members  # 회원 전용 이동·등록 정보 삭제 브라우저 테스트 (chromium 필요)
-npm run test:profile  # 프로필 저장 브라우저 테스트 (chromium 필요)
-npm run test:visual   # 390/768/1280 시각 회귀 (fixture, chromium 필요)
-npm run test:web-solid # SolidJS 앱 390/1280 스모크 (fixture, chromium 필요)
+npm run test:photos   # Lit 원본 사진 파이프라인 브라우저 테스트 (chromium 필요)
+npm run test:members  # Lit 원본 회원 전용 이동·등록 정보 삭제 브라우저 테스트 (chromium 필요)
+npm run test:profile  # Lit 원본 프로필 저장 브라우저 테스트 (chromium 필요)
+npm run test:visual   # Lit 원본 390/768/1280 시각 회귀 (fixture, chromium 필요)
+npm run test:web      # SolidJS 앱 390/1280 스모크 (fixture, chromium 필요)
 npm run test:visual:update  # 시각 회귀 기준선 갱신
-npm run build         # 빌드 → web/dist
-npm run build:web-solid # SolidJS 앱 빌드 → web-solid/dist
+npm run build         # 배포할 SolidJS 앱 빌드 → web/dist
+npm run build:web-lit # Lit 원본 빌드 → web-lit/dist
 npm run deploy        # 빌드 후 배포
 ```
 
