@@ -215,6 +215,89 @@ test("admin inventory: 잘못된 입력·권한·재고 가드를 구분한다",
   } finally { db.close(); }
 });
 
+// ===== /api/admin/reservations — 승인·거절 (B-10) =====
+
+test("admin reservations: 승인·거절 전이와 거절 사유를 검증한다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const admin = await member("admin", "admin");
+    const user = await member("user", "user");
+    db.exec("INSERT INTO items (id, name, kind, total_qty) VALUES (1, '텐트', 'rental', 2);");
+    db.exec(
+      `INSERT INTO reservations (id, item_id, member_id, qty, status, due_at) VALUES
+        (1, 1, 'user', 1, 'pending', '2099-01-01T00:00:00.000Z'),
+        (2, 1, 'user', 1, 'pending', '2099-01-01T00:00:00.000Z');`,
+    );
+
+    // 일반 회원은 승인·거절 불가
+    expect((await request("/api/admin/reservations/1/approve", {
+      method: "POST",
+      headers: { cookie: user, ...json },
+    })).status).toBe(403);
+
+    const noReason = await request("/api/admin/reservations/2/reject", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+      body: JSON.stringify({}),
+    });
+    expect(noReason.status).toBe(400);
+    expect(await noReason.json()).toEqual({ error: "reason_required" });
+
+    const rejected = await request("/api/admin/reservations/2/reject", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+      body: JSON.stringify({ reason: "재고 부족" }),
+    });
+    expect(rejected.status).toBe(200);
+    expect(db.prepare("SELECT status, rejected_reason FROM reservations WHERE id = 2").get()).toMatchObject({
+      status: "rejected",
+      rejected_reason: "재고 부족",
+    });
+
+    const approved = await request("/api/admin/reservations/1/approve", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+    });
+    expect(approved.status).toBe(200);
+    expect(db.prepare("SELECT status, decided_by FROM reservations WHERE id = 1").get()).toMatchObject({
+      status: "rented",
+      decided_by: "admin",
+    });
+
+    // 이미 처리된 건은 409
+    const again = await request("/api/admin/reservations/1/approve", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+    });
+    expect(again.status).toBe(409);
+    expect(await again.json()).toEqual({ error: "bad_status" });
+  } finally { db.close(); }
+});
+
+test("admin reservations: pending·rejected 상태로 목록을 거를 수 있다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const admin = await member("admin", "admin");
+    await member("user", "user");
+    db.exec("INSERT INTO items (id, name, kind, total_qty) VALUES (1, '텐트', 'rental', 2);");
+    db.exec(
+      `INSERT INTO reservations (id, item_id, member_id, qty, status) VALUES
+        (1, 1, 'user', 1, 'pending'),
+        (2, 1, 'user', 1, 'rejected');`,
+    );
+    const pending = await request("/api/admin/reservations?status=pending", {
+      headers: { cookie: admin, ...get },
+    });
+    expect(pending.status).toBe(200);
+    expect((await pending.json() as { reservations: { id: number }[] }).reservations.map((r) => r.id)).toEqual([1]);
+
+    const rejected = await request("/api/admin/reservations?status=rejected", {
+      headers: { cookie: admin, ...get },
+    });
+    expect((await rejected.json() as { reservations: { id: number }[] }).reservations.map((r) => r.id)).toEqual([2]);
+  } finally { db.close(); }
+});
+
 // ===== /api/admin/reembed-all =====
 
 test("reembed-all: 관리자만 실행할 수 있고 물품 목록을 되돌려준다", async () => {

@@ -1,5 +1,5 @@
 import { For, Show, createMemo, createSignal, onSettled } from "solid-js";
-import { api } from "../../api/client";
+import { api, ApiError } from "../../api/client";
 import { syncScrollKey } from "../../router";
 import type { AdminReservation, ReservationStatus } from "../../types";
 import { fmtKstDate } from "../../utils/date";
@@ -8,6 +8,8 @@ import { AdminPage } from "../../components/admin/admin-page";
 import { Button } from "../../components/ui/button";
 import { Chip } from "../../components/ui/chip";
 import { Empty } from "../../components/ui/empty";
+import { Input } from "../../components/ui/input";
+import { Modal } from "../../components/ui/modal";
 import { ReservationRow } from "../../components/common/reservation-row";
 
 type Filter = "" | ReservationStatus | "overdue";
@@ -23,6 +25,10 @@ export default function AdminReservations() {
     "info",
   );
   const [error, setError] = createSignal("");
+  const [rejectTarget, setRejectTarget] = createSignal<AdminReservation | null>(null);
+  const [rejectReason, setRejectReason] = createSignal("");
+  const [rejectError, setRejectError] = createSignal("");
+  const [rejectBusy, setRejectBusy] = createSignal(false);
 
   const reload = async () => {
     setError("");
@@ -45,7 +51,10 @@ export default function AdminReservations() {
 
   onSettled(() => {
     const status = new URLSearchParams(window.location.search).get("status");
-    if (status && ["rented", "returned", "cancelled", "overdue"].includes(status)) {
+    if (
+      status &&
+      ["pending", "rented", "returned", "cancelled", "rejected", "overdue"].includes(status)
+    ) {
       setFilter(status as Filter);
     }
     void reload();
@@ -108,8 +117,99 @@ export default function AdminReservations() {
     }
   };
 
+  const approve = async (reservation: AdminReservation) => {
+    if (processingId() !== null) return;
+    const label =
+      reservation.qty > 1
+        ? `'${reservation.item_name}' ${reservation.qty}개`
+        : `'${reservation.item_name}'`;
+    if (
+      !(await confirmDialog("", {
+        title: `${label} 신청을 승인할까요?`,
+        description:
+          "승인하면 대여가 시작되고 재고가 확정돼요. 재고가 없으면 승인되지 않아요.",
+        confirmLabel: "승인",
+      }))
+    )
+      return;
+    setProcessingId(reservation.id);
+    setMessage("");
+    try {
+      await api(`/api/admin/reservations/${reservation.id}/approve`, {
+        method: "POST",
+      });
+      setMessage("신청을 승인했어요");
+      setMessageTone("success");
+      await reload();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      setMessage(
+        code === "no_availability"
+          ? "재고가 없어 승인할 수 없어요. 반납 후 다시 시도해 주세요"
+          : code === "due_date_passed"
+            ? "희망 반납일이 지나 승인할 수 없어요. 거절 후 다시 신청받아 주세요"
+            : code === "item_not_active" || code === "consumable"
+              ? "지금은 대여할 수 없는 물품이에요"
+              : err instanceof Error
+                ? err.message
+                : "승인에 실패했어요",
+      );
+      setMessageTone("error");
+      await reload();
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const openReject = (reservation: AdminReservation) => {
+    setRejectTarget(reservation);
+    setRejectReason("");
+    setRejectError("");
+  };
+
+  const closeReject = () => {
+    if (rejectBusy()) return;
+    setRejectTarget(null);
+  };
+
+  const submitReject = async () => {
+    const target = rejectTarget();
+    if (!target || rejectBusy()) return;
+    const reason = rejectReason().trim();
+    if (!reason) {
+      setRejectError("거절 사유를 입력해 주세요.");
+      return;
+    }
+    setRejectBusy(true);
+    setRejectError("");
+    try {
+      await api(`/api/admin/reservations/${target.id}/reject`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      });
+      setMessage("신청을 거절했어요");
+      setMessageTone("success");
+      setRejectTarget(null);
+      await reload();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      setRejectError(
+        code === "bad_status"
+          ? "이미 처리된 신청이에요. 목록을 새로고침해 주세요."
+          : err instanceof Error
+            ? err.message
+            : "거절하지 못했어요",
+      );
+      await reload();
+    } finally {
+      setRejectBusy(false);
+    }
+  };
+
   const contactLine = (reservation: AdminReservation) => {
     const phone = reservation.member_phone;
+    const affiliation =
+      reservation.member_affiliation_snapshot ?? reservation.member_affiliation;
     const contact = phone ? (
       <a class="text-ink-1 underline underline-offset-2" href={`tel:${phone.replace(/[^+\d]/g, "")}`}>
         {phone}
@@ -119,7 +219,8 @@ export default function AdminReservations() {
     );
     return (
       <span>
-        {reservation.member_name || "—"} · {contact}
+        {reservation.member_name || "—"}
+        {affiliation ? ` · ${affiliation}` : ""} · {contact}
       </span>
     );
   };
@@ -127,7 +228,7 @@ export default function AdminReservations() {
   return (
     <AdminPage
       title="대여 관리"
-      subtitle="회원이 빌린 물품과 반납 상태를 확인해요."
+      subtitle="신청을 승인·거절하고 대여·반납 상태를 확인해요."
       loading={loading()}
       error={error()}
       message={message()}
@@ -138,9 +239,12 @@ export default function AdminReservations() {
         <section class="rounded-card border border-line bg-surface p-4">
           <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">반납 처리 안내</h2>
           <p class="mt-2 text-fine leading-normal text-ink-2">
-            물품을 돌려받았으면 <b class="font-semibold text-ink-1">반납</b>을 눌러 상태를 바꿔 주세요. 회원이 직접
-            반납한 건은 목록에서 따로 표시돼요. 반납 예정일이 지난 건은 상단에 먼저 모이고
-            <b class="font-semibold text-ink-1">기한 지남</b> 필터로도 볼 수 있어요.
+            신청 대기 건은 <b class="font-semibold text-ink-1">승인</b> 또는
+            <b class="font-semibold text-ink-1">거절</b>로 처리해요. 승인할 때 재고를 다시 확인하고,
+            승인하면 대여가 시작돼요. 물품을 돌려받았으면
+            <b class="font-semibold text-ink-1">반납</b>을 눌러 주세요. 회원이 직접 반납한 건은
+            목록에서 따로 표시되고, 반납 예정일이 지난 건은
+            <b class="font-semibold text-ink-1">기한 지남</b> 필터로 볼 수 있어요.
           </p>
         </section>
       }
@@ -150,10 +254,12 @@ export default function AdminReservations() {
           value={filter()}
           options={[
             { value: "", label: "전체" },
+            { value: "pending", label: "승인 대기" },
             { value: "rented", label: "대여 중" },
             { value: "overdue", label: "기한 지남" },
             { value: "returned", label: "반납 완료" },
             { value: "cancelled", label: "취소" },
+            { value: "rejected", label: "거절" },
           ]}
           onChange={(value) => changeFilter(value as Filter)}
         />
@@ -191,16 +297,35 @@ export default function AdminReservations() {
                   active={reservation.status === "rented"}
                   inlineActions
                   actions={
-                    <Show when={reservation.status === "rented"}>
-                      <Button
-                        variant="secondary"
-                        loading={processing()}
-                        disabled={processingId() !== null && !processing()}
-                        onClick={() => void markReturned(reservation)}
-                      >
-                        반납
-                      </Button>
-                    </Show>
+                    <>
+                      <Show when={reservation.status === "pending"}>
+                        <Button
+                          variant="primary"
+                          loading={processing()}
+                          disabled={processingId() !== null && !processing()}
+                          onClick={() => void approve(reservation)}
+                        >
+                          승인
+                        </Button>
+                        <Button
+                          variant="danger"
+                          disabled={processingId() !== null && !processing()}
+                          onClick={() => openReject(reservation)}
+                        >
+                          거절
+                        </Button>
+                      </Show>
+                      <Show when={reservation.status === "rented"}>
+                        <Button
+                          variant="secondary"
+                          loading={processing()}
+                          disabled={processingId() !== null && !processing()}
+                          onClick={() => void markReturned(reservation)}
+                        >
+                          반납
+                        </Button>
+                      </Show>
+                    </>
                   }
                 >
                   {contactLine(reservation)}
@@ -219,6 +344,20 @@ export default function AdminReservations() {
                       {reservation.is_overdue ? " · 기한이 지났어요" : ""}
                     </span>
                   </Show>
+                  <Show when={reservation.status === "rejected" && reservation.rejected_reason}>
+                    <span class="text-danger">
+                      거절 사유: {reservation.rejected_reason}
+                    </span>
+                  </Show>
+                  <Show when={reservation.decided_by_name}>
+                    <span class={reservation.status === "rejected" ? "text-danger" : ""}>
+                      {reservation.status === "rejected" ? "거절" : "승인"}:{" "}
+                      {reservation.decided_by_name}
+                      {reservation.decided_at
+                        ? ` · ${fmtKstDate(reservation.decided_at)}`
+                        : ""}
+                    </span>
+                  </Show>
                   <Show when={reservation.returned_by_member}>
                     <span class="text-fine text-danger">
                       회원이 직접 반납했어요 — 물품 회수 여부를 확인해 주세요
@@ -233,6 +372,46 @@ export default function AdminReservations() {
           </For>
         </div>
       </Show>
+
+      <Modal
+        open={rejectTarget() !== null}
+        title="대여 신청 거절"
+        maxWidth="420px"
+        onClose={closeReject}
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeReject} disabled={rejectBusy()}>
+              닫기
+            </Button>
+            <Button
+              variant="danger-solid"
+              loading={rejectBusy()}
+              onClick={() => void submitReject()}
+            >
+              거절
+            </Button>
+          </>
+        }
+      >
+        <p class="m-0 text-fine leading-normal text-ink-2">
+          '{rejectTarget()?.item_name ?? "물품"}' 신청을 거절해요. 사유는 회원의 대여
+          이력에 남아요.
+        </p>
+        <Input
+          class="mt-4"
+          label="거절 사유 *"
+          type="textarea"
+          rows={3}
+          placeholder="예: 해당 기간에 이미 대여가 잡혀 있어요"
+          value={rejectReason()}
+          onInput={setRejectReason}
+        />
+        <Show when={rejectError()}>
+          <p class="mt-2 m-0 text-fine leading-normal text-danger" role="alert">
+            {rejectError()}
+          </p>
+        </Show>
+      </Modal>
     </AdminPage>
   );
 }

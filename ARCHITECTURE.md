@@ -99,10 +99,10 @@ D1 테이블은 `migrations-d1/`이 정의한다. 주요 축은 다음과 같다
 
 | 영역 | 테이블 | 비고 |
 | --- | --- | --- |
-| 회원 | `members`, `allowed_emails` | 역할 `user`/`admin`, 탈퇴·등록 정보 삭제 상태 |
+| 회원 | `members`, `allowed_emails` | 역할 `user`/`admin`, 소속(`affiliation`), 탈퇴·등록 정보 삭제 상태 |
 | 물품 | `items`, `item_photos` | 생애주기 `active`/`retired`, 수량 상태 `total_qty`·`qty_repair` |
 | 분류 | `categories`, `item_categories` | 다대다 |
-| 대여 | `reservations` | 대여 중·반납·취소 이력, 반납 예정일(`due_at`), 연체는 조회 시 파생 |
+| 대여 | `reservations` | 신청 대기·대여 중·반납·취소·거절, 반납 예정일(`due_at`), 승인·거절 처리자 |
 | 재고 | `inventory_adjustments` | 보유 수량 추가·망실·폐기 이력 (사유·처리자) |
 | 검색 | `items_fts` (FTS5) | 키워드 색인, 임베딩은 `items`에 저장 |
 

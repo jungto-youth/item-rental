@@ -269,7 +269,7 @@ export function ItemExplorer(props: {
     return {
       title: "등록된 물품이 없어요",
       subtitle: isAdmin()
-        ? "첫 물품을 등록하면 회원이 바로 대여할 수 있어요."
+        ? "첫 물품을 등록하면 회원이 대여를 신청할 수 있어요."
         : "관리자가 물품을 등록하면 여기에 표시돼요.",
     };
   };

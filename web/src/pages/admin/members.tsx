@@ -289,6 +289,9 @@ export default function AdminMembers() {
               <p class="mt-2 truncate text-fine text-ink-2 [&_a]:text-ink-2 [&_a]:underline [&_a]:underline-offset-2">
                 {member.email} · {phoneLine(member)}
               </p>
+              <p class="mt-2 truncate text-fine text-ink-2">
+                소속: {member.affiliation || "미입력"}
+              </p>
             </div>
           </div>
 

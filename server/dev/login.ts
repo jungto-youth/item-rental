@@ -62,7 +62,7 @@ export async function resolveDevelopmentSession(c: AppContext): Promise<SessionU
     if (!sameDigest(payload.dev_code_hash, await digest(code))) return null;
   } catch { return null; }
   const rows = await getDb(c.env).query<SessionUser>(
-     `SELECT id, email, name, phone, role, deactivated_at FROM members
+     `SELECT id, email, name, phone, affiliation, role, deactivated_at FROM members
       WHERE id = ?1 AND deactivated_at IS NULL AND registration_deleted_at IS NULL`,
     [DEV_ADMIN_ID],
   );

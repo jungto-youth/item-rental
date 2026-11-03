@@ -7,6 +7,7 @@ export type SessionUser = {
   email: string;
   name: string;
   phone: string | null;
+  affiliation: string | null;
   role: Role;
   deactivated_at: string | null;
 };

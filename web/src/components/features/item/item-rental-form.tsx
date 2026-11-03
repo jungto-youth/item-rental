@@ -125,12 +125,13 @@ export function ItemRentalForm(props: {
               </svg>
             </span>
             <p class="mt-4 text-body font-semibold leading-normal text-ink-1">
-              대여했어요
+              대여를 신청했어요
             </p>
             <p class="mt-2 text-fine leading-normal text-ink-2">
-              '{props.item.name}' {rentedQty()}개를 대여 중이에요.
+              '{props.item.name}' {rentedQty()}개 신청을 접수했어요.
               <br />
-              반납 예정일은 {submittedDueDate()}이에요. 반납은 대여 내역에서 할 수 있어요.
+              관리자가 승인하면 대여가 시작돼요. 희망 반납일은 {submittedDueDate()}이에요.
+              진행 상황은 대여 내역에서 확인해 주세요.
             </p>
             <div class="mt-4 flex flex-wrap justify-center gap-2">
               <Button variant="primary" onClick={() => navigate("/my/rentals")}>
@@ -276,7 +277,7 @@ export function ItemRentalForm(props: {
                       대여하기
                     </Button>
                     <p class="mt-2 text-fine leading-normal text-ink-2">
-                      신청하면 바로 대여 중이 돼요. 반납 예정일까지 사용하고 대여 내역에서 반납해 주세요.
+                      신청 후 관리자가 승인하면 대여가 시작돼요. 승인 전에는 재고가 확정되지 않아요.
                     </p>
                   </form>
                 </Show>

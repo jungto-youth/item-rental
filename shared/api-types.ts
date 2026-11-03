@@ -64,6 +64,7 @@ export type AdminMember = {
   email: string;
   name: string;
   phone: string | null;
+  affiliation: string | null;
   role: Role;
   deactivated_at: string | null; // null = 활성, 값 있으면 탈퇴(소프트 삭제) 시각
   created_at: string;
@@ -79,8 +80,14 @@ export type AllowedEmail = {
   created_at: string;
 };
 
-// 대여  — 신청 즉시 rented, 관리자가 returned 처리, 본인이 cancelled
-export type ReservationStatus = "rented" | "returned" | "cancelled";
+// 대여 — 신청(pending) → 승인(rented) → 반납(returned), 신청 → 거절(rejected),
+// 신청·대여 중 → 취소(cancelled).
+export type ReservationStatus =
+  | "pending"
+  | "rented"
+  | "returned"
+  | "cancelled"
+  | "rejected";
 
 export type MyReservation = {
   id: number;
@@ -98,6 +105,9 @@ export type MyReservation = {
   // 연체는 저장하지 않고 `status='rented' AND due_at < now` 로 파생한다.
   due_at: string | null;
   is_overdue: boolean;
+  // 승인·거절 처리 시각과 거절 사유 (0007).
+  decided_at: string | null;
+  rejected_reason: string | null;
 };
 
 export type AdminReservation = MyReservation & {
@@ -106,7 +116,12 @@ export type AdminReservation = MyReservation & {
   member_name: string | null;
   member_email: string;
   member_phone: string | null;
+  // 신청 시점 소속 스냅샷과 현재 프로필 소속 — 화면은 스냅샷을 우선한다.
+  member_affiliation: string | null;
+  member_affiliation_snapshot: string | null;
   admin_name: string | null;
+  // 승인·거절 처리자 이름. 반납 처리자(admin_name)와 다를 수 있다.
+  decided_by_name: string | null;
   // 반납은 회원도 직접 할 수 있다 — true 면 회원이 스스로 반납한 건(자기 신고)
   returned_by_member: boolean;
   // 대여 시점의 물품 표기 — 물품이 개명·이동해도 이 값은 바뀌지 않는다.

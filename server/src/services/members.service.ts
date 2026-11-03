@@ -7,7 +7,7 @@ import type { Role } from "../types";
 // 목록 — 최근 가입순
 export async function listMembers(db: Sql): Promise<AdminMember[]> {
   return (await db.query(
-    `SELECT id, email, name, phone, role, deactivated_at, created_at,
+    `SELECT id, email, name, phone, affiliation, role, deactivated_at, created_at,
             (SELECT COUNT(*) FROM reservations r WHERE r.member_id = members.id AND r.status = 'rented') AS active_rental_count
        FROM members
        WHERE registration_deleted_at IS NULL
@@ -58,7 +58,7 @@ export type DeleteRegistrationResult =
 export async function deleteMemberRegistration(db: Sql, memberId: string): Promise<DeleteRegistrationResult> {
   const anonymousEmail = `removed-${crypto.randomUUID()}@example.invalid`;
   const deleted = await db.query<{ id: string }>(
-    `UPDATE members SET email = ?2, name = '삭제된 회원', phone = NULL, role = 'user',
+    `UPDATE members SET email = ?2, name = '삭제된 회원', phone = NULL, affiliation = NULL, role = 'user',
        registration_deleted_at = ${SQL_NOW}
      WHERE id = ?1 AND deactivated_at IS NOT NULL AND registration_deleted_at IS NULL
        AND NOT EXISTS (SELECT 1 FROM reservations r WHERE r.member_id = members.id AND r.status = 'rented')

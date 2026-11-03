@@ -8,6 +8,7 @@ import { CheckIcon } from "../icons";
 type Props = {
   initialName?: string;
   initialPhone?: string;
+  initialAffiliation?: string;
   title?: string;
   hint?: string;
   submitLabel?: string;
@@ -26,6 +27,9 @@ type Props = {
 export function ProfileForm(props: Props) {
   const [name, setName] = createSignal(untrack(() => props.initialName ?? ""));
   const [phone, setPhone] = createSignal(untrack(() => props.initialPhone ?? ""));
+  const [affiliation, setAffiliation] = createSignal(
+    untrack(() => props.initialAffiliation ?? ""),
+  );
   const [nameError, setNameError] = createSignal("");
   const [phoneError, setPhoneError] = createSignal("");
   const [message, setMessage] = createSignal("");
@@ -48,7 +52,11 @@ export function ProfileForm(props: Props) {
     try {
       await api("/api/me/profile", {
         method: "PUT",
-        body: JSON.stringify({ name: nameText, phone: phoneText }),
+        body: JSON.stringify({
+          name: nameText,
+          phone: phoneText,
+          affiliation: affiliation().trim(),
+        }),
       });
       await session.refresh();
       props.onSaved?.();
@@ -140,6 +148,13 @@ export function ProfileForm(props: Props) {
           </p>
         </Show>
       </div>
+
+      <Input
+        label="소속 지부/지회 (선택)"
+        placeholder="예: 서울지부 청년회"
+        value={affiliation()}
+        onInput={setAffiliation}
+      />
 
       <p class="m-0 text-fine text-danger empty:hidden" aria-live="polite">
         {message()}

@@ -17,6 +17,7 @@ const MEMBER = {
   email: "member@example.invalid",
   name: "김하늘",
   phone: "010-0000-0000",
+  affiliation: "서울지부",
   role: "user",
   deactivated_at: null,
 };
@@ -26,6 +27,7 @@ const ADMIN = {
   email: "admin@example.invalid",
   name: "김운영",
   phone: "010-0000-0000",
+  affiliation: "서울지부",
   role: "admin",
   deactivated_at: null,
 };
@@ -89,6 +91,8 @@ const RESERVATIONS = [
     updated_at: "2026-10-28T03:00:00.000Z",
     due_at: "2026-11-05T14:59:59.999Z",
     is_overdue: false,
+    decided_at: "2026-10-28T04:00:00.000Z",
+    rejected_reason: null,
   },
   {
     id: 2,
@@ -102,6 +106,8 @@ const RESERVATIONS = [
     updated_at: "2026-10-22T03:00:00.000Z",
     due_at: null,
     is_overdue: false,
+    decided_at: null,
+    rejected_reason: null,
   },
   {
     id: 3,
@@ -115,6 +121,38 @@ const RESERVATIONS = [
     updated_at: "2026-10-01T03:00:00.000Z",
     due_at: "2026-10-10T14:59:59.999Z",
     is_overdue: true,
+    decided_at: "2026-10-01T04:00:00.000Z",
+    rejected_reason: null,
+  },
+  {
+    id: 4,
+    item_id: 101,
+    item_name: "4인용 텐트",
+    item_photo: null,
+    qty: 1,
+    status: "pending",
+    member_memo: "주말 캠핑",
+    created_at: "2026-11-02T03:00:00.000Z",
+    updated_at: "2026-11-02T03:00:00.000Z",
+    due_at: "2026-11-12T14:59:59.999Z",
+    is_overdue: false,
+    decided_at: null,
+    rejected_reason: null,
+  },
+  {
+    id: 5,
+    item_id: 102,
+    item_name: "주차콘",
+    item_photo: null,
+    qty: 1,
+    status: "rejected",
+    member_memo: "행사용",
+    created_at: "2026-10-30T03:00:00.000Z",
+    updated_at: "2026-10-31T03:00:00.000Z",
+    due_at: null,
+    is_overdue: false,
+    decided_at: "2026-10-31T03:00:00.000Z",
+    rejected_reason: "해당 기간에 이미 대여가 잡혀 있어요",
   },
 ];
 
@@ -125,7 +163,11 @@ const ADMIN_RESERVATIONS = RESERVATIONS.map((row, index) => ({
   member_name: "김하늘",
   member_email: "member@example.invalid",
   member_phone: "010-0000-0000",
+  member_affiliation: "서울지부",
+  member_affiliation_snapshot: "서울지부",
   admin_name: row.status === "returned" ? "김운영" : null,
+  decided_by_name:
+    row.status === "pending" ? null : "김운영",
   returned_by_member: false,
   item_name_snapshot: row.item_name,
   item_location_snapshot: "7층 비품실",
@@ -347,7 +389,7 @@ try {
     await page.goto(new URL("items/101", base).href);
     await page.getByLabel("메모 *").fill("청년 모임용");
     await page.getByRole("button", { name: "대여하기", exact: true }).click();
-    await page.getByText("대여했어요", { exact: true }).waitFor();
+    await page.getByText("대여를 신청했어요", { exact: true }).waitFor();
     console.log("PASS rental success state");
     await context.close();
   }
@@ -419,10 +461,13 @@ try {
     });
     await page.goto(new URL("signup/profile", base).href);
     await page.getByLabel("휴대폰 번호").fill("010-0000-0001");
+    await page.getByLabel("소속 지부/지회 (선택)").fill("서울지부");
     await page.getByRole("button", { name: "저장", exact: true }).click();
     await page.waitForURL(base + "mypage");
     await page.getByText("010-0000-0001", { exact: true }).waitFor();
-    assert.deepEqual(updates, [{ name: "김하늘", phone: "010-0000-0001" }]);
+    assert.deepEqual(updates, [
+      { name: "김하늘", phone: "010-0000-0001", affiliation: "서울지부" },
+    ]);
     console.log("PASS profile save refreshes mypage");
     await context.close();
   }
@@ -563,7 +608,40 @@ try {
     await context.close();
   }
 
-  // 13) 회원이 관리자 화면을 열면 권한 안내가 있는 홈으로 보낸다.
+  // 13) 관리자는 승인 대기 신청을 승인하거나 사유를 남겨 거절한다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, ADMIN);
+    let rejectBody = null;
+    let approved = false;
+    await page.route("**/api/admin/reservations/*/reject", async (route) => {
+      rejectBody = route.request().postDataJSON();
+      await route.fulfill({ json: { ok: true } });
+    });
+    await page.route("**/api/admin/reservations/*/approve", async (route) => {
+      approved = true;
+      await route.fulfill({ json: { ok: true } });
+    });
+    await page.goto(new URL("admin/reservations", base).href);
+    const pending = page.locator(".reservation-row", { hasText: "주말 캠핑" });
+    await pending.getByRole("button", { name: "거절", exact: true }).click();
+    const rejectDialog = page.getByRole("dialog");
+    await rejectDialog.getByLabel("거절 사유 *").fill("재고 부족");
+    await rejectDialog.getByRole("button", { name: "거절", exact: true }).click();
+    await page.getByText("신청을 거절했어요", { exact: true }).waitFor();
+    assert.deepEqual(rejectBody, { reason: "재고 부족" });
+
+    await pending.getByRole("button", { name: "승인", exact: true }).click();
+    const confirm = page.getByRole("dialog");
+    await confirm.getByRole("button", { name: "승인", exact: true }).click();
+    await page.getByText("신청을 승인했어요", { exact: true }).waitFor();
+    assert.equal(approved, true);
+    console.log("PASS admin approve and reject flows");
+    await context.close();
+  }
+
+  // 14) 회원이 관리자 화면을 열면 권한 안내가 있는 홈으로 보낸다.
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();

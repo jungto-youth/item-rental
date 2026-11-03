@@ -116,20 +116,25 @@ export default function MyRentals() {
           }
         >
           {(_current) => {
+            const pendingList = () =>
+              reservations().filter(
+                (reservation) => reservation.status === "pending",
+              );
             const rentedList = () =>
               reservations().filter((reservation) => reservation.status === "rented");
             const historyList = () =>
               reservations().filter(
                 (reservation) =>
                   reservation.status === "returned" ||
-                  reservation.status === "cancelled",
+                  reservation.status === "cancelled" ||
+                  reservation.status === "rejected",
               );
 
             return (
               <>
                 <PageHeader
                   title="대여 내역"
-                  subtitle="지금 빌린 물품과 지난 기록을 확인해요."
+                  subtitle="신청한 물품의 승인 상태와 지난 기록을 확인해요."
                 />
 
                 <Show when={message()}>
@@ -146,6 +151,58 @@ export default function MyRentals() {
 
                 <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                   <div class="min-w-0">
+                    <Show when={pendingList().length > 0}>
+                      <section class="mb-8">
+                        <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">
+                          승인 대기
+                        </h2>
+                        <p class="mt-2 text-fine leading-normal text-ink-2">
+                          관리자가 재고를 확인하고 있어요. 승인 전에는 재고가 확정되지 않아요.
+                        </p>
+                        <div class="mt-4 grid gap-2">
+                          <For each={pendingList()}>
+                            {(reservation) => {
+                              const mine = () =>
+                                processing()?.id === reservation.id;
+                              const blocked = () =>
+                                processing() !== null && !mine();
+                              return (
+                                <ReservationRow
+                                  title={`${reservation.item_name} · ${reservation.qty}개`}
+                                  badgeKind="pending"
+                                  actions={
+                                    <Button
+                                      variant="secondary"
+                                      loading={
+                                        mine() &&
+                                        processing()?.kind === "cancel"
+                                      }
+                                      disabled={blocked()}
+                                      onClick={() => void onCancel(reservation)}
+                                    >
+                                      신청 취소
+                                    </Button>
+                                  }
+                                >
+                                  <span>
+                                    {fmtKstDate(reservation.created_at)} 신청
+                                  </span>
+                                  <Show when={reservation.due_at}>
+                                    <span>
+                                      희망 반납일 {fmtKstDate(reservation.due_at!)}
+                                    </span>
+                                  </Show>
+                                  <Show when={reservation.member_memo}>
+                                    <span>메모: {reservation.member_memo}</span>
+                                  </Show>
+                                </ReservationRow>
+                              );
+                            }}
+                          </For>
+                        </div>
+                      </section>
+                    </Show>
+
                     <section>
                       <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">현재 대여 중</h2>
                       <Show
@@ -154,7 +211,7 @@ export default function MyRentals() {
                           <div class="mt-4 box-border rounded-card border border-line bg-surface px-6 py-10 text-center">
                             <p class="m-0 text-body font-semibold text-ink-1">현재 대여 중인 물품이 없어요</p>
                             <p class="mt-2 text-fine text-ink-2">
-                              필요한 물품을 찾아 바로 대여할 수 있어요.
+                              필요한 물품을 찾아 대여를 신청할 수 있어요.
                             </p>
                             <Button
                               class="mt-4"
@@ -234,7 +291,7 @@ export default function MyRentals() {
                     </section>
 
                     <Show when={historyList().length > 0}>
-                      <details class="mt-8 [&[open]_summary_svg]:rotate-180" open={rentedList().length === 0}>
+                      <details class="mt-8 [&[open]_summary_svg]:rotate-180" open={rentedList().length === 0 && pendingList().length === 0}>
                         <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-heading leading-normal font-semibold tracking-tight text-ink-1 select-none [&::-webkit-details-marker]:hidden [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-ink-2 [&_svg]:transition-transform [&:focus-visible]:outline-2 [&:focus-visible]:outline-offset-4 [&:focus-visible]:rounded-card">
                           <span>대여 이력</span>
                           <ChevronDownIcon />
@@ -251,7 +308,15 @@ export default function MyRentals() {
                                   {reservation.status === "returned"
                                     ? ` → ${fmtKstDate(reservation.updated_at)} 반납`
                                     : ""}
+                                  {reservation.status === "rejected"
+                                    ? ` → ${fmtKstDate(reservation.decided_at ?? reservation.updated_at)} 거절`
+                                    : ""}
                                 </span>
+                                <Show when={reservation.rejected_reason}>
+                                  <span class="text-danger">
+                                    거절 사유: {reservation.rejected_reason}
+                                  </span>
+                                </Show>
                                 <Show when={reservation.member_memo}>
                                   <span>메모: {reservation.member_memo}</span>
                                 </Show>
@@ -267,8 +332,9 @@ export default function MyRentals() {
                     <section class="rounded-card border border-line bg-surface p-4">
                       <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">반납 안내</h2>
                       <p class="mt-2 text-fine leading-normal text-ink-2">
-                        대여 중인 물품은 <b class="font-semibold text-ink-1">반납하기</b>를 눌러 바로 반납할 수
-                        있어요. 취소는 빌리지 않기로 한 경우에만 사용해요. 반납 예정일이 지나면
+                        승인 대기 중인 신청은 <b class="font-semibold text-ink-1">신청 취소</b>로
+                        취소할 수 있어요. 대여가 시작되면 <b class="font-semibold text-ink-1">반납하기</b>를
+                        눌러 바로 반납해요. 반납 예정일이 지나면
                         <b class="font-semibold text-ink-1">기한 지남</b>으로 표시돼요.
                       </p>
                       <a class="mt-4 inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1" href="/">물품 둘러보기</a>

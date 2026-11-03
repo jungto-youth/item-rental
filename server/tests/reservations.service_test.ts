@@ -8,6 +8,8 @@ import {
   validateReservation,
   cancelReservation,
   returnReservationByMember,
+  approveReservation,
+  rejectReservation,
   type CreateReservationParams,
   type ReserveItem,
 } from "../src/services/reservations.service.ts";
@@ -92,8 +94,8 @@ test("createReservation: 가드 INSERT가 대여 중(rented) 수량만 점유로
   expect(!/start_date|end_date/.test(insert), "삭제된 날짜 컬럼을 참조하면 안 된다").toBe(true);
 });
 
-test("createReservation: 신청 즉시 rented 상태로 INSERT한다", async () => {
-  // 승인 단계가 없어졌다 — pending으로 넣으면 아무도 승인하지 않아 영원히 대여되지 않는다
+test("createReservation: 신청은 pending 상태로 INSERT한다", async () => {
+  // 신청과 대여를 분리한다 — 관리자가 승인해야 rented 가 되고 재고를 점유한다.
   let batch: Query[] = [];
   const { db } = stubSql({
     query: () => [RENTAL_ITEM],
@@ -105,13 +107,11 @@ test("createReservation: 신청 즉시 rented 상태로 INSERT한다", async () 
 
   await createReservation(db, params());
 
-  expect(batch.at(-1)!.sql).toMatch(/'rented'/);
+  expect(batch.at(-1)!.sql).toMatch(/'pending'/);
   expect(
-    !/'pending'/.test(batch.at(-1)!.sql),
-    "pending 상태는 더 이상 쓰지 않는다",
-  ).toBe(
-    true,
-  );
+    !/'rented'/.test(batch.at(-1)!.sql.split("'pending'")[0]),
+    "INSERT 의 상태는 pending 이어야 한다",
+  ).toBe(true);
 });
 
 // ===== 실패 신호 구분 =====
@@ -273,7 +273,7 @@ test("returnReservationByMember: 없는 건은 not_found", async () => {
   );
 });
 
-test("cancelReservation: 반납과 같은 가드(본인 + rented)를 쓴다", async () => {
+test("cancelReservation: 본인 + pending/rented 건을 취소할 수 있다", async () => {
   const { db, calls } = stubSql({
     query: (text) => (text.startsWith("UPDATE") ? [{ id: 5 }] : []),
     batch: () => [],
@@ -281,5 +281,94 @@ test("cancelReservation: 반납과 같은 가드(본인 + rented)를 쓴다", as
 
   expect(await cancelReservation(db, 5, "member-1")).toEqual({ ok: true });
   expect(/status = 'cancelled'/.test(calls[0].text)).toEqual(true);
-  expect(/status = 'rented'/.test(calls[0].text)).toEqual(true);
+  expect(/status IN \('pending', 'rented'\)/.test(calls[0].text)).toEqual(true);
+  expect(/member_id = \?2/.test(calls[0].text)).toEqual(true);
+});
+
+// ===== 승인·거절 (B-10) =====
+
+test("approveReservation: pending·재고·기한 가드를 한 문장으로 건다", async () => {
+  const { db, calls } = stubSql({
+    query: (text) => (text.startsWith("UPDATE") ? [{ id: 5 }] : []),
+    batch: () => [],
+  });
+
+  expect(await approveReservation(db, 5, "admin-1")).toEqual({ ok: true });
+  const sql = calls[0].text;
+  expect(/status = 'pending'/.test(sql)).toEqual(true);
+  expect(/status = 'rented'/.test(sql)).toEqual(true);
+  expect(/SUM\(r\.qty\)/.test(sql)).toEqual(true);
+  expect(/due_at IS NULL OR due_at >=/.test(sql)).toEqual(true);
+  expect(calls[0].values).toEqual([5, "admin-1"]);
+});
+
+test("approveReservation: 0행이면 재조회로 bad_status·no_availability 를 가른다", async () => {
+  // 이미 반납된 건
+  const returned = stubSql({
+    query: (text) => {
+      if (text.startsWith("UPDATE")) return [];
+      return [{ status: "returned", item_id: 1, due_at: null }];
+    },
+    batch: () => [],
+  });
+  expect(await approveReservation(returned.db, 5, "admin-1")).toEqual({
+    error: "bad_status",
+  });
+
+  // pending 이지만 재고가 없다
+  let step = 0;
+  const noStock = stubSql({
+    query: (text) => {
+      if (text.startsWith("UPDATE")) {
+        step = 1;
+        return [];
+      }
+      if (step++ === 1) {
+        return [{ status: "pending", item_id: 1, due_at: null }];
+      }
+      return [{ lifecycle: "active", kind: "rental" }];
+    },
+    batch: () => [],
+  });
+  expect(await approveReservation(noStock.db, 5, "admin-1")).toEqual({
+    error: "no_availability",
+  });
+});
+
+test("approveReservation: 반납 예정일이 지난 신청은 승인하지 않는다", async () => {
+  const { db } = stubSql({
+    query: (text) =>
+      text.startsWith("UPDATE")
+        ? []
+        : [{ status: "pending", item_id: 1, due_at: "2000-01-01T00:00:00.000Z" }],
+    batch: () => [],
+  });
+  expect(await approveReservation(db, 5, "admin-1")).toEqual({
+    error: "due_date_passed",
+  });
+});
+
+test("rejectReservation: 사유가 필수이고 pending 만 거절한다", async () => {
+  const empty = stubSql({ query: () => [], batch: () => [] });
+  expect(await rejectReservation(empty.db, 5, "admin-1", "   ")).toEqual({
+    error: "reason_required",
+  });
+
+  const ok = stubSql({
+    query: (text) => (text.startsWith("UPDATE") ? [{ id: 5 }] : []),
+    batch: () => [],
+  });
+  expect(await rejectReservation(ok.db, 5, "admin-1", "재고 없음")).toEqual({
+    ok: true,
+  });
+  expect(/status = 'rejected'/.test(ok.calls[0].text)).toEqual(true);
+  expect(ok.calls[0].values).toEqual([5, "admin-1", "재고 없음"]);
+
+  const bad = stubSql({
+    query: (text) => (text.startsWith("UPDATE") ? [] : [{ id: 5 }]),
+    batch: () => [],
+  });
+  expect(await rejectReservation(bad.db, 5, "admin-1", "사유")).toEqual({
+    error: "bad_status",
+  });
 });

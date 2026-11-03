@@ -6,6 +6,8 @@ import {
   RESERVATION_STATUSES,
   listReservations,
   returnReservation,
+  approveReservation,
+  rejectReservation,
   type TransitionResult,
 } from "../../services/reservations.service";
 
@@ -38,6 +40,36 @@ adminReservationsRoute.get("/", async (c) => {
   const db: Sql = getDb(c.env);
   const { reservations, truncated } = await listReservations(db, status);
   return c.json({ reservations, truncated });
+});
+
+// 승인 — pending → rented. 재고·기한을 다시 확인한다.
+adminReservationsRoute.post("/:id/approve", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
+  const db: Sql = getDb(c.env);
+  const result = await approveReservation(db, id, c.get("user")!.id);
+  if ("ok" in result) return c.json({ ok: true });
+  if (result.error === "not_found") return c.json({ error: "not_found" }, 404);
+  if (result.error === "bad_status") return c.json({ error: "bad_status" }, 409);
+  return c.json({ error: result.error }, 409);
+});
+
+// 거절 — pending → rejected. 사유는 필수다.
+adminReservationsRoute.post("/:id/reject", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+  if (!reason) return c.json({ error: "reason_required" }, 400);
+
+  const db: Sql = getDb(c.env);
+  const result = await rejectReservation(db, id, c.get("user")!.id, reason);
+  if ("ok" in result) return c.json({ ok: true });
+  if (result.error === "not_found") return c.json({ error: "not_found" }, 404);
+  if (result.error === "reason_required") {
+    return c.json({ error: "reason_required" }, 400);
+  }
+  return c.json({ error: "bad_status" }, 409);
 });
 
 // 반납 — rented → returned

@@ -9,7 +9,7 @@
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { readFileSync, readdirSync } from "node:fs";
 import { test, expect } from "vitest";
-import { createReservation, cancelReservation, returnReservation, listReservations, getMyReservations } from "../src/services/reservations.service.ts";
+import { createReservation, cancelReservation, returnReservation, listReservations, getMyReservations, approveReservation, rejectReservation } from "../src/services/reservations.service.ts";
 import { withdrawMember, setMemberRole } from "../src/services/members.service.ts";
 import { createItem, updateItem, deleteItem } from "../src/services/items.service.ts";
 import { adjustItemQuantity, listAdjustments } from "../src/services/inventory.service.ts";
@@ -89,7 +89,7 @@ const env = {} as never; // embedItem 은 env.AI 부재 실패를 삼킨다 — 
 
 // ===== 대여 가드 INSERT =====
 
-test("가드 INSERT: 여유 수량 안이면 대여되고 rented 상태다", async () => {
+test("가드 INSERT: 여유 수량 안이면 pending 으로 신청된다", async () => {
   const db = freshDb();
   const itemId = addItem(db);
   const memberId = addMember(db, "user");
@@ -98,7 +98,7 @@ test("가드 INSERT: 여유 수량 안이면 대여되고 rented 상태다", asy
 
   expect(result).toEqual({ ok: true, id: (result as { id: number }).id });
   const rows = db.prepare("SELECT qty, status FROM reservations").all() as { qty: number; status: string }[];
-  expect(rows).toEqual([{ qty: 1, status: "rented" }]);
+  expect(rows).toEqual([{ qty: 1, status: "pending" }]);
 });
 
 // ===== 반납 예정일·연체 파생 (B-06·B-08) =====
@@ -181,6 +181,8 @@ test("이력 보존: 반납 시각은 returned_at 에만 담긴다", async () =>
   const read = () => db.prepare("SELECT status, returned_at FROM reservations WHERE id = ?1").get(resId) as
     { status: string; returned_at: string | null };
 
+  expect(read()).toEqual({ status: "pending", returned_at: null });
+  expect(await approveReservation(sql, resId, adminId)).toEqual({ ok: true });
   expect(read()).toEqual({ status: "rented", returned_at: null });
 
   expect(await returnReservation(sql, resId, adminId)).toEqual({ ok: true });
@@ -223,29 +225,131 @@ test("가드 INSERT: 재고를 넘으면 사전검사 too_many — 행이 남지
   );
 });
 
-test("가드 INSERT: 남은 수량 1을 두 신청이 겹쳐 빌면 두 번째가 거절된다", async () => {
+test("승인 가드: 남은 수량 1을 두 신청이 겹쳐 승인하면 하나만 성공한다", async () => {
   const db = freshDb();
   const itemId = addItem(db, { total_qty: 1 });
   const a = addMember(db, "user");
   const b = addMember(db, "user");
+  const admin = addMember(db, "admin");
   const sql = sqliteSql(db);
 
-  // a 의 신청이 성공한 시점에 b 가 같은 재고를 읽고 신청해도, 가드가 INSERT 시점에
-  // 다시 세므로 이중 대여가 아닌 no_availability 로 끝난다 — 원자성의 실제 이점
-  expect(
-    await createReservation(sql, { itemId, memberId: a, memo: null, qty: 1 }).then((r) => "ok" in r),
-  ).toEqual(
-    true,
+  // 신청 단계에서는 재고를 점유하지 않는다 — 두 사람 모두 pending 신청이 가능하다.
+  const createdA = await createReservation(sql, { itemId, memberId: a, memo: null, qty: 1 });
+  const createdB = await createReservation(sql, { itemId, memberId: b, memo: null, qty: 1 });
+  expect("ok" in createdA).toBe(true);
+  expect("ok" in createdB).toBe(true);
+  const idA = (createdA as { id: number }).id;
+  const idB = (createdB as { id: number }).id;
+
+  // 승인 시점에 원자적으로 재고를 다시 센다 — 두 번째 승인은 no_availability.
+  expect(await approveReservation(sql, idA, admin)).toEqual({ ok: true });
+  expect(await approveReservation(sql, idB, admin)).toEqual({
+    error: "no_availability",
+  });
+
+  const rows = db
+    .prepare("SELECT id, member_id, status FROM reservations ORDER BY id")
+    .all();
+  expect(rows).toEqual([
+    { id: idA, member_id: a, status: "rented" },
+    { id: idB, member_id: b, status: "pending" },
+  ]);
+});
+
+test("승인·거절: 처리자와 신청 시점의 소속 스냅샷을 남긴다", async () => {
+  const db = freshDb();
+  const itemId = addItem(db, { total_qty: 2 });
+  const memberId = addMember(db, "user");
+  const adminId = addMember(db, "admin");
+  db.prepare("UPDATE members SET affiliation = '서울지부' WHERE id = ?1").run(memberId);
+  const sql = sqliteSql(db);
+
+  const approved = await createReservation(sql, {
+    itemId,
+    memberId,
+    memo: "모임용",
+    qty: 1,
+  });
+  const approvedId = (approved as { id: number }).id;
+
+  const pendingList = await listReservations(sql, "pending");
+  expect(pendingList.reservations[0]).toMatchObject({
+    status: "pending",
+    member_affiliation_snapshot: "서울지부",
+  });
+
+  // 신청 후 프로필 소속이 바뀌어도 이력의 스냅샷은 유지된다
+  db.prepare("UPDATE members SET affiliation = '부산지부' WHERE id = ?1").run(memberId);
+
+  expect(await approveReservation(sql, approvedId, adminId)).toEqual({ ok: true });
+  const rented = (await listReservations(sql, "rented")).reservations[0];
+  expect(rented).toMatchObject({
+    status: "rented",
+    member_affiliation: "부산지부",
+    member_affiliation_snapshot: "서울지부",
+  });
+  expect(rented.decided_by_name).toBeTruthy();
+  expect(rented.decided_at).toBeTruthy();
+
+  const rejected = await createReservation(sql, {
+    itemId,
+    memberId,
+    memo: "두 번째 신청",
+    qty: 1,
+  });
+  const rejectedId = (rejected as { id: number }).id;
+  expect(await rejectReservation(sql, rejectedId, adminId, "재고 부족")).toEqual({
+    ok: true,
+  });
+  const mine = (await getMyReservations(sql, memberId)).find(
+    (row) => row.id === rejectedId,
   );
-  expect(
-    await createReservation(sql, { itemId, memberId: b, memo: null, qty: 1 }),
-  ).toEqual(
-    {
-      error: "no_availability",
-    },
+  expect(mine).toMatchObject({
+    status: "rejected",
+    rejected_reason: "재고 부족",
+  });
+  expect(mine?.decided_at).toBeTruthy();
+
+  // 거절은 재고를 점유하지 않는다 — 대여 중 수량은 여전히 1
+  const [active] = (await sql.query<{ active_now: number }>(
+    `SELECT COALESCE(SUM(qty), 0) AS active_now FROM reservations
+      WHERE item_id = ?1 AND status = 'rented'`,
+    [itemId],
+  )) as { active_now: number }[];
+  expect(active.active_now).toBe(1);
+});
+
+test("승인: 기한이 지났거나 폐기된 물품은 승인하지 않는다", async () => {
+  const db = freshDb();
+  const memberId = addMember(db, "user");
+  const adminId = addMember(db, "admin");
+  const sql = sqliteSql(db);
+
+  const expiredItem = addItem(db, { total_qty: 1 });
+  db.prepare(
+    `INSERT INTO reservations (item_id, member_id, qty, status, due_at)
+     VALUES (?1, ?2, 1, 'pending', '2000-01-01T00:00:00.000Z')`,
+  ).run(expiredItem, memberId);
+  const expiredId = Number(
+    (db.prepare("SELECT id FROM reservations").get() as { id: number }).id,
   );
-  const rows = db.prepare("SELECT member_id FROM reservations").all() as { member_id: string }[];
-  expect(rows).toEqual([{ member_id: a }]);
+  expect(await approveReservation(sql, expiredId, adminId)).toEqual({
+    error: "due_date_passed",
+  });
+
+  const retiredItem = addItem(db, { total_qty: 1, lifecycle: "retired" });
+  db.prepare(
+    `INSERT INTO reservations (item_id, member_id, qty, status)
+     VALUES (?1, ?2, 1, 'pending')`,
+  ).run(retiredItem, memberId);
+  const retiredId = Number(
+    (db.prepare("SELECT id FROM reservations WHERE item_id = ?1").get(retiredItem) as {
+      id: number;
+    }).id,
+  );
+  expect(await approveReservation(sql, retiredId, adminId)).toEqual({
+    error: "item_not_active",
+  });
 });
 
 test("가드 INSERT: 반납·취소된 수량은 점유에서 빠진다", async () => {

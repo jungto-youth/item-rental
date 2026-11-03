@@ -1,10 +1,10 @@
 // 대여(Rental) 도메인 서비스 — 신청/취소/내역/관리자 전이의 SQL 을 직접 소유
 // 가용성 검사 + batch 원자 가드, 조건부 상태 전이
 //
-// 반납 예정일(due_at)은 있지만 승인·일별 점유는 없다. 회원이 수량·메모·반납
-// 예정일로 신청하면 즉시 '대여 중'(rented)이 되고, 관리자는 반납(returned)만
-// 처리한다. 가용성은 "지금 대여 중인 수량의 합"만 센다 — 일별 점유도, 승인
-// 대기 예약도 없다. 연체는 저장하지 않고 due_at < now 로 파생한다.
+// 회원이 수량·메모·반납 예정일로 신청하면 '신청 대기'(pending)가 되고, 관리자가
+// 승인해야 '대여 중'(rented)이 된다. 신청 시에는 재고를 점유하지 않는다 — 승인할
+// 때 원자적으로 재고를 확인한다. 가용성 계산은 지금 대여 중(rented)인 수량만 센다.
+// 연체는 저장하지 않고 due_at < now 로 파생한다.
 import { SQL_NOW, type Sql } from "../db";
 import type {
   AdminReservation,
@@ -100,11 +100,13 @@ export async function createReservation(
         // 위치는 0005 부터 locations 참조라 이름을 join 으로 풀어 스냅샷에 넣는다.
         // 쓰기 경로가 이 INSERT 하나뿐이라 트리거 없이 여기서 세팅한다.
         sql: `INSERT INTO reservations (item_id, member_id, member_memo, qty, due_at, status,
-                                        item_name_snapshot, item_location_snapshot)
-           SELECT ?1, ?2, ?3, ?4, ?5, 'rented',
+                                        item_name_snapshot, item_location_snapshot,
+                                        member_affiliation_snapshot)
+           SELECT ?1, ?2, ?3, ?4, ?5, 'pending',
                   (SELECT name FROM items WHERE items.id = ?1),
                   (SELECT l.name FROM locations l
-                     JOIN items i ON i.location_id = l.id WHERE i.id = ?1)
+                     JOIN items i ON i.location_id = l.id WHERE i.id = ?1),
+                  (SELECT affiliation FROM members WHERE members.id = ?2)
            WHERE ?4 <= (SELECT total_qty - qty_repair FROM items WHERE items.id = ?1)
              AND EXISTS (SELECT 1 FROM items
                           WHERE items.id = ?1 AND lifecycle = 'active' AND kind <> 'consumable')
@@ -151,7 +153,8 @@ export async function getMyReservations(
               WHERE p.item_id = items.id ORDER BY p.sort_order LIMIT 1) AS item_photo,
             r.qty, r.status, r.member_memo, r.created_at, r.updated_at,
             r.due_at,
-            (r.status = 'rented' AND r.due_at IS NOT NULL AND r.due_at < ${SQL_NOW}) AS is_overdue
+            (r.status = 'rented' AND r.due_at IS NOT NULL AND r.due_at < ${SQL_NOW}) AS is_overdue,
+            r.decided_at, r.rejected_reason
        FROM reservations r
        JOIN items ON items.id = r.item_id
       WHERE r.member_id = ?1
@@ -195,13 +198,14 @@ export async function cancelReservation(
   reservationId: number,
   memberId: string,
 ): Promise<OwnActionResult> {
-  // 대여 중(rented)인 본인 건만 취소할 수 있다 — 반납 완료 건은 이력이므로 되돌리지 않는다
+  // 신청 대기(pending)와 대여 중(rented)인 본인 건만 취소할 수 있다.
+  // 반납·거절 완료 건은 이력이므로 되돌리지 않는다.
   return ownAction(
     db,
     reservationId,
     memberId,
     `UPDATE reservations SET status = 'cancelled', updated_at = ${SQL_NOW}
-      WHERE id = ?1 AND member_id = ?2 AND status = 'rented'
+      WHERE id = ?1 AND member_id = ?2 AND status IN ('pending', 'rented')
       RETURNING id`,
   );
 }
@@ -227,7 +231,13 @@ export async function returnReservationByMember(
 
 // ===== 관리자: 목록·상태 전이 () =====
 
-export const RESERVATION_STATUSES = ["rented", "returned", "cancelled"];
+export const RESERVATION_STATUSES = [
+  "pending",
+  "rented",
+  "returned",
+  "cancelled",
+  "rejected",
+];
 
 // 조건부 전이 결과 — bad_status: 잘못된 전이 (기대 상태가 아님)
 export type TransitionResult =
@@ -275,7 +285,11 @@ export async function listReservations(
             items.total_qty,
             r.qty,
             r.member_id, m.name AS member_name, m.email AS member_email, m.phone AS member_phone,
+            m.affiliation AS member_affiliation,
+            r.member_affiliation_snapshot,
             r.status, r.member_memo,
+            r.decided_at, r.rejected_reason,
+            d.name AS decided_by_name,
             a.name AS admin_name, r.created_at, r.updated_at,
             -- 누가 반납 처리했는가 — 반납은 관리자와 회원이 모두 할 수 있다.
             -- admin_id 는 '처리한 관리자'라, 비어 있는 returned 행은 회원이 직접 반납한 것이다.
@@ -285,8 +299,10 @@ export async function listReservations(
        JOIN items ON items.id = r.item_id
        JOIN members m ON m.id = r.member_id
        LEFT JOIN members a ON a.id = r.admin_id
+       LEFT JOIN members d ON d.id = r.decided_by
       WHERE ${where}
       ORDER BY
+        (r.status = 'pending') DESC,
         (r.status = 'rented' AND r.due_at IS NOT NULL AND r.due_at < ${SQL_NOW}) DESC,
         (r.status = 'rented') DESC,
         r.created_at DESC
@@ -305,6 +321,100 @@ export async function listReservations(
     is_overdue: r.is_overdue !== 0,
   })) as AdminReservation[];
   return { reservations, truncated };
+}
+
+// ===== 관리자: 승인·거절 (B-10) =====
+
+export type ApprovalResult =
+  | { ok: true }
+  | {
+      error:
+        | "not_found"
+        | "bad_status"
+        | "item_not_active"
+        | "consumable"
+        | "due_date_passed"
+        | "no_availability";
+    };
+
+export type RejectResult =
+  | { ok: true }
+  | { error: "not_found" | "bad_status" | "reason_required" };
+
+// 승인 — pending → rented. 신청 시에는 재고를 잡지 않았으므로 여기서 다시 검사한다.
+// 단일 조건부 UPDATE 안에 상태·물품 생애주기·가용 수량 가드를 모두 넣어, 두 관리자가
+// 동시에 승인해도 마지막 하나만 성공하게 한다(대여 가드 INSERT와 같은 원자 판정).
+export async function approveReservation(
+  db: Sql,
+  reservationId: number,
+  adminId: string,
+): Promise<ApprovalResult> {
+  const rows = (await db.query(
+    `UPDATE reservations
+        SET status = 'rented', decided_by = ?2,
+            decided_at = ${SQL_NOW}, updated_at = ${SQL_NOW}
+      WHERE id = ?1 AND status = 'pending'
+        AND (due_at IS NULL OR due_at >= ${SQL_NOW})
+        AND EXISTS (SELECT 1 FROM items
+                     WHERE items.id = reservations.item_id
+                       AND lifecycle = 'active' AND kind <> 'consumable')
+        AND qty + COALESCE((SELECT SUM(r.qty) FROM reservations r
+                             WHERE r.item_id = reservations.item_id
+                               AND r.status = 'rented'), 0)
+            <= (SELECT total_qty - qty_repair FROM items
+                 WHERE items.id = reservations.item_id)
+      RETURNING id`,
+    [reservationId, adminId],
+  )) as { id: number }[];
+  if (rows.length > 0) return { ok: true };
+
+  // 0행 — 없음 / 이미 처리됨 / 물품 상태 / 기한 경과 / 재고 없음 중 무엇인지 가른다.
+  const [res] = (await db.query(
+    `SELECT status, item_id, due_at FROM reservations WHERE id = ?1`,
+    [reservationId],
+  )) as { status: string; item_id: number; due_at: string | null }[];
+  if (!res) return { error: "not_found" };
+  if (res.status !== "pending") return { error: "bad_status" };
+  if (res.due_at && res.due_at < new Date().toISOString()) {
+    return { error: "due_date_passed" };
+  }
+
+  const [item] = (await db.query(
+    `SELECT lifecycle, kind FROM items WHERE id = ?1`,
+    [res.item_id],
+  )) as { lifecycle: string; kind: string }[];
+  if (!item) return { error: "not_found" };
+  if (item.lifecycle !== "active") return { error: "item_not_active" };
+  if (item.kind === "consumable") return { error: "consumable" };
+  return { error: "no_availability" };
+}
+
+// 거절 — pending → rejected. 사유는 필수이며 이력에 남긴다.
+export async function rejectReservation(
+  db: Sql,
+  reservationId: number,
+  adminId: string,
+  reason: string,
+): Promise<RejectResult> {
+  const trimmed = reason.trim().slice(0, 500);
+  if (!trimmed) return { error: "reason_required" };
+
+  const rows = (await db.query(
+    `UPDATE reservations
+        SET status = 'rejected', decided_by = ?2,
+            decided_at = ${SQL_NOW}, rejected_reason = ?3,
+            updated_at = ${SQL_NOW}
+      WHERE id = ?1 AND status = 'pending'
+      RETURNING id`,
+    [reservationId, adminId, trimmed],
+  )) as { id: number }[];
+  if (rows.length > 0) return { ok: true };
+
+  const found = (await db.query(`SELECT id FROM reservations WHERE id = ?1`, [
+    reservationId,
+  ])) as { id: number }[];
+  if (found.length === 0) return { error: "not_found" };
+  return { error: "bad_status" };
 }
 
 // 반납 — rented → returned. 관리자가 물품을 돌려받았을 때 누른다

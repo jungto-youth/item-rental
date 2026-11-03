@@ -122,7 +122,7 @@ export default function Home() {
             <p class="mt-2 text-fine leading-normal text-ink-2">
               {isAdmin()
                 ? "물품 등록·수정과 반납 처리는 상단 메뉴에서 할 수 있어요."
-                : "신청하면 바로 대여 중이 돼요. 반납은 대여 내역에서 할 수 있어요."}
+                : "신청 후 관리자가 승인하면 대여가 시작돼요. 진행 상황은 대여 내역에서 확인해요."}
             </p>
             <div class="mt-4 flex flex-wrap gap-2">
               <Show when={isAdmin()}>

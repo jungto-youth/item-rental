@@ -4,6 +4,8 @@ const LABELS: Record<string, string> = {
   repair: "수리 중",
   retired: "폐기",
   overdue: "기한 지남",
+  pending: "승인 대기",
+  rejected: "거절",
   withdrawn: "탈퇴",
   user: "회원",
   admin: "관리자",
@@ -16,6 +18,8 @@ const TONES: Record<string, string> = {
   admin: "bg-primary-soft text-primary-strong",
   repair: "bg-warning-soft text-warning",
   overdue: "bg-danger-soft text-danger",
+  pending: "bg-warning-soft text-warning",
+  rejected: "bg-danger-soft text-danger",
   neutral: "bg-surface-muted text-ink-2",
 };
 
@@ -24,6 +28,8 @@ const DOTS: Record<string, string> = {
   admin: "bg-primary",
   repair: "bg-warning",
   overdue: "bg-danger",
+  pending: "bg-warning",
+  rejected: "bg-danger",
   neutral: "bg-ink-3",
 };
 
@@ -34,7 +40,9 @@ export function Badge(props: { kind?: string; label?: string }) {
     kind() === "available" ||
     kind() === "admin" ||
     kind() === "repair" ||
-    kind() === "overdue"
+    kind() === "overdue" ||
+    kind() === "pending" ||
+    kind() === "rejected"
       ? kind()
       : "neutral";
 

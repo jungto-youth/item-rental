@@ -91,6 +91,10 @@ export default function MyPage() {
                                   label: "연락처",
                                   value: u().phone || "미등록",
                                 },
+                                {
+                                  label: "소속",
+                                  value: u().affiliation || "미등록",
+                                },
                               ]}
                             />
 
@@ -113,6 +117,7 @@ export default function MyPage() {
                           accountLabel="이메일"
                           initialName={u().name}
                           initialPhone={u().phone ?? ""}
+                          initialAffiliation={u().affiliation ?? ""}
                           onSaved={onSaved}
                           onCancel={() => setEditing(false)}
                         />
