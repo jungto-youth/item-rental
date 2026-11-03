@@ -209,10 +209,15 @@ export function ItemExplorer(props: {
   let sentinel: HTMLDivElement | undefined;
   let observer: IntersectionObserver | undefined;
 
+  const SENTINEL_MARGIN = 600;
+
   // 지금 더 불러올 것이 있고, 다른 요청이 진행 중이 아닌지.
   // 오류 안내가 떠 있으면 사용자가 '다시 시도'를 누를 때까지 자동 로드를 멈춘다.
   const canAutoLoad = () => {
-    if (loading() || loadingMore() || adminLoading() || noticeMsg()) return false;
+    // loading 은 회원 목록(fetchItems)만 내린다. 관리자는 이 값이 계속 true 라
+    // 그대로 두면 자동 로드가 영영 막힌다 — 회원일 때만 본다.
+    if ((!isAdmin() && loading()) || loadingMore() || adminLoading() || noticeMsg())
+      return false;
     if (isAdmin()) return shown() < adminVisible().length;
     if (props.q)
       return items().filter((item) => matchesTab(item)).length > shown();
@@ -229,18 +234,51 @@ export function ItemExplorer(props: {
     observer.observe(sentinel);
   };
 
+  // 센티넬이 미리 불러올 거리(observer 의 rootMargin 과 같은 600px) 안에 있는지.
+  // 다시 observe 한 뒤 콜백을 주지 않는 브라우저도 있어 스크롤·리사이즈 때
+  // 이 값으로 직접 확인한다.
+  const sentinelNearViewport = () => {
+    if (!sentinel) return false;
+    return (
+      sentinel.getBoundingClientRect().top <= window.innerHeight + SENTINEL_MARGIN
+    );
+  };
+
+  // 자동 로드 요청이 겹치지 않게 — 관리자는 shown 만 늘리므로 loadingMore 가 없다.
+  let autoLoading = false;
+
   const attachSentinel = (el: HTMLDivElement) => {
     sentinel = el;
     watchSentinel();
+    if (sentinelNearViewport()) autoLoadMore();
   };
 
   const autoLoadMore = () => {
-    if (!canAutoLoad()) return;
+    if (autoLoading || !canAutoLoad()) return;
+    autoLoading = true;
     const before = listSize();
     void moreItems().finally(() => {
-      // 목록이 실제로 늘었을 때만 다시 감시한다 — 빈 페이지가 반복되어도
-      // 요청을 끝없이 되풀이하지 않는다.
-      if (listSize() > before) watchSentinel();
+      autoLoading = false;
+      // 목록이 실제로 늘었을 때만 이어간다 — 빈 페이지가 반복되어도 끝없이
+      // 요청하지 않는다.
+      if (listSize() > before) {
+        watchSentinel();
+        // 다시 observe 해도 콜백이 오지 않는 경우를 대비해, 센티넬이 아직
+        // 화면 근처면 다음 묶음을 직접 이어서 부른다.
+        requestAnimationFrame(() => {
+          if (sentinelNearViewport()) autoLoadMore();
+        });
+      }
+    });
+  };
+
+  // 스크롤·리사이즈 보조 경로 — observer 가 놓친 경우에도 센티넬 위치로 판단한다.
+  let scrollRaf = 0;
+  const checkSentinelOnScroll = () => {
+    if (scrollRaf) return;
+    scrollRaf = requestAnimationFrame(() => {
+      scrollRaf = 0;
+      if (sentinelNearViewport()) autoLoadMore();
     });
   };
 
@@ -255,12 +293,17 @@ export function ItemExplorer(props: {
         if (entries.some((entry) => entry.isIntersecting)) autoLoadMore();
       },
       // 목록 끝이 화면에 닿기 전에 미리 불러온다.
-      { rootMargin: "0px 0px 600px 0px" },
+      { rootMargin: `0px 0px ${SENTINEL_MARGIN}px 0px` },
     );
     watchSentinel();
+    window.addEventListener("scroll", checkSentinelOnScroll, { passive: true });
+    window.addEventListener("resize", checkSentinelOnScroll, { passive: true });
 
     return () => {
       if (searchTimer) clearTimeout(searchTimer);
+      if (scrollRaf) cancelAnimationFrame(scrollRaf);
+      window.removeEventListener("scroll", checkSentinelOnScroll);
+      window.removeEventListener("resize", checkSentinelOnScroll);
       observer?.disconnect();
     };
   });
