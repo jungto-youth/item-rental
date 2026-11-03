@@ -70,11 +70,11 @@ export function PhotoUploader(props: {
   );
 
   return (
-    <div class="photo-uploader">
-      <div class="photos-box">
-        <span class="photos-head">
+    <div class="block">
+      <div class="flex flex-col gap-2">
+        <span class="flex items-center justify-between gap-4 text-fine font-medium text-ink-2">
           <span>사진 관리</span>
-          <span class="photo-count">
+          <span class="tabular-nums">
             {props.entries.length} / {MAX_PHOTOS}
           </span>
         </span>
@@ -98,17 +98,17 @@ export function PhotoUploader(props: {
           onChange={handleSelect}
         />
 
-        <div class="pics">
+        <div class="grid grid-cols-3 gap-2">
           <For each={props.entries}>
             {(photo, index) => (
-              <div class="pic">
-                <img src={photo.url} alt="" />
+              <div class="relative aspect-[4/3] w-full overflow-hidden rounded-card border border-line bg-surface-muted">
+                <img class="block size-full object-cover" src={photo.url} alt="" />
                 <Show when={index() === 0}>
-                  <span class="representative">대표</span>
+                  <span class="absolute top-2 left-2 inline-flex h-6 items-center rounded-pill bg-primary-soft px-2 text-fine font-medium text-primary-strong">대표</span>
                 </Show>
                 <button
                   type="button"
-                  class="pic-del"
+                  class="absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-pill border-0 bg-[rgba(17,24,39,0.7)] text-fine leading-[1.2] text-white hover:bg-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1 disabled:cursor-wait disabled:opacity-50"
                   title="사진 삭제"
                   aria-label="사진 삭제"
                   disabled={props.disabled}
@@ -123,12 +123,12 @@ export function PhotoUploader(props: {
             {() => (
               <button
                 type="button"
-                class="add-tile"
+                class="flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-card border border-dashed border-line-strong bg-surface p-0 text-ink-2 leading-[1.2] hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-50"
                 title="사진 추가"
                 disabled={props.disabled}
                 onClick={openChooser}
               >
-                <span class="add-icon">
+                <span class="flex items-center justify-center text-ink-2 [&_svg]:size-5">
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
@@ -142,18 +142,18 @@ export function PhotoUploader(props: {
                     <path d="M12 5v14" />
                   </svg>
                 </span>
-                <span class="add-main">사진 추가</span>
+                <span class="text-fine text-ink-2">사진 추가</span>
               </button>
             )}
           </For>
         </div>
 
-        <p class="photo-hint">
+        <p class="m-0 text-fine text-ink-2">
           JPEG · PNG · WebP · 원본 용량 제한 없음 · 최대 {MAX_PHOTOS}장 · 업로드 전
           2MB 이하로 자동 축소
         </p>
         <Show when={cameraMessage()}>
-          <p class="photo-hint" role="status">
+          <p class="m-0 text-fine text-ink-2" role="status">
             {cameraMessage()}
           </p>
         </Show>
@@ -170,8 +170,8 @@ export function PhotoUploader(props: {
           </Button>
         }
       >
-        <p class="chooser-copy">사진을 추가할 방법을 선택하세요.</p>
-        <div class="chooser-actions">
+        <p class="mb-4 text-fine text-ink-2">사진을 추가할 방법을 선택하세요.</p>
+        <div class="grid grid-cols-2 gap-2 max-[420px]:grid-cols-1">
           <Button variant="secondary" onClick={chooseCamera}>
             사진 촬영
           </Button>

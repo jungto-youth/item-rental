@@ -11,14 +11,18 @@ type Props = {
 export function Notice(props: Props) {
   const tone = () => props.tone ?? "info";
   return (
-    <div class="x-notice">
+    <div class="block">
       <div
-        class={`notice ${tone()}`}
+        class={`flex items-center justify-between gap-4 rounded-card border p-4 text-fine leading-normal ${
+          tone() === "danger"
+            ? "border-danger bg-danger-soft text-danger"
+            : "border-line bg-surface text-ink-1"
+        }`}
         role={props.alert ? "alert" : "status"}
       >
-        <span class="body">{props.children}</span>
+        <span class="min-w-0 [&_a]:text-primary-strong">{props.children}</span>
         <Show when={props.action}>
-          <span class="action">{props.action}</span>
+          <span class="shrink-0">{props.action}</span>
         </Show>
       </div>
     </div>

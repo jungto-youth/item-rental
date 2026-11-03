@@ -45,7 +45,7 @@ export class ReservationRow extends LitElement {
         gap: 12px;
       }
       .title {
-        flex: 1;
+        flex: 0 1 auto;
         min-width: 0;
         font-weight: 600;
         font-size: var(--text-body);
@@ -59,6 +59,7 @@ export class ReservationRow extends LitElement {
         align-items: center;
         gap: var(--space-1);
         flex-shrink: 0;
+        margin-left: auto;
       }
       .actions.empty {
         display: none;

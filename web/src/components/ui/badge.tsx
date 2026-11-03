@@ -1,13 +1,27 @@
 const LABELS: Record<string, string> = {
   available: "대여 가능",
   rented: "대여 중",
-  repair: "수리중",
+  repair: "수리 중",
   retired: "폐기",
   withdrawn: "탈퇴",
   user: "회원",
   admin: "관리자",
   returned: "반납 완료",
   cancelled: "취소",
+};
+
+const TONES: Record<string, string> = {
+  available: "bg-primary-soft text-primary-strong",
+  admin: "bg-primary-soft text-primary-strong",
+  repair: "bg-warning-soft text-warning",
+  neutral: "bg-surface-muted text-ink-2",
+};
+
+const DOTS: Record<string, string> = {
+  available: "bg-primary",
+  admin: "bg-primary",
+  repair: "bg-warning",
+  neutral: "bg-ink-3",
 };
 
 export function Badge(props: { kind?: string; label?: string }) {
@@ -19,9 +33,14 @@ export function Badge(props: { kind?: string; label?: string }) {
       : "neutral";
 
   return (
-    <span class="x-badge">
-      <span class={`badge ${tone()}`}>
-        <span class={`dot ${tone()}`} aria-hidden="true" />
+    <span class="inline-flex align-middle">
+      <span
+        class={`inline-flex h-6 items-center gap-1.5 rounded-pill px-2.5 text-fine leading-none whitespace-nowrap ${TONES[tone()]}`}
+      >
+        <span
+          class={`size-1.5 shrink-0 rounded-full ${DOTS[tone()]}`}
+          aria-hidden="true"
+        />
         <span>{text()}</span>
       </span>
     </span>

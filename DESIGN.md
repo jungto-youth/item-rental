@@ -4,9 +4,8 @@
 어떻게 쓰는지에 대한 요약이다. Lit 원본(`web-lit/src/styles/tokens.css`)도 같은 값을 쓴다.
 값과 문서가 어긋나면 코드가 맞다.
 
-- 대상: 배포하는 SolidJS SPA (`web/`)와 Lit 원본 (`web-lit/`)
+- 대상: 배포하는 SolidJS SPA (`web/`)와 Lit 원본 (`web-lit/`, deprecated)
 - 룩: 중립 회색 바탕 · 흰 카드 · 오렌지 포인트 · 8px 간격
-- 시안: `design/` (리뷰용 HTML). 운영 방식은 `design/README.md` 참고
 
 ## 1. 원칙
 
@@ -122,16 +121,15 @@ disabled / loading / error / empty / mobile 390을 확인한다.
 
 ## 5. 스타일 작성
 
-| 형태 | 언제 | 예 |
-| --- | --- | --- |
-| `component.css` + `sheet()` | 기본 — 새로 쓰거나 손대는 컴포넌트 | `components/ui/chip.css` |
-| `css\`\`` 템플릿 | 3~5줄짜리 작은 규칙 | `pages/not-found.ts` |
-| `styles/ui.ts` 조각 | 두 화면 이상이 공유하는 규격 | `pageSplitCss`, `sideCardCss`, `cardCss`, `formCss` |
+`web/`(배포 앱)과 `web-lit/`(Lit 원본, deprecated)의 스타일 방식이 다르다.
 
-- `base`(`styles/base.css`)를 항상 첫 번째에 둔다. shadow root마다 전역 리셋을 복원한다.
-- margin·padding 리셋을 컴포넌트에 넣지 않는다 — UA 기본 여백에 기대는 화면이 조용히 틀어진다.
-- **앱에서 Tailwind·유틸리티 클래스는 쓰지 않는다.** (`design/` 시안만 Tailwind CDN을 쓴다.)
-- 같은 규격이 2곳 이상에서 반복되면 `ui.ts`로 올린다.
+- **`web/`은 Tailwind v4 유틸리티 클래스만 쓴다.** 값은 `tokens.css`의 CSS 변수를
+  `tailwind.css`의 `@theme inline`으로 노출한 토큰 유틸리티(`bg-surface`, `text-ink-2`,
+  `rounded-card`)로만 참조한다. 임의 hex·중간 px 값은 만들지 않는다.
+- 같은 규격이 2곳 이상에서 반복되면 `components/ui/`의 컴포넌트로 올린다
+  (`Button`, `Badge`, `Chip`, `Empty`, `Input`, `Modal`, `Notice`, `PageHeader`, `InfoList`).
+- **`web-lit/`(Lit 원본, deprecated)은 Shadow DOM 안에서 `css` 템플릿을 쓴다.** 공유 규격은
+  `web-lit/src/styles/ui.ts`로 올린다.
 
 ## 6. 하지 말 것
 
@@ -165,15 +163,10 @@ npm run build && npm run check:production
 - [ ] 5명 사용성 테스트
 - [ ] 상세 사진 없음 화면의 밀도, 관리자 회원 행의 모바일 액션 정렬
 
-## 8. 시안(`design/`)
+## 8. 시안
 
-`design/`은 배포 대상이 아니라 리뷰용 HTML이다. 빌드 없이 `file://`로 열린다.
-
-- 공통 조각은 `design/partials/`에 한 벌만 두고, 각 페이지의 마커 사이에 채운다.
-- `node design/build.ts`로 채우고, `--check`로 드리프트를 감지한다(`npm run check`에 포함).
-- CSS는 여러 화면이 같이 쓰는 규칙만 `design/assets/components.css`로 올린다.
-- 상세한 마커 문법은 `design/README.md`.
-- 같은 시안의 SolidJS 구현은 `solid/`에 있다(Tailwind v4, 샘플 데이터). 실행·화면·연결 방법은 `solid/README.md`.
+정적 HTML 시안은 더 이상 유지하지 않는다. 디자인 판단이 필요하면 `web/`의 실제 화면과
+이 문서의 토큰·계약을 기준으로 한다.
 
 ## 참고
 

@@ -12,6 +12,7 @@ import type { Item } from "../types";
 import { availableQty } from "../utils/stock";
 import { Button } from "../components/ui/button";
 import { Empty } from "../components/ui/empty";
+import { InfoList } from "../components/ui/info-list";
 import { ChevronLeftIcon } from "../components/icons";
 import { ItemGallery } from "../components/features/item/item-gallery";
 import { ItemRentalForm } from "../components/features/item/item-rental-form";
@@ -116,9 +117,9 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
   };
 
   const topNav = () => (
-    <div class="top-nav">
+    <div class="mb-4 flex items-center justify-between gap-4">
       <a
-        class="back"
+        class="inline-flex h-9 items-center gap-1 rounded-card text-body font-medium text-ink-2 no-underline hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [&_svg]:size-4"
         href={window.location.search ? `/${window.location.search}` : "/"}
       >
         <ChevronLeftIcon />
@@ -136,7 +137,7 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
   );
 
   return (
-    <div class="page-item-detail">
+    <div class="block">
       <Show when={error()}>
         {topNav()}
         <Empty
@@ -156,24 +157,24 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
       <Show when={!error() && (loading() || !item())}>
         {topNav()}
         <div
-          class="content-col"
+          class="grid items-start gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
           role="status"
           aria-label="물품 정보를 불러오는 중"
         >
-          <div class="sk-media" aria-hidden="true">
-            <div class="sk-gallery" />
-            <div class="sk-thumbs">
-              <div class="sk-thumb" />
-              <div class="sk-thumb" />
-              <div class="sk-thumb" />
+          <div class="flex flex-col gap-2" aria-hidden="true">
+            <div class="aspect-[4/3] animate-[pulse_1.4s_ease-in-out_infinite] rounded-card border border-line bg-surface-muted" />
+            <div class="grid grid-cols-3 gap-2">
+              <div class="aspect-[4/3] animate-[pulse_1.4s_ease-in-out_infinite] rounded-card bg-surface-muted" />
+              <div class="aspect-[4/3] animate-[pulse_1.4s_ease-in-out_infinite] rounded-card bg-surface-muted" />
+              <div class="aspect-[4/3] animate-[pulse_1.4s_ease-in-out_infinite] rounded-card bg-surface-muted" />
             </div>
           </div>
-          <div class="sk-info" aria-hidden="true">
-            <div class="sk-line title" />
-            <div class="sk-line wide" />
-            <div class="sk-line mid" />
-            <div class="sk-line short" />
-            <div class="sk-block" />
+          <div class="grid content-start gap-4 pt-2" aria-hidden="true">
+            <div class="h-7 w-3/5 animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
+            <div class="h-3.5 w-[90%] animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
+            <div class="h-3.5 w-[70%] animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
+            <div class="h-3.5 w-[45%] animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
+            <div class="h-[120px] animate-[pulse_1.4s_ease-in-out_infinite] rounded-card bg-surface-muted" />
           </div>
         </div>
       </Show>
@@ -186,61 +187,62 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
           return (
             <>
               {topNav()}
-              <div class="content-col">
+              <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
                 <ItemGallery photos={it().photos} name={it().name} />
 
-                <div class="info-col">
-                  <div class="title-row">
-                    <h1>{it().name}</h1>
+                <div class="flex min-w-0 flex-col">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h1 class="m-0 text-page-title font-bold tracking-tight text-ink-1">{it().name}</h1>
                     <Show when={availability()}>
-                      <span class={`availability ${it().availability_badge}`}>
+                      <span class={`inline-flex h-7 items-center gap-1.5 rounded-pill px-3 text-fine font-medium whitespace-nowrap ${it().availability_badge === "available" ? "bg-primary-soft text-primary-strong" : it().availability_badge === "repair" ? "bg-warning-soft text-warning" : "bg-surface-muted text-ink-2"}`}>
+                        <span
+                          class={`size-1.5 shrink-0 rounded-full ${it().availability_badge === "available" ? "bg-primary" : it().availability_badge === "repair" ? "bg-warning" : "bg-ink-3"}`}
+                          aria-hidden="true"
+                        />
                         {availability()}
                       </span>
                     </Show>
                   </div>
 
                   <Show when={it().description}>
-                    <p class="desc">{it().description}</p>
+                    <p class="mt-4 whitespace-pre-wrap text-body leading-normal text-ink-2 [overflow-wrap:anywhere]">{it().description}</p>
                   </Show>
                   <Show when={it().categories?.length}>
-                    <div class="tags" aria-label="분류">
+                    <div class="mt-4 flex flex-wrap gap-2" aria-label="분류">
                       <For each={it().categories}>
-                        {(category) => <span class="tag">#{category.name}</span>}
+                        {(category) => <span class="inline-flex h-7 items-center rounded-pill bg-primary-soft px-3 text-fine text-primary-strong">#{category.name}</span>}
                       </For>
                     </div>
                   </Show>
                   <Show when={attrs().length > 0}>
-                    <dl class="attrs">
-                      <For each={attrs()}>
-                        {([key, value], index) => (
-                          <div class={`attr-row ${index() === 0 ? "strong" : ""}`}>
-                            <dt>{key}</dt>
-                            <dd>{value}</dd>
-                          </div>
-                        )}
-                      </For>
-                    </dl>
+                    <InfoList
+                      strongFirst
+                      items={attrs().map(([label, value]) => ({
+                        label,
+                        value,
+                      }))}
+                    />
                   </Show>
 
-                  <ItemRentalForm
+                  <div class="mt-6"><ItemRentalForm
                     item={it()}
                     user={user()}
                     userReady={userReady()}
                     onRented={() => void load(true)}
-                  />
+                  /></div>
                 </div>
               </div>
 
               <Show when={related().length > 0}>
-                <section class="related">
-                  <div class="related-head">
+                <section class="mt-10 border-t border-line pt-8">
+                  <div class="flex items-end justify-between gap-4">
                     <div>
-                      <h2>{relatedCategory()} 물품 더 보기</h2>
-                      <p>함께 쓰면 좋은 물품이에요</p>
+                      <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">{relatedCategory()} 물품 더 보기</h2>
+                      <p class="mt-2 text-fine text-ink-2">함께 쓰면 좋은 물품이에요</p>
                     </div>
-                    <a href="/">전체 보기</a>
+                    <a class="text-body font-medium text-primary-strong no-underline hover:text-primary" href="/">전체 보기</a>
                   </div>
-                  <div class="related-grid" role="list">
+                  <div class="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4" role="list">
                     <For each={related()}>
                       {(entry) => (
                         <div role="listitem">

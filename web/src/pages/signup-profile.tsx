@@ -19,15 +19,16 @@ export default function SignupProfile() {
   });
 
   return (
-    <div class="page-signup-profile">
+    <div class="box-border flex min-h-dvh items-center justify-center px-6 py-8">
       <Show when={ready()}>
-        <div class="stage">
-          <div class="head">
-            <h1>반가워요</h1>
-            <p class="sub">물품을 빌리려면 이름과 연락처가 필요해요.</p>
+        <div class="w-full max-w-[340px]">
+          <div class="text-center">
+            <h1 class="m-0 text-page-title font-bold tracking-tight text-ink-1">반가워요</h1>
+            <p class="mt-2 text-body leading-normal text-ink-2">물품을 빌리려면 이름과 연락처가 필요해요.</p>
           </div>
 
           <ProfileForm
+            class="mt-6"
             initialName={name()}
             initialPhone={phone()}
             email={email()}
@@ -38,16 +39,16 @@ export default function SignupProfile() {
             onSaved={() => navigate("/mypage")}
           />
 
-          <p class="privacy">입력한 정보는 물품 대여 연락에만 사용해요.</p>
+          <p class="mt-4 text-center text-fine text-ink-2">입력한 정보는 물품 대여 연락에만 사용해요.</p>
 
-          <p class="alt">
-            <a href="/login">다른 계정으로 로그인</a>
+          <p class="mt-6 text-center">
+            <a class="text-fine text-ink-2 no-underline hover:text-ink-1 hover:underline" href="/login">다른 계정으로 로그인</a>
           </p>
 
-          <nav class="policy" aria-label="정책">
-            <a href="/policy/terms">이용약관</a>
+          <nav class="mt-4 flex justify-center gap-4 text-fine text-ink-3" aria-label="정책">
+            <a class="text-fine text-ink-2 no-underline hover:text-ink-1 hover:underline" href="/policy/terms">이용약관</a>
             <span aria-hidden="true">·</span>
-            <a href="/policy/privacy">개인정보처리방침</a>
+            <a class="text-fine text-ink-2 no-underline hover:text-ink-1 hover:underline" href="/policy/privacy">개인정보 처리방침</a>
           </nav>
         </div>
       </Show>

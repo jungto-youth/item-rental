@@ -20,7 +20,7 @@ export function AppHeader() {
       { href: "/", label: "물품 현황" },
       admin
         ? { href: "/admin/reservations", label: "대여 관리" }
-        : { href: "/my/rentals", label: "대여 기록" },
+        : { href: "/my/rentals", label: "대여 내역" },
       ...(admin ? [{ href: "/admin/members", label: "회원 관리" }] : []),
     ];
   };
@@ -74,27 +74,44 @@ export function AppHeader() {
     };
   });
 
+  const navLinkClass = (href: string) =>
+    `flex h-full shrink-0 items-center border-b-2 text-body whitespace-nowrap no-underline hover:text-ink-1 ${
+      isActive(href)
+        ? "border-primary font-semibold text-ink-1"
+        : "border-transparent text-ink-2"
+    }`;
+
   return (
-    <header class="app-header">
-      <div class="bar">
-        <a href="/" class="brand" aria-label="물품 현황 — 홈">
-          <img src="/logo.png" alt="" />
+    <header class="sticky top-0 z-10 h-14 border-b border-line bg-surface md:h-16">
+      <div class="mx-auto flex h-full w-full max-w-layout items-center gap-4 px-4 md:gap-6 md:px-6">
+        <a
+          href="/"
+          class="flex shrink-0 items-center no-underline"
+          aria-label="물품 현황 — 홈"
+        >
+          <img src="/logo.png" alt="" class="block size-7 rounded-card" />
         </a>
 
         <Show
           when={user()}
           fallback={
-            <a class="btn-login" href="/login">
+            <a
+              class="ml-auto flex h-10 items-center rounded-card border border-primary-strong bg-primary-strong px-4 text-body font-semibold tracking-tight text-white no-underline hover:border-primary-deep hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
+              href="/login"
+            >
               로그인
             </a>
           }
         >
-          <nav class="nav" aria-label="주 메뉴">
+          <nav
+            class="flex min-w-0 items-stretch gap-6 self-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            aria-label="주 메뉴"
+          >
             <Show when={user()}>
               {navItems().map((item) => (
                 <a
                   href={item.href}
-                  class={isActive(item.href) ? "active" : ""}
+                  class={navLinkClass(item.href)}
                   aria-current={isActive(item.href) ? "page" : undefined}
                 >
                   {item.label}
@@ -103,31 +120,44 @@ export function AppHeader() {
             </Show>
           </nav>
 
-          <div class="account" ref={root}>
+          <div class="relative ml-auto shrink-0" ref={root}>
             <button
               type="button"
-              class="account-btn"
+              class="flex h-10 cursor-pointer items-center gap-2 rounded-pill text-body text-ink-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
               aria-haspopup="menu"
               aria-expanded={menuOpen() ? "true" : "false"}
               aria-label={`계정 메뉴 — ${accountLabel()}`}
               title="계정 메뉴"
               onClick={() => setMenuOpen((open) => !open)}
             >
-              <span class="avatar" aria-hidden="true">
+              <span
+                class="flex size-8 items-center justify-center rounded-pill bg-primary-soft text-fine font-semibold text-primary-strong"
+                aria-hidden="true"
+              >
                 {accountInitial()}
               </span>
-              <span class="account-name">{accountLabel()}</span>
-              <ChevronDownIcon class="account-chevron" />
+              <span class="max-w-[140px] truncate text-body text-ink-2 max-md:hidden">
+                {accountLabel()}
+              </span>
+              <ChevronDownIcon class="hidden size-4 shrink-0 text-ink-2 sm:block" />
             </button>
             <Show when={menuOpen()}>
-              <div class="menu" role="menu">
-                <a role="menuitem" href="/mypage" onClick={() => setMenuOpen(false)}>
+              <div
+                class="absolute top-[calc(100%+8px)] right-0 z-20 min-w-[176px] overflow-hidden rounded-card border border-line bg-surface shadow-menu"
+                role="menu"
+              >
+                <a
+                  role="menuitem"
+                  href="/mypage"
+                  class="block w-full p-4 text-left text-body text-ink-1 no-underline hover:bg-surface-muted"
+                  onClick={() => setMenuOpen(false)}
+                >
                   내 정보
                 </a>
                 <button
                   type="button"
                   role="menuitem"
-                  class="menu-logout"
+                  class="block w-full cursor-pointer border-0 bg-transparent p-4 text-left text-body text-danger hover:bg-surface-muted"
                   onClick={() => void signOut()}
                 >
                   로그아웃

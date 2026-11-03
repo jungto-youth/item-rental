@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import solid from "@solidjs/vite-plugin";
 
@@ -8,7 +9,7 @@ export default defineConfig({
   root: fileURLToPath(new URL("./web/", import.meta.url)),
   // 실제 앱과 같은 경로 라우팅 — 서버(Workers)가 SPA 폴백을 맡는다.
   base: "/",
-  plugins: [solid()],
+  plugins: [solid(), tailwindcss()],
   build: { outDir: "dist" },
   // `npm run dev`(vite HMR) + `npm run dev:api`(wrangler dev) 병행 시 프록시
   server: {

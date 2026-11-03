@@ -20,18 +20,24 @@ type Props = {
 export function Input(props: Props) {
   const id = createUniqueId();
   const type = () => props.type ?? "text";
+  const controlClass = () =>
+    `w-full rounded-card border bg-surface text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:bg-surface focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
+      props.invalid ? "border-danger" : "border-line"
+    }`;
 
   return (
-    <div class={`x-input ${props.invalid ? "invalid" : ""} ${props.class ?? ""}`}>
+    <div class={`flex w-full flex-col gap-2 ${props.class ?? ""}`}>
       <Show when={props.label}>
-        <label for={id}>{props.label}</label>
+        <label class="text-fine font-normal text-ink-2" for={id}>
+          {props.label}
+        </label>
       </Show>
       <Show
         when={type() === "textarea"}
         fallback={
           <input
             id={id}
-            class="control"
+            class={`${controlClass()} h-10 px-4 leading-[1.2]`}
             type={type()}
             min={props.min || undefined}
             inputmode={props.inputmode || undefined}
@@ -47,7 +53,7 @@ export function Input(props: Props) {
       >
         <textarea
           id={id}
-          class="control"
+          class={`${controlClass()} min-h-[72px] resize-y px-4 py-4 leading-normal`}
           rows={props.rows ?? 2}
           placeholder={props.placeholder}
           required={props.required}

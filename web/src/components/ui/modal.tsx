@@ -81,28 +81,35 @@ export function Modal(props: Props) {
   return (
     <Show when={props.open}>
       <div
-        class="x-modal-backdrop"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(23,23,23,0.45)] p-6 backdrop-blur-[3px] animate-[fadeIn_0.15s_ease-out]"
         onMouseDown={(event) => {
           if (event.target === event.currentTarget) props.onClose();
         }}
       >
         <div
           ref={panel}
-          class="x-modal-dialog"
+          class="flex max-h-[90vh] w-full flex-col gap-4 overflow-hidden rounded-card border-0 bg-surface p-6 text-ink-1 shadow-modal"
           style={{ "max-width": props.maxWidth ?? "500px" }}
           role="dialog"
           tabindex="-1"
           aria-modal="true"
           aria-labelledby={titleId}
         >
-          <div class="header">
-            <h3 class="title" id={titleId}>
+          <div class="flex items-center justify-between p-0">
+            <h3
+              class="m-0 text-heading leading-[1.4] font-semibold tracking-tight"
+              id={titleId}
+            >
               {props.title}
             </h3>
           </div>
-          <div class="body">{props.children}</div>
+          <div class="min-h-0 flex-1 overflow-y-auto p-0 leading-normal">
+            {props.children}
+          </div>
           <Show when={props.footer}>
-            <div class="footer">{props.footer}</div>
+            <div class="flex items-center justify-end gap-2 p-0">
+              {props.footer}
+            </div>
           </Show>
         </div>
       </div>

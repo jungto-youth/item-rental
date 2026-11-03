@@ -1,4 +1,4 @@
-/* 디자인 토큰 — 값의 유일한 출처.
+/* 디자인 토큰 — 값의 유일한 출처. (유틸리티 노출은 tailwind.css 의 @theme inline)
    따뜻한 중립 회색 바탕 · 흰 카드 · 잉크 텍스트 · 오렌지 포인트.
    간격은 8px 단위, 라운드는 컨트롤 8 / 카드 12 / 알약 999만 쓴다. */
 
@@ -85,30 +85,4 @@
 
   --font-body: "Noto Sans KR Variable", "Noto Sans KR", system-ui, -apple-system,
     BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-}
-
-body {
-  margin: 0;
-  font-family: var(--font-body);
-  background: var(--bg);
-  color: var(--ink-1);
-  line-height: var(--line-height);
-  -webkit-font-smoothing: antialiased;
-}
-
-/* 버튼만 행간 1.2 — 라이트 DOM 기준. shadow DOM 안은 각 컴포넌트가 직접 쓴다. */
-button {
-  font-family: inherit;
-  line-height: var(--line-height-button);
-}
-
-input,
-select {
-  font-family: inherit;
-  line-height: var(--line-height);
-}
-
-a {
-  color: var(--primary-strong);
-  text-underline-offset: 2px;
 }

@@ -310,7 +310,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
       return;
     }
     if (form().kind === "rental" && form().qty_repair > form().total_qty) {
-      setError("수리중 수량은 보유 수량을 넘을 수 없어요.");
+      setError("수리 중 수량은 보유 수량을 넘을 수 없어요.");
       return;
     }
     setSaving(true);
@@ -393,16 +393,16 @@ export default function AdminItemForm(props: { params: Record<string, string> })
       side
       sideContent={
         <>
-          <section class="side-card">
-            <h2>작성 안내</h2>
-            <p>
-              이름과 보유 수량은 필수예요. 수리중 수량은 대여할 수 없는 수량이라
+          <section class="rounded-card border border-line bg-surface p-4">
+            <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">작성 안내</h2>
+            <p class="mt-2 text-fine leading-normal text-ink-2">
+              이름과 보유 수량은 필수예요. 수리 중 수량은 대여할 수 없는 수량이라
               보유 수량을 넘을 수 없어요.
             </p>
           </section>
-          <section class="side-card">
-            <h2>사진 안내</h2>
-            <p>
+          <section class="rounded-card border border-line bg-surface p-4">
+            <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">사진 안내</h2>
+            <p class="mt-2 text-fine leading-normal text-ink-2">
               사진은 최대 3장까지 등록할 수 있어요. 첫 사진이 대표 사진이 되고,
               추가·삭제는 저장할 때 함께 반영돼요.
             </p>
@@ -410,16 +410,16 @@ export default function AdminItemForm(props: { params: Record<string, string> })
         </>
       }
     >
-      <div class="wrap">
-        <form onSubmit={handleSave}>
+      <div class="max-w-full">
+        <form class="flex flex-col gap-4" onSubmit={handleSave}>
           <Show when={error()}>
-            <p class="error-msg" role="alert" tabindex="-1" ref={errorBanner}>
+            <p class="m-0 rounded-card border border-danger bg-danger-soft px-4 py-2 text-fine leading-normal text-danger" role="alert" tabindex="-1" ref={errorBanner}>
               {error()}
             </p>
           </Show>
 
-          <section class="form-card">
-            <h2>기본 정보</h2>
+          <section class="flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4">
+            <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">기본 정보</h2>
             <Input
               label="이름 *"
               value={form().name}
@@ -441,9 +441,9 @@ export default function AdminItemForm(props: { params: Record<string, string> })
             />
           </section>
 
-          <section class="form-card">
-            <h2>분류 · 상태</h2>
-            <span class="field">
+          <section class="flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4">
+            <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">분류 · 상태</h2>
+            <span class="flex flex-col gap-2 text-fine font-normal text-ink-2">
               카테고리
               <CategoryTagsInput
                 value={tagNames()}
@@ -453,8 +453,8 @@ export default function AdminItemForm(props: { params: Record<string, string> })
               />
             </span>
 
-            <div class="row">
-              <span class="field">
+            <div class="grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
+              <span class="flex flex-col gap-2 text-fine font-normal text-ink-2">
                 구분
                 <Chip
                   ariaLabel="구분"
@@ -466,7 +466,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
                   onChange={(value) => setField("kind", value as ItemKind)}
                 />
               </span>
-              <span class="field">
+              <span class="flex flex-col gap-2 text-fine font-normal text-ink-2">
                 상태
                 <Chip
                   ariaLabel="상태"
@@ -483,9 +483,9 @@ export default function AdminItemForm(props: { params: Record<string, string> })
             </div>
           </section>
 
-          <section class="form-card full">
-            <h2>재고 · 사진</h2>
-            <div class="row">
+          <section class="flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4">
+            <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">재고 · 사진</h2>
+            <div class="grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
               <Input
                 label="보유 수량 *"
                 type="number"
@@ -496,7 +496,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
               />
               <Show when={form().kind === "rental"}>
                 <Input
-                  label="수리중 수량"
+                  label="수리 중 수량"
                   type="number"
                   inputmode="numeric"
                   min="0"
@@ -506,8 +506,8 @@ export default function AdminItemForm(props: { params: Record<string, string> })
               </Show>
             </div>
             <Show when={form().kind === "rental"}>
-              <p class="hint">
-                수리중 수량은 대여 불가 수량이에요 (보유 수량을 넘을 수 없어요)
+              <p class="m-0 text-fine text-ink-2">
+                수리 중 수량은 대여 불가 수량이에요 (보유 수량을 넘을 수 없어요)
               </p>
             </Show>
 
@@ -519,15 +519,15 @@ export default function AdminItemForm(props: { params: Record<string, string> })
               onRemove={onPhotoRemove}
             />
             <Show when={processingPhotos()}>
-              <p role="status">사진을 축소하고 있어요…</p>
+              <p class="text-fine text-ink-2" role="status">사진을 축소하고 있어요…</p>
             </Show>
-            <p class="hint">
+            <p class="m-0 text-fine text-ink-2">
               사진 추가·삭제는 저장할 때 함께 반영돼요. 첫 사진이 대표 사진이에요.
             </p>
           </section>
 
-          <div class="footer-actions">
-            <div class="footer-left">
+          <div class="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
               <Show when={!isCreate()}>
                 <Button variant="danger" type="button" onClick={() => void handleDelete()}>
                   물품 삭제
@@ -541,7 +541,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
                 </Button>
               </Show>
             </div>
-            <div class="btn-group">
+            <div class="flex shrink-0 justify-end gap-2">
               <Button
                 variant="secondary"
                 type="button"

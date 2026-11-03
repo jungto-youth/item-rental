@@ -280,7 +280,7 @@ export function ItemExplorer(props: {
     action?: JSX.Element,
     subtitle = "",
   ) => (
-    <div class="panel">
+    <div class="mb-6 max-sm:mb-4">
       <Empty state={state} text={text} subtitle={subtitle}>
         {action}
       </Empty>
@@ -288,15 +288,15 @@ export function ItemExplorer(props: {
   );
 
   const renderSkeleton = () => (
-    <div class="grid" role="status" aria-label="물품 목록을 불러오는 중">
+    <div class="mb-6 grid grid-cols-2 gap-2 max-sm:mb-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5" role="status" aria-label="물품 목록을 불러오는 중">
       <For each={Array.from({ length: 5 })}>
         {() => (
-          <div class="skeleton-card" aria-hidden="true">
-            <div class="sk-photo" />
-            <div class="sk-body">
-              <div class="sk-line title" />
-              <div class="sk-line short" />
-              <div class="sk-line mid" />
+          <div class="overflow-hidden rounded-card border border-line bg-surface max-sm:[&:nth-child(n+4)]:hidden md:max-xl:[&:nth-child(n+5)]:hidden" aria-hidden="true">
+            <div class="aspect-[4/3] animate-[pulse_1.4s_ease-in-out_infinite] bg-surface-muted" />
+            <div class="grid gap-2 p-4 max-sm:p-2">
+              <div class="h-4 w-3/4 animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
+              <div class="h-3 w-1/2 animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
+              <div class="h-3 w-2/3 animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
             </div>
           </div>
         )}
@@ -304,10 +304,10 @@ export function ItemExplorer(props: {
     </div>
   );
 
-  const renderGrid = (list: Item[], more: boolean) => (
+  const renderGrid = (list: () => Item[], more: () => boolean) => (
     <>
-      <div class="grid" role="list">
-        <For each={list}>
+      <div class="mb-6 grid grid-cols-2 gap-2 max-sm:mb-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5" role="list">
+        <For each={list()}>
           {(item) => (
             <div role="listitem">
               <ItemCard item={item} href={hrefFor(item)} />
@@ -315,8 +315,8 @@ export function ItemExplorer(props: {
           )}
         </For>
       </div>
-      <Show when={more}>
-        <div class="more-row">
+      <Show when={more()}>
+        <div class="mb-8 flex justify-center">
           <Button
             variant="secondary"
             loading={loadingMore()}
@@ -370,7 +370,7 @@ export function ItemExplorer(props: {
         </Show>
         <Show when={!error() && !loading() && visible().length > 0}>
           <Show when={noticeMsg()}>
-            <div class="notice">
+            <div class="mb-4 block">
               <Notice
                 action={
                   <Button variant="secondary" onClick={() => void retryMore()}>
@@ -382,8 +382,7 @@ export function ItemExplorer(props: {
               </Notice>
             </div>
           </Show>
-          {renderGrid(
-            visible(),
+          {renderGrid(visible, () =>
             props.q ? matched().length > shown() : hasMore(),
           )}
         </Show>
@@ -424,13 +423,13 @@ export function ItemExplorer(props: {
         </Show>
         <Show when={!adminLoading() && !adminError() && visible().length > 0}>
           <Show when={truncated()}>
-            <p class="truncated">
+            <p class="mb-4 text-fine leading-normal text-ink-2">
               1000건까지만 불러왔어요 — 목록이 잘렸을 수 있어요
             </p>
           </Show>
           {renderGrid(
-            visible().slice(0, shown()),
-            shown() < visible().length,
+            () => visible().slice(0, shown()),
+            () => shown() < visible().length,
           )}
         </Show>
       </>
@@ -438,7 +437,7 @@ export function ItemExplorer(props: {
   };
 
   return (
-    <div class="item-explorer">
+    <div class="flex flex-col">
       <Show when={isAdmin()} fallback={renderMember()}>
         {renderAdmin()}
       </Show>

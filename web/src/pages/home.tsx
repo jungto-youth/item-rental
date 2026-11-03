@@ -20,8 +20,14 @@ const TABS: { key: TabKey; label: string }[] = [
 
 export default function Home() {
   const params = new URLSearchParams(window.location.search);
+  const initialTab = (): TabKey => {
+    const state = params.get("state");
+    return state === "available" || state === "rented" || state === "repair"
+      ? state
+      : "all";
+  };
   const [q, setQ] = createSignal(params.get("q") ?? "");
-  const [tab, setTab] = createSignal<TabKey>("all");
+  const [tab, setTab] = createSignal<TabKey>(initialTab());
   const denied = params.get("role") === "denied";
 
   if (denied) {
@@ -31,10 +37,12 @@ export default function Home() {
 
   const isAdmin = () => session.isAdmin();
 
-  const syncSearchUrl = (value: string) => {
+  const syncUrl = (nextQ: string, nextTab: TabKey) => {
     const next = new URLSearchParams(window.location.search);
-    if (value) next.set("q", value);
+    if (nextQ) next.set("q", nextQ);
     else next.delete("q");
+    if (nextTab !== "all") next.set("state", nextTab);
+    else next.delete("state");
     const qs = next.toString();
     const target = qs
       ? `${window.location.pathname}?${qs}`
@@ -47,27 +55,33 @@ export default function Home() {
 
   const onSearch = (value: string) => {
     setQ(value);
-    syncSearchUrl(value);
+    syncUrl(value, tab());
+  };
+
+  const onTabChange = (value: string) => {
+    const next = value as TabKey;
+    setTab(next);
+    syncUrl(q(), next);
   };
 
   const clearSearch = () => {
     setQ("");
-    syncSearchUrl("");
+    syncUrl("", tab());
   };
 
   return (
-    <div class="page-home">
+    <div class="block">
       <PageHeader
         title="물품 현황"
         subtitle="함께 쓰는 물품과 대여 상태를 확인해요."
       />
 
-      <div class="home-layout">
-        <div class="home-search">
-          <div class="controls">
-            <SearchIcon class="search-icon" />
+      <div class="grid grid-cols-1 gap-x-6 gap-y-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div class="max-w-[560px] lg:col-start-1 lg:row-start-1 lg:max-w-[400px]">
+          <div class="relative w-full">
+            <SearchIcon class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3" />
             <input
-              class="search-input search"
+              class="box-border h-10 w-full min-w-0 rounded-card border border-line bg-surface py-2 pr-10 pl-10 text-body leading-[1.2] text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
               type="search"
               aria-label="물품 검색"
               placeholder="이름, 위치, 분류 검색"
@@ -83,7 +97,7 @@ export default function Home() {
             <Show when={q()}>
               <button
                 type="button"
-                class="clear-btn"
+                class="absolute top-1/2 right-1 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill border-0 bg-transparent p-0 text-fine leading-[1.2] text-ink-2 hover:bg-surface-muted hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
                 aria-label="검색어 지우기"
                 title="검색어 지우기"
                 onClick={clearSearch}
@@ -94,32 +108,43 @@ export default function Home() {
           </div>
         </div>
 
-        <aside class="home-side" aria-label="물품 등록과 대여 안내">
+        <aside class="home-side flex flex-col gap-4 max-lg:hidden lg:sticky lg:top-24 lg:col-start-2 lg:row-span-2 lg:row-start-1" aria-label="물품 등록과 대여 안내">
           <Show when={isAdmin()}>
             <Button variant="primary" onClick={() => navigate("/items/new")}>
               물품 등록
             </Button>
           </Show>
 
-          <section class="side-card">
-            <h2>대여 안내</h2>
-            <p>신청하면 바로 대여 중이 돼요. 반납은 대여 기록에서 할 수 있어요.</p>
-            <a href="/my/rentals">내 대여 보기</a>
+          <section class="rounded-card border border-line bg-surface p-4">
+            <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">
+              {isAdmin() ? "관리자 안내" : "대여 안내"}
+            </h2>
+            <p class="mt-2 text-fine leading-normal text-ink-2">
+              {isAdmin()
+                ? "물품 등록·수정과 반납 처리는 상단 메뉴에서 할 수 있어요."
+                : "신청하면 바로 대여 중이 돼요. 반납은 대여 내역에서 할 수 있어요."}
+            </p>
+            <a
+              class="mt-4 inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
+              href={isAdmin() ? "/admin/reservations" : "/my/rentals"}
+            >
+              {isAdmin() ? "대여 관리" : "내 대여 내역"}
+            </a>
           </section>
         </aside>
 
-        <div class="home-main">
-          <div class="filters">
+        <div class="min-w-0 lg:col-start-1 lg:row-start-2">
+          <div class="mb-4">
             <Chip
               ariaLabel="물품 상태 필터"
               value={tab()}
               options={TABS.map((tab) => ({ value: tab.key, label: tab.label }))}
-              onChange={(value) => setTab(value as TabKey)}
+              onChange={onTabChange}
             />
           </div>
 
           <Show when={denied}>
-            <div class="notice">
+            <div class="mb-4 block">
               <Notice tone="danger" alert>
                 관리자 권한이 필요해요 — 일반 회원 계정으로는 관리자 화면에 접근할 수 없어요.
               </Notice>

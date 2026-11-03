@@ -1,5 +1,6 @@
 import { For, Show, createMemo, createSignal, onSettled } from "solid-js";
 import { api } from "../../api/client";
+import { syncScrollKey } from "../../router";
 import type { AdminReservation, ReservationStatus } from "../../types";
 import { fmtKstDate } from "../../utils/date";
 import { confirmDialog } from "../../utils/confirm";
@@ -50,6 +51,20 @@ export default function AdminReservations() {
     void reload();
   });
 
+  const changeFilter = (value: Filter) => {
+    setFilter(value);
+    const next = new URLSearchParams(window.location.search);
+    if (value) next.set("status", value);
+    else next.delete("status");
+    const qs = next.toString();
+    window.history.replaceState(
+      null,
+      "",
+      qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
+    );
+    syncScrollKey();
+  };
+
   const filtered = createMemo(() => {
     if (!filter()) return reservations();
     return reservations().filter((reservation) => reservation.status === filter());
@@ -89,7 +104,7 @@ export default function AdminReservations() {
   const contactLine = (reservation: AdminReservation) => {
     const phone = reservation.member_phone;
     const contact = phone ? (
-      <a class="tel" href={`tel:${phone.replace(/[^+\d]/g, "")}`}>
+      <a class="text-ink-1 underline underline-offset-2" href={`tel:${phone.replace(/[^+\d]/g, "")}`}>
         {phone}
       </a>
     ) : (
@@ -113,10 +128,10 @@ export default function AdminReservations() {
       onRetry={() => void reload()}
       side
       sideContent={
-        <section class="side-card">
-          <h2>반납 처리 안내</h2>
-          <p>
-            물품을 돌려받았으면 <b>반납</b>을 눌러 상태를 바꿔 주세요. 회원이 직접
+        <section class="rounded-card border border-line bg-surface p-4">
+          <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">반납 처리 안내</h2>
+          <p class="mt-2 text-fine leading-normal text-ink-2">
+            물품을 돌려받았으면 <b class="font-semibold text-ink-1">반납</b>을 눌러 상태를 바꿔 주세요. 회원이 직접
             반납한 건은 목록에서 따로 표시돼요.
           </p>
         </section>
@@ -131,14 +146,14 @@ export default function AdminReservations() {
             { value: "returned", label: "반납 완료" },
             { value: "cancelled", label: "취소" },
           ]}
-          onChange={(value) => setFilter(value as Filter)}
+          onChange={(value) => changeFilter(value as Filter)}
         />
       }
     >
       <Show
         when={filtered().length > 0}
         fallback={
-          <div class="list">
+          <div class="mt-4 grid gap-2">
             <Empty
               state="empty"
               text={filter() ? "해당 상태의 대여가 없어요" : "대여가 없어요"}
@@ -148,11 +163,11 @@ export default function AdminReservations() {
         }
       >
         <Show when={truncated()}>
-          <p class="trunc" role="status">
+          <p class="mt-4 text-fine leading-normal text-ink-2" role="status">
             500건까지만 표시 — 더 오래된 건은 여기 없어요
           </p>
         </Show>
-        <div class="list">
+        <div class="mt-4 grid gap-2">
           <For each={filtered()}>
             {(reservation) => {
               const processing = () => processingId() === reservation.id;
@@ -186,7 +201,7 @@ export default function AdminReservations() {
                       : ""}
                   </span>
                   <Show when={reservation.returned_by_member}>
-                    <span class="warn">
+                    <span class="text-fine text-danger">
                       회원이 직접 반납했어요 — 물품 회수 여부를 확인해 주세요
                     </span>
                   </Show>

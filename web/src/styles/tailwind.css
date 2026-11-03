@@ -1,0 +1,125 @@
+/* Tailwind v4 — CSS-first 설정.
+   값의 단일 출처는 tokens.css 의 CSS 변수이고, @theme inline 이 그 값을 유틸리티로 노출한다.
+   컴포넌트는 마크업의 유틸리티 클래스로 스타일한다 (컴포넌트별 @apply 금지). */
+@import "tailwindcss";
+@import "./tokens.css";
+
+@theme inline {
+  --font-sans: var(--font-body);
+  --default-font-family: var(--font-body);
+
+  --color-ink-1: var(--ink-1);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-canvas: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-deep: var(--primary-deep);
+  --color-primary-soft: var(--primary-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --radius-card: var(--radius);
+  --radius-pill: var(--radius-pill);
+
+  --text-fine: var(--text-fine);
+  --text-fine--line-height: 1.5;
+  --text-body: var(--text-body);
+  --text-body--line-height: 1.5;
+  --text-heading: var(--text-heading);
+  --text-heading--line-height: 1.4;
+  --text-page-title: var(--text-page-title);
+  --text-page-title--line-height: 1.35;
+
+  --tracking-tight: var(--tracking-tight);
+
+  --shadow-menu: var(--shadow-menu);
+  --shadow-modal: var(--shadow-modal);
+
+  --container-layout: var(--layout-max);
+  --container-form: var(--layout-form);
+  --container-onboarding: var(--layout-onboarding);
+  --container-doc: var(--layout-doc);
+}
+
+@layer base {
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink-1);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button {
+    font-family: inherit;
+    line-height: 1.2;
+  }
+
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+    line-height: 1.5;
+  }
+
+  a {
+    color: var(--primary-strong);
+    text-underline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--primary-soft);
+  }
+
+  input[type="number"] {
+    appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

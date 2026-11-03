@@ -25,6 +25,6 @@ server/scripts/out/
 web/tests/visual/current/
 web-lit/tests/visual/current/
 
-# 디자인 값은 tokens.css 가 단일 출처다 (README '디자인' 참고).
+# 디자인 값은 tokens.css 가 단일 출처다 (DESIGN.md 참고).
 # 예전 pen.dev 원본은 더 이상 쓰지 않지만, 실수로 커밋되지 않게 계속 무시한다.
 item-rental.pen

@@ -6,23 +6,23 @@ import { ImageIcon } from "../../icons";
 function StatusLabel(props: { part: { key: string; label: string } }) {
   const content = createMemo(() => {
     const match = props.part.label.match(/^(.*?)\s*(\d+)$/);
-    if (!match) return <span class="rest">{props.part.label}</span>;
+    if (!match) return <span class="text-ink-2">{props.part.label}</span>;
     const [, text, count] = match;
     if (props.part.key === "rented") {
-      return <span class="rest">{text}</span>;
+      return <span class="text-ink-2">{text}</span>;
     }
     if (props.part.key === "available") {
       return (
         <>
-          <b>{count}개</b>
-          <span class="rest">{text}</span>
+          <b class="font-semibold text-ink-1">{count}개</b>
+          <span class="text-ink-2">{text}</span>
         </>
       );
     }
     return (
       <>
-        <span class="rest">{text}</span>
-        <b>{count}개</b>
+        <span class="text-ink-2">{text}</span>
+        <b class="font-semibold text-ink-1">{count}개</b>
       </>
     );
   });
@@ -34,18 +34,23 @@ export function ItemCard(props: { item: Item; href: string }) {
   const location = () => props.item.location ?? "";
   const photo = () => props.item.photos?.[0]?.url ?? "";
   const primary = () => statusParts(props.item)[0];
+  const strong = () => primary()?.key === "available";
 
   return (
-    <a class="item-card card" href={props.href}>
-      <div class={`thumb ${photo() ? "" : "empty"}`}>
-        <span class="fallback" aria-hidden="true">
-          <ImageIcon />
+    <a
+      class="item-card flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface text-inherit no-underline hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      href={props.href}
+    >
+      <div class="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-surface-muted text-ink-3">
+        <span class="flex flex-col items-center gap-2" aria-hidden="true">
+          <ImageIcon class="size-8" />
           <Show when={!photo()}>
-            <span class="fallback-text">사진 없음</span>
+            <span class="text-fine leading-normal text-ink-2">사진 없음</span>
           </Show>
         </span>
         <Show when={photo()}>
           <img
+            class="absolute inset-0 block size-full object-cover"
             src={photo()}
             alt=""
             loading="lazy"
@@ -54,32 +59,46 @@ export function ItemCard(props: { item: Item; href: string }) {
         </Show>
       </div>
 
-      <div class="body">
-        <span class="name" title={props.item.name}>
+      <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+        <span
+          class="line-clamp-2 text-body font-semibold tracking-tight text-ink-1 max-sm:text-fine"
+          title={props.item.name}
+        >
           {props.item.name}
         </span>
         <span
-          class="meta"
+          class="truncate text-fine leading-normal text-ink-2"
           title={[categories(), location()].filter(Boolean).join(" · ")}
         >
           <Show when={categories()}>
-            <span class="cat">
+            <span class="max-sm:hidden">
               {categories()}
               {location() ? " · " : ""}
             </span>
           </Show>
-          <span class="loc">
-            {location() || (categories() ? "" : "위치 미지정")}
-          </span>
+          <span>{location() || (categories() ? "" : "위치 미지정")}</span>
         </span>
-        <span class="status">
+        <span class="flex flex-wrap items-center gap-2 text-fine leading-normal tabular-nums [word-break:keep-all]">
           <Show
             when={primary()}
-            fallback={<span class="rest">미지정</span>}
+            fallback={<span class="text-ink-2">미지정</span>}
           >
             {(part) => (
-              <span class={`primary ${part().key}`}>
-                <span class={`dot ${part().key}`} aria-hidden="true" />
+              <span
+                class={`inline-flex items-center gap-2 whitespace-nowrap text-ink-1 ${
+                  strong() ? "font-semibold" : "font-normal"
+                }`}
+              >
+                <span
+                  class={`size-1.5 shrink-0 rounded-full ${
+                    part().key === "available"
+                      ? "bg-primary"
+                      : part().key === "repair"
+                        ? "bg-warning"
+                        : "bg-ink-3"
+                  }`}
+                  aria-hidden="true"
+                />
                 <StatusLabel part={part()} />
               </span>
             )}

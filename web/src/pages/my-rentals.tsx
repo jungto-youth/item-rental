@@ -65,7 +65,7 @@ export default function MyRentals() {
     setProcessing({ id: reservation.id, kind: "return" });
     try {
       await api(`/api/reservations/${reservation.id}/return`, { method: "POST" });
-      setMessage(`${reservation.item_name} 반납 완료 처리되었어요`);
+      setMessage(`${reservation.item_name} 반납 완료했어요`);
       setMessageTone("success");
       await loadReservations();
     } catch (err) {
@@ -103,7 +103,7 @@ export default function MyRentals() {
   };
 
   return (
-    <div class="page-my-rentals">
+    <div class="block">
       <Show when={!loading()} fallback={<Empty state="loading" />}>
         <Show
           when={session.user()}
@@ -134,7 +134,7 @@ export default function MyRentals() {
 
                 <Show when={message()}>
                   <p
-                    class={`msg ${messageTone()}`}
+                    class={`mb-6 flex min-h-[1.2em] items-center gap-1 text-fine [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-primary-strong ${messageTone() === "error" ? "text-danger" : "text-ink-1"}`}
                     role={messageTone() === "error" ? "alert" : "status"}
                   >
                     <Show when={messageTone() === "success"}>
@@ -144,19 +144,20 @@ export default function MyRentals() {
                   </p>
                 </Show>
 
-                <div class="split">
-                  <div class="main">
+                <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                  <div class="min-w-0">
                     <section>
-                      <h2>현재 대여 중</h2>
+                      <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">현재 대여 중</h2>
                       <Show
                         when={rentedList().length > 0}
                         fallback={
-                          <div class="empty-card">
-                            <p class="empty-title">현재 대여 중인 물품이 없어요</p>
-                            <p class="empty-sub">
+                          <div class="mt-4 box-border rounded-card border border-line bg-surface px-6 py-10 text-center">
+                            <p class="m-0 text-body font-semibold text-ink-1">현재 대여 중인 물품이 없어요</p>
+                            <p class="mt-2 text-fine text-ink-2">
                               필요한 물품을 찾아 바로 대여할 수 있어요.
                             </p>
                             <Button
+                              class="mt-4"
                               variant="secondary"
                               onClick={() => navigate("/")}
                             >
@@ -165,7 +166,7 @@ export default function MyRentals() {
                           </div>
                         }
                       >
-                        <div class="list">
+                        <div class="mt-4 grid gap-2">
                           <For each={rentedList()}>
                             {(reservation) => {
                               const mine = () =>
@@ -218,12 +219,12 @@ export default function MyRentals() {
                     </section>
 
                     <Show when={historyList().length > 0}>
-                      <details open={rentedList().length === 0}>
-                        <summary>
+                      <details class="mt-8 [&[open]_summary_svg]:rotate-180" open={rentedList().length === 0}>
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-heading leading-normal font-semibold tracking-tight text-ink-1 select-none [&::-webkit-details-marker]:hidden [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-ink-2 [&_svg]:transition-transform [&:focus-visible]:outline-2 [&:focus-visible]:outline-offset-4 [&:focus-visible]:rounded-card">
                           <span>대여 이력</span>
                           <ChevronDownIcon />
                         </summary>
-                        <div class="history-list">
+                        <div class="mt-4 grid gap-2">
                           <For each={historyList()}>
                             {(reservation) => (
                               <ReservationRow
@@ -247,19 +248,19 @@ export default function MyRentals() {
                     </Show>
                   </div>
 
-                  <aside class="side side-hide" aria-label="대여 안내">
-                    <section class="side-card">
-                      <h2>반납 안내</h2>
-                      <p>
-                        대여 중인 물품은 <b>반납하기</b>를 눌러 바로 반납할 수
+                  <aside class="flex flex-col gap-4 max-lg:hidden lg:sticky lg:top-24" aria-label="대여 안내">
+                    <section class="rounded-card border border-line bg-surface p-4">
+                      <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">반납 안내</h2>
+                      <p class="mt-2 text-fine leading-normal text-ink-2">
+                        대여 중인 물품은 <b class="font-semibold text-ink-1">반납하기</b>를 눌러 바로 반납할 수
                         있어요. 취소는 빌리지 않기로 한 경우에만 사용해요.
                       </p>
-                      <a href="/">물품 둘러보기</a>
+                      <a class="mt-4 inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1" href="/">물품 둘러보기</a>
                     </section>
 
-                    <section class="side-card">
-                      <h2>대여 이력</h2>
-                      <p>
+                    <section class="rounded-card border border-line bg-surface p-4">
+                      <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">대여 이력</h2>
+                      <p class="mt-2 text-fine leading-normal text-ink-2">
                         반납·취소한 물품은 아래 접이식 이력에서 다시 확인할 수
                         있어요.
                       </p>

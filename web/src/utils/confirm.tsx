@@ -45,7 +45,7 @@ export function ConfirmHost() {
                 {req().cancelLabel ?? "닫기"}
               </Button>
               <Button
-                variant={req().danger ? "danger" : "primary"}
+                variant={req().danger ? "danger-solid" : "primary"}
                 onClick={() => done(true)}
               >
                 {req().confirmLabel ?? "확인"}
@@ -53,7 +53,7 @@ export function ConfirmHost() {
             </>
           }
         >
-          <p class="confirm-text">{req().description ?? req().message}</p>
+          <p class="m-0 whitespace-pre-line">{req().description ?? req().message}</p>
         </Modal>
       )}
     </Show>

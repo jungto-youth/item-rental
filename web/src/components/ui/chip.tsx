@@ -15,7 +15,7 @@ export function Chip(props: Props) {
   const size = () => props.size ?? "sm";
   return (
     <div
-      class={`x-chip chips size-${size()}`}
+      class="flex min-w-0 flex-wrap items-center gap-2"
       role="group"
       aria-label={props.ariaLabel || undefined}
     >
@@ -23,7 +23,13 @@ export function Chip(props: Props) {
         {(option) => (
           <button
             type="button"
-            class={`chip ${option.value === props.value ? "active" : ""}`}
+            class={`inline-flex items-center rounded-pill border px-4 text-body whitespace-nowrap ${
+              size() === "lg" ? "h-11" : "h-9"
+            } ${
+              option.value === props.value
+                ? "border-ink-1 bg-ink-1 font-semibold text-white"
+                : "border-line bg-surface font-normal text-ink-1 hover:border-line-strong hover:bg-surface-muted"
+            } cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1 disabled:cursor-not-allowed disabled:opacity-45`}
             aria-pressed={option.value === props.value ? "true" : "false"}
             disabled={props.disabled}
             onClick={() => {

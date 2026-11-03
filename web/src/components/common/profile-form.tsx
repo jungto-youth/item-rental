@@ -17,6 +17,7 @@ type Props = {
   accountVerified?: boolean;
   avatar?: boolean;
   note?: string;
+  class?: string;
   onSaved?: () => void;
   onCancel?: () => void;
 };
@@ -60,16 +61,21 @@ export function ProfileForm(props: Props) {
 
   const heading = () => (
     <Show when={props.title}>
-      <div class="head">
+      <div class="flex items-center gap-4">
         <Show when={props.avatar}>
-          <span class="avatar" aria-hidden="true">
+          <span
+            class="flex size-12 shrink-0 items-center justify-center rounded-pill bg-primary-soft text-body font-semibold text-primary-strong"
+            aria-hidden="true"
+          >
             {initial()}
           </span>
         </Show>
         <div>
-          <h2>{props.title}</h2>
+          <h2 class="m-0 text-heading font-semibold tracking-tight">
+            {props.title}
+          </h2>
           <Show when={hint()}>
-            <p class="hint">{hint()}</p>
+            <p class="mt-2 text-fine text-ink-2">{hint()}</p>
           </Show>
         </div>
       </div>
@@ -77,19 +83,26 @@ export function ProfileForm(props: Props) {
   );
 
   return (
-    <form class="profile-form" onSubmit={submit}>
+    <form
+      class={`profile-form flex flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4 ${props.class ?? ""}`}
+      onSubmit={submit}
+    >
       {heading()}
       <Show when={props.email}>
-        <div class="account">
+        <div class="flex items-center gap-2 rounded-card bg-surface-muted px-4 py-2 text-fine text-ink-2">
           <Show when={props.accountVerified}>
-            <CheckIcon />
+            <CheckIcon class="size-4 shrink-0 text-primary-strong" />
           </Show>
-          <span>{props.accountLabel ?? "이메일"}</span>
-          <span title={props.email}>{props.email}</span>
+          <span class="shrink-0 whitespace-nowrap">
+            {props.accountLabel ?? "이메일"}
+          </span>
+          <span class="ml-auto min-w-0 truncate text-ink-1" title={props.email}>
+            {props.email}
+          </span>
         </div>
       </Show>
 
-      <div class="field">
+      <div class="flex flex-col gap-2">
         <Input
           label="이름 *"
           required
@@ -101,13 +114,13 @@ export function ProfileForm(props: Props) {
           }}
         />
         <Show when={nameError()}>
-          <p class="field-error" role="alert">
+          <p class="m-0 text-fine leading-normal text-danger" role="alert">
             {nameError()}
           </p>
         </Show>
       </div>
 
-      <div class="field">
+      <div class="flex flex-col gap-2">
         <Input
           label="휴대폰 번호 *"
           type="tel"
@@ -122,17 +135,21 @@ export function ProfileForm(props: Props) {
           }}
         />
         <Show when={phoneError()}>
-          <p class="field-error" role="alert">
+          <p class="m-0 text-fine leading-normal text-danger" role="alert">
             {phoneError()}
           </p>
         </Show>
       </div>
 
-      <p class="msg" aria-live="polite">
+      <p class="m-0 text-fine text-danger empty:hidden" aria-live="polite">
         {message()}
       </p>
 
-      <div class={`actions ${props.cancellable ? "" : "single"}`}>
+      <div
+        class={`mt-2 flex justify-end gap-2 ${
+          props.cancellable ? "" : "[&>span]:flex-1"
+        }`}
+      >
         <Show when={props.cancellable}>
           <Button
             variant="secondary"
@@ -148,7 +165,9 @@ export function ProfileForm(props: Props) {
         </Button>
       </div>
       <Show when={props.note}>
-        <p class="note">{props.note}</p>
+        <p class="m-0 text-center text-fine leading-normal text-ink-2">
+          {props.note}
+        </p>
       </Show>
     </form>
   );

@@ -45,26 +45,25 @@ export function AdminPage(props: Props) {
   );
 
   return (
-    <div class="admin-page">
+    <div class="admin-page block">
       <PageHeader title={props.title} subtitle={props.subtitle} />
       <Show when={props.message}>
         <p
-          class={`msg ${tone()}`}
+          class={`mb-6 flex items-center gap-1 text-fine ${
+            tone() === "error" ? "text-danger" : "text-ink-1"
+          }`}
           role={tone() === "error" ? "alert" : "status"}
         >
           <Show when={tone() === "success"}>
-            <CheckIcon />
+            <CheckIcon class="size-4 shrink-0 text-primary-strong" />
           </Show>
           <span>{props.message}</span>
         </p>
       </Show>
-      <Show
-        when={props.side}
-        fallback={<>{body()}</>}
-      >
-        <div class="page-split">
-          <div class="page-main">{body()}</div>
-          <aside class="page-side page-side-hide" aria-label="안내">
+      <Show when={props.side} fallback={<>{body()}</>}>
+        <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div class="min-w-0">{body()}</div>
+          <aside class="flex flex-col gap-4 max-lg:hidden" aria-label="안내">
             {props.sideContent}
           </aside>
         </div>

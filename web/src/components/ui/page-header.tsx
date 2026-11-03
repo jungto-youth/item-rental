@@ -7,16 +7,20 @@ export function PageHeader(props: {
   action?: JSX.Element;
 }) {
   return (
-    <div class="x-page-header">
-      <div class="row">
+    <div class="mb-6 block">
+      <div class="flex items-start justify-between gap-4">
         <div>
-          <h1>{props.title}</h1>
+          <h1 class="m-0 text-page-title font-bold tracking-tight text-ink-1">
+            {props.title}
+          </h1>
           <Show when={props.subtitle}>
-            <p class="subtitle">{props.subtitle}</p>
+            <p class="mt-2 text-fine leading-normal text-ink-2">
+              {props.subtitle}
+            </p>
           </Show>
         </div>
         <Show when={props.action}>
-          <div class="action">{props.action}</div>
+          <div class="flex shrink-0 items-center gap-2">{props.action}</div>
         </Show>
       </div>
     </div>

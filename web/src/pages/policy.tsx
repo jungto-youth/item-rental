@@ -32,28 +32,29 @@ export default function Policy(props: { params: Record<string, string> }) {
   };
 
   return (
-    <div class="page-policy">
-      <nav class="tabs" aria-label="정책 종류">
+    <div class="page-policy mx-auto block max-w-doc">
+      <nav class="tabs flex gap-6 border-b border-line" aria-label="정책 종류">
         <a
           href="/policy/terms"
-          class={kind() === "terms" ? "active" : ""}
+          class={`mb-[-1px] border-b-2 pb-2 text-body no-underline hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${kind() === "terms" ? "border-ink-1 font-semibold text-ink-1" : "border-transparent text-ink-2"}`}
           aria-current={kind() === "terms" ? "page" : undefined}
         >
           이용약관
         </a>
         <a
           href="/policy/privacy"
-          class={kind() === "privacy" ? "active" : ""}
+          class={`mb-[-1px] border-b-2 pb-2 text-body no-underline hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${kind() === "privacy" ? "border-ink-1 font-semibold text-ink-1" : "border-transparent text-ink-2"}`}
           aria-current={kind() === "privacy" ? "page" : undefined}
         >
           개인정보 처리방침
         </a>
       </nav>
 
-      <div class="layout">
-        <aside>
-          <p>목차</p>
+      <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6">
+        <aside class="hidden lg:sticky lg:top-24 lg:order-2 lg:block lg:self-start">
+          <p class="m-0 text-fine font-semibold text-ink-1">목차</p>
           <nav
+            class="mt-2 grid gap-2"
             aria-label={
               kind() === "privacy"
                 ? "개인정보 처리방침 목차"
@@ -63,6 +64,7 @@ export default function Policy(props: { params: Record<string, string> }) {
             <For each={sections()}>
               {(section) => (
                 <a
+                  class="text-fine text-ink-2 no-underline hover:text-ink-1"
                   href={`#${section.id}`}
                   onClick={(event) => scrollToSection(section.id, event)}
                 >
@@ -87,7 +89,7 @@ export default function Policy(props: { params: Record<string, string> }) {
 function ToTop() {
   return (
     <a
-      class="to-top"
+      class="mt-10 inline-flex text-fine text-ink-2 underline underline-offset-2 hover:text-ink-1"
       href="#top"
       onClick={(event) => {
         event.preventDefault();
@@ -101,9 +103,9 @@ function ToTop() {
 
 function PrivacyArticle() {
   return (
-    <article>
+    <article class="max-w-[680px] min-w-0 text-body leading-[1.75] lg:order-1 [&_h1]:m-0 [&_h1]:text-page-title [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:text-ink-1 [&_h2]:mt-8 [&_h2]:scroll-mt-24 [&_h2]:text-heading [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:leading-[1.4] [&_h2]:text-ink-1 [&_p]:mt-2 [&_p]:text-ink-2 [&_li]:text-ink-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-6 [&_li+li]:mt-1 [&_b]:font-semibold [&_b]:text-ink-1 [&_table]:w-full [&_table]:min-w-[420px] [&_table]:border-collapse [&_table]:text-fine [&_table]:leading-[1.75] [&_th]:border [&_th]:border-line [&_th]:bg-surface-muted [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-ink-1 [&_td]:border [&_td]:border-line [&_td]:p-2 [&_td]:text-left [&_td]:text-ink-2">
       <h1>개인정보 처리방침</h1>
-      <p class="updated">시행일: 2026-11-02</p>
+      <p class="mt-2 text-fine text-ink-2">시행일: 2026-11-02</p>
 
       <h2 id="privacy-1">1. 수집하는 개인정보 항목</h2>
       <ul>
@@ -131,7 +133,7 @@ function PrivacyArticle() {
         대여 이력 보존을 위해 탈퇴(비활성화) 후에도 기록이 남아요. 개인정보는 이용
         목적이 소멸하면 지체 없이 파기하며, 보관 기간은 다음과 같아요.
       </p>
-      <div class="table-wrap">
+      <div class="mt-4 overflow-x-auto [scrollbar-width:thin]">
         <table>
           <thead>
             <tr>
@@ -155,6 +157,9 @@ function PrivacyArticle() {
           </tbody>
         </table>
       </div>
+      <p class="mt-1 text-fine text-ink-2 sm:hidden">
+        표는 좌우로 넘겨서 볼 수 있어요.
+      </p>
 
       <h2 id="privacy-4">4. 개인정보 제3자 제공</h2>
       <p>
@@ -164,7 +169,7 @@ function PrivacyArticle() {
 
       <h2 id="privacy-5">5. 개인정보 처리 위탁</h2>
       <p>서비스 운영을 위해 아래 사업자에 개인정보 처리를 위탁하고 있어요.</p>
-      <div class="table-wrap">
+      <div class="mt-4 overflow-x-auto [scrollbar-width:thin]">
         <table>
           <thead>
             <tr>
@@ -184,6 +189,9 @@ function PrivacyArticle() {
           </tbody>
         </table>
       </div>
+      <p class="mt-1 text-fine text-ink-2 sm:hidden">
+        표는 좌우로 넘겨서 볼 수 있어요.
+      </p>
 
       <h2 id="privacy-6">6. 회원 권리</h2>
       <p>
@@ -203,9 +211,9 @@ function PrivacyArticle() {
 
 function TermsArticle() {
   return (
-    <article>
+    <article class="max-w-[680px] min-w-0 text-body leading-[1.75] lg:order-1 [&_h1]:m-0 [&_h1]:text-page-title [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:text-ink-1 [&_h2]:mt-8 [&_h2]:scroll-mt-24 [&_h2]:text-heading [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:leading-[1.4] [&_h2]:text-ink-1 [&_p]:mt-2 [&_p]:text-ink-2 [&_li]:text-ink-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-6 [&_li+li]:mt-1 [&_b]:font-semibold [&_b]:text-ink-1 [&_table]:w-full [&_table]:min-w-[420px] [&_table]:border-collapse [&_table]:text-fine [&_table]:leading-[1.75] [&_th]:border [&_th]:border-line [&_th]:bg-surface-muted [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-ink-1 [&_td]:border [&_td]:border-line [&_td]:p-2 [&_td]:text-left [&_td]:text-ink-2">
       <h1>서비스 이용약관</h1>
-      <p class="updated">시행일: 2026-09-10</p>
+      <p class="mt-2 text-fine text-ink-2">시행일: 2026-09-10</p>
 
       <h2 id="terms-1">1. 목적</h2>
       <p>

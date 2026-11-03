@@ -64,11 +64,11 @@ export function ItemRentalForm(props: {
       setIsSuccess(false);
       const code = err instanceof ApiError ? err.code : undefined;
       if (code === "no_availability") {
-        setMessage("방금 대여가 마감되었어요. 반납 후 다시 시도해주세요.");
+        setMessage("방금 대여가 마감되었어요. 반납 후 다시 시도해 주세요.");
       } else if (code === "too_many") {
         setMessage("요청 수량이 대여 가능 수량보다 많아요.");
       } else if (code === "phone_required") {
-        setMessage("내 정보에서 연락처를 먼저 등록해주세요.");
+        setMessage("내 정보에서 연락처를 먼저 등록해 주세요.");
       } else {
         setMessage(err instanceof Error ? err.message : "대여 신청에 실패했어요.");
       }
@@ -78,12 +78,15 @@ export function ItemRentalForm(props: {
   };
 
   return (
-    <div class="item-rental-form">
+    <div class="item-rental-form block">
       <Show
         when={!isSuccess()}
         fallback={
-          <div class="box success">
-            <span class="success-icon" aria-hidden="true">
+          <div class="flex flex-col items-center rounded-card border border-line bg-surface p-6 text-center">
+            <span
+              class="flex size-12 items-center justify-center rounded-pill bg-primary-soft text-primary-strong [&_svg]:size-6"
+              aria-hidden="true"
+            >
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -95,15 +98,17 @@ export function ItemRentalForm(props: {
                 <path d="M20 6 9 17l-5-5" />
               </svg>
             </span>
-            <p class="success-title">대여했어요</p>
-            <p class="success-desc">
+            <p class="mt-4 text-body font-semibold leading-normal text-ink-1">
+              대여했어요
+            </p>
+            <p class="mt-2 text-fine leading-normal text-ink-2">
               '{props.item.name}' {rentedQty()}개를 대여 중이에요.
               <br />
-              반납은 대여 기록에서 할 수 있어요.
+              반납은 대여 내역에서 할 수 있어요.
             </p>
-            <div class="success-actions">
+            <div class="mt-4 flex flex-wrap justify-center gap-2">
               <Button variant="primary" onClick={() => navigate("/my/rentals")}>
-                대여 기록
+                대여 내역
               </Button>
               <Button variant="secondary" onClick={() => navigate("/")}>
                 계속 둘러보기
@@ -145,26 +150,30 @@ export function ItemRentalForm(props: {
                     </Notice>
                   }
                 >
-                  <form class="box" onSubmit={handleSubmit}>
-                    <div class="form-head">
-                      <h3 class="title">대여 신청</h3>
-                      <span class="avail">
-                        대여 가능 <b>{availableNow()}개</b>
+                  <form
+                    class="box-border flex flex-col rounded-card border border-line bg-surface p-6 max-sm:p-4"
+                    onSubmit={handleSubmit}
+                  >
+                    <h3 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">
+                      대여 신청
+                    </h3>
+
+                    <div class="mt-4 flex items-center justify-between gap-4">
+                      <span class="text-fine font-medium text-ink-2">
+                        대여 수량
                       </span>
-                    </div>
-
-                    <div class="divider" aria-hidden="true" />
-
-                    <div class="row">
-                      <span class="label">대여 수량</span>
                       <Show
                         when={availableNow() > 1}
-                        fallback={<span class="qty-single">1개</span>}
+                        fallback={
+                          <span class="inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-body font-semibold text-ink-1">
+                            1개
+                          </span>
+                        }
                       >
-                        <div class="stepper">
+                        <div class="inline-flex h-10 items-center overflow-hidden rounded-card border border-line bg-surface">
                           <button
                             type="button"
-                            class="step-btn"
+                            class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-lg leading-[1.2] text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() => setQty((value) => Math.max(1, value - 1))}
                             disabled={qty() <= 1}
                             aria-label="수량 감소"
@@ -172,7 +181,7 @@ export function ItemRentalForm(props: {
                             −
                           </button>
                           <input
-                            class="qty-input"
+                            class="h-10 w-12 border-x border-line bg-transparent text-center text-body font-semibold text-ink-1 focus:border-primary focus:outline-none"
                             type="number"
                             inputmode="numeric"
                             min="1"
@@ -187,7 +196,7 @@ export function ItemRentalForm(props: {
                           />
                           <button
                             type="button"
-                            class="step-btn"
+                            class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-lg leading-[1.2] text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() =>
                               setQty((value) => Math.min(availableNow(), value + 1))
                             }
@@ -200,8 +209,10 @@ export function ItemRentalForm(props: {
                       </Show>
                     </div>
 
-                    <label class="memo-field">
-                      <span class="memo-title">메모 (선택)</span>
+                    <label class="mt-4 flex flex-col gap-2">
+                      <span class="text-fine font-medium text-ink-2">
+                        메모 (선택)
+                      </span>
                       <Input
                         placeholder="용도, 수령처 등"
                         value={memo()}
@@ -210,16 +221,24 @@ export function ItemRentalForm(props: {
                     </label>
 
                     <Show when={message()}>
-                      <p class="msg error" aria-live="polite">
+                      <p
+                        class="mt-2 text-fine leading-normal text-danger"
+                        aria-live="polite"
+                      >
                         {message()}
                       </p>
                     </Show>
 
-                    <Button variant="primary" type="submit" loading={saving()}>
+                    <Button
+                      class="mt-6 w-full"
+                      variant="primary"
+                      type="submit"
+                      loading={saving()}
+                    >
                       대여하기
                     </Button>
-                    <p class="note">
-                      신청하면 바로 대여 중이 돼요. 반납은 대여 기록에서 할 수 있어요.
+                    <p class="mt-2 text-fine leading-normal text-ink-2">
+                      신청하면 바로 대여 중이 돼요. 반납은 대여 내역에서 할 수 있어요.
                     </p>
                   </form>
                 </Show>

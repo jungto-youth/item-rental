@@ -56,7 +56,7 @@ export function CameraCaptureDialog(props: {
           () => {
             if (stream !== next) return;
             stopCamera();
-            setError("카메라 연결이 끊겼어요. 연결을 확인하고 다시 시도해주세요");
+            setError("카메라 연결이 끊겼어요. 연결을 확인하고 다시 시도해 주세요");
           },
           { once: true },
         );
@@ -73,13 +73,13 @@ export function CameraCaptureDialog(props: {
       stopCamera();
       const name = err instanceof DOMException ? err.name : "";
       if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-        setError("카메라 사용 권한이 없어요. 브라우저와 기기 설정에서 카메라를 허용해주세요");
+        setError("카메라 사용 권한이 없어요. 브라우저와 기기 설정에서 카메라를 허용해 주세요");
       } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-        setError("사용할 수 있는 카메라가 없어요. 카메라 연결과 기기 설정을 확인해주세요");
+        setError("사용할 수 있는 카메라가 없어요. 카메라 연결과 기기 설정을 확인해 주세요");
       } else if (name === "NotReadableError" || name === "TrackStartError") {
-        setError("카메라를 사용할 수 없어요. 다른 앱에서 사용 중인지 확인해주세요");
+        setError("카메라를 사용할 수 없어요. 다른 앱에서 사용 중인지 확인해 주세요");
       } else {
-        setError("카메라를 열 수 없어요. 브라우저와 카메라 설정을 확인해주세요");
+        setError("카메라를 열 수 없어요. 브라우저와 카메라 설정을 확인해 주세요");
       }
     } finally {
       if (gen === generation) setStarting(false);
@@ -120,7 +120,7 @@ export function CameraCaptureDialog(props: {
       close();
     } catch {
       if (gen === generation && props.open) {
-        setError("사진 촬영에 실패했어요. 다시 시도해주세요");
+        setError("사진 촬영에 실패했어요. 다시 시도해 주세요");
       }
     } finally {
       canvas.width = canvas.height = 0;
@@ -160,7 +160,7 @@ export function CameraCaptureDialog(props: {
       maxWidth="640px"
       onClose={close}
       footer={
-        <div class="camera-actions">
+        <div class="flex flex-wrap justify-end gap-2">
           <Button variant="secondary" onClick={close}>
             취소
           </Button>
@@ -185,6 +185,7 @@ export function CameraCaptureDialog(props: {
       }
     >
       <video
+        class="block max-h-[55vh] w-full rounded-card bg-ink-1 object-contain"
         ref={video}
         autoplay
         muted
@@ -192,12 +193,12 @@ export function CameraCaptureDialog(props: {
         aria-label="카메라 미리보기"
       />
       <Show when={starting()}>
-        <p class="message" role="status">
-          카메라를 열고 있어요. 권한 요청이 나오면 허용해주세요
+        <p class="mt-4 text-fine" role="status">
+          카메라를 열고 있어요. 권한 요청이 나오면 허용해 주세요
         </p>
       </Show>
       <Show when={error()}>
-        <p class="message error" role="alert">
+        <p class="mt-4 text-fine text-danger" role="alert">
           {error()}
         </p>
       </Show>

@@ -14,13 +14,13 @@ export default function Login() {
     const params = new URLSearchParams(window.location.search);
     const error = params.get("error");
     if (error === "AccessDenied") {
-      setMessage("정토회 계정(@jungto.org)으로 로그인해주세요");
+      setMessage("정토회 계정(@jungto.org)으로 로그인해 주세요");
       window.history.replaceState(null, "", window.location.pathname);
     } else if (error === "AccountDeactivated") {
-      setMessage("탈퇴 처리된 계정이에요. 관리자에게 문의해주세요");
+      setMessage("탈퇴 처리된 계정이에요. 관리자에게 문의해 주세요");
       window.history.replaceState(null, "", window.location.pathname);
     } else if (error === "SessionUnavailable") {
-      setMessage("로그인 상태를 확인할 수 없어요. 연결 상태를 확인하고 다시 시도해주세요");
+      setMessage("로그인 상태를 확인할 수 없어요. 연결 상태를 확인하고 다시 시도해 주세요");
       window.history.replaceState(null, "", window.location.pathname);
     }
   });
@@ -82,21 +82,21 @@ export default function Login() {
   };
 
   return (
-    <div class="page-login">
-      <div class="stage">
-        <div class="card">
-          <div class="brand">
-            <img class="logo" src="/logo.png" alt="" />
-            <h1>물품 대여</h1>
-            <p class="sub">
+    <div class="page-login block">
+      <div class="box-border flex min-h-dvh flex-col items-center justify-center p-6">
+        <div class="flex w-full max-w-[340px] flex-col items-center text-center">
+          <div class="flex flex-col items-center">
+            <img class="block size-10 rounded-card object-contain min-[600px]:size-12" src="/logo.png" alt="" />
+            <h1 class="mt-2 text-page-title font-bold tracking-tight text-ink-1">물품 대여</h1>
+            <p class="mt-2 max-w-[280px] text-body leading-normal text-ink-2">
               필요한 물건을 빌리고,
               <br />
               다 쓰면 돌려주세요.
             </p>
           </div>
 
-          <button class="google" type="button" disabled={busy()} onClick={() => void signIn()}>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
+          <button class="mt-8 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-surface px-4 text-body font-medium leading-[1.2] text-ink-1 transition-colors enabled:hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" type="button" disabled={busy()} onClick={() => void signIn()}>
+            <svg class="size-[18px] shrink-0" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 fill="#4285F4"
                 d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.53 5.53 0 0 1-2.4 3.58v2.98h3.88c2.27-2.09 3.54-5.17 3.54-8.8Z"
@@ -117,18 +117,18 @@ export default function Login() {
             {busy() ? "이동 중…" : "Google로 계속하기"}
           </button>
 
-          <p class="msg" role="alert" aria-live="polite">
+          <p class="mt-2 text-fine leading-normal text-danger empty:hidden" role="alert" aria-live="polite">
             {message()}
           </p>
 
-          <p class={`note ${message() ? "hidden" : ""}`}>
+          <p class={`mt-4 text-fine leading-normal text-ink-2 ${message() ? "hidden" : ""}`}>
             정토회 계정(@jungto.org)으로 로그인하면
             <br />
             바로 회원이 돼요.
           </p>
 
           <Show when={localTestLogin()}>
-            <form class="dev" onSubmit={signInLocalTest}>
+            <form class="mt-6 flex w-full flex-col gap-2 border-t border-dashed border-line-strong pt-6" onSubmit={signInLocalTest}>
               <label for="dev-code">
                 테스트 접근 코드
                 <input
@@ -146,9 +146,9 @@ export default function Login() {
                 />
               </label>
               <Show when={!developmentConfigured()}>
-                <p class="msg" role="status">
+                <p class="mt-2 text-fine leading-normal text-danger empty:hidden" role="status">
                   .dev.vars에 무작위 DEV_LOGIN_CODE(32자 이상)를 설정하고 개발 서버를
-                  다시 실행해주세요
+                  다시 실행해 주세요
                 </p>
               </Show>
               <Button
@@ -163,10 +163,10 @@ export default function Login() {
           </Show>
         </div>
 
-        <footer>
-          <a href="/policy/terms">이용약관</a>
-          <span aria-hidden="true">·</span>
-          <a href="/policy/privacy">개인정보처리방침</a>
+        <footer class="mt-10 flex items-center gap-2 text-fine text-ink-2">
+          <a class="text-ink-2 no-underline hover:text-ink-1 hover:underline" href="/policy/terms">이용약관</a>
+          <span aria-hidden="true" class="text-line-strong">·</span>
+          <a class="text-ink-2 no-underline hover:text-ink-1 hover:underline" href="/policy/privacy">개인정보 처리방침</a>
         </footer>
       </div>
     </div>
