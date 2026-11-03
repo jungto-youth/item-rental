@@ -13,6 +13,7 @@ import { availableQty } from "../utils/stock";
 import { Button } from "../components/ui/button";
 import { Empty } from "../components/ui/empty";
 import { InfoList } from "../components/ui/info-list";
+import { Skeleton } from "../components/ui/skeleton";
 import { TextButton } from "../components/ui/text-button";
 import { ChevronLeftIcon } from "../components/icons";
 import { ItemGallery } from "../components/features/item/item-gallery";
@@ -163,19 +164,22 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
           aria-label="물품 정보를 불러오는 중"
         >
           <div class="flex flex-col gap-2" aria-hidden="true">
-            <div class="aspect-[4/3] animate-[pulse_1.4s_ease-in-out_infinite] rounded-card border border-line bg-surface-muted" />
+            <Skeleton
+              tone="muted"
+              class="aspect-[4/3] rounded-card border border-line"
+            />
             <div class="grid grid-cols-3 gap-2">
-              <div class="aspect-[4/3] animate-[pulse_1.4s_ease-in-out_infinite] rounded-card bg-surface-muted" />
-              <div class="aspect-[4/3] animate-[pulse_1.4s_ease-in-out_infinite] rounded-card bg-surface-muted" />
-              <div class="aspect-[4/3] animate-[pulse_1.4s_ease-in-out_infinite] rounded-card bg-surface-muted" />
+              <Skeleton tone="muted" class="aspect-[4/3] rounded-card" />
+              <Skeleton tone="muted" class="aspect-[4/3] rounded-card" />
+              <Skeleton tone="muted" class="aspect-[4/3] rounded-card" />
             </div>
           </div>
           <div class="grid content-start gap-4 pt-2" aria-hidden="true">
-            <div class="h-7 w-3/5 animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
-            <div class="h-3.5 w-[90%] animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
-            <div class="h-3.5 w-[70%] animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
-            <div class="h-3.5 w-[45%] animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
-            <div class="h-[120px] animate-[pulse_1.4s_ease-in-out_infinite] rounded-card bg-surface-muted" />
+            <Skeleton class="h-7 w-3/5 rounded" />
+            <Skeleton class="h-3.5 w-[90%] rounded" />
+            <Skeleton class="h-3.5 w-[70%] rounded" />
+            <Skeleton class="h-3.5 w-[45%] rounded" />
+            <Skeleton tone="muted" class="h-[120px] rounded-card" />
           </div>
         </div>
       </Show>

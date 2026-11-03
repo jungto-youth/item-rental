@@ -35,6 +35,39 @@ KNOWN_CONF = ("exact", "derived", "min")
 # 사이즈가 이미 이름에 들어 있는지 판단할 때 쓰는 표기
 SIZE_TOKENS = ("XL", "2XL", "3XL", "L", "M", "S", "혼합색상", "750ml", "15개", "8색")
 
+# 시트에서 '향후 처리방안' 컬럼이 사라져(2026-10) 대여/배부 구분이 없어졌다.
+# 기본 정책: 소모품·약품만 consumable, 나머지는 대여 가능으로 본다.
+# (사람이 review.csv 에서 '반영'을 고치면 그 결정이 우선한다)
+CONSUMABLE_CATEGORY_PREFIX = ("F1", "C3")  # 위생/소모품, 포장/제작
+CONSUMABLE_NAMES = {
+    "근육통약",
+    "반창고",
+    "붕대 테이프",
+    "뿌리는 상처소독제",
+    "뿌리는파스",
+    "설사약",
+    "위염,식도염 약",
+    "타이레놀",
+    "화상치료제",
+    "후시딘",
+    "죽염",
+    "부탄가스",
+    "핫팩",
+    "대나무 스푼(일회용)",
+}
+
+
+def item_kind(it: dict) -> str:
+    """대여품/소모품 구분 — review.csv '종류' 컬럼으로 넘겨 import 스크립트가 그대로 쓴다."""
+    name = " ".join(it["name"].split())
+    if (
+        "일회용" in name
+        or it["category"].startswith(CONSUMABLE_CATEGORY_PREFIX)
+        or name in CONSUMABLE_NAMES
+    ):
+        return "consumable"
+    return "rental"
+
 
 def site_name(it: dict) -> str:
     """목록에서 구분되도록 사이즈를 이름에 붙인다."""
@@ -93,6 +126,9 @@ def warnings(it: dict, dup_names: dict[str, int]) -> list[str]:
 
 def decide(it: dict) -> tuple[str, str]:
     """(반영, 사유) — 기본값만 정한다. 최종 결정은 사람이 review.csv 에서 한다."""
+    if it["disposition"] == "unrecorded":
+        # 시트에 처리방안 컬럼이 없다 — 소모품·약품만 빼고 대여 가능으로 기본 승인
+        return "O", ""
     if it["disposition"] != "undecided":
         return "X", f"처리방안 확정({it['disposition_raw']}) — 대여 대상 아님"
     if it["qty_confidence"] not in KNOWN_CONF or it["qty_total"] is None:
@@ -114,6 +150,7 @@ HEADER = [
     "수량",  # items.total_qty
     "최대대여일",  # items.max_days
     "상태",  # items.status
+    "종류",  # items.kind — rental / consumable
     "사유",
     "경고",
     "분류",  # items.category — 시트 '분류' 컬럼 값 그대로 (13개 고정값)
@@ -127,6 +164,20 @@ HEADER = [
 ]
 
 
+def load_previous(path: Path | None = None) -> dict[str, dict[str, str]]:
+    """기존 review.csv 의 사람 결정을 ID 로 보관한다.
+
+    review.csv 는 스크립트 산출물이지만 '반영' 컬럼만은 사람이 고친 값이다.
+    시트가 개편돼 다시 생성할 때 이 결정을 잃지 않도록 ID 로 이어받는다.
+    `--previous=<csv>` 로 다른 파일(예: git 의 마지막 커밋본)을 기준 삼을 수 있다.
+    """
+    path = path or OUT_CSV
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8-sig", newline="") as f:
+        return {row["ID"]: row for row in csv.DictReader(f) if row.get("ID")}
+
+
 def main() -> int:
     if not ITEMS.exists():
         print(
@@ -137,6 +188,11 @@ def main() -> int:
 
     data = json.loads(ITEMS.read_text(encoding="utf-8"))
     items: list[dict] = data["items"]
+    prev_arg = next(
+        (a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--previous=")),
+        None,
+    )
+    previous = load_previous(Path(prev_arg) if prev_arg else OUT_CSV)
 
     dup_names: dict[str, int] = {}
     for it in items:
@@ -144,8 +200,18 @@ def main() -> int:
 
     rows: list[dict[str, str]] = []
     stats = {"O": 0, "X": 0, "보류": 0}
+    carried = 0
     for it in items:
         반영, 사유 = decide(it)
+        prev = previous.get(it["id"])
+        # O(승인)·X(제외)만 승계한다. '보류'는 미결정이라 시트가 갱신되면 다시 판단한다.
+        if prev and (prev.get("반영") or "").strip() in ("O", "X"):
+            반영 = prev["반영"].strip()
+            사유 = (prev.get("사유") or "").strip()
+            carried += 1
+        # 수량이 비면 total_qty 로 쓸 수 없다 — 이전 결정이 O 여도 되돌린다
+        if 반영 == "O" and it["qty_total"] is None:
+            반영, 사유 = "보류", "수량 빈칸 — 시트에 수량을 채운 뒤 반영"
         stats[반영] += 1
         상태 = (
             "repair"
@@ -153,6 +219,9 @@ def main() -> int:
             else "active"
         )
         assert 상태 in VALID_STATUS
+        max_days = DEFAULT_MAX_DAYS
+        if prev and str(prev.get("최대대여일") or "").isdigit():
+            max_days = int(prev["최대대여일"])
         rows.append(
             {
                 "반영": 반영,
@@ -160,8 +229,9 @@ def main() -> int:
                 "사이트명": site_name(it),
                 "설명": site_description(it),
                 "수량": "" if it["qty_total"] is None else str(it["qty_total"]),
-                "최대대여일": str(DEFAULT_MAX_DAYS),
+                "최대대여일": str(max_days),
                 "상태": 상태,
+                "종류": item_kind(it),
                 "사유": 사유,
                 "경고": ", ".join(warnings(it, dup_names)),
                 "분류": it["category"],
@@ -183,6 +253,7 @@ def main() -> int:
     print(
         f"review.csv 생성 — {len(rows)}건 (반영 {stats['O']} / 제외 {stats['X']} / 보류 {stats['보류']})"
     )
+    print(f"  기존 review.csv 결정 승계 {carried}건")
     print(f"  {OUT_CSV}")
     print("\n[검토 방법]")
     print("  1) review.csv 를 열어 '반영' 컬럼만 O / X / 보류 로 고친다")
@@ -190,7 +261,7 @@ def main() -> int:
     print(
         "  3) npm run db:import-items                      ← 미리보기(DB 변경 없음)"
     )
-    print("     npm run db:import-items -- --apply            ← 실제 반영")
+    print("     npm run db:import-items -- --update           ← 기존 행 갱신 포함")
     return 0
 
 

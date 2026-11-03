@@ -59,7 +59,8 @@ type Plan = {
   name: string;
   description: string | null;
   total_qty: number;
-  status: ItemStatus;
+  lifecycle: "active" | "retired";
+  qty_repair: number;
   kind: "rental" | "consumable";
   location: string | null;
 };
@@ -80,10 +81,12 @@ if (!/^[\w.-]+\.csv$/.test(csvName)) {
 const ITEM_STATUS = ["active", "repair", "retired"] as const;
 type ItemStatus = (typeof ITEM_STATUS)[number];
 
-// 시트에는 kind 컬럼이 없다 — 유일하게 확실한 소모품 신호는 이름의 '일회용'
-// (젓가락·스푼·물티슈 3건). 나머지는 전부 대여품으로 넣고 관리자 화면에서 고친다.
-function toKind(name: string): "rental" | "consumable" {
-  return name.includes("일회용") ? "consumable" : "rental";
+// review.csv 의 '종류' 컬럼이 정본 — 없으면(예: xa-review.csv) 이름/분류로 추정한다.
+function toKind(name: string, category: string, kindCol: string): "rental" | "consumable" {
+  if (kindCol === "rental" || kindCol === "consumable") return kindCol;
+  return name.includes("일회용") || category.includes("소모품")
+    ? "consumable"
+    : "rental";
 }
 
 const csvPath = new URL(`../../data/sheet-import/${csvName}`, import.meta.url);
@@ -132,6 +135,7 @@ for (const row of table.slice(1)) {
     // 관리자 전용 필드로 0016 에서 제거 — 가져오지 않는다. color 는 시트에 컬럼이 없다.
     const rawDesc = col(row, "설명");
     const size = col(row, "원본사이즈");
+    // 0005 이후 items.status 는 없다 — repair 는 '수량의 상태'(qty_repair)로 옮긴다.
     plan.push({
       id,
       name,
@@ -139,8 +143,9 @@ for (const row of table.slice(1)) {
         ? (rawDesc ? `${rawDesc} (규격: ${size})` : `규격: ${size}`)
         : (rawDesc || null),
       total_qty,
-      status,
-      kind: toKind(name),
+      lifecycle: status === "retired" ? "retired" : "active",
+      qty_repair: status === "repair" ? total_qty : 0,
+      kind: toKind(name, col(row, "분류"), col(row, "종류")),
       location: col(row, "위치") || null,
     });
   } else errors.push(`${id}: 상태 값 오류 ("${status}")`);
@@ -159,33 +164,53 @@ const q = (v: string | null) =>
   v === null ? "NULL" : `'${v.replace(/'/g, "''")}'`;
 
 const stmts: string[] = [];
+
+// locations 는 별도 테이블(0005) — CSV 의 이름을 먼저 확보한 뒤 id 로 참조한다.
+const locationNames = [
+  ...new Set(plan.map((p) => p.location).filter((v): v is string => !!v)),
+];
+for (const name of locationNames) {
+  stmts.push(`INSERT OR IGNORE INTO locations (name) VALUES (${q(name)});`);
+}
+
+// items.location_id 참조식
+const locRef = (name: string | null) =>
+  name === null ? "NULL" : `(SELECT id FROM locations WHERE name = ${q(name)})`;
+
+// items_fts 색인 문장 — server/src/services/item-fts.service.ts 와 같은 규칙
+// (위치는 locations 조인, 태그는 카테고리 이름). 여기서는 카테고리를 붙이지 않으므로 tags 는 빈 값.
+const ftsInsert = (predicate: string) =>
+  `INSERT INTO items_fts (rowid, name, description, location, tags)\n` +
+  `SELECT i.id, i.name, COALESCE(i.description, ''),\n` +
+  `       COALESCE((SELECT l.name FROM locations l WHERE l.id = i.location_id), ''),\n` +
+  `       COALESCE((SELECT group_concat(c.name, ' ') FROM (SELECT c.name FROM item_categories ic\n` +
+  `          JOIN categories c ON c.id = ic.category_id\n` +
+  `         WHERE ic.item_id = i.id ORDER BY c.name) c), '')\n` +
+  `  FROM items i WHERE ${predicate}`;
+
 for (const p of plan) {
   // 멱등 가드 — 같은 source_key 가 있으면 건너뛴다
   stmts.push(
-    `INSERT INTO items (name, description, status, total_qty, source_key, kind, location)\n` +
-      `SELECT ${q(p.name)}, ${q(p.description)}, ${q(p.status)}, ${p.total_qty}, ${q(p.id)}, ${q(p.kind)}, ${q(p.location)}\n` +
+    `INSERT INTO items (name, description, total_qty, source_key, kind, lifecycle, qty_repair, location_id)\n` +
+      `SELECT ${q(p.name)}, ${q(p.description)}, ${p.total_qty}, ${q(p.id)}, ${q(p.kind)}, ${q(p.lifecycle)}, ${p.qty_repair}, ${locRef(p.location)}\n` +
       `WHERE NOT EXISTS (SELECT 1 FROM items WHERE source_key = ${q(p.id)});`,
   );
   // INSERT가 0행이어도(이미 있음) FTS 행이 없으면 채운다
-  stmts.push(
-    `INSERT INTO items_fts (rowid, name, description, location, tags)\n` +
-      `SELECT i.id, i.name, COALESCE(i.description, ''), COALESCE(i.location, ''), ''\n` +
-      `FROM items i WHERE i.source_key = ${q(p.id)}\n` +
-      `  AND NOT EXISTS (SELECT 1 FROM items_fts WHERE rowid = i.id);`,
-  );
+  stmts.push(ftsInsert(`i.source_key = ${q(p.id)}`) + `\n  AND NOT EXISTS (SELECT 1 FROM items_fts WHERE rowid = i.id);`);
   if (UPDATE) {
     // 기존 행 갱신 — 없는 key면 무시된다(0행 UPDATE)
     stmts.push(
-      `UPDATE items SET name = ${q(p.name)}, description = ${q(p.description)}, status = ${q(p.status)},\n` +
-        `       total_qty = ${p.total_qty}, kind = ${q(p.kind)}, location = ${q(p.location)}\n` +
+      `UPDATE items SET name = ${q(p.name)}, description = ${q(p.description)},\n` +
+        `       total_qty = ${p.total_qty}, kind = ${q(p.kind)}, lifecycle = ${q(p.lifecycle)},\n` +
+        `       qty_repair = ${p.qty_repair}, location_id = ${locRef(p.location)},\n` +
+        `       updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')\n` +
         `WHERE source_key = ${q(p.id)};`,
     );
     // 갱신된 텍스트를 FTS에도 반영 — DELETE+INSERT(FTS5는 UPSERT 미지원)
     stmts.push(
       `DELETE FROM items_fts WHERE rowid IN (SELECT id FROM items WHERE source_key = ${q(p.id)});\n` +
-        `INSERT INTO items_fts (rowid, name, description, location, tags)\n` +
-        `SELECT id, name, COALESCE(description, ''), COALESCE(location, ''), ''\n` +
-        `FROM items WHERE source_key = ${q(p.id)};`,
+        ftsInsert(`i.source_key = ${q(p.id)}`) +
+        ";",
     );
   }
 }
@@ -206,11 +231,13 @@ console.log(
 console.log("\n반영 예정:");
 for (const p of plan.slice(0, 200)) {
   const extra =
-    p.status === "repair"
+    p.qty_repair > 0
       ? " [수리중]"
-      : p.kind === "consumable"
-        ? " [소모품]"
-        : "";
+      : p.lifecycle === "retired"
+        ? " [폐기]"
+        : p.kind === "consumable"
+          ? " [소모품]"
+          : "";
   console.log(
     `  + ${p.id} ${p.name} — ${p.total_qty}개${extra}${p.location ? ` @${p.location}` : ""}`,
   );

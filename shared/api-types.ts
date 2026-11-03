@@ -89,6 +89,14 @@ export type ReservationStatus =
   | "cancelled"
   | "rejected";
 
+// 반납 상태 사진 (0009) — 반납 시점의 물품 상태를 남긴다.
+// uploaded_role 로 회원이 올린 증빙과 관리자의 회수 확인 사진을 구분한다.
+export type ReservationPhoto = {
+  id: number;
+  url: string;
+  uploaded_role: "member" | "admin";
+};
+
 export type MyReservation = {
   id: number;
   item_id: number;
@@ -108,6 +116,8 @@ export type MyReservation = {
   // 승인·거절 처리 시각과 거절 사유 (0007).
   decided_at: string | null;
   rejected_reason: string | null;
+  // 반납 시점에 첨부한 상태 사진 — 최대 3장, 없으면 빈 배열.
+  return_photos: ReservationPhoto[];
 };
 
 export type AdminReservation = MyReservation & {

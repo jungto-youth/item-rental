@@ -66,6 +66,7 @@ npx wrangler d1 migrations apply item-rental-db --remote
 | `0006_inventory_adjustments.sql` | 재고 수량 조정 이력 |
 | `0007_reservation_approval.sql` | 대여 승인 상태·소속 스냅샷 |
 | `0008_drop_inventory_adjustments.sql` | 재고 수량 조정 이력 기능 제거 |
+| `0009_reservation_photos.sql` | 반납 상태 사진 (`reservation_photos`) |
 
 로컬과 운영은 자동으로 다른 DB를 쓴다(로컬은 로컬 SQLite 파일, 운영은 원격 D1).
 
@@ -81,6 +82,9 @@ npm run db:import-items                          # 시트 물품 일괄 반영 S
 - 생성물은 `server/scripts/out/`에 남고 커밋하지 않는다.
 - 시트 원장과 반영 리포트는 `data/sheet-import/`에 있다. `report.md`는 스크립트 생성물이라
   직접 고치지 않는다.
+- `data/sheet-import/build.py --fetch` 는 **서비스 계정** 키로 시트를 읽는다.
+  키 경로는 `GOOGLE_SA_KEY` 환경변수, 없으면 `~/.config/item-rental/google-sa.json`.
+  키의 `client_email` 을 시트에 뷰어로 공유해야 한다. 키 파일은 커밋하지 않는다.
 
 DB에 직접 넣은 물품은 검색용 임베딩이 없다. 관리자 세션으로
 `POST /api/admin/reembed-all`을 끝날 때까지 반복 호출해 채운다.

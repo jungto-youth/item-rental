@@ -9,8 +9,18 @@ import { SQL_NOW, type Sql } from "../db";
 import type {
   AdminReservation,
   MyReservation,
+  ReservationPhoto,
 } from "../../../shared/api-types";
 import { defaultDueAtIso } from "../../../shared/rental-period";
+
+// D1 의 json_group_array 는 TEXT 를 돌려주고, 행이 없으면 NULL 이다.
+// 화면 계약은 항상 배열이므로 여기서 [] 로 정규화한다.
+function parseReturnPhotos(value: unknown): ReservationPhoto[] {
+  if (typeof value === "string") {
+    return JSON.parse(value) as ReservationPhoto[];
+  }
+  return (value ?? []) as ReservationPhoto[];
+}
 
 // 대여 가능 아이템 조회 (사전 검사용)
 export type ReserveItem = {
@@ -154,15 +164,28 @@ export async function getMyReservations(
             r.qty, r.status, r.member_memo, r.created_at, r.updated_at,
             r.due_at,
             (r.status = 'rented' AND r.due_at IS NOT NULL AND r.due_at < ${SQL_NOW}) AS is_overdue,
-            r.decided_at, r.rejected_reason
+            r.decided_at, r.rejected_reason,
+            (SELECT json_group_array(json_object(
+                      'id', p.id,
+                      'url', '/api/photos/' || p.r2_key,
+                      'uploaded_role', p.uploaded_role))
+               FROM (SELECT id, r2_key, uploaded_role FROM reservation_photos
+                      WHERE reservation_id = r.id ORDER BY sort_order) p) AS return_photos
        FROM reservations r
        JOIN items ON items.id = r.item_id
       WHERE r.member_id = ?1
       ORDER BY r.created_at DESC`,
     [memberId],
-  )) as (Omit<MyReservation, "is_overdue"> & { is_overdue: number })[];
+  )) as (Omit<MyReservation, "is_overdue" | "return_photos"> & {
+    is_overdue: number;
+    return_photos: unknown;
+  })[];
   // SQLite 는 boolean 식을 0/1 로 돌려준다 — API 계약(boolean)을 유지한다
-  return rows.map((row) => ({ ...row, is_overdue: row.is_overdue !== 0 }));
+  return rows.map((row) => ({
+    ...row,
+    is_overdue: row.is_overdue !== 0,
+    return_photos: parseReturnPhotos(row.return_photos),
+  }));
 }
 
 // ===== 본인 조작: 취소·반납 () =====
@@ -294,7 +317,13 @@ export async function listReservations(
             -- 누가 반납 처리했는가 — 반납은 관리자와 회원이 모두 할 수 있다.
             -- admin_id 는 '처리한 관리자'라, 비어 있는 returned 행은 회원이 직접 반납한 것이다.
             -- 회원 반납은 자기 신고이므로 관리자가 목록에서 구분해 확인할 수 있어야 한다.
-            (r.status = 'returned' AND r.admin_id IS NULL) AS returned_by_member
+            (r.status = 'returned' AND r.admin_id IS NULL) AS returned_by_member,
+            (SELECT json_group_array(json_object(
+                      'id', p.id,
+                      'url', '/api/photos/' || p.r2_key,
+                      'uploaded_role', p.uploaded_role))
+               FROM (SELECT id, r2_key, uploaded_role FROM reservation_photos
+                      WHERE reservation_id = r.id ORDER BY sort_order) p) AS return_photos
        FROM reservations r
        JOIN items ON items.id = r.item_id
        JOIN members m ON m.id = r.member_id
@@ -315,10 +344,12 @@ export async function listReservations(
   const reservations = (rows as (Record<string, unknown> & {
     returned_by_member: number;
     is_overdue: number;
+    return_photos: unknown;
   })[]).map((r) => ({
     ...r,
     returned_by_member: r.returned_by_member !== 0,
     is_overdue: r.is_overdue !== 0,
+    return_photos: parseReturnPhotos(r.return_photos),
   })) as AdminReservation[];
   return { reservations, truncated };
 }

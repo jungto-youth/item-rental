@@ -16,6 +16,7 @@ import { AdminPage } from "../../components/admin/admin-page";
 import { Button } from "../../components/ui/button";
 import { Chip } from "../../components/ui/chip";
 import { Input } from "../../components/ui/input";
+import { Skeleton } from "../../components/ui/skeleton";
 import { CategoryTagsInput } from "../../components/features/category/category-tags-input";
 import {
   PhotoUploader,
@@ -55,6 +56,15 @@ type AdminItemDetail = {
 };
 
 type StagedPhoto = { file: File; url: string };
+
+function SkeletonField(props: { labelWidth?: string }) {
+  return (
+    <div class="grid gap-2">
+      <Skeleton class={`h-3.5 ${props.labelWidth ?? "w-16"} rounded`} />
+      <Skeleton tone="muted" class="h-10 w-full rounded-card" />
+    </div>
+  );
+}
 
 export default function AdminItemForm(props: { params: Record<string, string> }) {
   const [form, setForm] = createSignal<ItemFormModel>({ ...EMPTY_FORM });
@@ -393,6 +403,56 @@ export default function AdminItemForm(props: { params: Record<string, string> })
     navigate(isCreate() ? "/" : `/items/${targetId()}`);
   };
 
+  const renderSkeleton = () => (
+    <div
+      class="flex max-w-full flex-col gap-4"
+      role="status"
+      aria-label="물품 정보를 불러오는 중"
+    >
+      <section
+        class="flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4"
+        aria-hidden="true"
+      >
+        <Skeleton class="h-5 w-24 rounded" />
+        <SkeletonField />
+        <SkeletonField labelWidth="w-20" />
+        <div class="grid gap-2">
+          <Skeleton class="h-3.5 w-12 rounded" />
+          <Skeleton tone="muted" class="h-20 w-full rounded-card" />
+        </div>
+      </section>
+
+      <section
+        class="flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4"
+        aria-hidden="true"
+      >
+        <Skeleton class="h-5 w-20 rounded" />
+        <SkeletonField labelWidth="w-14" />
+        <div class="grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
+          <div class="grid gap-2">
+            <Skeleton class="h-3.5 w-10 rounded" />
+            <Skeleton tone="muted" class="h-9 w-full rounded-pill" />
+          </div>
+          <div class="grid gap-2">
+            <Skeleton class="h-3.5 w-10 rounded" />
+            <Skeleton tone="muted" class="h-9 w-full rounded-pill" />
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4"
+        aria-hidden="true"
+      >
+        <Skeleton class="h-5 w-12 rounded" />
+        <div class="grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
+          <SkeletonField labelWidth="w-20" />
+          <SkeletonField labelWidth="w-20" />
+        </div>
+      </section>
+    </div>
+  );
+
   return (
     <AdminPage
       title={isCreate() ? "물품 등록" : "물품 수정"}
@@ -402,6 +462,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
           : "물품 정보와 사진을 수정합니다."
       }
       loading={loading()}
+      loadingContent={renderSkeleton()}
       error={loadError()}
       onRetry={init}
       action={

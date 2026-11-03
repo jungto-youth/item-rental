@@ -10,6 +10,14 @@ export function PhotoUploader(props: {
   entries: PhotoEntry[];
   multiple?: boolean;
   disabled?: boolean;
+  /** 최대 장수 — 기본은 물품 사진 한도. 반납 사진은 MAX_RETURN_PHOTOS 를 넘긴다. */
+  max?: number;
+  /** 입력 위 라벨 — 기본 '사진 관리' */
+  label?: string;
+  /** 첫 사진 '대표' 배지 — 반납 사진처럼 대표 개념이 없으면 false */
+  showCoverBadge?: boolean;
+  /** 형식·용량 안내 문구 — 생략하면 기본 물품 사진 문구 */
+  hint?: string;
   onUpload: (files: File[]) => void;
   onRemove: (key: string | number) => void;
 }) {
@@ -20,7 +28,8 @@ export function PhotoUploader(props: {
   const [cameraOpen, setCameraOpen] = createSignal(false);
   const [cameraMessage, setCameraMessage] = createSignal("");
 
-  const canAdd = () => !props.disabled && props.entries.length < MAX_PHOTOS;
+  const max = () => props.max ?? MAX_PHOTOS;
+  const canAdd = () => !props.disabled && props.entries.length < max();
 
   const openChooser = () => {
     if (!canAdd()) return;
@@ -73,9 +82,9 @@ export function PhotoUploader(props: {
     <div class="block">
       <div class="flex flex-col gap-2">
         <span class="flex items-center justify-between gap-4 text-fine font-medium text-ink-2">
-          <span>사진 관리</span>
+          <span>{props.label ?? "사진 관리"}</span>
           <span class="tabular-nums">
-            {props.entries.length} / {MAX_PHOTOS}
+            {props.entries.length} / {max()}
           </span>
         </span>
 
@@ -103,7 +112,7 @@ export function PhotoUploader(props: {
             {(photo, index) => (
               <div class="relative aspect-[4/3] w-full overflow-hidden rounded-card border border-line bg-surface-muted">
                 <img class="block size-full object-cover" src={photo.url} alt="" />
-                <Show when={index() === 0}>
+                <Show when={props.showCoverBadge !== false && index() === 0}>
                   <span class="absolute top-2 left-2 inline-flex h-6 items-center rounded-pill bg-primary-soft px-2 text-fine font-medium text-primary-strong">대표</span>
                 </Show>
                 <button
@@ -119,7 +128,7 @@ export function PhotoUploader(props: {
               </div>
             )}
           </For>
-          <For each={Array.from({ length: MAX_PHOTOS - props.entries.length })}>
+          <For each={Array.from({ length: max() - props.entries.length })}>
             {() => (
               <button
                 type="button"
@@ -149,8 +158,8 @@ export function PhotoUploader(props: {
         </div>
 
         <p class="m-0 text-fine text-ink-2">
-          JPEG · PNG · WebP · 원본 용량 제한 없음 · 최대 {MAX_PHOTOS}장 · 업로드 전
-          2MB 이하로 자동 축소
+          {props.hint ??
+            `JPEG · PNG · WebP · 원본 용량 제한 없음 · 최대 ${max()}장 · 업로드 전 2MB 이하로 자동 축소`}
         </p>
         <Show when={cameraMessage()}>
           <p class="m-0 text-fine text-ink-2" role="status">

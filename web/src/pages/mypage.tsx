@@ -1,10 +1,11 @@
-import { Show, createSignal, onSettled } from "solid-js";
+import { For, Show, createSignal, onSettled } from "solid-js";
 import { session } from "../context/session";
 import { Button } from "../components/ui/button";
 import { Empty } from "../components/ui/empty";
 import { PageHeader } from "../components/ui/page-header";
 import { ProfileForm } from "../components/common/profile-form";
 import { InfoList } from "../components/ui/info-list";
+import { Skeleton } from "../components/ui/skeleton";
 import { CheckIcon } from "../components/icons";
 
 export default function MyPage() {
@@ -29,9 +30,67 @@ export default function MyPage() {
     setSaved(true);
   };
 
+  const renderSkeleton = () => (
+    <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div class="min-w-0">
+        <Skeleton class="h-6 w-24 rounded" />
+        <div
+          class="mt-4 box-border rounded-card border border-line bg-surface p-6 max-sm:p-4"
+          aria-hidden="true"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex min-w-0 items-center gap-4">
+              <Skeleton tone="muted" class="size-12 shrink-0 rounded-pill" />
+              <div class="min-w-0 flex-1">
+                <Skeleton class="h-4 w-32 rounded" />
+                <Skeleton class="mt-2 h-3.5 w-16 rounded" />
+              </div>
+            </div>
+            <Skeleton tone="muted" class="h-10 w-16 shrink-0 rounded-card" />
+          </div>
+          <div class="mt-6 border-y border-line">
+            <For each={Array.from({ length: 3 })}>
+              {() => (
+                <div class="flex items-center justify-between gap-4 border-b border-line py-2 last:border-b-0">
+                  <Skeleton class="h-3.5 w-14 rounded" />
+                  <Skeleton class="h-4 w-28 rounded" />
+                </div>
+              )}
+            </For>
+          </div>
+        </div>
+      </div>
+
+      <aside class="flex flex-col gap-4 max-lg:hidden" aria-hidden="true">
+        <div class="rounded-card border border-line bg-surface p-4">
+          <Skeleton class="h-4 w-20 rounded" />
+          <Skeleton class="mt-2 h-3.5 w-full rounded" />
+          <Skeleton class="mt-2 h-3.5 w-4/5 rounded" />
+          <Skeleton tone="muted" class="mt-4 h-10 w-28 rounded-card" />
+        </div>
+        <div class="rounded-card border border-line bg-surface p-4">
+          <Skeleton class="h-4 w-20 rounded" />
+          <Skeleton class="mt-2 h-3.5 w-full rounded" />
+          <Skeleton class="mt-2 h-3.5 w-3/4 rounded" />
+        </div>
+      </aside>
+    </div>
+  );
+
   return (
     <div class="page-mypage block">
-      <Show when={!loading()} fallback={<Empty state="loading" />}>
+      <Show
+        when={!loading()}
+        fallback={
+          <>
+            <PageHeader
+              title="내 정보"
+              subtitle="계정 정보와 연락처를 관리합니다."
+            />
+            {renderSkeleton()}
+          </>
+        }
+      >
         <Show
           when={user()}
           fallback={<Empty state="empty" text="로그인이 필요합니다" />}
