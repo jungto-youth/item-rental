@@ -1,14 +1,16 @@
 // 대여(Rental) 도메인 서비스 — 신청/취소/내역/관리자 전이의 SQL 을 직접 소유
 // 가용성 검사 + batch 원자 가드, 조건부 상태 전이
 //
-// 날짜·기간·최대 대여일이 없는 단순 모델이다. 회원이 수량+메모로 신청하면 즉시
-// '대여 중'(rented)이 되고, 관리자는 반납(returned)만 처리한다. 가용성은
-// "지금 대여 중인 수량의 합"만 센다 — 일별 점유도, 승인 대기 예약도 없다.
+// 반납 예정일(due_at)은 있지만 승인·일별 점유는 없다. 회원이 수량·메모·반납
+// 예정일로 신청하면 즉시 '대여 중'(rented)이 되고, 관리자는 반납(returned)만
+// 처리한다. 가용성은 "지금 대여 중인 수량의 합"만 센다 — 일별 점유도, 승인
+// 대기 예약도 없다. 연체는 저장하지 않고 due_at < now 로 파생한다.
 import { SQL_NOW, type Sql } from "../db";
 import type {
   AdminReservation,
   MyReservation,
 } from "../../../shared/api-types";
+import { defaultDueAtIso } from "../../../shared/rental-period";
 
 // 대여 가능 아이템 조회 (사전 검사용)
 export type ReserveItem = {
@@ -19,12 +21,14 @@ export type ReserveItem = {
   qty_repair: number;
 };
 
-// 대여 생성 파라미터 — 날짜가 없으므로 수량과 메모만 받는다
+// 대여 생성 파라미터 — 수량·메모·반납 예정일. dueAt 은 KST 날짜의 끝(UTC ISO)이다.
+// 생략하면 기본 7일 뒤로 채운다(HTTP 경계는 항상 명시값을 넘긴다).
 export type CreateReservationParams = {
   itemId: number;
   memberId: string;
   memo: string | null;
   qty: number;
+  dueAt?: string | null;
 };
 
 // 결과 타입 — 호출자가 switch/discriminated union으로 처리
@@ -72,6 +76,7 @@ export async function createReservation(
   params: CreateReservationParams,
 ): Promise<ReservationResult> {
   const { itemId, memberId, memo, qty } = params;
+  const dueAt = params.dueAt ?? defaultDueAtIso();
 
   // 사전 검사 — 빠른 오류 응답용. 가용성은 실제 INSERT에서 보장
   const item = await getItemForReservation(db, itemId);
@@ -94,9 +99,9 @@ export async function createReservation(
         // 위치가 바뀌어도 과거 행의 표기는 그대로여야 한다(0004_rental_history.sql).
         // 위치는 0005 부터 locations 참조라 이름을 join 으로 풀어 스냅샷에 넣는다.
         // 쓰기 경로가 이 INSERT 하나뿐이라 트리거 없이 여기서 세팅한다.
-        sql: `INSERT INTO reservations (item_id, member_id, member_memo, qty, status,
+        sql: `INSERT INTO reservations (item_id, member_id, member_memo, qty, due_at, status,
                                         item_name_snapshot, item_location_snapshot)
-           SELECT ?1, ?2, ?3, ?4, 'rented',
+           SELECT ?1, ?2, ?3, ?4, ?5, 'rented',
                   (SELECT name FROM items WHERE items.id = ?1),
                   (SELECT l.name FROM locations l
                      JOIN items i ON i.location_id = l.id WHERE i.id = ?1)
@@ -107,7 +112,7 @@ export async function createReservation(
                                  WHERE r.item_id = ?1 AND r.status = 'rented'), 0)
                  <= (SELECT total_qty - qty_repair FROM items WHERE items.id = ?1)
            RETURNING id`,
-        params: [itemId, memberId, memo, qty],
+        params: [itemId, memberId, memo, qty, dueAt],
       },
     ]);
   } catch (err) {
@@ -140,17 +145,21 @@ export async function getMyReservations(
   db: Sql,
   memberId: string,
 ): Promise<MyReservation[]> {
-  return (await db.query(
+  const rows = (await db.query(
     `SELECT r.id, r.item_id, items.name AS item_name,
             (SELECT '/api/photos/' || p.r2_key || '?access=members' FROM item_photos p
               WHERE p.item_id = items.id ORDER BY p.sort_order LIMIT 1) AS item_photo,
-            r.qty, r.status, r.member_memo, r.created_at, r.updated_at
+            r.qty, r.status, r.member_memo, r.created_at, r.updated_at,
+            r.due_at,
+            (r.status = 'rented' AND r.due_at IS NOT NULL AND r.due_at < ${SQL_NOW}) AS is_overdue
        FROM reservations r
        JOIN items ON items.id = r.item_id
       WHERE r.member_id = ?1
       ORDER BY r.created_at DESC`,
     [memberId],
-  )) as MyReservation[];
+  )) as (Omit<MyReservation, "is_overdue"> & { is_overdue: number })[];
+  // SQLite 는 boolean 식을 0/1 로 돌려준다 — API 계약(boolean)을 유지한다
+  return rows.map((row) => ({ ...row, is_overdue: row.is_overdue !== 0 }));
 }
 
 // ===== 본인 조작: 취소·반납 () =====
@@ -249,6 +258,12 @@ export async function listReservations(
   db: Sql,
   status: string | null,
 ): Promise<{ reservations: AdminReservation[]; truncated: boolean }> {
+  // status='overdue' 는 저장된 상태가 아니라 파생 필터다 — 반납 예정일이 지난 대여 중 건만.
+  const overdueOnly = status === "overdue";
+  const where = overdueOnly
+    ? `r.status = 'rented' AND r.due_at IS NOT NULL AND r.due_at < ${SQL_NOW}`
+    : `(?1 IS NULL OR r.status = ?1)`;
+  const params = overdueOnly ? [] : [status];
   const rows = await db.query(
     `SELECT r.id, r.item_id,
             -- 이력 표기는 스냅샷을 우선한다 — 물품이 개명돼도 이 표는 그 시점의 이름이다.
@@ -256,6 +271,7 @@ export async function listReservations(
             COALESCE(r.item_name_snapshot, items.name) AS item_name,
             r.item_name_snapshot, r.item_location_snapshot, r.returned_at,
             r.due_at,
+            (r.status = 'rented' AND r.due_at IS NOT NULL AND r.due_at < ${SQL_NOW}) AS is_overdue,
             items.total_qty,
             r.qty,
             r.member_id, m.name AS member_name, m.email AS member_email, m.phone AS member_phone,
@@ -269,16 +285,25 @@ export async function listReservations(
        JOIN items ON items.id = r.item_id
        JOIN members m ON m.id = r.member_id
        LEFT JOIN members a ON a.id = r.admin_id
-      WHERE (?1 IS NULL OR r.status = ?1)
-      ORDER BY (r.status = 'rented') DESC, r.created_at DESC
+      WHERE ${where}
+      ORDER BY
+        (r.status = 'rented' AND r.due_at IS NOT NULL AND r.due_at < ${SQL_NOW}) DESC,
+        (r.status = 'rented') DESC,
+        r.created_at DESC
       LIMIT 500`,
-    [status],
+    params,
   );
   // 500건 하드 리밋 — 넘으면 오래된 건이 잘린다. 화면에서 '500건 이상' 표시를 위해 절단 여부를 내려준다
   const truncated = (rows as { id: number }[]).length === 500;
-  // SQLite 는 boolean 식을 0/1 로 돌려준다 — API 계약(Postgres 시절 true/false)을 유지한다
-  const reservations = (rows as (Record<string, unknown> & { returned_by_member: number })[])
-    .map((r) => ({ ...r, returned_by_member: r.returned_by_member !== 0 })) as AdminReservation[];
+  // SQLite 는 boolean 식을 0/1 로 돌려준다 — API 계약(boolean)을 유지한다
+  const reservations = (rows as (Record<string, unknown> & {
+    returned_by_member: number;
+    is_overdue: number;
+  })[]).map((r) => ({
+    ...r,
+    returned_by_member: r.returned_by_member !== 0,
+    is_overdue: r.is_overdue !== 0,
+  })) as AdminReservation[];
   return { reservations, truncated };
 }
 

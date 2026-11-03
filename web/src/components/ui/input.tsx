@@ -10,6 +10,7 @@ type Props = {
   invalid?: boolean;
   rows?: number;
   min?: string;
+  max?: string;
   inputmode?: "text" | "numeric" | "tel" | "email" | "url" | "search" | "none" | "decimal";
   autocomplete?: string;
   onInput?: (value: string) => void;
@@ -40,6 +41,7 @@ export function Input(props: Props) {
             class={`${controlClass()} h-10 px-4 leading-[1.2]`}
             type={type()}
             min={props.min || undefined}
+            max={props.max || undefined}
             inputmode={props.inputmode || undefined}
             autocomplete={props.autocomplete}
             placeholder={props.placeholder}

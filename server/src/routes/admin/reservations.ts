@@ -31,7 +31,8 @@ function mapTransition(c: Ctx, result: TransitionResult): Response {
 // 목록 — 대여 중이 맨 위, 최근 신청순
 adminReservationsRoute.get("/", async (c) => {
   const status = c.req.query("status") || null;
-  if (status && !RESERVATION_STATUSES.includes(status))
+  // 'overdue' 는 저장 상태가 아니라 파생 필터(대여 중 + 기한 지남)다.
+  if (status && status !== "overdue" && !RESERVATION_STATUSES.includes(status))
     return c.json({ error: "bad_status" }, 400);
 
   const db: Sql = getDb(c.env);

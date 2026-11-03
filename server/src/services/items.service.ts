@@ -337,12 +337,17 @@ export async function deleteItem(
   env: Bindings,
   itemId: number,
 ): Promise<DeleteItemResult> {
-  // 대여 이력 확인
-  const [cnt] = (await db.query(
-    `SELECT COUNT(*) AS n FROM reservations WHERE item_id = ?1`,
+  // 이력 확인 — 대여 이력이나 재고 조정 이력이 있으면 삭제 대신 폐기를 권한다.
+  // 조정 이력은 "언제 왜 수량이 줄었는지"의 근거라, 물품을 지우면 함께 사라지면 안 된다.
+  const [history] = (await db.query(
+    `SELECT
+       (SELECT COUNT(*) FROM reservations WHERE item_id = ?1) AS reservations,
+       (SELECT COUNT(*) FROM inventory_adjustments WHERE item_id = ?1) AS adjustments`,
     [itemId],
-  )) as { n: number }[];
-  if (cnt.n > 0) return { error: "has_history" };
+  )) as { reservations: number; adjustments: number }[];
+  if (history.reservations > 0 || history.adjustments > 0) {
+    return { error: "has_history" };
+  }
 
   // 사진 R2 키를 먼저 읽는다 — 행은 FK CASCADE 로 함께 지워지지만 R2 오브젝트는 그대로 남아
   // 영구 고아가 되므로 키를 읽어 함께 삭제한다(v3.1). R2 삭제가 일부 실패하면 오브젝트가 남을

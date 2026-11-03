@@ -177,6 +177,9 @@ export default function MyRentals() {
                                 <ReservationRow
                                   active
                                   title={`${reservation.item_name} · ${reservation.qty}개`}
+                                  badgeKind={
+                                    reservation.is_overdue ? "overdue" : undefined
+                                  }
                                   actions={
                                     <>
                                       <Button
@@ -207,6 +210,18 @@ export default function MyRentals() {
                                   <span>
                                     {fmtKstDate(reservation.created_at)} 대여 신청
                                   </span>
+                                  <Show when={reservation.due_at}>
+                                    <span
+                                      class={
+                                        reservation.is_overdue ? "text-danger" : ""
+                                      }
+                                    >
+                                      반납 예정 {fmtKstDate(reservation.due_at!)}
+                                      {reservation.is_overdue
+                                        ? " · 기한이 지났어요"
+                                        : ""}
+                                    </span>
+                                  </Show>
                                   <Show when={reservation.member_memo}>
                                     <span>메모: {reservation.member_memo}</span>
                                   </Show>
@@ -253,7 +268,8 @@ export default function MyRentals() {
                       <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">반납 안내</h2>
                       <p class="mt-2 text-fine leading-normal text-ink-2">
                         대여 중인 물품은 <b class="font-semibold text-ink-1">반납하기</b>를 눌러 바로 반납할 수
-                        있어요. 취소는 빌리지 않기로 한 경우에만 사용해요.
+                        있어요. 취소는 빌리지 않기로 한 경우에만 사용해요. 반납 예정일이 지나면
+                        <b class="font-semibold text-ink-1">기한 지남</b>으로 표시돼요.
                       </p>
                       <a class="mt-4 inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1" href="/">물품 둘러보기</a>
                     </section>

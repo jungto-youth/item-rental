@@ -7,27 +7,24 @@
 // 스키마는 실제 D1 마이그레이션 파일(migrations-d1/)을 그대로 실행해 만든다 —
 // 테스트용 DDL 사본이 프로덕션 스키마와 어긋나는 것을 막는다.
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { readFileSync, readdirSync } from "node:fs";
 import { test, expect } from "vitest";
-import { createReservation, cancelReservation, returnReservation, listReservations } from "../src/services/reservations.service.ts";
+import { createReservation, cancelReservation, returnReservation, listReservations, getMyReservations } from "../src/services/reservations.service.ts";
 import { withdrawMember, setMemberRole } from "../src/services/members.service.ts";
 import { createItem, updateItem, deleteItem } from "../src/services/items.service.ts";
+import { adjustItemQuantity, listAdjustments } from "../src/services/inventory.service.ts";
 import { renameCategory, deleteCategory } from "../src/services/categories.service.ts";
 import { listItems } from "../src/services/search.service.ts";
 import type { Sql } from "../src/db.ts";
 
 // workers-types 의 전역 URL 과 Node 의 url.URL 이 서로 다른 타입이라 href 문자열로 넘긴다
-const testsDir = fileURLToPath(new URL("./", import.meta.url).href);
-const schema =
-  readFileSync(`${testsDir}../../migrations-d1/0001_baseline.sql`, "utf8") +
-  "\n" +
-  readFileSync(`${testsDir}../../migrations-d1/0002_item_photos_item_id.sql`, "utf8") +
-  "\n" + readFileSync(`${testsDir}../../migrations-d1/0003_member_registration_deleted.sql`, "utf8") +
-  "\n" +
-  readFileSync(`${testsDir}../../migrations-d1/0004_rental_history.sql`, "utf8") +
-  "\n" +
-  readFileSync(`${testsDir}../../migrations-d1/0005_item_quantity_state.sql`, "utf8");
+// 마이그레이션 파일명은 하드코딩하지 않는다 — 새 파일이 자동으로 테스트 스키마에 적용된다.
+const migrationsDir = new URL("../../migrations-d1/", import.meta.url);
+const schema = readdirSync(migrationsDir)
+  .filter((name) => name.endsWith(".sql"))
+  .sort()
+  .map((name) => readFileSync(new URL(name, migrationsDir), "utf8"))
+  .join("\n");
 
 // node:sqlite를 Sql 어댑터로 — db.ts(getDb)와 같은 시그니처. 번호 파라미터(?1)는
 // 전달 순서대로 묶인다는 것이 D1 과 같다(본 파일 상단에서 실증).
@@ -102,6 +99,38 @@ test("가드 INSERT: 여유 수량 안이면 대여되고 rented 상태다", asy
   expect(result).toEqual({ ok: true, id: (result as { id: number }).id });
   const rows = db.prepare("SELECT qty, status FROM reservations").all() as { qty: number; status: string }[];
   expect(rows).toEqual([{ qty: 1, status: "rented" }]);
+});
+
+// ===== 반납 예정일·연체 파생 (B-06·B-08) =====
+
+test("반납 예정일: due_at 을 저장하고 is_overdue 를 파생한다", async () => {
+  const db = freshDb();
+  const itemId = addItem(db);
+  const memberId = addMember(db, "user");
+  const sql = sqliteSql(db);
+
+  const dueAt = "2026-11-10T14:59:59.999Z";
+  await createReservation(sql, { itemId, memberId, memo: "모임용", qty: 1, dueAt });
+
+  const stored = db.prepare("SELECT due_at FROM reservations").get() as { due_at: string };
+  expect(stored.due_at).toBe(dueAt);
+
+  const mine = await getMyReservations(sql, memberId);
+  expect(mine[0]).toMatchObject({ due_at: dueAt, is_overdue: false });
+
+  // 과거 기한의 대여 중 행 — 연체 파생과 overdue 필터의 대상이다
+  db.prepare(
+    `INSERT INTO reservations (item_id, member_id, qty, status, due_at)
+     VALUES (?1, ?2, 1, 'rented', '2020-01-01T14:59:59.999Z')`,
+  ).run(itemId, memberId);
+
+  const listed = await listReservations(sql, null);
+  expect(listed.reservations.filter((row) => row.is_overdue)).toHaveLength(1);
+
+  const overdue = await listReservations(sql, "overdue");
+  expect(overdue.reservations).toHaveLength(1);
+  expect(overdue.reservations[0].is_overdue).toBe(true);
+  expect(overdue.reservations[0].due_at).toBe("2020-01-01T14:59:59.999Z");
 });
 
 // ===== 대여 이력 보존 (0004_rental_history) =====
@@ -849,4 +878,128 @@ test("listItems: state 탭은 행만 거르고 summary·total 은 모집단을 �
   // repaired 는 수리 수량이 전부, consumable 은 대여 대상이 아니다
   expect(availableTab.items.some((i) => i.id === repaired)).toBe(false);
   expect(availableTab.items.some((i) => i.id === consumable)).toBe(false);
+});
+
+// ===== 재고 수량 조정 이력 (B-11) =====
+
+test("재고 조정: 보유 수량을 원자적으로 바꾸고 이력을 남긴다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const itemId = addItem(db, { total_qty: 5, qty_repair: 1 });
+  const adminId = addMember(db, "admin");
+  const memberId = addMember(db, "user");
+  rent(db, itemId, memberId, 2); // 대여 중 2개
+
+  expect(
+    await adjustItemQuantity(sql, {
+      itemId,
+      actorId: adminId,
+      kind: "add",
+      qty: 2,
+      memo: "신규 구입",
+    }),
+  ).toEqual({ ok: true, total_qty: 7 });
+
+  // 7 - 수리 1 = 6, 대여 중 2 → 4개까지 줄일 수 있다
+  expect(
+    await adjustItemQuantity(sql, {
+      itemId,
+      actorId: adminId,
+      kind: "lost",
+      qty: 4,
+      memo: "망실",
+    }),
+  ).toEqual({ ok: true, total_qty: 3 });
+
+  // 3 - 수리 1 = 2, 대여 중 2 → 더 줄이면 재고가 음수가 된다
+  expect(
+    await adjustItemQuantity(sql, {
+      itemId,
+      actorId: adminId,
+      kind: "lost",
+      qty: 1,
+      memo: null,
+    }),
+  ).toEqual({ error: "rented_qty_constraint" });
+
+  const rows = db
+    .prepare(
+      `SELECT kind, qty, total_qty_before, total_qty_after, memo
+         FROM inventory_adjustments ORDER BY id`,
+    )
+    .all();
+  expect(rows).toEqual([
+    {
+      kind: "add",
+      qty: 2,
+      total_qty_before: 5,
+      total_qty_after: 7,
+      memo: "신규 구입",
+    },
+    {
+      kind: "lost",
+      qty: 4,
+      total_qty_before: 7,
+      total_qty_after: 3,
+      memo: "망실",
+    },
+  ]);
+  expect(
+    (db.prepare("SELECT total_qty FROM items WHERE id = ?1").get(itemId) as {
+      total_qty: number;
+    }).total_qty,
+  ).toBe(3);
+
+  const listed = await listAdjustments(sql, itemId);
+  expect(listed).toHaveLength(2);
+  expect(listed[0]).toMatchObject({ kind: "lost", qty: 4 });
+  expect(listed[0].actor_name).toBeTruthy();
+});
+
+test("재고 조정: 보유 1 미만·수리 중 수량 미만으로 줄일 수 없다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const adminId = addMember(db, "admin");
+
+  const itemId = addItem(db, { total_qty: 3, qty_repair: 2 });
+  expect(
+    await adjustItemQuantity(sql, {
+      itemId,
+      actorId: adminId,
+      kind: "lost",
+      qty: 2,
+      memo: null,
+    }),
+  ).toEqual({ error: "repair_qty_constraint" });
+
+  const freeId = addItem(db, { total_qty: 3, qty_repair: 0 });
+  expect(
+    await adjustItemQuantity(sql, {
+      itemId: freeId,
+      actorId: adminId,
+      kind: "lost",
+      qty: 3,
+      memo: null,
+    }),
+  ).toEqual({ error: "min_qty" });
+});
+
+test("재고 조정 이력이 있는 물품은 삭제 대신 폐기를 권한다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const itemId = addItem(db, { total_qty: 3 });
+  const adminId = addMember(db, "admin");
+
+  await adjustItemQuantity(sql, {
+    itemId,
+    actorId: adminId,
+    kind: "add",
+    qty: 1,
+    memo: "추가 구입",
+  });
+
+  expect(await deleteItem(sql, env, itemId)).toEqual({ error: "has_history" });
+  expect(
+    (db.prepare("SELECT COUNT(*) AS n FROM items").get() as { n: number }).n,
+  ).toBe(1);
 });

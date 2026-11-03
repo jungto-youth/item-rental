@@ -10,7 +10,7 @@ import { Chip } from "../../components/ui/chip";
 import { Empty } from "../../components/ui/empty";
 import { ReservationRow } from "../../components/common/reservation-row";
 
-type Filter = "" | ReservationStatus;
+type Filter = "" | ReservationStatus | "overdue";
 
 export default function AdminReservations() {
   const [reservations, setReservations] = createSignal<AdminReservation[]>([]);
@@ -45,8 +45,8 @@ export default function AdminReservations() {
 
   onSettled(() => {
     const status = new URLSearchParams(window.location.search).get("status");
-    if (status && ["rented", "returned", "cancelled"].includes(status)) {
-      setFilter(status as ReservationStatus);
+    if (status && ["rented", "returned", "cancelled", "overdue"].includes(status)) {
+      setFilter(status as Filter);
     }
     void reload();
   });
@@ -66,8 +66,15 @@ export default function AdminReservations() {
   };
 
   const filtered = createMemo(() => {
-    if (!filter()) return reservations();
-    return reservations().filter((reservation) => reservation.status === filter());
+    const value = filter();
+    if (!value) return reservations();
+    if (value === "overdue") {
+      return reservations().filter(
+        (reservation) =>
+          reservation.status === "rented" && reservation.is_overdue,
+      );
+    }
+    return reservations().filter((reservation) => reservation.status === value);
   });
 
   const markReturned = async (reservation: AdminReservation) => {
@@ -132,7 +139,8 @@ export default function AdminReservations() {
           <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">반납 처리 안내</h2>
           <p class="mt-2 text-fine leading-normal text-ink-2">
             물품을 돌려받았으면 <b class="font-semibold text-ink-1">반납</b>을 눌러 상태를 바꿔 주세요. 회원이 직접
-            반납한 건은 목록에서 따로 표시돼요.
+            반납한 건은 목록에서 따로 표시돼요. 반납 예정일이 지난 건은 상단에 먼저 모이고
+            <b class="font-semibold text-ink-1">기한 지남</b> 필터로도 볼 수 있어요.
           </p>
         </section>
       }
@@ -143,6 +151,7 @@ export default function AdminReservations() {
           options={[
             { value: "", label: "전체" },
             { value: "rented", label: "대여 중" },
+            { value: "overdue", label: "기한 지남" },
             { value: "returned", label: "반납 완료" },
             { value: "cancelled", label: "취소" },
           ]}
@@ -174,7 +183,11 @@ export default function AdminReservations() {
               return (
                 <ReservationRow
                   title={`${reservation.item_name} · ${reservation.qty}개`}
-                  badgeKind={reservation.status}
+                  badgeKind={
+                    reservation.status === "rented" && reservation.is_overdue
+                      ? "overdue"
+                      : reservation.status
+                  }
                   active={reservation.status === "rented"}
                   inlineActions
                   actions={
@@ -200,6 +213,12 @@ export default function AdminReservations() {
                       ? ` · ${reservation.admin_name} 처리`
                       : ""}
                   </span>
+                  <Show when={reservation.due_at}>
+                    <span class={reservation.is_overdue ? "text-danger" : ""}>
+                      반납 예정 {fmtKstDate(reservation.due_at!)}
+                      {reservation.is_overdue ? " · 기한이 지났어요" : ""}
+                    </span>
+                  </Show>
                   <Show when={reservation.returned_by_member}>
                     <span class="text-fine text-danger">
                       회원이 직접 반납했어요 — 물품 회수 여부를 확인해 주세요

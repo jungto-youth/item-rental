@@ -87,6 +87,8 @@ const RESERVATIONS = [
     member_memo: "10/30 청년 모임",
     created_at: "2026-10-28T03:00:00.000Z",
     updated_at: "2026-10-28T03:00:00.000Z",
+    due_at: "2026-11-05T14:59:59.999Z",
+    is_overdue: false,
   },
   {
     id: 2,
@@ -98,6 +100,21 @@ const RESERVATIONS = [
     member_memo: null,
     created_at: "2026-10-20T03:00:00.000Z",
     updated_at: "2026-10-22T03:00:00.000Z",
+    due_at: null,
+    is_overdue: false,
+  },
+  {
+    id: 3,
+    item_id: 103,
+    item_name: "선풍기",
+    item_photo: null,
+    qty: 1,
+    status: "rented",
+    member_memo: "사무실 사용",
+    created_at: "2026-10-01T03:00:00.000Z",
+    updated_at: "2026-10-01T03:00:00.000Z",
+    due_at: "2026-10-10T14:59:59.999Z",
+    is_overdue: true,
   },
 ];
 
@@ -112,7 +129,6 @@ const ADMIN_RESERVATIONS = RESERVATIONS.map((row, index) => ({
   returned_by_member: false,
   item_name_snapshot: row.item_name,
   item_location_snapshot: "7층 비품실",
-  due_at: null,
   returned_at: row.status === "returned" ? row.updated_at : null,
   admin_memo: null,
 }));
@@ -219,6 +235,14 @@ async function mockApi(page, user, options = {}) {
     await page.route("**/api/admin/items**", (route) => {
       const url = new URL(route.request().url());
       const parts = url.pathname.split("/").filter(Boolean);
+      if (parts.length === 5 && parts[4] === "adjustments") {
+        if (route.request().method() === "POST") {
+          return route.fulfill({
+            json: { ok: true, total_qty: ITEMS[0].total_qty },
+          });
+        }
+        return route.fulfill({ json: { adjustments: [] } });
+      }
       if (parts.length === 4) {
         return route.fulfill({
           json: {
@@ -321,6 +345,7 @@ try {
     const page = await context.newPage();
     await mockApi(page, MEMBER);
     await page.goto(new URL("items/101", base).href);
+    await page.getByLabel("메모 *").fill("청년 모임용");
     await page.getByRole("button", { name: "대여하기", exact: true }).click();
     await page.getByText("대여했어요", { exact: true }).waitFor();
     console.log("PASS rental success state");
@@ -416,6 +441,54 @@ try {
     await context.close();
   }
 
+  // 8-1) 수량 조정 — 보유 수량을 바로 바꾸고 이력을 남긴다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, ADMIN);
+    let posted = null;
+    await page.route("**/api/admin/items/101/adjustments", async (route) => {
+      if (route.request().method() === "POST") {
+        posted = route.request().postDataJSON();
+        await route.fulfill({ json: { ok: true, total_qty: 6 } });
+        return;
+      }
+      await route.fulfill({
+        json: {
+          adjustments: [
+            {
+              id: 1,
+              item_id: 101,
+              kind: "lost",
+              qty: 1,
+              total_qty_before: 7,
+              total_qty_after: 6,
+              memo: "파손",
+              actor_id: "admin",
+              actor_name: "김운영",
+              created_at: "2026-11-03T00:00:00.000Z",
+            },
+          ],
+        },
+      });
+    });
+    await page.goto(new URL("items/101/edit", base).href);
+    await page.getByRole("heading", { name: "물품 수정", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "수량 조정", exact: true }).waitFor();
+    await page.getByRole("button", { name: "망실", exact: true }).click();
+    await page.getByLabel("수량 *", { exact: true }).fill("1");
+    await page.getByLabel("사유 메모 (선택)").fill("파손");
+    await page.getByRole("button", { name: "수량 조정", exact: true }).click();
+    await page
+      .getByText("망실 1개를 반영했어요. 현재 보유 6개", { exact: true })
+      .waitFor();
+    assert.deepEqual(posted, { kind: "lost", qty: 1, memo: "파손" });
+    assert.equal(await page.getByLabel("보유 수량 *").inputValue(), "6");
+    await page.getByText("보유 7 → 6", { exact: false }).waitFor();
+    console.log("PASS item quantity adjustment");
+    await context.close();
+  }
+
   // 9) 물품 등록 — 빈 이름은 막고, 저장하면 POST 후 목록으로 돌아간다.
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -457,7 +530,40 @@ try {
     await context.close();
   }
 
-  // 11) 회원이 관리자 화면을 열면 권한 안내가 있는 홈으로 보낸다.
+  // 11) 관리자도 헤더에서 내 대여 내역으로 이동할 수 있다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, ADMIN);
+    await page.goto(base);
+    await page.locator(".item-card").first().waitFor();
+    await page.getByRole("link", { name: "내 대여", exact: true }).click();
+    await page.waitForURL(base + "my/rentals");
+    await page.locator(".reservation-row").first().waitFor();
+    await page
+      .locator(".reservation-row", { hasText: "선풍기" })
+      .getByText("기한 지남", { exact: true })
+      .waitFor();
+    console.log("PASS admin can open my rentals from header");
+    await context.close();
+  }
+
+  // 12) 관리자는 기한 지난 대여만 모아 볼 수 있다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, ADMIN);
+    await page.goto(new URL("admin/reservations", base).href);
+    await page.locator(".reservation-row").first().waitFor();
+    await page.getByRole("button", { name: "기한 지남", exact: true }).click();
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator(".reservation-row").count(), 1);
+    await page.getByText(/기한이 지났어요/).waitFor();
+    console.log("PASS admin overdue filter");
+    await context.close();
+  }
+
+  // 13) 회원이 관리자 화면을 열면 권한 안내가 있는 홈으로 보낸다.
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
@@ -469,7 +575,7 @@ try {
     await context.close();
   }
 
-  // 12) 모바일 폭에서 가로 스크롤이 없다.
+  // 14) 모바일 폭에서 가로 스크롤이 없다.
   {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();

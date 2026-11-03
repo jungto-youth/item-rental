@@ -28,6 +28,7 @@ function params(overrides: Partial<CreateReservationParams> = {}): CreateReserva
     memberId: "member-1",
     memo: null,
     qty: 1,
+    dueAt: "2026-11-10T14:59:59.999Z",
     ...overrides,
   };
 }
@@ -64,6 +65,9 @@ test("createReservation: 마지막 문장이 실제 삽입 결과다 (단일 가
   // results.at(-1) 전제 — 누군가 INSERT 뒤에 문장을 덧붙이면 이 단언이 깨진다
   expect(batch.length, "batch는 가드 INSERT 한 문장이어야 한다").toEqual(1);
   expect(batch[0].sql).toMatch(/INSERT INTO reservations/);
+  // 반납 예정일도 같은 INSERT 로 들어간다 — 컬럼만 늘고 문장은 하나다
+  expect(batch[0].sql).toMatch(/due_at/);
+  expect(batch[0].params?.at(-1)).toBe("2026-11-10T14:59:59.999Z");
 });
 
 test("createReservation: 가드 INSERT가 대여 중(rented) 수량만 점유로 센다", async () => {

@@ -1,5 +1,5 @@
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { encode } from "@auth/core/jwt";
 import type { Hono } from "hono";
 import type { Bindings, Variables } from "../src/types.ts";
@@ -12,8 +12,14 @@ export const PNG = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC
 
 export function httpFixture(app: Hono<{ Bindings: Bindings; Variables: Variables }> = productionApp) {
   const db = new DatabaseSync(":memory:");
-  for (const name of ["0001_baseline.sql", "0002_item_photos_item_id.sql", "0003_member_registration_deleted.sql", "0004_rental_history.sql", "0005_item_quantity_state.sql"]) {
-    db.exec(readFileSync(new URL(`../../migrations-d1/${name}`, import.meta.url), "utf8"));
+  // 마이그레이션 파일명을 하드코딩하지 않는다 — 새 파일을 추가하면 테스트 스키마에도
+  // 자동으로 적용되어, 프로덕션 스키마와 테스트 스키마가 어긋나지 않는다.
+  const migrationsDir = new URL("../../migrations-d1/", import.meta.url);
+  const migrationFiles = readdirSync(migrationsDir)
+    .filter((name) => name.endsWith(".sql"))
+    .sort();
+  for (const name of migrationFiles) {
+    db.exec(readFileSync(new URL(name, migrationsDir), "utf8"));
   }
   const statements: string[] = [];
   const objects = new Map<string, { bytes: Uint8Array; type: string }>();

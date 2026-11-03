@@ -3,6 +3,12 @@ import type { Bindings, Variables } from "../types";
 import { getDb, type Sql } from "../db";
 import { requireAuth } from "../middleware/auth";
 import {
+  defaultDueDateKst,
+  dueAtFromKstDate,
+  isDueDateInRange,
+  isIsoDate,
+} from "../../../shared/rental-period";
+import {
   createReservation,
   getMyReservations,
   cancelReservation,
@@ -39,10 +45,20 @@ reservationsRoute.post("/", async (c) => {
   const itemId = Number(body.item_id);
   if (!Number.isInteger(itemId)) return c.json({ error: "bad_id" }, 400);
 
-  const memo =
-    typeof body.memo === "string" && body.memo.trim()
-      ? body.memo.trim().slice(0, 500)
-      : null;
+  // 메모는 필수다 (B-07). 공백만 있는 값은 빈 값으로 본다. 기존 이력은 소급하지 않는다.
+  const memoRaw = typeof body.memo === "string" ? body.memo.trim() : "";
+  if (!memoRaw) return c.json({ error: "memo_required" }, 400);
+  const memo = memoRaw.slice(0, 500);
+
+  // 반납 예정일 (B-06) — KST 달력 날짜. 생략하면 기본 7일 뒤, 내일~30일만 허용.
+  const dueDateRaw = typeof body.due_date === "string" ? body.due_date.trim() : "";
+  const dueDate = dueDateRaw || defaultDueDateKst();
+  if (!isIsoDate(dueDate)) return c.json({ error: "bad_due_date" }, 400);
+  if (!isDueDateInRange(dueDate)) {
+    return c.json({ error: "due_date_out_of_range" }, 400);
+  }
+  const dueAt = dueAtFromKstDate(dueDate);
+  if (!dueAt) return c.json({ error: "bad_due_date" }, 400);
 
   // 부분 대여 수량 — 한 대여가 여러 개를 점유한다. 미지정은 1개.
   const qty = body.qty === undefined ? 1 : Number(body.qty);
@@ -55,6 +71,7 @@ reservationsRoute.post("/", async (c) => {
     memberId: user.id,
     memo,
     qty,
+    dueAt,
   };
 
   // 가용성 검사 + 대여 생성 (가드 INSERT 원자 검사 포함)

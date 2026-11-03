@@ -62,7 +62,8 @@ npx wrangler d1 migrations apply item-rental-db --remote
 | `0002_item_photos_item_id.sql` | 사진-물품 연결 |
 | `0003_member_registration_deleted.sql` | 등록 정보 삭제 상태 |
 | `0004_rental_history.sql` | 대여 이력 |
-| `0005_item_quantity_state.sql` | 수량 상태 분리 (`qty_total`·`qty_repair`) |
+| `0005_item_quantity_state.sql` | 수량 상태 분리 (`total_qty`·`qty_repair`) |
+| `0006_inventory_adjustments.sql` | 재고 수량 조정 이력 |
 
 로컬과 운영은 자동으로 다른 DB를 쓴다(로컬은 로컬 SQLite 파일, 운영은 원격 D1).
 

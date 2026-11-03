@@ -1,6 +1,7 @@
 import { Show, createSignal, onSettled } from "solid-js";
 import { api } from "../api/client";
 import { Button } from "../components/ui/button";
+import { APP_NAME } from "../brand";
 
 export default function Login() {
   const [busy, setBusy] = createSignal(false);
@@ -13,8 +14,8 @@ export default function Login() {
     void loadLocalTestLogin();
     const params = new URLSearchParams(window.location.search);
     const error = params.get("error");
-    if (error === "AccessDenied") {
-      setMessage("정토회 계정(@jungto.org)으로 로그인해 주세요");
+    if (error === "AccessDenied" || error === "denied") {
+      setMessage("정토회 계정(@jungto.org) 또는 관리자가 허용한 계정으로 로그인해 주세요");
       window.history.replaceState(null, "", window.location.pathname);
     } else if (error === "AccountDeactivated") {
       setMessage("탈퇴 처리된 계정이에요. 관리자에게 문의해 주세요");
@@ -87,7 +88,7 @@ export default function Login() {
         <div class="flex w-full max-w-[340px] flex-col items-center text-center">
           <div class="flex flex-col items-center">
             <img class="block size-10 rounded-card object-contain min-[600px]:size-12" src="/logo.png" alt="" />
-            <h1 class="mt-2 text-page-title font-bold tracking-tight text-ink-1">물품 대여</h1>
+            <h1 class="mt-2 text-page-title font-bold tracking-tight text-ink-1">{APP_NAME}</h1>
             <p class="mt-2 max-w-[280px] text-body leading-normal text-ink-2">
               필요한 물건을 빌리고,
               <br />
@@ -95,7 +96,14 @@ export default function Login() {
             </p>
           </div>
 
-          <button class="mt-8 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-surface px-4 text-body font-medium leading-[1.2] text-ink-1 transition-colors enabled:hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" type="button" disabled={busy()} onClick={() => void signIn()}>
+          <p class="mt-6 w-full rounded-card border border-line bg-surface px-4 py-2 text-fine leading-normal text-ink-2">
+            정토회 계정(<span class="font-medium text-ink-1">@jungto.org</span>) 또는
+            관리자가 허용한 계정만 로그인할 수 있어요.
+            <br />
+            예외 계정은 관리자에게 문의해 주세요.
+          </p>
+
+          <button class="mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-surface px-4 text-body font-medium leading-[1.2] text-ink-1 transition-colors enabled:hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" type="button" disabled={busy()} onClick={() => void signIn()}>
             <svg class="size-[18px] shrink-0" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 fill="#4285F4"
@@ -122,9 +130,9 @@ export default function Login() {
           </p>
 
           <p class={`mt-4 text-fine leading-normal text-ink-2 ${message() ? "hidden" : ""}`}>
-            정토회 계정(@jungto.org)으로 로그인하면
+            처음 로그인하면 회원으로 시작해요.
             <br />
-            바로 회원이 돼요.
+            관리자 지정은 기존 관리자가 해요.
           </p>
 
           <Show when={localTestLogin()}>

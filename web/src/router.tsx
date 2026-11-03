@@ -1,5 +1,6 @@
 import { createSignal, type Component } from "solid-js";
 import { session } from "./context/session";
+import { APP_NAME } from "./brand";
 import Home from "./pages/home";
 import ItemDetail from "./pages/item-detail";
 import Login from "./pages/login";
@@ -25,8 +26,6 @@ type RouteDef = {
 };
 
 export type Match = { route: RouteDef; params: Record<string, string> };
-
-const APP_NAME = "물품 대여";
 
 const routes: RouteDef[] = [
   {

@@ -1,6 +1,7 @@
 import { Show, createSignal, onSettled } from "solid-js";
 import { session } from "../context/session";
 import { location, navigate } from "../router";
+import { APP_NAME, APP_NAME_SHORT } from "../brand";
 import { ChevronDownIcon } from "./icons";
 
 type NavItem = { href: string; label: string };
@@ -18,10 +19,16 @@ export function AppHeader() {
     const admin = current.role === "admin";
     return [
       { href: "/", label: "물품 현황" },
-      admin
-        ? { href: "/admin/reservations", label: "대여 관리" }
-        : { href: "/my/rentals", label: "대여 내역" },
-      ...(admin ? [{ href: "/admin/members", label: "회원 관리" }] : []),
+      ...(admin
+        ? [
+            { href: "/admin/reservations", label: "대여 관리" },
+            { href: "/admin/members", label: "회원 관리" },
+          ]
+        : []),
+      // 관리자도 내가 빌린 물품을 확인할 수 있어야 한다. 관리자 메뉴(대여 관리)와
+      // 별개로 '내 대여'를 항상 둔다 — 예전에는 관리자에게서 이 진입점이 사라져
+      // 내 대여 내역에 들어갈 방법이 없었다 (BACKLOG B-02).
+      { href: "/my/rentals", label: admin ? "내 대여" : "대여 내역" },
     ];
   };
 
@@ -87,9 +94,13 @@ export function AppHeader() {
         <a
           href="/"
           class="flex shrink-0 items-center no-underline"
-          aria-label="물품 현황 — 홈"
+          aria-label={`${APP_NAME} — 홈`}
         >
           <img src="/logo.png" alt="" class="block size-7 rounded-card" />
+          {/* 모바일은 로고만 — 메뉴·계정 버튼과 겹치지 않게 데스크톱에서만 축약명을 보인다. */}
+          <span class="ml-2 hidden text-body font-semibold tracking-tight text-ink-1 lg:inline">
+            {APP_NAME_SHORT}
+          </span>
         </a>
 
         <Show
@@ -153,6 +164,14 @@ export function AppHeader() {
                   onClick={() => setMenuOpen(false)}
                 >
                   내 정보
+                </a>
+                <a
+                  role="menuitem"
+                  href="/my/rentals"
+                  class="block w-full p-4 text-left text-body text-ink-1 no-underline hover:bg-surface-muted"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  내 대여 내역
                 </a>
                 <button
                   type="button"

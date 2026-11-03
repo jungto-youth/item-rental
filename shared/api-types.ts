@@ -94,6 +94,10 @@ export type MyReservation = {
   created_at: string;
   // 마지막 상태 전이 시각 — returned 면 반납 처리 시각
   updated_at: string;
+  // 반납 예정일 — KST 그날의 끝을 UTC ISO 로 저장한다(0005 due_at).
+  // 연체는 저장하지 않고 `status='rented' AND due_at < now` 로 파생한다.
+  due_at: string | null;
+  is_overdue: boolean;
 };
 
 export type AdminReservation = MyReservation & {
@@ -109,11 +113,27 @@ export type AdminReservation = MyReservation & {
   // item_name 이 이미 스냅샷 우선으로 계산되므로 화면은 보통 item_name 만 쓴다.
   item_name_snapshot: string | null;
   item_location_snapshot: string | null;
-  // 반납 기한 — 0005 에서 추가됐다. OVERDUE 상태는 저장하지 않고 `due_at < now` 로 파생한다.
-  // 관리자 대여 기록에서만 표시한다 (경고·알림 없음 — 이슈 #12 §6.3).
-  due_at: string | null;
   // 반납 시각 — 반납된 건에서만 채워진다. updated_at 과 달리 반납 전용이다.
   returned_at: string | null;
   // 관리자가 반납 처리할 때 남기는 메모 — 지금은 writer 가 없어 null 이다.
   admin_memo: string | null;
+};
+
+// 재고 수량 조정 — 보유 수량(total_qty)의 증감만 기록한다.
+//   add     추가(+)
+//   lost    망실(-)
+//   dispose 폐기(-)
+export type InventoryAdjustmentKind = "add" | "lost" | "dispose";
+
+export type AdminInventoryAdjustment = {
+  id: number;
+  item_id: number;
+  kind: InventoryAdjustmentKind;
+  qty: number;
+  total_qty_before: number;
+  total_qty_after: number;
+  memo: string | null;
+  actor_id: string;
+  actor_name: string | null;
+  created_at: string;
 };

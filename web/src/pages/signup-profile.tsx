@@ -39,7 +39,11 @@ export default function SignupProfile() {
             onSaved={() => navigate("/mypage")}
           />
 
-          <p class="mt-4 text-center text-fine text-ink-2">입력한 정보는 물품 대여 연락에만 사용해요.</p>
+          <p class="mt-4 text-center text-fine leading-normal text-ink-2">
+            입력한 정보는 물품 대여 연락에만 사용해요.
+            <br />
+            가입은 회원으로 시작하고, 관리자 지정은 기존 관리자가 해요.
+          </p>
 
           <p class="mt-6 text-center">
             <a class="text-fine text-ink-2 no-underline hover:text-ink-1 hover:underline" href="/login">다른 계정으로 로그인</a>

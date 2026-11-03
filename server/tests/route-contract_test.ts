@@ -5,6 +5,7 @@
 // 라우트가 조용히 잘못 매핑되어도 아무도 몰랐다. 여기서는 실제 HTTP 호출로 확인한다.
 import { test, expect } from "vitest";
 import { httpFixture, TEST_ORIGIN } from "./_http.fixture.ts";
+import { defaultDueDateKst } from "../../shared/rental-period.ts";
 
 // 상태를 바꾸는 라우트는 정확한 Origin 이 있어야 한다 — POST/PATCH/DELETE 는
 // exact-origin 검사(보안)가 걸리므로 헤더를 빼면 403 이 된다. GET 도 같이 준다.
@@ -92,6 +93,125 @@ test("allowed-emails: 중복 이메일과 형식 오류를 구분한다", async 
       body: JSON.stringify({ email: "이건-email-아님" }),
     });
     expect(bad.status).toBe(400);
+  } finally { db.close(); }
+});
+
+// ===== /api/reservations — 메모 필수 · 반납 예정일 (B-06·B-07) =====
+
+test("reservations: 메모와 반납 예정일을 검증하고 due_at 을 저장한다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const user = await member("user", "user");
+    db.exec("INSERT INTO items (id, name, kind, total_qty) VALUES (1, '4인용 텐트', 'rental', 2);");
+    const post = (body: Record<string, unknown>) =>
+      request("/api/reservations", {
+        method: "POST",
+        headers: { cookie: user, ...json },
+        body: JSON.stringify(body),
+      });
+
+    const noMemo = await post({ item_id: 1, due_date: defaultDueDateKst() });
+    expect(noMemo.status).toBe(400);
+    expect(await noMemo.json()).toEqual({ error: "memo_required" });
+
+    const blankMemo = await post({ item_id: 1, memo: "   ", due_date: defaultDueDateKst() });
+    expect(blankMemo.status).toBe(400);
+
+    const badFormat = await post({ item_id: 1, memo: "모임용", due_date: "2026/11/10" });
+    expect(badFormat.status).toBe(400);
+    expect(await badFormat.json()).toEqual({ error: "bad_due_date" });
+
+    const outOfRange = await post({ item_id: 1, memo: "모임용", due_date: "2020-01-01" });
+    expect(outOfRange.status).toBe(400);
+    expect(await outOfRange.json()).toEqual({ error: "due_date_out_of_range" });
+
+    const ok = await post({ item_id: 1, memo: "모임용", due_date: defaultDueDateKst() });
+    expect(ok.status).toBe(201);
+    const row = db.prepare("SELECT member_memo, due_at FROM reservations").get() as {
+      member_memo: string;
+      due_at: string | null;
+    };
+    expect(row.member_memo).toBe("모임용");
+    expect(row.due_at).toMatch(/T14:59:59\.999Z$/);
+  } finally { db.close(); }
+});
+
+// ===== /api/admin/items — 재고 수량 조정 (B-11) =====
+
+test("admin inventory: 수량 조정을 기록하고 이력·보유 수량을 돌려준다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const admin = await member("admin", "admin");
+    db.exec("INSERT INTO items (id, name, kind, total_qty, qty_repair) VALUES (1, '텐트', 'rental', 5, 1);");
+
+    const created = await request("/api/admin/items/1/adjustments", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+      body: JSON.stringify({ kind: "add", qty: 2, memo: "신규 구입" }),
+    });
+    expect(created.status).toBe(201);
+    expect(await created.json()).toEqual({ ok: true, total_qty: 7 });
+
+    const listed = await request("/api/admin/items/1/adjustments", {
+      headers: { cookie: admin, ...get },
+    });
+    expect(listed.status).toBe(200);
+    const body = await listed.json() as {
+      adjustments: {
+        kind: string;
+        qty: number;
+        total_qty_before: number;
+        total_qty_after: number;
+        actor_name: string | null;
+        memo: string | null;
+      }[];
+    };
+    expect(body.adjustments).toHaveLength(1);
+    expect(body.adjustments[0]).toMatchObject({
+      kind: "add",
+      qty: 2,
+      total_qty_before: 5,
+      total_qty_after: 7,
+      actor_name: "admin",
+      memo: "신규 구입",
+    });
+    expect(
+      (db.prepare("SELECT total_qty FROM items WHERE id = 1").get() as {
+        total_qty: number;
+      }).total_qty,
+    ).toBe(7);
+  } finally { db.close(); }
+});
+
+test("admin inventory: 잘못된 입력·권한·재고 가드를 구분한다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const admin = await member("admin", "admin");
+    const user = await member("user", "user");
+    db.exec("INSERT INTO items (id, name, kind, total_qty) VALUES (1, '텐트', 'rental', 2);");
+    db.exec("INSERT INTO reservations (item_id, member_id, qty, status) VALUES (1, 'user', 2, 'rented');");
+
+    const post = (cookie: string, body: Record<string, unknown>) =>
+      request("/api/admin/items/1/adjustments", {
+        method: "POST",
+        headers: { cookie, ...json },
+        body: JSON.stringify(body),
+      });
+
+    expect((await post(user, { kind: "add", qty: 1 })).status).toBe(403);
+    expect((await post(admin, { kind: "nope", qty: 1 })).status).toBe(400);
+    expect((await post(admin, { kind: "add", qty: 0 })).status).toBe(400);
+
+    // 대여 중 2개인데 1개로 줄이면 재고가 음수가 된다
+    const guarded = await post(admin, { kind: "lost", qty: 1 });
+    expect(guarded.status).toBe(409);
+    expect(await guarded.json()).toEqual({ error: "rented_qty_constraint" });
+
+    // 보유 1 미만은 400 — 삭제 대신 폐기를 권한다
+    db.exec("UPDATE reservations SET status = 'returned' WHERE item_id = 1;");
+    const minQty = await post(admin, { kind: "lost", qty: 2 });
+    expect(minQty.status).toBe(400);
+    expect(await minQty.json()).toEqual({ error: "min_qty" });
   } finally { db.close(); }
 });
 

@@ -16,6 +16,7 @@ import { InfoList } from "../components/ui/info-list";
 import { ChevronLeftIcon } from "../components/icons";
 import { ItemGallery } from "../components/features/item/item-gallery";
 import { ItemRentalForm } from "../components/features/item/item-rental-form";
+import { RentalSteps } from "../components/features/item/rental-steps";
 import { ItemCard } from "../components/features/item/item-card";
 
 export default function ItemDetail(props: { params: Record<string, string> }) {
@@ -230,6 +231,7 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
                     userReady={userReady()}
                     onRented={() => void load(true)}
                   /></div>
+                  <RentalSteps class="mt-4" />
                 </div>
               </div>
 

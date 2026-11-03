@@ -3,6 +3,12 @@ import { api, ApiError } from "../../../api/client";
 import type { SessionUser } from "../../../context/session";
 import type { Item } from "../../../types";
 import { availableQty } from "../../../utils/stock";
+import {
+  defaultDueDateKst,
+  isDueDateInRange,
+  maxDueDateKst,
+  minDueDateKst,
+} from "../../../../../shared/rental-period";
 import { navigate } from "../../../router";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -16,6 +22,8 @@ export function ItemRentalForm(props: {
 }) {
   const [qty, setQty] = createSignal(1);
   const [memo, setMemo] = createSignal("");
+  const [dueDate, setDueDate] = createSignal(defaultDueDateKst());
+  const [submittedDueDate, setSubmittedDueDate] = createSignal("");
   const [saving, setSaving] = createSignal(false);
   const [message, setMessage] = createSignal("");
   const [isSuccess, setIsSuccess] = createSignal(false);
@@ -43,6 +51,18 @@ export function ItemRentalForm(props: {
       return;
     }
 
+    if (!memo().trim()) {
+      setMessage("메모를 입력해 주세요.");
+      setIsSuccess(false);
+      return;
+    }
+
+    if (!isDueDateInRange(dueDate())) {
+      setMessage("반납 예정일을 내일부터 30일 이내로 선택해 주세요.");
+      setIsSuccess(false);
+      return;
+    }
+
     setSaving(true);
     setMessage("");
     try {
@@ -51,11 +71,13 @@ export function ItemRentalForm(props: {
         body: JSON.stringify({
           item_id: props.item.id,
           qty: qty(),
-          memo: memo().trim() || undefined,
+          memo: memo().trim(),
+          due_date: dueDate(),
         }),
       });
       setIsSuccess(true);
       setRentedQty(qty());
+      setSubmittedDueDate(dueDate());
       setMessage("");
       setMemo("");
       setQty(1);
@@ -69,6 +91,10 @@ export function ItemRentalForm(props: {
         setMessage("요청 수량이 대여 가능 수량보다 많아요.");
       } else if (code === "phone_required") {
         setMessage("내 정보에서 연락처를 먼저 등록해 주세요.");
+      } else if (code === "memo_required") {
+        setMessage("메모를 입력해 주세요.");
+      } else if (code === "bad_due_date" || code === "due_date_out_of_range") {
+        setMessage("반납 예정일을 내일부터 30일 이내로 선택해 주세요.");
       } else {
         setMessage(err instanceof Error ? err.message : "대여 신청에 실패했어요.");
       }
@@ -104,7 +130,7 @@ export function ItemRentalForm(props: {
             <p class="mt-2 text-fine leading-normal text-ink-2">
               '{props.item.name}' {rentedQty()}개를 대여 중이에요.
               <br />
-              반납은 대여 내역에서 할 수 있어요.
+              반납 예정일은 {submittedDueDate()}이에요. 반납은 대여 내역에서 할 수 있어요.
             </p>
             <div class="mt-4 flex flex-wrap justify-center gap-2">
               <Button variant="primary" onClick={() => navigate("/my/rentals")}>
@@ -209,16 +235,28 @@ export function ItemRentalForm(props: {
                       </Show>
                     </div>
 
-                    <label class="mt-4 flex flex-col gap-2">
-                      <span class="text-fine font-medium text-ink-2">
-                        메모 (선택)
-                      </span>
-                      <Input
-                        placeholder="용도, 수령처 등"
-                        value={memo()}
-                        onInput={setMemo}
-                      />
-                    </label>
+                    <Input
+                      class="mt-4"
+                      label="반납 예정일 *"
+                      type="date"
+                      min={minDueDateKst()}
+                      max={maxDueDateKst()}
+                      value={dueDate()}
+                      onInput={setDueDate}
+                      required
+                    />
+                    <p class="mt-2 text-fine leading-normal text-ink-2">
+                      내일부터 30일 이내로 선택해 주세요.
+                    </p>
+
+                    <Input
+                      class="mt-4"
+                      label="메모 *"
+                      placeholder="용도, 수령처 등"
+                      value={memo()}
+                      onInput={setMemo}
+                      required
+                    />
 
                     <Show when={message()}>
                       <p
@@ -238,7 +276,7 @@ export function ItemRentalForm(props: {
                       대여하기
                     </Button>
                     <p class="mt-2 text-fine leading-normal text-ink-2">
-                      신청하면 바로 대여 중이 돼요. 반납은 대여 내역에서 할 수 있어요.
+                      신청하면 바로 대여 중이 돼요. 반납 예정일까지 사용하고 대여 내역에서 반납해 주세요.
                     </p>
                   </form>
                 </Show>
