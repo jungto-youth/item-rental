@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import type { Bindings, Variables } from "../../types";
 import { getDb, type Sql } from "../../db";
 import { requireAdmin } from "../../middleware/auth";
-import { imageInfo } from "../../image-size";
-import { MAX_PHOTO_UPLOAD_BYTES as MAX_PHOTO_BYTES, MAX_PHOTO_EDGE, MAX_PHOTOS } from "../../../../shared/photo-limits";
+import { validatePhotoFile } from "../../photo-upload";
+import { MAX_PHOTOS } from "../../../../shared/photo-limits";
 import {
   getAdminItem,
   createItem,
@@ -85,15 +85,6 @@ function readAttrs(
   }
   return { attrs };
 }
-const PHOTO_TYPES: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
-// 바이트(비용)와 픽셀(브라우저 부하)은 막는 대상이 다르다 — 둘 다 검사한다().
-// 클라이언트가 1600px·q80 WebP로 줄여 보내므로 정상 업로드는 150KB 안쪽이다.
-// 2MB는 그 경로를 거치지 않은 업로드를 거르는 상한이고, MAX_PHOTO_EDGE는
-// 용량이 작아도 픽셀이 큰 경우(예: 4000×3000 JPEG q25 ≈ 700KB)를 잡는다.
 
 // 목록 — 폐기 포함 전체 (물품 수정 선택 목록용). 행에 카테고리를 얹는다.
 // category는 "none"(미지정) 또는 숫자 id 만 — 이외는 무시. limit/offset은
@@ -225,31 +216,11 @@ adminItemsRoute.post("/:id/photos", async (c) => {
   const form = await c.req.formData();
   const file = form.get("file") as unknown;
   if (!(file instanceof File)) return c.json({ error: "file 필드 필요" }, 400);
-  const ext = PHOTO_TYPES[file.type];
-  if (!ext) return c.json({ error: "지원 형식: JPEG/PNG/WebP" }, 400);
-  if (file.size > MAX_PHOTO_BYTES) {
-    return c.json(
-      { error: `사진은 최대 ${MAX_PHOTO_BYTES / 1024 / 1024}MB` },
-      400,
-    );
-  }
-  // 픽셀 검사 — 용량만 보면 재압축한 큰 이미지가 통과한다()
-  const dim = imageInfo(new Uint8Array(await file.arrayBuffer()));
-  if (!dim) return c.json({ error: "이미지 크기를 읽을 수 없습니다" }, 400);
-  if (dim.type !== file.type) return c.json({ error: "이미지 형식과 파일 내용이 일치하지 않습니다" }, 400);
-  if (dim.width > MAX_PHOTO_EDGE || dim.height > MAX_PHOTO_EDGE) {
-    return c.json(
-      {
-        error:
-          `사진은 가로·세로 ${MAX_PHOTO_EDGE}px 이하여야 합니다 ` +
-          `(현재 ${dim.width}×${dim.height})`,
-      },
-      400,
-    );
-  }
+  const checked = await validatePhotoFile(file);
+  if (!checked.ok) return c.json({ error: checked.error }, checked.status);
 
   const db: Sql = getDb(c.env);
-  const result = await addPhoto(db, c.env, itemId, file, ext);
+  const result = await addPhoto(db, c.env, itemId, file, checked.ext);
   if ("ok" in result) return c.json({ id: result.id, url: result.url }, 201);
   if (result.error === "too_many") {
     return c.json({ error: `사진은 최대 ${MAX_PHOTOS}장` }, 409);

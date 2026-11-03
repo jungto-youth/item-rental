@@ -33,7 +33,9 @@ export const guardApiRequest: MiddlewareHandler<AppEnv> = async (c, next) => {
     if (c.req.header("origin") !== new URL(c.req.url).origin) return c.json({ error: "bad_origin" }, 403);
   }
   if (!c.req.raw.body) return next();
-  const maximum = c.req.method === "POST" && /^\/api\/admin\/items\/[^/]+\/photos$/.test(c.req.path)
+  // 사진 업로드 경로만 2MB+multipart 여유를 허용한다. 새 사진 경로를 추가하면
+  // 여기에도 넣어야 한다 — 빠뜨리면 32KB 기본 한도에 걸려 413 이 난다.
+  const maximum = c.req.method === "POST" && /^\/api\/(?:admin\/)?(?:items|reservations)\/[^/]+\/photos$/.test(c.req.path)
     ? MAX_PHOTO_BODY_BYTES : MAX_API_BODY_BYTES;
   const claimed = c.req.header("content-length");
   if (claimed !== undefined) {

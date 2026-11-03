@@ -10,7 +10,9 @@ import { Chip } from "../../components/ui/chip";
 import { Empty } from "../../components/ui/empty";
 import { Input } from "../../components/ui/input";
 import { Modal } from "../../components/ui/modal";
-import { ReservationRow } from "../../components/common/reservation-row";
+import { ReservationRow, ReservationListSkeleton } from "../../components/common/reservation-row";
+import { ReturnDialog, type ReturnDialogResult } from "../../components/features/rental/return-dialog";
+import { ReturnPhotoStrip } from "../../components/features/rental/return-photo-strip";
 
 type Filter = "" | ReservationStatus | "overdue";
 
@@ -29,10 +31,13 @@ export default function AdminReservations() {
   const [rejectReason, setRejectReason] = createSignal("");
   const [rejectError, setRejectError] = createSignal("");
   const [rejectBusy, setRejectBusy] = createSignal(false);
+  const [returnTarget, setReturnTarget] = createSignal<AdminReservation | null>(
+    null,
+  );
 
-  const reload = async () => {
+  const reload = async (quiet = false) => {
     setError("");
-    setLoading(true);
+    if (!quiet) setLoading(true);
     try {
       const res = await api<{
         reservations: AdminReservation[];
@@ -45,7 +50,7 @@ export default function AdminReservations() {
         err instanceof Error ? err.message : "대여 목록을 불러오지 못했습니다",
       );
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   };
 
@@ -86,35 +91,17 @@ export default function AdminReservations() {
     return reservations().filter((reservation) => reservation.status === value);
   });
 
-  const markReturned = async (reservation: AdminReservation) => {
+  const openReturn = (reservation: AdminReservation) => {
     if (processingId() !== null) return;
-    const label =
-      reservation.qty > 1
-        ? `'${reservation.item_name}' ${reservation.qty}개`
-        : `'${reservation.item_name}'`;
-    if (
-      !(await confirmDialog("", {
-        title: `${label}를 반납 처리하시겠습니까?`,
-        description: "반납 처리하면 재고가 바로 돌아오고, 대여 이력에 남습니다.",
-        confirmLabel: "반납",
-      }))
-    )
-      return;
-    setProcessingId(reservation.id);
-    try {
-      await api(`/api/admin/reservations/${reservation.id}/return`, {
-        method: "POST",
-      });
-      setMessage("반납 처리했습니다");
-      setMessageTone("success");
-      await reload();
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "처리에 실패했습니다");
-      setMessageTone("error");
-      await reload();
-    } finally {
-      setProcessingId(null);
-    }
+    // 사진 첨부·반납은 모달이 맡는다 — 회원 사진과 관리자 확인 사진을 함께 남긴다.
+    setReturnTarget(reservation);
+  };
+
+  const finishReturn = async (result: ReturnDialogResult) => {
+    setReturnTarget(null);
+    setMessage(result.message);
+    setMessageTone(result.tone);
+    await reload(true);
   };
 
   const approve = async (reservation: AdminReservation) => {
@@ -140,7 +127,7 @@ export default function AdminReservations() {
       });
       setMessage("신청을 승인했습니다");
       setMessageTone("success");
-      await reload();
+      await reload(true);
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       setMessage(
@@ -155,7 +142,7 @@ export default function AdminReservations() {
                 : "승인에 실패했습니다",
       );
       setMessageTone("error");
-      await reload();
+      await reload(true);
     } finally {
       setProcessingId(null);
     }
@@ -190,7 +177,7 @@ export default function AdminReservations() {
       setMessage("신청을 거절했습니다");
       setMessageTone("success");
       setRejectTarget(null);
-      await reload();
+      await reload(true);
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       setRejectError(
@@ -200,7 +187,7 @@ export default function AdminReservations() {
             ? err.message
             : "거절하지 못했습니다",
       );
-      await reload();
+      await reload(true);
     } finally {
       setRejectBusy(false);
     }
@@ -234,6 +221,11 @@ export default function AdminReservations() {
       message={message()}
       messageTone={messageTone()}
       onRetry={() => void reload()}
+      loadingContent={
+        <div class="mt-4">
+          <ReservationListSkeleton />
+        </div>
+      }
       side
       sideContent={
         <section class="rounded-card border border-line bg-surface p-4">
@@ -242,8 +234,8 @@ export default function AdminReservations() {
             신청 대기 건은 <b class="font-semibold text-ink-1">승인</b> 또는{" "}
             <b class="font-semibold text-ink-1">거절</b>로 처리합니다. 승인할 때 재고를 다시 확인하고,
             승인하면 대여가 시작됩니다. 물품을 돌려받았으면{" "}
-            <b class="font-semibold text-ink-1">반납</b>을 눌러 주세요. 회원이 직접 반납한 건은
-            목록에서 따로 표시되고, 반납 예정일이 지난 건은{" "}
+            <b class="font-semibold text-ink-1">반납</b>을 눌러 주세요. 반납할 때 회수 확인 사진을
+            남길 수 있고, 회원이 직접 반납한 건은 목록에서 따로 표시됩니다. 반납 예정일이 지난 건은{" "}
             <b class="font-semibold text-ink-1">기한 지남</b> 필터로 볼 수 있습니다.
           </p>
         </section>
@@ -318,9 +310,8 @@ export default function AdminReservations() {
                       <Show when={reservation.status === "rented"}>
                         <Button
                           variant="secondary"
-                          loading={processing()}
-                          disabled={processingId() !== null && !processing()}
-                          onClick={() => void markReturned(reservation)}
+                          disabled={processingId() !== null}
+                          onClick={() => openReturn(reservation)}
                         >
                           반납
                         </Button>
@@ -366,12 +357,26 @@ export default function AdminReservations() {
                   <Show when={reservation.member_memo}>
                     <span>메모 · {reservation.member_memo}</span>
                   </Show>
+                  <Show when={reservation.return_photos.length > 0}>
+                    <ReturnPhotoStrip
+                      photos={reservation.return_photos}
+                      showRole
+                    />
+                  </Show>
                 </ReservationRow>
               );
             }}
           </For>
         </div>
       </Show>
+
+      <ReturnDialog
+        open={returnTarget() !== null}
+        reservation={returnTarget()}
+        mode="admin"
+        onClose={() => setReturnTarget(null)}
+        onFinished={(result) => void finishReturn(result)}
+      />
 
       <Modal
         open={rejectTarget() !== null}

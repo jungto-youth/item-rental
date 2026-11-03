@@ -3,6 +3,8 @@ import { Auth } from "@auth/core";
 import type { Bindings, Variables } from "./types";
 import { authConfig } from "./auth";
 import { getSessionUser, requireAuth } from "./middleware/auth";
+import { getDb } from "./db";
+import { canViewReservationPhoto } from "./services/reservation-photos.service";
 import { itemsRoute } from "./routes/items";
 import { categoriesRoute } from "./routes/categories";
 import { meRoute } from "./routes/me";
@@ -38,9 +40,20 @@ app.get("/api/me", async (c) => {
 
 // --- 사진 서빙 (R2) ---
 // 사진도 매 요청에 최신 회원 상태를 확인한다. 로그아웃/탈퇴 이후 캐시로 우회하지 않는다.
+// 물품 사진은 활성 회원 모두, 반납 사진은 본인·관리자만 볼 수 있다.
+const PHOTO_KEY_RE = /^(?:items|reservations)\/[1-9]\d*\/[^/]+\.(jpg|png|webp)$/;
 app.get("/api/photos/*", requireAuth, async (c) => {
   const key = c.req.path.slice("/api/photos/".length);
-  if (!/^items\/[1-9]\d*\/[^/]+\.(jpg|png|webp)$/.test(key) || key.includes("..")) return c.json({ error: "bad_key" }, 400);
+  if (!PHOTO_KEY_RE.test(key) || key.includes("..")) return c.json({ error: "bad_key" }, 400);
+  // 반납 사진은 개인 공간이 찍힐 수 있다 — 키를 알아도 본인/관리자가 아니면 404.
+  if (key.startsWith("reservations/")) {
+    const allowed = await canViewReservationPhoto(
+      getDb(c.env),
+      key,
+      c.get("user")!,
+    );
+    if (!allowed) return c.json({ error: "not_found" }, 404);
+  }
   const obj = await c.env.PHOTOS.get(key);
   if (!obj) return c.json({ error: "not_found" }, 404);
   if (!["image/jpeg", "image/png", "image/webp"].includes(obj.httpMetadata?.contentType ?? "")) return c.json({ error: "not_found" }, 404);

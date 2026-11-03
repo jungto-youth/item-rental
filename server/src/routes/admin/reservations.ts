@@ -2,6 +2,8 @@ import { Hono, type Context } from "hono";
 import type { Bindings, Variables } from "../../types";
 import { getDb, type Sql } from "../../db";
 import { requireAdmin } from "../../middleware/auth";
+import { validatePhotoFile } from "../../photo-upload";
+import { MAX_RETURN_PHOTOS } from "../../../../shared/photo-limits";
 import {
   RESERVATION_STATUSES,
   listReservations,
@@ -10,6 +12,10 @@ import {
   rejectReservation,
   type TransitionResult,
 } from "../../services/reservations.service";
+import {
+  addReturnPhoto,
+  deleteReturnPhoto,
+} from "../../services/reservation-photos.service";
 
 // 대여 반납 처리 (admin 전용)
 // 승인·거절·수령은 없다: 신청 즉시 대여 중이 되고 관리자는 반납만 누른다.
@@ -79,4 +85,55 @@ adminReservationsRoute.post("/:id/return", async (c) => {
   const db: Sql = getDb(c.env);
   const result = await returnReservation(db, id, c.get("user")!.id);
   return mapTransition(c, result);
+});
+
+// ===== 반납 상태 사진 =====
+// 관리자는 물품을 회수할 때 확인 사진을 남긴다. 회원 사진과 같은 테이블에
+// uploaded_role='admin' 으로 쌓여 화면에서 구분된다. 업로드는 대여 중(rented)에만.
+
+adminReservationsRoute.post("/:id/photos", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
+
+  const form = await c.req.formData();
+  const file = form.get("file") as unknown;
+  if (!(file instanceof File)) return c.json({ error: "file 필드 필요" }, 400);
+  const checked = await validatePhotoFile(file);
+  if (!checked.ok) return c.json({ error: checked.error }, checked.status);
+
+  const user = c.get("user")!;
+  const db: Sql = getDb(c.env);
+  const result = await addReturnPhoto(db, c.env, {
+    reservationId: id,
+    actor: { id: user.id, role: "admin" },
+    file,
+    ext: checked.ext,
+  });
+
+  if ("ok" in result) return c.json({ id: result.id, url: result.url }, 201);
+  if (result.error === "too_many") {
+    return c.json({ error: `사진은 최대 ${MAX_RETURN_PHOTOS}장` }, 409);
+  }
+  if (result.error === "bad_status") {
+    return c.json({ error: "bad_status" }, 409);
+  }
+  return c.json({ error: "not_found" }, 404);
+});
+
+// 관리자는 반납 완료 건의 사진도 정정할 수 있다 — 증빙의 품질을 관리하는 경로.
+adminReservationsRoute.delete("/:id/photos/:photoId", async (c) => {
+  const id = Number(c.req.param("id"));
+  const photoId = Number(c.req.param("photoId"));
+  if (!Number.isInteger(id) || !Number.isInteger(photoId)) {
+    return c.json({ error: "bad_id" }, 400);
+  }
+  const user = c.get("user")!;
+  const db: Sql = getDb(c.env);
+  const ok = await deleteReturnPhoto(db, c.env, {
+    reservationId: id,
+    photoId,
+    actor: { id: user.id, role: "admin" },
+  });
+  if (!ok) return c.json({ error: "not_found" }, 404);
+  return c.json({ ok: true });
 });

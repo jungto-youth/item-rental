@@ -3,3 +3,5 @@
 export const MAX_PHOTO_UPLOAD_BYTES = 2 * 1024 * 1024;
 export const MAX_PHOTO_EDGE = 1600;
 export const MAX_PHOTOS = 3;
+// 반납 상태 증빙 — 물품 카탈로그 사진과 목적이 달라 한도를 따로 둔다.
+export const MAX_RETURN_PHOTOS = 3;

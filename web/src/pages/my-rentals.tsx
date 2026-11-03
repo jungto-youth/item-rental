@@ -9,7 +9,13 @@ import { Button } from "../components/ui/button";
 import { Empty } from "../components/ui/empty";
 import { PageHeader } from "../components/ui/page-header";
 import { ChevronDownIcon, CheckIcon } from "../components/icons";
-import { ReservationRow } from "../components/common/reservation-row";
+import {
+  ReservationListSkeleton,
+  ReservationRow,
+} from "../components/common/reservation-row";
+import { ReturnDialog, type ReturnDialogResult } from "../components/features/rental/return-dialog";
+import { ReturnPhotoStrip } from "../components/features/rental/return-photo-strip";
+import { Skeleton } from "../components/ui/skeleton";
 
 export default function MyRentals() {
   const [loading, setLoading] = createSignal(true);
@@ -20,8 +26,11 @@ export default function MyRentals() {
   );
   const [processing, setProcessing] = createSignal<{
     id: number;
-    kind: "return" | "cancel";
+    kind: "cancel";
   } | null>(null);
+  const [returnTarget, setReturnTarget] = createSignal<MyReservation | null>(
+    null,
+  );
 
   const loadReservations = async () => {
     try {
@@ -38,10 +47,16 @@ export default function MyRentals() {
   };
 
   onSettled(() => {
-    void session.ensure().then(async (user) => {
-      setLoading(false);
-      if (user) await loadReservations();
-    });
+    void (async () => {
+      try {
+        const user = await session.ensure();
+        if (user) await loadReservations();
+      } finally {
+        // 세션 확인과 대여 조회가 모두 끝나야 목록을 그린다 —
+        // 먼저 끝난 쪽이 빈 상태를 잠깐 보여주지 않게
+        setLoading(false);
+      }
+    })();
   });
 
   const doCancel = async (reservation: MyReservation) => {
@@ -60,33 +75,17 @@ export default function MyRentals() {
     }
   };
 
-  const doReturn = async (reservation: MyReservation) => {
-    if (processing()) return;
-    setProcessing({ id: reservation.id, kind: "return" });
-    try {
-      await api(`/api/reservations/${reservation.id}/return`, { method: "POST" });
-      setMessage(`${reservation.item_name} 반납 완료했습니다`);
-      setMessageTone("success");
-      await loadReservations();
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "반납 처리하지 못했습니다");
-      setMessageTone("error");
-    } finally {
-      setProcessing(null);
-    }
+  const finishReturn = async (result: ReturnDialogResult) => {
+    setReturnTarget(null);
+    setMessage(result.message);
+    setMessageTone(result.tone);
+    await loadReservations();
   };
 
-  const onReturn = async (reservation: MyReservation) => {
+  const onReturn = (reservation: MyReservation) => {
     if (processing()) return;
-    if (
-      !(await confirmDialog("", {
-        title: `'${reservation.item_name}'를 반납하시겠습니까?`,
-        description: "반납하면 재고가 바로 돌아오고, 대여 이력에 남습니다.",
-        confirmLabel: "반납",
-      }))
-    )
-      return;
-    await doReturn(reservation);
+    // 사진 첨부·반납은 모달이 맡는다 — 사진이 없어도 그대로 진행할 수 있다.
+    setReturnTarget(reservation);
   };
 
   const onCancel = async (reservation: MyReservation) => {
@@ -102,9 +101,50 @@ export default function MyRentals() {
     await doCancel(reservation);
   };
 
+  const renderSkeleton = () => (
+    <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div class="min-w-0">
+        <Skeleton class="h-6 w-28 rounded" />
+        <div class="mt-4">
+          <ReservationListSkeleton
+            label="대여 내역을 불러오는 중"
+            rows={3}
+          />
+        </div>
+      </div>
+      <aside
+        class="flex flex-col gap-4 max-lg:hidden"
+        aria-hidden="true"
+      >
+        <div class="rounded-card border border-line bg-surface p-4">
+          <Skeleton class="h-4 w-20 rounded" />
+          <Skeleton class="mt-2 h-3.5 w-full rounded" />
+          <Skeleton class="mt-2 h-3.5 w-4/5 rounded" />
+          <Skeleton tone="muted" class="mt-4 h-10 w-32 rounded-card" />
+        </div>
+        <div class="rounded-card border border-line bg-surface p-4">
+          <Skeleton class="h-4 w-20 rounded" />
+          <Skeleton class="mt-2 h-3.5 w-full rounded" />
+          <Skeleton class="mt-2 h-3.5 w-3/4 rounded" />
+        </div>
+      </aside>
+    </div>
+  );
+
   return (
     <div class="block">
-      <Show when={!loading()} fallback={<Empty state="loading" />}>
+      <Show
+        when={!loading()}
+        fallback={
+          <>
+            <PageHeader
+              title="대여 내역"
+              subtitle="신청한 물품의 승인 상태와 지난 기록을 확인합니다."
+            />
+            {renderSkeleton()}
+          </>
+        }
+      >
         <Show
           when={session.user()}
           fallback={
@@ -241,12 +281,8 @@ export default function MyRentals() {
                                     <>
                                       <Button
                                         variant="primary"
-                                        loading={
-                                          mine() &&
-                                          processing()?.kind === "return"
-                                        }
                                         disabled={blocked()}
-                                        onClick={() => void onReturn(reservation)}
+                                        onClick={() => onReturn(reservation)}
                                       >
                                         반납하기
                                       </Button>
@@ -281,6 +317,11 @@ export default function MyRentals() {
                                   </Show>
                                   <Show when={reservation.member_memo}>
                                     <span>메모: {reservation.member_memo}</span>
+                                  </Show>
+                                  <Show when={reservation.return_photos.length > 0}>
+                                    <ReturnPhotoStrip
+                                      photos={reservation.return_photos}
+                                    />
                                   </Show>
                                 </ReservationRow>
                               );
@@ -320,6 +361,11 @@ export default function MyRentals() {
                                 <Show when={reservation.member_memo}>
                                   <span>메모: {reservation.member_memo}</span>
                                 </Show>
+                                <Show when={reservation.return_photos.length > 0}>
+                                  <ReturnPhotoStrip
+                                    photos={reservation.return_photos}
+                                  />
+                                </Show>
                               </ReservationRow>
                             )}
                           </For>
@@ -334,7 +380,7 @@ export default function MyRentals() {
                       <p class="mt-2 text-fine leading-normal text-ink-2">
                         승인 대기 중인 신청은 <b class="font-semibold text-ink-1">신청 취소</b>로
                         취소할 수 있습니다. 대여가 시작되면 <b class="font-semibold text-ink-1">반납하기</b>를
-                        눌러 바로 반납합니다. 반납 예정일이 지나면{" "}
+                        눌러 바로 반납합니다. 반납할 때 물품 상태 사진을 남길 수 있고, 반납 예정일이 지나면{" "}
                         <b class="font-semibold text-ink-1">기한 지남</b>으로 표시됩니다.
                       </p>
                       <a class="mt-4 inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1" href="/">물품 둘러보기</a>
@@ -354,6 +400,14 @@ export default function MyRentals() {
           }}
         </Show>
       </Show>
+
+      <ReturnDialog
+        open={returnTarget() !== null}
+        reservation={returnTarget()}
+        mode="member"
+        onClose={() => setReturnTarget(null)}
+        onFinished={(result) => void finishReturn(result)}
+      />
     </div>
   );
 }

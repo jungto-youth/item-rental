@@ -17,6 +17,8 @@ type Props = {
   /** 페이지 제목 오른쪽 액션 — 내비게이션·보조 동작 */
   action?: JSX.Element;
   toolbar?: JSX.Element;
+  /** 초기 로드 자리표시자 — 목록처럼 모양이 예측되는 화면은 스캘래톤을 넘긴다 */
+  loadingContent?: JSX.Element;
   children?: JSX.Element;
   sideContent?: JSX.Element;
 };
@@ -28,7 +30,7 @@ export function AdminPage(props: Props) {
       {props.toolbar}
       <Show
         when={!props.loading}
-        fallback={<Empty compact state="loading" />}
+        fallback={props.loadingContent ?? <Empty compact state="loading" />}
       >
         <Show
           when={!props.error}

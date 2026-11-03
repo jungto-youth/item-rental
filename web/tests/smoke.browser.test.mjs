@@ -156,6 +156,9 @@ const RESERVATIONS = [
   },
 ];
 
+// 반납 사진 계약 — 서버는 사진이 없어도 항상 배열을 내려준다.
+for (const row of RESERVATIONS) row.return_photos = [];
+
 const ADMIN_RESERVATIONS = RESERVATIONS.map((row, index) => ({
   ...row,
   total_qty: 5,
@@ -610,14 +613,17 @@ try {
     await context.close();
   }
 
-  // 11) 관리자도 헤더에서 내 대여 내역으로 이동할 수 있다.
+  // 11) 관리자도 헤더에서 대여 내역으로 이동할 수 있다.
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
     await mockApi(page, ADMIN);
     await page.goto(base);
     await page.locator(".item-card").first().waitFor();
-    await page.getByRole("link", { name: "내 대여", exact: true }).click();
+    await page
+      .locator("header")
+      .getByRole("link", { name: "대여 내역", exact: true })
+      .click();
     await page.waitForURL(base + "my/rentals");
     await page.locator(".reservation-row").first().waitFor();
     await page
@@ -688,7 +694,31 @@ try {
     await context.close();
   }
 
-  // 15) 모바일 폭에서 가로 스크롤이 없다 — 긴 이름·이메일·소속 카드 포함.
+  // 15) 반납 모달은 사진 없이도 반납을 완료하고, 대여 반납 API 를 호출한다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, MEMBER);
+    let returned = false;
+    await page.route("**/api/reservations/*/return", async (route) => {
+      returned = true;
+      await route.fulfill({ json: { ok: true } });
+    });
+    await page.goto(new URL("my/rentals", base).href);
+    const row = page.locator(".reservation-row", {
+      hasText: "10/30 청년 모임",
+    });
+    await row.getByRole("button", { name: "반납하기", exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("heading", { name: "반납하기", exact: true }).waitFor();
+    await dialog.getByRole("button", { name: "반납 완료", exact: true }).click();
+    await page.getByText(/반납을 완료했습니다/).waitFor();
+    assert.equal(returned, true);
+    console.log("PASS return dialog completes without photos");
+    await context.close();
+  }
+
+  // 16) 모바일 폭에서 가로 스크롤이 없다 — 긴 이름·이메일·소속 카드 포함.
   for (const [user, routes] of [
     [MEMBER, ["/", "/items/101", "/mypage", "/my/rentals", "/policy/privacy"]],
     [ADMIN, ["/admin/members", "/admin/reservations"]],

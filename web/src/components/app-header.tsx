@@ -26,9 +26,9 @@ export function AppHeader() {
           ]
         : []),
       // 관리자도 내가 빌린 물품을 확인할 수 있어야 한다. 관리자 메뉴(대여 관리)와
-      // 별개로 '내 대여'를 항상 둔다 — 예전에는 관리자에게서 이 진입점이 사라져
-      // 내 대여 내역에 들어갈 방법이 없었다 (BACKLOG B-02).
-      { href: "/my/rentals", label: admin ? "내 대여" : "대여 내역" },
+      // 별개로 '대여 내역'을 항상 둔다 — 예전에는 관리자에게서 이 진입점이 사라져
+      // 대여 내역에 들어갈 방법이 없었다 (BACKLOG B-02).
+      { href: "/my/rentals", label: "대여 내역" },
     ];
   };
 
@@ -171,7 +171,7 @@ export function AppHeader() {
                   class="block w-full p-4 text-left text-body text-ink-1 no-underline hover:bg-surface-muted"
                   onClick={() => setMenuOpen(false)}
                 >
-                  내 대여 내역
+                  대여 내역
                 </a>
                 <button
                   type="button"

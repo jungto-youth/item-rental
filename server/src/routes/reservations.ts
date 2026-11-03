@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
 import { getDb, type Sql } from "../db";
 import { requireAuth } from "../middleware/auth";
+import { validatePhotoFile } from "../photo-upload";
+import { MAX_RETURN_PHOTOS } from "../../../shared/photo-limits";
 import {
   defaultDueDateKst,
   dueAtFromKstDate,
@@ -15,6 +17,11 @@ import {
   returnReservationByMember,
   type CreateReservationParams,
 } from "../services/reservations.service";
+import {
+  addReturnPhoto,
+  deleteReservationPhotos,
+  deleteReturnPhoto,
+} from "../services/reservation-photos.service";
 
 // ===== 대여 라우트 =====
 // 대여/내 대여/취소/반납 (로그인 회원 전용 — 승인 단계 없음)
@@ -112,7 +119,16 @@ reservationsRoute.post("/:id/cancel", async (c) => {
   const db: Sql = getDb(c.env);
   const result = await cancelReservation(db, id, user.id);
 
-  if ("ok" in result) return c.json({ ok: true });
+  if ("ok" in result) {
+    // 반납 확인 모달에서 올린 사진이 남아 있을 수 있다 — 취소는 이미 성공했으므로
+    // 정리 실패가 응답을 바꾸지 않게 여기서 삼킨다.
+    try {
+      await deleteReservationPhotos(db, c.env, id);
+    } catch (err) {
+      console.error(`반납 사진 정리 실패 (reservation ${id})`, err);
+    }
+    return c.json({ ok: true });
+  }
   // 없음/타인 건 → not_found, 종료 상태 → bad_status
   if (result.error === "bad_status")
     return c.json({ error: "bad_status" }, 409);
@@ -134,4 +150,56 @@ reservationsRoute.post("/:id/return", async (c) => {
   if (result.error === "bad_status")
     return c.json({ error: "bad_status" }, 409);
   return c.json({ error: "not_found" }, 404);
+});
+
+// ===== 반납 상태 사진 =====
+// 반납 확인 모달에서 올린다 — 본인 + 대여 중(rented)인 건만. 반납은 사진이 없어도
+// 가능하며, 사진은 상태·재고 전이에 영향을 주지 않는다. 최대 장수·중복 업로드 가드는
+// reservation-photos.service 가 맡는다.
+reservationsRoute.post("/:id/photos", async (c) => {
+  const user = c.get("user")!;
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
+
+  const form = await c.req.formData();
+  const file = form.get("file") as unknown;
+  if (!(file instanceof File)) return c.json({ error: "file 필드 필요" }, 400);
+  const checked = await validatePhotoFile(file);
+  if (!checked.ok) return c.json({ error: checked.error }, checked.status);
+
+  const db: Sql = getDb(c.env);
+  const result = await addReturnPhoto(db, c.env, {
+    reservationId: id,
+    actor: { id: user.id, role: "member" },
+    file,
+    ext: checked.ext,
+  });
+
+  if ("ok" in result) return c.json({ id: result.id, url: result.url }, 201);
+  if (result.error === "too_many") {
+    return c.json({ error: `사진은 최대 ${MAX_RETURN_PHOTOS}장` }, 409);
+  }
+  if (result.error === "bad_status") {
+    return c.json({ error: "bad_status" }, 409);
+  }
+  return c.json({ error: "not_found" }, 404);
+});
+
+// 반납 사진 삭제 — 반납 전(대여 중)에만. 반납 후에는 이력의 증빙이라 회원이 지우지 않는다.
+reservationsRoute.delete("/:id/photos/:photoId", async (c) => {
+  const user = c.get("user")!;
+  const id = Number(c.req.param("id"));
+  const photoId = Number(c.req.param("photoId"));
+  if (!Number.isInteger(id) || !Number.isInteger(photoId)) {
+    return c.json({ error: "bad_id" }, 400);
+  }
+
+  const db: Sql = getDb(c.env);
+  const ok = await deleteReturnPhoto(db, c.env, {
+    reservationId: id,
+    photoId,
+    actor: { id: user.id, role: "member" },
+  });
+  if (!ok) return c.json({ error: "not_found" }, 404);
+  return c.json({ ok: true });
 });

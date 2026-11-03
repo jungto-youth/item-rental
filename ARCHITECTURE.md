@@ -41,7 +41,8 @@
    들어간다. 라우트는 `requireAuth` / `requireAdmin`으로 권한을 확인하고 서비스 함수를
    호출한다. 서비스만 SQL을 실행한다.
 2. **사진** — `/api/photos/*`는 R2 키 형식을 검증하고 `requireAuth`로 최신 회원 상태를
-   확인한 뒤 `private, no-store`로 스트리밍한다.
+   확인한 뒤 `private, no-store`로 스트리밍한다. 물품 사진은 활성 회원 모두, 반납 사진은
+   본인·관리자만 볼 수 있다.
 3. **인증** — `/api/auth/*`는 Auth.js가 전담한다. 로그인 성공 시 `members`에 upsert하고,
    JWT의 `sub`를 `members.id`로 바꾼다. 이후 모든 권한 판단은 이 ID로 한다.
 4. **SPA** — 그 외 경로는 `web/dist`의 정적 파일, 없으면 `index.html`이다.
@@ -56,6 +57,7 @@ server/src/
   auth.ts             — 로그인 설정 (구글 계정, 허용 이메일, 세션 쿠키)
   embedding.ts        — 검색용 임베딩 생성 + 캐시
   image-size.ts       — 의존성 없는 이미지 헤더 파서 (업로드 검사)
+  photo-upload.ts     — 사진 업로드 공통 검증 (형식·용량·픽셀)
   middleware/auth.ts  — requireAuth · requireAdmin
   routes/             — items, categories, me, reservations + admin/*
   services/           — SQL과 도메인 로직 (SQL은 여기에만 존재)
@@ -103,6 +105,7 @@ D1 테이블은 `migrations-d1/`이 정의한다. 주요 축은 다음과 같다
 | 물품 | `items`, `item_photos` | 생애주기 `active`/`retired`, 수량 상태 `total_qty`·`qty_repair` |
 | 분류 | `categories`, `item_categories` | 다대다 |
 | 대여 | `reservations` | 신청 대기·대여 중·반납·취소·거절, 반납 예정일(`due_at`), 승인·거절 처리자 |
+| 반납 사진 | `reservation_photos` | 반납 시점 상태 사진(최대 3장), 회원·관리자 첨부 구분, 본인·관리자만 열람 |
 | 검색 | `items_fts` (FTS5) | 키워드 색인, 임베딩은 `items`에 저장 |
 
 - 물품 상태 배지는 `available` · `rented` · `repair` · `retired` 네 가지다.
@@ -132,7 +135,7 @@ DB에 직접 넣은 물품은 임베딩이 없다. 관리자 세션으로 `POST 
 - Shadow DOM 대신 Tailwind v4 유틸리티 클래스를 쓴다. 토큰은 `tokens.css` 한 벌이다.
 - Lit 라우터 대신 `web/src/router.tsx`가 경로 매칭·가드·리다이렉트·스크롤 복원을 맡는다.
 - 세션은 `/api/me` 캐시·세대 번호·401 처리 규약을 그대로 옮겼다.
-- 사진은 업로드 전 1600px·2MB로 축소하고 3장 슬롯을 쓴다.
+- 사진은 업로드 전 1600px·2MB로 축소한다. 물품 사진과 반납 사진 모두 최대 3장이다.
 
 `web-lit/`은 사진 파이프라인·시각 회귀 기준선이 남아 있어 비교용으로만 유지한다.
 배포에는 쓰지 않는다.

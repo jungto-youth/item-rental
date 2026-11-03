@@ -53,6 +53,17 @@ test("API security: actual body bytes are capped before parsing even with absent
       body: new Uint8Array(MAX_PHOTO_BODY_BYTES + 1),
     });
     assertEquals(upload.status, 413);
+    // 반납 사진 경로도 같은 2MB 허용 목록에 있어야 한다 — 빠지면 32KB 기본 한도에 걸린다.
+    const returnUpload = await request("/api/reservations/1/photos", {
+      method: "POST", headers: { origin: TEST_ORIGIN, "content-length": "1", "content-type": "multipart/form-data; boundary=invalid" },
+      body: new Uint8Array(MAX_PHOTO_BODY_BYTES + 1),
+    });
+    assertEquals(returnUpload.status, 413);
+    const allowed = await request("/api/reservations/1/photos", {
+      method: "POST", headers: { origin: TEST_ORIGIN },
+      body: new Uint8Array(MAX_API_BODY_BYTES + 1),
+    });
+    assertEquals(allowed.status, 401);
     assertEquals(statements.length, 0);
     assertEquals(upload.headers.get("cache-control"), "no-store");
   } finally { db.close(); }

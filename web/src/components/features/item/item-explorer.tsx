@@ -17,8 +17,7 @@ import type { JSX } from "@solidjs/web";
 import { Button } from "../../ui/button";
 import { Empty } from "../../ui/empty";
 import { Notice } from "../../ui/notice";
-import { TextButton } from "../../ui/text-button";
-import { ChevronDownIcon } from "../../icons";
+import { Skeleton } from "../../ui/skeleton";
 import { ItemCard } from "./item-card";
 
 export type TabKey = "all" | "available" | "rented" | "repair";
@@ -201,6 +200,48 @@ export function ItemExplorer(props: {
   const retryMore = async () => {
     setNoticeMsg("");
     await loadMore();
+    watchSentinel();
+  };
+
+  // ===== 무한 스크롤 =====
+  // 목록 끝의 센티넬을 IntersectionObserver 로 감시하다가, 화면에 가까워지면
+  // 다음 묶음을 자동으로 불러온다. '더보기' 버튼은 두지 않는다.
+  let sentinel: HTMLDivElement | undefined;
+  let observer: IntersectionObserver | undefined;
+
+  // 지금 더 불러올 것이 있고, 다른 요청이 진행 중이 아닌지.
+  // 오류 안내가 떠 있으면 사용자가 '다시 시도'를 누를 때까지 자동 로드를 멈춘다.
+  const canAutoLoad = () => {
+    if (loading() || loadingMore() || adminLoading() || noticeMsg()) return false;
+    if (isAdmin()) return shown() < adminVisible().length;
+    if (props.q)
+      return items().filter((item) => matchesTab(item)).length > shown();
+    return hasMore();
+  };
+
+  const listSize = () => shown() + items().length;
+
+  // 관찰을 다시 걸면 현재 교차 상태로 콜백이 한 번 더 온다 — 목록이 화면을
+  // 다 채우지 못해 센티넬이 계속 보이는 경우에도 이어서 불러오기 위해서다.
+  const watchSentinel = () => {
+    if (!observer || !sentinel) return;
+    observer.unobserve(sentinel);
+    observer.observe(sentinel);
+  };
+
+  const attachSentinel = (el: HTMLDivElement) => {
+    sentinel = el;
+    watchSentinel();
+  };
+
+  const autoLoadMore = () => {
+    if (!canAutoLoad()) return;
+    const before = listSize();
+    void moreItems().finally(() => {
+      // 목록이 실제로 늘었을 때만 다시 감시한다 — 빈 페이지가 반복되어도
+      // 요청을 끝없이 되풀이하지 않는다.
+      if (listSize() > before) watchSentinel();
+    });
   };
 
   onSettled(() => {
@@ -208,8 +249,19 @@ export function ItemExplorer(props: {
     setIsAdmin(admin);
     if (admin) void loadAdmin();
     else void fetchItems();
+
+    observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) autoLoadMore();
+      },
+      // 목록 끝이 화면에 닿기 전에 미리 불러온다.
+      { rootMargin: "0px 0px 600px 0px" },
+    );
+    watchSentinel();
+
     return () => {
       if (searchTimer) clearTimeout(searchTimer);
+      observer?.disconnect();
     };
   });
 
@@ -296,11 +348,11 @@ export function ItemExplorer(props: {
       <For each={Array.from({ length: 5 })}>
         {() => (
           <div class="overflow-hidden rounded-card border border-line bg-surface max-sm:[&:nth-child(n+4)]:hidden md:max-xl:[&:nth-child(n+5)]:hidden" aria-hidden="true">
-            <div class="aspect-[4/3] animate-[pulse_1.4s_ease-in-out_infinite] bg-surface-muted" />
+            <Skeleton tone="muted" class="aspect-[4/3]" />
             <div class="grid gap-2 p-4 max-sm:p-2">
-              <div class="h-4 w-3/4 animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
-              <div class="h-3 w-1/2 animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
-              <div class="h-3 w-2/3 animate-[pulse_1.4s_ease-in-out_infinite] rounded bg-line" />
+              <Skeleton class="h-4 w-3/4 rounded" />
+              <Skeleton class="h-3 w-1/2 rounded" />
+              <Skeleton class="h-3 w-2/3 rounded" />
             </div>
           </div>
         )}
@@ -320,14 +372,21 @@ export function ItemExplorer(props: {
         </For>
       </div>
       <Show when={more()}>
-        <div class="mb-8 flex justify-center">
-          <TextButton
-            loading={loadingMore()}
-            iconAfter={<ChevronDownIcon />}
-            onClick={() => void moreItems()}
-          >
-            {loadingMore() ? "불러오는 중…" : "더보기"}
-          </TextButton>
+        <div
+          ref={attachSentinel}
+          class="mb-8 flex min-h-9 items-center justify-center"
+          role="status"
+          aria-live="polite"
+        >
+          <Show when={loadingMore()}>
+            <span class="inline-flex items-center gap-1 text-body font-medium text-ink-2">
+              <span
+                class="size-3.5 animate-[spin_0.6s_linear_infinite] rounded-full border-2 border-current border-r-transparent"
+                aria-hidden="true"
+              />
+              불러오는 중…
+            </span>
+          </Show>
         </div>
       </Show>
     </>

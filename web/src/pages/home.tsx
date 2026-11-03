@@ -137,7 +137,7 @@ export default function Home() {
                 class="inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
                 href="/my/rentals"
               >
-                내 대여 내역
+                대여 내역
               </a>
             </div>
           </section>

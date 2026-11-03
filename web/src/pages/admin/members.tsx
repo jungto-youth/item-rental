@@ -15,6 +15,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Empty } from "../../components/ui/empty";
 import { Input } from "../../components/ui/input";
+import { Skeleton } from "../../components/ui/skeleton";
 import { ChevronDownIcon, SearchIcon } from "../../components/icons";
 
 export default function AdminMembers() {
@@ -47,6 +48,12 @@ export default function AdminMembers() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 오류 후 재시도 — 이전 목록/빈 상태가 먼저 보이지 않게 스캘래톤부터
+  const retry = () => {
+    setLoading(true);
+    void reload();
   };
 
   const reloadEmails = async () => {
@@ -357,8 +364,88 @@ export default function AdminMembers() {
     );
   };
 
+  const renderSkeleton = () => (
+    <div
+      class="mt-4 grid gap-2"
+      role="status"
+      aria-label="회원 목록을 불러오는 중"
+    >
+      <For each={Array.from({ length: 4 })}>
+        {() => (
+          <div
+            class="member box-border min-w-0 rounded-card border border-line bg-surface p-4"
+            aria-hidden="true"
+          >
+            <div class="flex flex-wrap items-start gap-3">
+              <div class="flex min-w-0 flex-1 items-center gap-3">
+                <Skeleton tone="muted" class="size-9 shrink-0 rounded-pill" />
+                <div class="min-w-0 flex-1">
+                  <Skeleton class="h-4 w-1/3 rounded" />
+                  <Skeleton class="mt-2 h-3.5 w-3/5 rounded" />
+                  <Skeleton class="mt-2 h-3.5 w-1/4 rounded" />
+                </div>
+              </div>
+              <div class="flex w-full items-center gap-2 sm:w-auto sm:flex-none">
+                <Skeleton
+                  tone="muted"
+                  class="h-10 w-24 rounded-card max-sm:flex-1"
+                />
+                <Skeleton
+                  tone="muted"
+                  class="h-10 w-16 rounded-card max-sm:flex-1"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </For>
+    </div>
+  );
+
+  const renderEmailsSkeleton = () => (
+    <div
+      class="mt-4 grid gap-2"
+      role="status"
+      aria-label="로그인 허용 이메일을 불러오는 중"
+    >
+      <div class="rounded-card border border-line bg-surface p-4">
+        <Skeleton class="h-3.5 w-3/4 rounded" />
+        <div class="mt-4 grid gap-4 min-[720px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] min-[720px]:items-end">
+          <div class="grid gap-2">
+            <Skeleton class="h-3.5 w-16 rounded" />
+            <Skeleton tone="muted" class="h-10 w-full rounded-card" />
+          </div>
+          <div class="grid gap-2">
+            <Skeleton class="h-3.5 w-20 rounded" />
+            <Skeleton tone="muted" class="h-10 w-full rounded-card" />
+          </div>
+          <Skeleton
+            tone="muted"
+            class="h-10 w-full rounded-card min-[720px]:w-16"
+          />
+        </div>
+      </div>
+      <div class="overflow-hidden rounded-card border border-line bg-surface">
+        <For each={Array.from({ length: 2 })}>
+          {() => (
+            <div
+              class="flex flex-wrap items-center gap-3 border-b border-line p-4 last:border-b-0"
+              aria-hidden="true"
+            >
+              <div class="min-w-0 flex-1">
+                <Skeleton class="h-4 w-1/2 rounded" />
+                <Skeleton class="mt-2 h-3.5 w-3/4 rounded" />
+              </div>
+              <Skeleton tone="muted" class="h-10 w-16 rounded-card" />
+            </div>
+          )}
+        </For>
+      </div>
+    </div>
+  );
+
   const renderEmails = () => (
-    <Show when={!emailsLoading()} fallback={<Empty state="loading" />}>
+    <Show when={!emailsLoading()} fallback={renderEmailsSkeleton()}>
       <div class="mt-4 box-border rounded-card border border-line bg-surface p-4">
         <p class="m-0 text-fine text-ink-2">
           정토회(@jungto.org) 계정 외에 로그인을 허용할 이메일입니다.
@@ -442,10 +529,11 @@ export default function AdminMembers() {
       title="회원 관리"
       subtitle="회원 역할과 로그인 허용 이메일을 관리합니다."
       loading={loading()}
+      loadingContent={renderSkeleton()}
       error={error()}
       message={message()}
       messageTone={messageTone()}
-      onRetry={() => void reload()}
+      onRetry={retry}
       side
       sideContent={
         <>
