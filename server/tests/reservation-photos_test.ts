@@ -142,7 +142,10 @@ test("반납 사진: 열람은 본인과 관리자만 가능하고 타인은 404
     const created = (await (await upload(request, owner, 1)).json()) as { url: string };
     expect(objects.size).toBe(1);
 
-    expect((await request(created.url, { headers: { cookie: owner } })).status).toBe(200);
+    const own = await request(created.url, { headers: { cookie: owner } });
+    expect(own.status).toBe(200);
+    // 물품 사진과 달리 캐시하지 않는다 — 권한이 바뀌면 바로 볼 수 없어야 한다
+    expect(own.headers.get("cache-control")).toBe("private, no-store");
     expect((await request(created.url, { headers: { cookie: admin } })).status).toBe(200);
     expect((await request(created.url, { headers: { cookie: other } })).status).toBe(404);
     expect((await request(created.url)).status).toBe(401);
