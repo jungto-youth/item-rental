@@ -34,7 +34,7 @@ test("API security: state changes require exact origin, including scheme, withou
       if (origin !== undefined) headers.set("origin", origin);
       assertEquals((await request("/api/me/profile", { method: "PUT", headers, body: '{"name":"changed","phone":"010-1111-2222"}' })).status, 403);
     }
-    const good = await request("/api/me/profile", { method: "PUT", headers: { origin: TEST_ORIGIN, cookie: session }, body: '{"name":"allowed","phone":"010-1111-2222"}' });
+    const good = await request("/api/me/profile", { method: "PUT", headers: { origin: TEST_ORIGIN, cookie: session }, body: '{"name":"allowed","phone":"010-1111-2222","branch":"서울","group":"동부"}' });
     assertEquals(good.status, 200);
     assertEquals(db.prepare("SELECT name FROM members WHERE id = 'member'").get()?.name, "allowed");
   } finally { db.close(); }

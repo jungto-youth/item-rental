@@ -15,13 +15,16 @@ export function InfoList(props: {
   items: InfoItem[];
   /** 첫 행(수량 등 핵심 값)을 굵게 */
   strongFirst?: boolean;
+  /** 행 구분선과 목록 위아래 선 표시 (기본 true) */
+  divided?: boolean;
   class?: string;
 }) {
+  const divided = props.divided !== false;
   return (
-    <dl class={`mt-6 border-y border-line ${props.class ?? ""}`}>
+    <dl class={`mt-6 ${divided ? "border-y border-line" : ""} ${props.class ?? ""}`}>
       <For each={props.items}>
         {(item, index) => (
-          <div class="flex items-center justify-between gap-4 border-b border-line py-2 last:border-b-0">
+          <div class={`flex items-center justify-between gap-4 py-2 ${divided ? "border-b border-line last:border-b-0" : ""}`}>
             <dt class="text-fine font-normal text-ink-2">{item.label}</dt>
             <dd
               class={`m-0 truncate text-body text-ink-1 tabular-nums ${

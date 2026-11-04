@@ -102,6 +102,8 @@ test("reservations: 메모와 반납 예정일을 검증하고 due_at 을 저장
   const { db, request, member } = httpFixture();
   try {
     const user = await member("user", "user");
+    // 지회·모둠 검사를 통과시킨 뒤 이 테스트가 보려는 메모·반납 예정일 검증에 집중한다.
+    db.prepare("UPDATE members SET affiliation = '서울 · 동부' WHERE id = 'user'").run();
     db.exec("INSERT INTO items (id, name, kind, total_qty) VALUES (1, '4인용 텐트', 'rental', 2);");
     const post = (body: Record<string, unknown>) =>
       request("/api/reservations", {
@@ -377,5 +379,54 @@ test("admin items: 등록 시 위치 이름이 locations 로 정규화되고 단
     expect(
       (db.prepare("SELECT lifecycle FROM items WHERE id = ?1").get(id) as { lifecycle: string }).lifecycle,
     ).toBe("retired");
+  } finally { db.close(); }
+});
+
+// ===== PUT /api/me/profile — 지회·모둠 필수 =====
+
+test("profile: 지회·모둠 조합을 검증하고 소속 문자열을 만든다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const user = await member("user", "user");
+    const put = (body: Record<string, unknown>) =>
+      request("/api/me/profile", {
+        method: "PUT",
+        headers: { cookie: user, ...json },
+        body: JSON.stringify(body),
+      });
+    const base = { name: "김하늘", phone: "010-1234-5678" };
+
+    // 지회·모둠은 선택이 아니다 — 누락·잘못된 조합은 저장 전에 거부한다
+    expect((await put(base)).status).toBe(400);
+    expect((await put({ ...base, branch: "서울" })).status).toBe(400);
+    expect((await put({ ...base, branch: "서울", group: "부산/경남" })).status).toBe(400);
+    expect(
+      (db.prepare("SELECT affiliation FROM members WHERE id = 'user'").get() as { affiliation: string | null })
+        .affiliation,
+    ).toBeNull();
+
+    const ok = await put({ ...base, branch: "남부", group: "부산/경남" });
+    expect(ok.status).toBe(200);
+    expect(db.prepare("SELECT name, phone, affiliation FROM members WHERE id = 'user'").get()).toMatchObject({
+      name: "김하늘",
+      phone: "010-1234-5678",
+      affiliation: "남부 · 부산/경남",
+    });
+  } finally { db.close(); }
+});
+
+test("reservations: 지회·모둠이 없는 회원은 신청할 수 없다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    // fixture 회원은 연락처가 있지만 소속은 없다 — 화면 가드를 우회한 직접 호출도 막힌다
+    const user = await member("user", "user");
+    db.exec("INSERT INTO items (id, name, kind, total_qty) VALUES (1, '텐트', 'rental', 2);");
+    const res = await request("/api/reservations", {
+      method: "POST",
+      headers: { cookie: user, ...json },
+      body: JSON.stringify({ item_id: 1, memo: "모임용", due_date: defaultDueDateKst() }),
+    });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "affiliation_required" });
   } finally { db.close(); }
 });

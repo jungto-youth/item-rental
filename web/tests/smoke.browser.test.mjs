@@ -17,7 +17,7 @@ const MEMBER = {
   email: "member@example.invalid",
   name: "김하늘",
   phone: "010-0000-0000",
-  affiliation: "서울지부",
+  affiliation: "서울 · 동부",
   role: "user",
   deactivated_at: null,
 };
@@ -27,7 +27,7 @@ const ADMIN = {
   email: "admin@example.invalid",
   name: "김운영",
   phone: "010-0000-0000",
-  affiliation: "서울지부",
+  affiliation: "서울 · 동부",
   role: "admin",
   deactivated_at: null,
 };
@@ -353,10 +353,12 @@ try {
     console.log("PASS anonymous home redirects to login");
   }
 
-  // 1-1) 연락처가 없으면 회원·관리자 모두 로그인 후 프로필 등록으로 이동한다.
+  // 1-1) 필수 프로필(연락처·지회·모둠)이 없으면 로그인 후 프로필 등록으로 이동한다.
   for (const [label, user, path] of [
-    ["member", { ...MEMBER, phone: null }, "/"],
-    ["admin", { ...ADMIN, phone: null }, "/admin/members"],
+    ["member without phone", { ...MEMBER, phone: null }, "/"],
+    ["admin without phone", { ...ADMIN, phone: null }, "/admin/members"],
+    // 기존 자유 입력 소속은 유효한 지회·모둠 조합이 아니다 — 다시 선택하게 한다
+    ["member with legacy affiliation", { ...MEMBER, affiliation: "서울지부" }, "/mypage"],
   ]) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
@@ -371,7 +373,7 @@ try {
     await page.locator(".profile-form").waitFor();
     assert.deepEqual(errors, [], `${label} console errors`);
     await context.close();
-    console.log(`PASS ${label} without phone redirects to profile`);
+    console.log(`PASS ${label} redirects to profile`);
   }
 
   // 2) 모든 화면이 렌더되고 콘솔 오류가 없다.
@@ -478,25 +480,66 @@ try {
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
-    let user = { ...MEMBER, phone: null };
+    let user = { ...MEMBER, phone: null, affiliation: null };
     const updates = [];
     await page.route("**/api/me", (route) => route.fulfill({ json: { user } }));
     await page.route("**/api/me/profile", async (route) => {
       const body = route.request().postDataJSON();
       updates.push(body);
-      user = { ...user, ...body };
+      user = {
+        ...user,
+        name: body.name,
+        phone: body.phone,
+        branch: body.branch,
+        group: body.group,
+        affiliation: `${body.branch} · ${body.group}`,
+      };
       await route.fulfill({ json: { ok: true } });
     });
     await page.goto(new URL("signup/profile", base).href);
     await page.getByLabel("휴대폰 번호").fill("010-0000-0001");
-    await page.getByLabel("소속 지부/지회 (선택)").fill("서울지부");
+    // 모둠은 지회에 종속된다 — 새 지회에 없는 모둠은 비우고, 공통 모둠은 유지한다.
+    await page.getByLabel("지회").selectOption("경기");
+    await page.getByLabel("모둠").selectOption("동부");
+    await page.getByLabel("지회").selectOption("서울");
+    assert.equal(await page.getByLabel("모둠").inputValue(), "동부");
+    await page.getByLabel("지회").selectOption("남부");
+    assert.equal(await page.getByLabel("모둠").inputValue(), "");
+    await page.getByLabel("모둠").selectOption("충청");
+    await page.getByLabel("지회").selectOption("서울");
+    assert.equal(await page.getByLabel("모둠").inputValue(), "");
+    await page.getByLabel("모둠").selectOption("동부");
     await page.getByRole("button", { name: "저장", exact: true }).click();
     await page.waitForURL(base + "mypage");
     await page.getByText("010-0000-0001", { exact: true }).waitFor();
+    await page.getByText("서울 · 동부", { exact: true }).waitFor();
     assert.deepEqual(updates, [
-      { name: "김하늘", phone: "010-0000-0001", affiliation: "서울지부" },
+      { name: "김하늘", phone: "010-0000-0001", branch: "서울", group: "동부" },
     ]);
     console.log("PASS profile save refreshes mypage");
+    await context.close();
+  }
+
+  // 7-1) 저장된 소속은 지회·모둠 select 로 복원된다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, MEMBER);
+    await page.goto(new URL("signup/profile", base).href);
+    await page.locator(".profile-form").waitFor();
+    assert.equal(await page.getByLabel("지회").inputValue(), "서울");
+    assert.equal(await page.getByLabel("모둠").inputValue(), "동부");
+    // 지회·모둠은 가로 2열, 지회 옵션에는 "지회"가 붙지 않는다
+    assert.deepEqual(
+      await page.getByLabel("지회").locator("option").allTextContents(),
+      ["선택", "서울", "경기", "남부"],
+    );
+    const branchBox = await page.getByLabel("지회").boundingBox();
+    const groupBox = await page.getByLabel("모둠").boundingBox();
+    assert.ok(branchBox && groupBox, "지회·모둠 select가 보여야 한다");
+    assert.ok(Math.abs(branchBox.y - groupBox.y) < 2, "지회·모둠은 같은 줄에 있어야 한다");
+    assert.ok(groupBox.x > branchBox.x, "모둠은 지회 오른쪽에 있어야 한다");
+    console.log("PASS profile selects hydrate from saved affiliation");
     await context.close();
   }
 

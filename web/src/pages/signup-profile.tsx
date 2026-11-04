@@ -29,12 +29,12 @@ export default function SignupProfile() {
         <div class="w-full max-w-[340px]">
           <div class="text-center">
             <h1 class="m-0 text-page-title font-bold tracking-tight text-ink-1">
-              {hasName() ? "연락처를 등록해 주세요" : "반가워요"}
+              {hasName() ? "연락처와 소속을 등록해 주세요" : "반가워요"}
             </h1>
             <p class="mt-2 text-body leading-normal text-ink-2">
               {hasName()
-                ? "물품을 빌리려면 전화번호가 필요합니다."
-                : "물품을 빌리려면 이름과 전화번호가 필요합니다."}
+                ? "물품을 빌리려면 전화번호와 지회·모둠이 필요합니다."
+                : "물품을 빌리려면 이름, 전화번호, 지회·모둠이 필요합니다."}
             </p>
           </div>
 

@@ -4,6 +4,7 @@ import { getDb, type Sql } from "../db";
 import { requireAuth } from "../middleware/auth";
 import { validatePhotoFile } from "../photo-upload";
 import { MAX_RETURN_PHOTOS } from "../../../shared/photo-limits";
+import { isAffiliationValid } from "../../../shared/affiliation";
 import {
   defaultDueDateKst,
   dueAtFromKstDate,
@@ -43,6 +44,9 @@ reservationsRoute.post("/", async (c) => {
 
   // 수령·반납 연락용 — 미등록 회원은 프로필 입력으로 유도 ()
   if (!user.phone) return c.json({ error: "phone_required" }, 400);
+  // 지회·모둠도 필수 — 화면 가드를 우회한 직접 호출을 서버에서 막는다.
+  if (!isAffiliationValid(user.affiliation))
+    return c.json({ error: "affiliation_required" }, 400);
 
   const body = (await c.req.json().catch(() => ({}))) as Record<
     string,

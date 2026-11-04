@@ -91,6 +91,8 @@ export function ItemRentalForm(props: {
         setMessage("요청 수량이 대여 가능 수량보다 많습니다.");
       } else if (code === "phone_required") {
         setMessage("내 정보에서 연락처를 먼저 등록해 주세요.");
+      } else if (code === "affiliation_required") {
+        setMessage("내 정보에서 지회·모둠을 먼저 선택해 주세요.");
       } else if (code === "memo_required") {
         setMessage("메모를 입력해 주세요.");
       } else if (code === "bad_due_date" || code === "due_date_out_of_range") {

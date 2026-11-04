@@ -3,7 +3,14 @@ import { api } from "../../api/client";
 import { session } from "../../context/session";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { Select } from "../ui/select";
 import { CheckIcon } from "../icons";
+import {
+  BRANCHES,
+  groupsOf,
+  isValidAffiliationPair,
+  parseAffiliation,
+} from "../../../../shared/affiliation";
 
 type Props = {
   initialName?: string;
@@ -23,29 +30,63 @@ type Props = {
   onCancel?: () => void;
 };
 
-// 이름·연락처 폼 — 온보딩(/signup/profile)과 내 정보 수정(mypage) 공용.
+// 이름·연락처·지회·모둠 폼 — 온보딩(/signup/profile)과 내 정보 수정(mypage) 공용.
 export function ProfileForm(props: Props) {
+  const initialAffiliation = untrack(() => parseAffiliation(props.initialAffiliation));
   const [name, setName] = createSignal(untrack(() => props.initialName ?? ""));
   const [phone, setPhone] = createSignal(untrack(() => props.initialPhone ?? ""));
-  const [affiliation, setAffiliation] = createSignal(
-    untrack(() => props.initialAffiliation ?? ""),
-  );
+  const [branch, setBranch] = createSignal<string>(initialAffiliation.branch);
+  const [group, setGroup] = createSignal(initialAffiliation.group);
   const [nameError, setNameError] = createSignal("");
   const [phoneError, setPhoneError] = createSignal("");
+  const [branchError, setBranchError] = createSignal("");
+  const [groupError, setGroupError] = createSignal("");
   const [message, setMessage] = createSignal("");
   const [busy, setBusy] = createSignal(false);
 
   const initial = () => (name() || props.email || "").trim().charAt(0).toUpperCase();
   const hint = () => props.hint ?? "대여 연락 목적으로만 사용됩니다";
 
+  const branchOptions = BRANCHES;
+  const groupOptions = () => groupsOf(branch());
+
+  // 지회를 바꾸면 이전 모둠이 새 지회에 없을 수 있다 — 그때는 비워 다시 고르게 한다.
+  const changeBranch = (value: string) => {
+    setBranch(value);
+    if (value) setBranchError("");
+    if (!groupsOf(value).includes(group())) setGroup("");
+  };
+
+  const changeGroup = (value: string) => {
+    setGroup(value);
+    if (value) setGroupError("");
+  };
+
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
     if (busy()) return;
     const nameText = name().trim();
     const phoneText = phone().trim();
+    const branchValue = branch();
+    const groupValue = group();
     setNameError(nameText ? "" : "이름을 입력해 주세요");
     setPhoneError(phoneText ? "" : "연락처를 입력해 주세요");
-    if (!nameText || !phoneText) return;
+    setBranchError(branchValue ? "" : "지회를 선택해 주세요");
+    setGroupError(
+      !groupValue
+        ? "모둠을 선택해 주세요"
+        : isValidAffiliationPair(branchValue, groupValue)
+          ? ""
+          : "모둠을 다시 선택해 주세요",
+    );
+    if (
+      !nameText ||
+      !phoneText ||
+      !branchValue ||
+      !groupValue ||
+      !isValidAffiliationPair(branchValue, groupValue)
+    )
+      return;
 
     setBusy(true);
     setMessage("");
@@ -55,7 +96,8 @@ export function ProfileForm(props: Props) {
         body: JSON.stringify({
           name: nameText,
           phone: phoneText,
-          affiliation: affiliation().trim(),
+          branch: branchValue,
+          group: groupValue,
         }),
       });
       await session.refresh();
@@ -149,12 +191,42 @@ export function ProfileForm(props: Props) {
         </Show>
       </div>
 
-      <Input
-        label="소속 지부/지회 (선택)"
-        placeholder="예: 서울지부 청년회"
-        value={affiliation()}
-        onInput={setAffiliation}
-      />
+      <div class="grid grid-cols-2 items-start gap-2">
+        <div class="flex min-w-0 flex-col gap-2">
+          <Select
+            label="지회 *"
+            required
+            placeholder="선택"
+            options={branchOptions}
+            value={branch()}
+            invalid={!!branchError()}
+            onChange={changeBranch}
+          />
+          <Show when={branchError()}>
+            <p class="m-0 text-fine leading-normal text-danger" role="alert">
+              {branchError()}
+            </p>
+          </Show>
+        </div>
+
+        <div class="flex min-w-0 flex-col gap-2">
+          <Select
+            label="모둠 *"
+            required
+            placeholder={branch() ? "선택" : "지회 먼저"}
+            options={groupOptions()}
+            value={group()}
+            disabled={!branch()}
+            invalid={!!groupError()}
+            onChange={changeGroup}
+          />
+          <Show when={groupError()}>
+            <p class="m-0 text-fine leading-normal text-danger" role="alert">
+              {groupError()}
+            </p>
+          </Show>
+        </div>
+      </div>
 
       <p class="m-0 text-fine text-danger empty:hidden" aria-live="polite">
         {message()}

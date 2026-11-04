@@ -7,6 +7,7 @@ import { ProfileForm } from "../components/common/profile-form";
 import { InfoList } from "../components/ui/info-list";
 import { Skeleton } from "../components/ui/skeleton";
 import { CheckIcon } from "../components/icons";
+import { isAffiliationValid } from "../../../shared/affiliation";
 
 export default function MyPage() {
   const [loading, setLoading] = createSignal(true);
@@ -106,11 +107,11 @@ export default function MyPage() {
                   subtitle="계정 정보와 연락처를 관리합니다."
                 />
 
-                <Show when={!u().phone}>
+                <Show when={!u().phone || !isAffiliationValid(u().affiliation)}>
                   <div class="mt-4 mb-6 box-border flex flex-col gap-2 rounded-card border border-line bg-primary-soft px-4 py-2 text-fine leading-normal text-primary-strong sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                    <p class="m-0">물품을 대여하려면 연락처를 등록해야 합니다.</p>
+                    <p class="m-0">물품을 대여하려면 연락처와 지회·모둠을 등록해야 합니다.</p>
                     <button class="cursor-pointer self-start border-0 bg-transparent p-0 text-inherit font-semibold underline underline-offset-2 hover:text-primary-deep" type="button" onClick={startEdit}>
-                      연락처 등록하기
+                      정보 등록하기
                     </button>
                   </div>
                 </Show>
@@ -140,6 +141,7 @@ export default function MyPage() {
                             </div>
 
                             <InfoList
+                              divided={false}
                               items={[
                                 {
                                   label: "이메일",
