@@ -1,6 +1,6 @@
 // 회원(Member) 도메인 서비스 — 목록/탈퇴/역할 SQL 을 직접 소유
 // 소프트 삭제(이력 보존), 마지막 관리자 보호
-import { SQL_NOW, type Sql } from "../db";
+import type { Sql } from "../db";
 import type { AdminMember } from "../../../shared/api-types";
 import type { Role } from "../types";
 
@@ -32,17 +32,32 @@ export async function withdrawMember(
   db: Sql,
   memberId: string,
 ): Promise<WithdrawResult> {
-  const rows = (await db.query(
-    `UPDATE members SET deactivated_at = ${SQL_NOW}
-       WHERE id = ?1 AND registration_deleted_at IS NULL
-        AND (role <> 'admin'
-             OR (SELECT COUNT(*) FROM members x
-                  WHERE x.role = 'admin' AND x.deactivated_at IS NULL
-                    AND x.id <> members.id) >= 1)
-      RETURNING id`,
-    [memberId],
-  )) as { id: string }[];
-  if (rows.length > 0) return { ok: true };
+  // 이번 작업의 타임스탬프 — 회원 UPDATE 와 예약 취소가 같은 값을 쓴다.
+  // 이미 탈퇴한 회원의 옛 타임스탬프와 구분해, 이번 UPDATE 가 실제로 성공했을 때만 취소한다.
+  const now = new Date().toISOString();
+  const results = await db.batch<{ id: string }>([
+    {
+      sql: `UPDATE members SET deactivated_at = ?2
+             WHERE id = ?1 AND registration_deleted_at IS NULL
+              AND (role <> 'admin'
+                   OR (SELECT COUNT(*) FROM members x
+                        WHERE x.role = 'admin' AND x.deactivated_at IS NULL
+                          AND x.id <> members.id) >= 1)
+            RETURNING id`,
+      params: [memberId, now],
+    },
+    {
+      // 미시작 건만 취소한다. rented 는 반납 전까지 그대로 둔다(탈퇴 정책).
+      // EXISTS 가 이번 UPDATE 의 타임스탬프를 확인하므로 last_admin 실패 시 취소되지 않는다.
+      sql: `UPDATE reservations
+               SET status = 'cancelled', updated_at = ?2
+             WHERE member_id = ?1 AND status IN ('pending', 'reserved')
+               AND EXISTS (SELECT 1 FROM members
+                            WHERE id = ?1 AND deactivated_at = ?2)`,
+      params: [memberId, now],
+    },
+  ]);
+  if (results[0].length > 0) return { ok: true };
   const found = (await db.query(`SELECT id FROM members WHERE id = ?1 AND registration_deleted_at IS NULL`, [
     memberId,
   ])) as { id: string }[];
@@ -57,16 +72,28 @@ export type DeleteRegistrationResult =
 // 탈퇴 회원의 개인정보를 익명화하고 이메일을 해제한다. 내부 ID·대여/관리 이력은 보존한다.
 // 활성 대여 검사를 UPDATE 안에 두어 사전 검사와 변경 사이의 경쟁을 막는다.
 export async function deleteMemberRegistration(db: Sql, memberId: string): Promise<DeleteRegistrationResult> {
+  const now = new Date().toISOString();
   const anonymousEmail = `removed-${crypto.randomUUID()}@example.invalid`;
-  const deleted = await db.query<{ id: string }>(
-    `UPDATE members SET email = ?2, name = '삭제된 회원', phone = NULL, affiliation = NULL, role = 'user',
-       registration_deleted_at = ${SQL_NOW}
-     WHERE id = ?1 AND deactivated_at IS NOT NULL AND registration_deleted_at IS NULL
-       AND NOT EXISTS (SELECT 1 FROM reservations r WHERE r.member_id = members.id AND r.status = 'rented')
-     RETURNING id`,
-    [memberId, anonymousEmail],
-  );
-  if (deleted.length) return { ok: true };
+  const results = await db.batch<{ id: string }>([
+    {
+      sql: `UPDATE members SET email = ?2, name = '삭제된 회원', phone = NULL, affiliation = NULL, role = 'user',
+              registration_deleted_at = ?3
+            WHERE id = ?1 AND deactivated_at IS NOT NULL AND registration_deleted_at IS NULL
+              AND NOT EXISTS (SELECT 1 FROM reservations r WHERE r.member_id = members.id AND r.status = 'rented')
+            RETURNING id`,
+      params: [memberId, anonymousEmail, now],
+    },
+    {
+      // 익명화가 실제로 성공했을 때만(같은 타임스탬프) 미시작 건을 취소한다.
+      sql: `UPDATE reservations
+               SET status = 'cancelled', updated_at = ?2
+             WHERE member_id = ?1 AND status IN ('pending', 'reserved')
+               AND EXISTS (SELECT 1 FROM members
+                            WHERE id = ?1 AND registration_deleted_at = ?2)`,
+      params: [memberId, now],
+    },
+  ]);
+  if (results[0].length) return { ok: true };
   const [member] = await db.query<{ deactivated_at: string | null }>(
     `SELECT deactivated_at FROM members WHERE id = ?1 AND registration_deleted_at IS NULL`, [memberId],
   );

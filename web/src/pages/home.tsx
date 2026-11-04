@@ -14,6 +14,7 @@ import {
 const TABS: { key: TabKey; label: string }[] = [
   { key: "all", label: "전체" },
   { key: "available", label: "대여 가능" },
+  { key: "reserved", label: "예약 가능" },
   { key: "rented", label: "대여 중" },
   { key: "repair", label: "수리 중" },
 ];
@@ -22,7 +23,10 @@ export default function Home() {
   const params = new URLSearchParams(window.location.search);
   const initialTab = (): TabKey => {
     const state = params.get("state");
-    return state === "available" || state === "rented" || state === "repair"
+    return state === "available" ||
+      state === "reserved" ||
+      state === "rented" ||
+      state === "repair"
       ? state
       : "all";
   };

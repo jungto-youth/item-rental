@@ -5,6 +5,11 @@ import { requireAdmin } from "../../middleware/auth";
 import { validatePhotoFile } from "../../photo-upload";
 import { MAX_RETURN_PHOTOS } from "../../../../shared/photo-limits";
 import {
+  dueAtFromKstDate,
+  isDueDateInRange,
+  isIsoDate,
+} from "../../../../shared/rental-period";
+import {
   RESERVATION_STATUSES,
   listReservations,
   returnReservation,
@@ -48,15 +53,31 @@ adminReservationsRoute.get("/", async (c) => {
   return c.json({ reservations, truncated });
 });
 
-// 승인 — pending → rented. 재고·기한을 다시 확인한다.
+// 승인 — pending/reserved → rented. 재고를 다시 확인하고 반납일을 확정한다.
+// due_date 는 KST 달력 날짜이며, 없으면 pending 은 저장된 희망일, reserved 는 오늘+7일을 쓴다.
 adminReservationsRoute.post("/:id/approve", async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const dueDateRaw = typeof body.due_date === "string" ? body.due_date.trim() : "";
+  let dueAt: string | null = null;
+  if (dueDateRaw) {
+    if (!isIsoDate(dueDateRaw)) return c.json({ error: "bad_due_date" }, 400);
+    if (!isDueDateInRange(dueDateRaw)) {
+      return c.json({ error: "due_date_out_of_range" }, 400);
+    }
+    dueAt = dueAtFromKstDate(dueDateRaw);
+    if (!dueAt) return c.json({ error: "bad_due_date" }, 400);
+  }
+
   const db: Sql = getDb(c.env);
-  const result = await approveReservation(db, id, c.get("user")!.id);
+  const result = await approveReservation(db, id, c.get("user")!.id, dueAt);
   if ("ok" in result) return c.json({ ok: true });
   if (result.error === "not_found") return c.json({ error: "not_found" }, 404);
   if (result.error === "bad_status") return c.json({ error: "bad_status" }, 409);
+  if (result.error === "due_date_required")
+    return c.json({ error: "due_date_required" }, 409);
   return c.json({ error: result.error }, 409);
 });
 

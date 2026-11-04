@@ -5,49 +5,52 @@
 // 실제 SQL 동작(마지막 관리자 거절·승격 통과 등)은 sqlite 통합 테스트가 검증한다.
 import { test, expect } from "vitest";
 import { withdrawMember, setMemberRole } from "../src/services/members.service.ts";
-import { stubSql } from "./_stub.ts";
+import { stubSql, type Query } from "./_stub.ts";
 
 // 해임·탈퇴 가드 — 탈퇴 관리자는 개수에서 빠지고(self 제외) 자기 자신은 센다
 const ACTIVE_ADMIN_GUARD =
   /x\.role = 'admin' AND x\.deactivated_at IS NULL\s+AND x\.id <> members\.id/;
 
-test("withdrawMember: 가드 UPDATE가 활성 관리자 수를 원자 검사한다", async () => {
-  const { db, calls } = stubSql({
-    query: (text) =>
-      /UPDATE members SET deactivated_at/.test(text) ? [{ id: "u" }] : [],
-    batch: () => [],
+test("withdrawMember: 가드 UPDATE와 예약 취소가 같은 타임스탬프로 원자 처리된다", async () => {
+  let stmts: Query[] = [];
+  const { db } = stubSql({
+    query: () => [],
+    batch: (input) => {
+      stmts = input;
+      return [[{ id: "u" }], []];
+    },
   });
 
   expect(await withdrawMember(db, "u")).toEqual({ ok: true });
 
-  const upd = calls[0];
-  // now() 가 아니라 SQLite strftime 상수로 기록된다
+  expect(stmts).toHaveLength(2);
+  const [memberUpdate, cancel] = stmts;
+  expect(memberUpdate.sql).toMatch(/UPDATE members SET deactivated_at = \?2/);
   expect(
-    upd.text,
-  ).toMatch(
-    /UPDATE members SET deactivated_at = strftime\('%Y-%m-%dT%H:%M:%fZ','now'\)/,
-  );
-  expect(
-    ACTIVE_ADMIN_GUARD.test(upd.text),
+    ACTIVE_ADMIN_GUARD.test(memberUpdate.sql),
     "가드에 활성 관리자 수 검사(자기 자신 제외)가 있어야 한다",
-  ).toBe(
-    true,
-  );
+  ).toBe(true);
   // 행을 지우지 않는다 — 대여 이력 보존이 전제
-  expect(!upd.text.startsWith("DELETE")).toBe(true);
+  expect(!memberUpdate.sql.startsWith("DELETE")).toBe(true);
+
+  // 이번 작업에서 만든 타임스탬프를 두 문장이 공유한다 — last_admin 실패 시 취소 방지
+  expect(memberUpdate.params?.[1]).toBeTruthy();
+  expect(cancel.params?.[1]).toEqual(memberUpdate.params?.[1]);
+  expect(cancel.sql).toMatch(/status IN \('pending', 'reserved'\)/);
+  expect(cancel.sql).toMatch(/deactivated_at = \?2/);
 });
 
 test("withdrawMember: 가드 0행이면 재조회로 last_admin을 구분한다", async () => {
   const { db } = stubSql({
     query: (text) => (/SELECT id FROM members/.test(text) ? [{ id: "a" }] : []),
-    batch: () => [],
+    batch: () => [[], []],
   });
 
   expect(await withdrawMember(db, "a")).toEqual({ error: "last_admin" });
 });
 
 test("withdrawMember: 없는 회원은 not_found", async () => {
-  const { db } = stubSql({ query: () => [], batch: () => [] });
+  const { db } = stubSql({ query: () => [], batch: () => [[], []] });
 
   expect(await withdrawMember(db, "x")).toEqual({ error: "not_found" });
 });

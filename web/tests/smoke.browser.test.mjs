@@ -76,7 +76,28 @@ const ITEMS = [
     active_now: 0,
     categories: [{ id: 3, name: "사무" }],
   },
+  {
+    // 지금은 전부 대여 중이라 예약만 가능한 물품 — "예약 가능" 탭/폼 검증용
+    id: 104,
+    name: "무선 마이크",
+    lifecycle: "active",
+    total_qty: 2,
+    qty_repair: 0,
+    rentable_qty: 2,
+    kind: "rental",
+    location: "3층 음향실",
+    photos: [],
+    availability_badge: "reserved",
+    active_now: 2,
+    categories: [{ id: 4, name: "음향" }],
+  },
 ];
+
+// 0012 — 상세/카드가 읽는 재고 3영역. 픽스처는 기본 0으로 둔다.
+for (const item of ITEMS) {
+  item.pending_qty ??= 0;
+  item.reserved_qty ??= 0;
+}
 
 const RESERVATIONS = [
   {
@@ -154,14 +175,40 @@ const RESERVATIONS = [
     decided_at: "2026-10-31T03:00:00.000Z",
     rejected_reason: "해당 기간에 이미 대여가 잡혀 있습니다",
   },
+  {
+    id: 6,
+    item_id: 104,
+    item_name: "무선 마이크",
+    item_photo: null,
+    qty: 2,
+    status: "reserved",
+    member_memo: "행사용",
+    created_at: "2026-11-03T03:00:00.000Z",
+    updated_at: "2026-11-03T03:00:00.000Z",
+    due_at: null,
+    is_overdue: false,
+    decided_at: null,
+    rejected_reason: null,
+    queue_ahead_qty: 2,
+  },
 ];
 
 // 반납 사진 계약 — 서버는 사진이 없어도 항상 배열을 내려준다.
-for (const row of RESERVATIONS) row.return_photos = [];
+for (const row of RESERVATIONS) {
+  row.return_photos = [];
+  row.group_id ??= null;
+  row.queue_ahead_qty ??= 0;
+}
 
 const ADMIN_RESERVATIONS = RESERVATIONS.map((row, index) => ({
   ...row,
   total_qty: 5,
+  item_rentable_qty: 5,
+  item_rented_qty: 1,
+  item_pending_qty: row.status === "pending" ? 1 : 0,
+  item_reserved_qty: row.status === "reserved" ? row.qty : 0,
+  approvable: row.status === "pending" || row.status === "reserved",
+  queue_ahead_qty: row.status === "reserved" ? row.queue_ahead_qty ?? 0 : 0,
   member_id: `member-${index}`,
   member_name: "김하늘",
   member_email: "member@example.invalid",
@@ -237,9 +284,28 @@ async function mockApi(page, user, options = {}) {
     if (url.pathname === "/api/items") {
       const q = url.searchParams.get("q");
       const state = url.searchParams.get("state");
+      const newCap = (item) =>
+        Math.max(
+          0,
+          (item.rentable_qty ?? 0) -
+            (item.active_now ?? 0) -
+            (item.pending_qty ?? 0) -
+            (item.reserved_qty ?? 0),
+        );
+      const queueCap = (item) =>
+        Math.max(0, (item.rentable_qty ?? 0) - (item.reserved_qty ?? 0));
       let items = ITEMS;
       if (state === "available") {
-        items = items.filter((item) => (item.rentable_qty ?? 0) > 0);
+        items = items.filter(
+          (item) => item.kind !== "consumable" && newCap(item) > 0,
+        );
+      } else if (state === "reserved") {
+        items = items.filter(
+          (item) =>
+            item.kind !== "consumable" &&
+            newCap(item) === 0 &&
+            queueCap(item) > 0,
+        );
       } else if (state === "rented") {
         items = items.filter((item) => (item.active_now ?? 0) > 0);
       } else if (state === "repair") {
@@ -251,7 +317,7 @@ async function mockApi(page, user, options = {}) {
           items,
           total: ITEMS.length,
           matched: items.length,
-          summary: { types: 3, available: 2, rented: 1, repair: 1 },
+          summary: { types: 4, available: 2, rented: 2, repair: 1 },
           hasMore: false,
         },
       });
@@ -267,7 +333,24 @@ async function mockApi(page, user, options = {}) {
   );
   await page.route("**/api/reservations", (route) => {
     if (route.request().method() === "POST") {
-      return route.fulfill({ json: { ok: true } });
+      const body = route.request().postDataJSON();
+      // 예약 전용 물품(104)은 전량 reserved 로 응답한다.
+      if (body?.item_id === 104) {
+        return route.fulfill({
+          json: {
+            group_id: "test-group",
+            segments: [
+              { id: 2, status: "reserved", qty: body?.qty ?? 1 },
+            ],
+          },
+        });
+      }
+      return route.fulfill({
+        json: {
+          group_id: "test-group",
+          segments: [{ id: 1, status: "pending", qty: body?.qty ?? 1 }],
+        },
+      });
     }
     return route.fallback();
   });
@@ -421,6 +504,36 @@ try {
     await page.getByRole("button", { name: "대여하기", exact: true }).click();
     await page.getByText("대여를 신청했습니다", { exact: true }).waitFor();
     console.log("PASS rental success state");
+    await context.close();
+  }
+
+  // 3-1) 재고가 모두 나간 물품은 예약으로 접수되고, 성공 화면이 분해 결과를 보여준다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, MEMBER);
+    await page.goto(new URL("items/104", base).href);
+    await page.getByText(/지금 대여 신청\s*0개/).waitFor();
+    await page.getByRole("button", { name: "수량 증가" }).click();
+    await page.getByText(/반납 대기 예약\s*2개/).waitFor();
+    await page.getByLabel("메모 *").fill("행사용");
+    await page.getByRole("button", { name: "예약하기", exact: true }).click();
+    await page.getByText("예약을 접수했습니다", { exact: true }).waitFor();
+    console.log("PASS reservation success state");
+    await context.close();
+  }
+
+  // 3-2) "예약 가능" 탭은 지금은 없지만 대기열 자리가 있는 물품만 보여준다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, MEMBER);
+    await page.goto(base);
+    await page.getByRole("button", { name: "예약 가능", exact: true }).click();
+    await page.waitForTimeout(400);
+    assert.equal(await page.locator(".item-card").count(), 1);
+    await page.getByText("무선 마이크", { exact: true }).waitFor();
+    console.log("PASS reserved tab");
     await context.close();
   }
 
@@ -758,6 +871,48 @@ try {
     await page.getByText(/반납을 완료했습니다/).waitFor();
     assert.equal(returned, true);
     console.log("PASS return dialog completes without photos");
+    await context.close();
+  }
+
+  // 16-1) 내 대여에 예약 대기 섹션과 순번이 보인다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, MEMBER);
+    await page.goto(new URL("my/rentals", base).href);
+    await page.getByText("예약 대기", { exact: true }).waitFor();
+    await page.getByText("무선 마이크 · 2개", { exact: true }).waitFor();
+    await page.getByText(/앞에 2개 대기 중/).waitFor();
+    console.log("PASS my rentals reserved section");
+    await context.close();
+  }
+
+  // 16-2) 관리자는 예약 대기만 모아 보고, 반납일을 정해 승인할 수 있다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, ADMIN);
+    let approveBody = null;
+    await page.route("**/api/admin/reservations/*/approve", async (route) => {
+      approveBody = route.request().postDataJSON();
+      await route.fulfill({ json: { ok: true } });
+    });
+    await page.goto(new URL("admin/reservations", base).href);
+    await page.getByRole("button", { name: "예약 대기", exact: true }).click();
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator(".reservation-row").count(), 1);
+    await page.getByText(/앞에 2개 대기/).waitFor();
+    await page
+      .locator(".reservation-row")
+      .first()
+      .getByRole("button", { name: "승인", exact: true })
+      .click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("반납 예정일 *").waitFor();
+    await dialog.getByRole("button", { name: "승인", exact: true }).click();
+    await page.getByText("신청을 승인했습니다", { exact: true }).waitFor();
+    assert.ok(approveBody?.due_date, "승인 요청에 반납일이 담겨야 한다");
+    console.log("PASS admin reserved approve flow");
     await context.close();
   }
 

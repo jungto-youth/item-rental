@@ -1,6 +1,6 @@
 // 대여 서비스 단위 테스트 — DB 없이 돌아간다 (Sql 스텁)
-// 회귀 대상(P0-1): createReservation이 batch 결과를 INSERT의 RETURNING 행수가 아니라
-// 다른 문장의 결과로 오인해, 재고가 없어도 {ok:true, id:undefined}로 201을 내주던 버그.
+// 회귀 대상: createReservation 이 RETURNING 0행을 성공으로 오인하지 않고,
+// 한 신청을 pending/reserved 두 세그먼트로 나누는 단일 INSERT 가드를 유지하는지 본다.
 /// <reference types="@cloudflare/workers-types" />
 import { test, expect } from "vitest";
 import {
@@ -13,7 +13,7 @@ import {
   type CreateReservationParams,
   type ReserveItem,
 } from "../src/services/reservations.service.ts";
-import { stubSql, type Query } from "./_stub.ts";
+import { stubSql } from "./_stub.ts";
 
 // 대여 가능한 물품 (재고 2, 수리중 0)
 const RENTAL_ITEM: ReserveItem = {
@@ -22,6 +22,9 @@ const RENTAL_ITEM: ReserveItem = {
   kind: "rental",
   total_qty: 2,
   qty_repair: 0,
+  rented_qty: 0,
+  pending_qty: 0,
+  reserved_qty: 0,
 };
 
 function params(overrides: Partial<CreateReservationParams> = {}): CreateReservationParams {
@@ -35,109 +38,125 @@ function params(overrides: Partial<CreateReservationParams> = {}): CreateReserva
   };
 }
 
-// ===== P0-1 회귀 =====
+// ===== 신청 INSERT 원자성 =====
 
-test("createReservation: 가드 INSERT가 0행이면 성공으로 오인하지 않는다 (batch INSERT 행수로만 판정)", async () => {
-  // batch 결과에서 INSERT의 RETURNING이 빈 배열이면 가드가 거절한 것 — 재고 없음
-  const { db } = stubSql({
-    query: () => [RENTAL_ITEM],
-    batch: () => [[]],
-  });
+// createReservation 의 query 스크립트 — INSERT(WITH p AS)와 사전/재조회 SELECT를 구분한다.
+function createQuery(
+  insertRows: Record<string, unknown>[],
+): (text: string) => Record<string, unknown>[] {
+  return (text) => {
+    if (text.startsWith("WITH p AS")) return insertRows;
+    if (text.includes("FROM items")) {
+      return [RENTAL_ITEM as unknown as Record<string, unknown>];
+    }
+    return [];
+  };
+}
+
+test("createReservation: 가드 INSERT가 0행이면 성공으로 오인하지 않는다", async () => {
+  const { db } = stubSql({ query: createQuery([]), batch: () => [] });
 
   const result = await createReservation(db, params());
 
-  // 옛 코드(다른 문장의 결과를 INSERT로 오인)는 {ok:true, id:undefined}를 반환해 이 단언이 실패한다
   expect(result).toEqual({ error: "no_availability" });
   expect(!("ok" in result), "성공으로 오인하면 안 된다").toBe(true);
 });
 
-test("createReservation: 마지막 문장이 실제 삽입 결과다 (단일 가드 INSERT 배치 불변식)", async () => {
-  let batch: Query[] = [];
+test("createReservation: 단일 INSERT가 group_id와 세그먼트를 돌려준다", async () => {
+  let insertSql = "";
+  let insertParams: unknown[] = [];
   const { db } = stubSql({
-    query: () => [RENTAL_ITEM],
-    batch: (stmts) => {
-      batch = stmts;
-      return [[{ id: 42 }]];
+    query: (text, values) => {
+      if (text.startsWith("WITH p AS")) {
+        insertSql = text;
+        insertParams = values;
+        return [{ id: 42, status: "pending", qty: 1 }];
+      }
+      return [RENTAL_ITEM as unknown as Record<string, unknown>];
     },
+    batch: () => [],
   });
 
   const result = await createReservation(db, params());
 
-  expect(result).toEqual({ ok: true, id: 42 });
-  // results.at(-1) 전제 — 누군가 INSERT 뒤에 문장을 덧붙이면 이 단언이 깨진다
-  expect(batch.length, "batch는 가드 INSERT 한 문장이어야 한다").toEqual(1);
-  expect(batch[0].sql).toMatch(/INSERT INTO reservations/);
-  // 반납 예정일도 같은 INSERT 로 들어간다 — 컬럼만 늘고 문장은 하나다
-  expect(batch[0].sql).toMatch(/due_at/);
-  expect(batch[0].params?.at(-1)).toBe("2026-11-10T14:59:59.999Z");
+  expect("ok" in result).toBe(true);
+  if (!("ok" in result)) return;
+  expect(result.segments).toEqual([{ id: 42, status: "pending", qty: 1 }]);
+  expect(result.group_id).toMatch(/^[0-9a-f-]{36}$/);
+  // group_id 는 INSERT 의 6번째 바인딩이다
+  expect(insertParams[5]).toBe(result.group_id);
+  // 한 문장 안에서 pending/reserved 두 분기를 만든다
+  expect(insertSql).toMatch(/UNION ALL/);
+  expect(insertSql).toMatch(/'pending'/);
+  expect(insertSql).toMatch(/'reserved'/);
 });
 
-test("createReservation: 가드 INSERT가 대여 중(rented) 수량만 점유로 센다", async () => {
-  // 날짜가 없어져 가용성은 "지금 대여 중인 수량의 합"만 본다. 반납·취소는 점유에서 빠져야
-  // 그 수량을 다시 빌려줄 수 있다 — status = 'rented' 조건이 그 근거다.
-  let batch: Query[] = [];
+test("createReservation: 가드는 rented/pending/reserved 세 영역을 모두 센다", async () => {
+  let insertSql = "";
   const { db } = stubSql({
-    query: () => [RENTAL_ITEM],
-    batch: (stmts) => {
-      batch = stmts;
-      return [[{ id: 7 }]];
+    query: (text) => {
+      if (text.startsWith("WITH p AS")) {
+        insertSql = text;
+        return [{ id: 7, status: "pending", qty: 1 }];
+      }
+      return [RENTAL_ITEM as unknown as Record<string, unknown>];
     },
+    batch: () => [],
   });
 
   await createReservation(db, params());
 
-  const insert = batch.at(-1)!.sql;
-  expect(insert).toMatch(/status = 'rented'/);
-  expect(insert).toMatch(/SUM\(r\.qty\)/);
-  // 옛 일별 점유 검사(generate_series)가 남아 있으면 날짜 컬럼 삭제 후 런타임 오류가 난다
-  expect(!/generate_series/.test(insert), "일별 점유 검사가 남아 있으면 안 된다").toBe(true);
-  expect(!/start_date|end_date/.test(insert), "삭제된 날짜 컬럼을 참조하면 안 된다").toBe(true);
+  expect(insertSql).toMatch(/status = 'rented'/);
+  expect(insertSql).toMatch(/status = 'pending'/);
+  expect(insertSql).toMatch(/status = 'reserved'/);
+  expect(insertSql).toMatch(/MAX\(0, r - rented - pending - reserved\)/);
+  expect(insertSql).toMatch(/MAX\(0, r - reserved\)/);
+  // 옛 일별 점유 검사·날짜 컬럼이 남아 있으면 안 된다
+  expect(!/generate_series/.test(insertSql)).toBe(true);
+  expect(!/start_date|end_date/.test(insertSql)).toBe(true);
 });
 
-test("createReservation: 신청은 pending 상태로 INSERT한다", async () => {
-  // 신청과 대여를 분리한다 — 관리자가 승인해야 rented 가 되고 재고를 점유한다.
-  let batch: Query[] = [];
+test("createReservation: 부족분은 reserved 세그먼트로 돌려준다", async () => {
   const { db } = stubSql({
-    query: () => [RENTAL_ITEM],
-    batch: (stmts) => {
-      batch = stmts;
-      return [[{ id: 1 }]];
-    },
+    query: createQuery([
+      { id: 1, status: "pending", qty: 1 },
+      { id: 2, status: "reserved", qty: 1 },
+    ]),
+    batch: () => [],
   });
 
-  await createReservation(db, params());
+  const result = await createReservation(db, params({ qty: 2 }));
 
-  expect(batch.at(-1)!.sql).toMatch(/'pending'/);
-  expect(
-    !/'rented'/.test(batch.at(-1)!.sql.split("'pending'")[0]),
-    "INSERT 의 상태는 pending 이어야 한다",
-  ).toBe(true);
+  expect(result).toMatchObject({
+    ok: true,
+    segments: [
+      { id: 1, status: "pending", qty: 1 },
+      { id: 2, status: "reserved", qty: 1 },
+    ],
+  });
 });
 
 // ===== 실패 신호 구분 =====
 
-test("createReservation: 물품이 없으면 batch를 실행하지 않는다", async () => {
-  let opened = false;
-  const { db } = stubSql({
-    query: () => [],
-    batch: () => {
-      opened = true;
-      return [];
-    },
-  });
+test("createReservation: 물품이 없으면 INSERT를 실행하지 않는다", async () => {
+  const { db, calls } = stubSql({ query: () => [], batch: () => [] });
 
   const result = await createReservation(db, params());
 
   expect(result).toEqual({ error: "not_found" });
-  expect(opened).toEqual(false);
+  expect(calls.length).toEqual(1);
+  expect(calls.every((call) => !call.text.startsWith("WITH p AS"))).toEqual(true);
 });
 
 test("createReservation: 신청 사이 물품 삭제(FK 위반)는 not_found", async () => {
   const { db } = stubSql({
-    query: () => [RENTAL_ITEM],
-    batch: () => {
-      throw new Error("FOREIGN KEY constraint failed");
+    query: (text) => {
+      if (text.startsWith("WITH p AS")) {
+        throw new Error("FOREIGN KEY constraint failed");
+      }
+      return [RENTAL_ITEM as unknown as Record<string, unknown>];
     },
+    batch: () => [],
   });
 
   expect(await createReservation(db, params())).toEqual({ error: "not_found" });
@@ -145,10 +164,11 @@ test("createReservation: 신청 사이 물품 삭제(FK 위반)는 not_found", a
 
 test("createReservation: 알 수 없는 DB 오류는 삼키지 않고 던진다", async () => {
   const { db } = stubSql({
-    query: () => [RENTAL_ITEM],
-    batch: () => {
-      throw new Error("boom");
+    query: (text) => {
+      if (text.startsWith("WITH p AS")) throw new Error("boom");
+      return [RENTAL_ITEM as unknown as Record<string, unknown>];
     },
+    batch: () => [],
   });
 
   // Vitest 의 toThrow 는 인자를 하나만 받는다 — Error 타입과 메시지를 따로 단언
@@ -174,6 +194,29 @@ test("validateReservation: 수리중을 뺀 재고로 수량을 본다", () => {
       rentable: 2,
     },
   );
+});
+
+test("validateReservation: 대기열이 가득 차면 queue_full", () => {
+  const full: ReserveItem = { ...RENTAL_ITEM, reserved_qty: 2 };
+  expect(validateReservation(full, { qty: 1 })).toEqual({
+    error: "queue_full",
+    max_request: 0,
+    rentable: 2,
+  });
+});
+
+test("validateReservation: rented/pending은 신규 배정에서 빼고 reserved는 예약 자리만 남긴다", () => {
+  // R=2, rented=1, pending=1 → 지금 0, 예약 자리는 2
+  const busy: ReserveItem = { ...RENTAL_ITEM, rented_qty: 1, pending_qty: 1 };
+  expect(validateReservation(busy, { qty: 1 })).toEqual({ ok: true });
+
+  // R=2, reserved=1 → 지금 1, 예약 자리 1 → 최대 2
+  const waiting: ReserveItem = { ...RENTAL_ITEM, reserved_qty: 1 };
+  expect(validateReservation(waiting, { qty: 2 })).toEqual({ ok: true });
+  expect(validateReservation(waiting, { qty: 3 })).toEqual({
+    error: "too_many",
+    rentable: 2,
+  });
 });
 
 test("validateReservation: 비활성 물품·소모품을 거른다", () => {
@@ -273,7 +316,7 @@ test("returnReservationByMember: 없는 건은 not_found", async () => {
   );
 });
 
-test("cancelReservation: 본인 + pending/rented 건을 취소할 수 있다", async () => {
+test("cancelReservation: 본인 + pending/reserved/rented 건을 취소할 수 있다", async () => {
   const { db, calls } = stubSql({
     query: (text) => (text.startsWith("UPDATE") ? [{ id: 5 }] : []),
     batch: () => [],
@@ -281,34 +324,40 @@ test("cancelReservation: 본인 + pending/rented 건을 취소할 수 있다", a
 
   expect(await cancelReservation(db, 5, "member-1")).toEqual({ ok: true });
   expect(/status = 'cancelled'/.test(calls[0].text)).toEqual(true);
-  expect(/status IN \('pending', 'rented'\)/.test(calls[0].text)).toEqual(true);
+  expect(/status IN \('pending', 'reserved', 'rented'\)/.test(calls[0].text)).toEqual(true);
   expect(/member_id = \?2/.test(calls[0].text)).toEqual(true);
 });
 
 // ===== 승인·거절 (B-10) =====
 
-test("approveReservation: pending·재고·기한 가드를 한 문장으로 건다", async () => {
+test("approveReservation: pending 승인은 상태·재고·반납일을 한 문장으로 건다", async () => {
   const { db, calls } = stubSql({
-    query: (text) => (text.startsWith("UPDATE") ? [{ id: 5 }] : []),
+    query: (text) => {
+      if (text.startsWith("SELECT status, item_id, due_at")) {
+        return [{ status: "pending", item_id: 1, due_at: "2099-01-01T00:00:00.000Z" }];
+      }
+      if (text.startsWith("UPDATE")) return [{ id: 5 }];
+      return [];
+    },
     batch: () => [],
   });
 
   expect(await approveReservation(db, 5, "admin-1")).toEqual({ ok: true });
-  const sql = calls[0].text;
-  expect(/status = 'pending'/.test(sql)).toEqual(true);
-  expect(/status = 'rented'/.test(sql)).toEqual(true);
-  expect(/SUM\(r\.qty\)/.test(sql)).toEqual(true);
-  expect(/due_at IS NULL OR due_at >=/.test(sql)).toEqual(true);
-  expect(calls[0].values).toEqual([5, "admin-1"]);
+  const update = calls.find((call) => call.text.startsWith("UPDATE"))!;
+  expect(/status IN \('pending', 'reserved'\)/.test(update.text)).toEqual(true);
+  expect(/status = 'rented'/.test(update.text)).toEqual(true);
+  expect(/SUM\(r\.qty\)/.test(update.text)).toEqual(true);
+  expect(/due_at = \?3/.test(update.text)).toEqual(true);
+  expect(update.values).toEqual([5, "admin-1", "2099-01-01T00:00:00.000Z"]);
 });
 
 test("approveReservation: 0행이면 재조회로 bad_status·no_availability 를 가른다", async () => {
   // 이미 반납된 건
   const returned = stubSql({
-    query: (text) => {
-      if (text.startsWith("UPDATE")) return [];
-      return [{ status: "returned", item_id: 1, due_at: null }];
-    },
+    query: (text) =>
+      text.startsWith("SELECT status, item_id, due_at")
+        ? [{ status: "returned", item_id: 1, due_at: null }]
+        : [],
     batch: () => [],
   });
   expect(await approveReservation(returned.db, 5, "admin-1")).toEqual({
@@ -316,17 +365,19 @@ test("approveReservation: 0행이면 재조회로 bad_status·no_availability �
   });
 
   // pending 이지만 재고가 없다
-  let step = 0;
   const noStock = stubSql({
     query: (text) => {
-      if (text.startsWith("UPDATE")) {
-        step = 1;
-        return [];
+      if (text.startsWith("SELECT status, item_id, due_at")) {
+        return [{ status: "pending", item_id: 1, due_at: "2099-01-01T00:00:00.000Z" }];
       }
-      if (step++ === 1) {
-        return [{ status: "pending", item_id: 1, due_at: null }];
+      if (text.startsWith("UPDATE")) return [];
+      if (text.startsWith("SELECT status, item_id FROM")) {
+        return [{ status: "pending", item_id: 1 }];
       }
-      return [{ lifecycle: "active", kind: "rental" }];
+      if (text.includes("FROM items")) {
+        return [{ lifecycle: "active", kind: "rental" }];
+      }
+      return [];
     },
     batch: () => [],
   });
@@ -335,20 +386,58 @@ test("approveReservation: 0행이면 재조회로 bad_status·no_availability �
   });
 });
 
-test("approveReservation: 반납 예정일이 지난 신청은 승인하지 않는다", async () => {
+test("approveReservation: 희망일이 지난 pending 은 새 날짜가 필요하다", async () => {
   const { db } = stubSql({
     query: (text) =>
-      text.startsWith("UPDATE")
-        ? []
-        : [{ status: "pending", item_id: 1, due_at: "2000-01-01T00:00:00.000Z" }],
+      text.startsWith("SELECT status, item_id, due_at")
+        ? [{ status: "pending", item_id: 1, due_at: "2000-01-01T00:00:00.000Z" }]
+        : [],
     batch: () => [],
   });
   expect(await approveReservation(db, 5, "admin-1")).toEqual({
-    error: "due_date_passed",
+    error: "due_date_required",
   });
 });
 
-test("rejectReservation: 사유가 필수이고 pending 만 거절한다", async () => {
+test("approveReservation: reserved 승인은 재고를 확인하고 기본 반납일을 채운다", async () => {
+  const { db, calls } = stubSql({
+    query: (text) => {
+      if (text.startsWith("SELECT status, item_id, due_at")) {
+        return [{ status: "reserved", item_id: 1, due_at: null }];
+      }
+      if (text.startsWith("UPDATE")) return [{ id: 5 }];
+      return [];
+    },
+    batch: () => [],
+  });
+
+  expect(await approveReservation(db, 5, "admin-1")).toEqual({ ok: true });
+  const update = calls.find((call) => call.text.startsWith("UPDATE"))!;
+  // reserved 가드는 rented + pending 까지 더한다
+  expect(/status IN \('rented', 'pending'\)/.test(update.text)).toEqual(true);
+  const dueAt = update.values[2] as string;
+  expect(dueAt > new Date().toISOString()).toEqual(true);
+});
+
+test("approveReservation: 관리자가 지정한 반납일을 우선한다", async () => {
+  const override = "2099-12-31T14:59:59.999Z";
+  const { db, calls } = stubSql({
+    query: (text) => {
+      if (text.startsWith("SELECT status, item_id, due_at")) {
+        return [{ status: "reserved", item_id: 1, due_at: null }];
+      }
+      if (text.startsWith("UPDATE")) return [{ id: 5 }];
+      return [];
+    },
+    batch: () => [],
+  });
+
+  expect(await approveReservation(db, 5, "admin-1", override)).toEqual({ ok: true });
+  const update = calls.find((call) => call.text.startsWith("UPDATE"))!;
+  expect(update.values[2]).toEqual(override);
+});
+
+test("rejectReservation: 사유가 필수이고 pending/reserved 를 거절한다", async () => {
   const empty = stubSql({ query: () => [], batch: () => [] });
   expect(await rejectReservation(empty.db, 5, "admin-1", "   ")).toEqual({
     error: "reason_required",
@@ -362,6 +451,7 @@ test("rejectReservation: 사유가 필수이고 pending 만 거절한다", async
     ok: true,
   });
   expect(/status = 'rejected'/.test(ok.calls[0].text)).toEqual(true);
+  expect(/status IN \('pending', 'reserved'\)/.test(ok.calls[0].text)).toEqual(true);
   expect(ok.calls[0].values).toEqual([5, "admin-1", "재고 없음"]);
 
   const bad = stubSql({

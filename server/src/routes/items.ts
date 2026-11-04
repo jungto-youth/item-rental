@@ -76,7 +76,12 @@ itemsRoute.get("/", async (c) => {
   // 상태 탭 — 전체(all) · 대여 가능 · 대여 중 · 수리 중 (이슈 #12 §6.2)
   const stateRaw = c.req.query("state");
   const state =
-    stateRaw === "rented" || stateRaw === "available" || stateRaw === "repair" ? stateRaw : null;
+    stateRaw === "rented" ||
+    stateRaw === "available" ||
+    stateRaw === "reserved" ||
+    stateRaw === "repair"
+      ? stateRaw
+      : null;
   // 카테고리 필터 — 관리자 전용. "none"(미지정) 또는 숫자 id 만 받고 이외는 무시
   const categoryRaw = c.req.query("category") ?? "";
   const category =

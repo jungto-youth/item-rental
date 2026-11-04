@@ -21,15 +21,25 @@ function row(overrides: Partial<ListItemRow> = {}): ListItemRow {
     qty_repair: 0,
     rentable_qty: 2,
     active_now: 0,
+    pending_qty: 0,
+    reserved_qty: 0,
     photos: [],
     ...overrides,
   } as ListItemRow;
 }
 
 const cases: Array<[Partial<ListItemRow>, ListItemWithBadge["availability_badge"]]> = [
+  // newCap = R - rented - pending - reserved
   [{}, "available"],
   [{ active_now: 1, rentable_qty: 2 }, "available"],
-  [{ active_now: 2, rentable_qty: 2 }, "rented"],
+  [{ pending_qty: 1, rentable_qty: 2 }, "available"],
+  // 재고는 다 나갔지만 대기열 자리가 남아 있다
+  [{ active_now: 2, rentable_qty: 2 }, "reserved"],
+  [{ pending_qty: 2, rentable_qty: 2 }, "reserved"],
+  [{ pending_qty: 1, reserved_qty: 1, rentable_qty: 2 }, "reserved"],
+  // 대기열도 보유 수량만큼 찼다
+  [{ active_now: 2, reserved_qty: 2, rentable_qty: 2 }, "unavailable"],
+  [{ reserved_qty: 2, rentable_qty: 2 }, "unavailable"],
   // 수리중은 수량 축이다 — 보유 전부가 수리중이면 대여 가능 수량이 0 이라 repair
   [{ qty_repair: 2, rentable_qty: 0 }, "repair"],
   [{ rentable_qty: 0 }, "repair"],

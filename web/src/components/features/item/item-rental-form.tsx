@@ -2,7 +2,7 @@ import { Show, createSignal } from "solid-js";
 import { api, ApiError } from "../../../api/client";
 import type { SessionUser } from "../../../context/session";
 import type { Item } from "../../../types";
-import { availableQty } from "../../../utils/stock";
+import { availableQty, maxRequestQty } from "../../../utils/stock";
 import {
   defaultDueDateKst,
   isDueDateInRange,
@@ -27,15 +27,22 @@ export function ItemRentalForm(props: {
   const [saving, setSaving] = createSignal(false);
   const [message, setMessage] = createSignal("");
   const [isSuccess, setIsSuccess] = createSignal(false);
-  const [rentedQty, setRentedQty] = createSignal(0);
+  const [result, setResult] = createSignal<{ now: number; wait: number } | null>(
+    null,
+  );
 
   const availableNow = () => availableQty(props.item);
+  const maxRequest = () => maxRequestQty(props.item);
+  // 한 신청 안에서 지금 배정되는 몫과 반납을 기다리는 몫
+  const nowQty = () => Math.min(qty(), availableNow());
+  const waitQty = () => Math.max(0, qty() - availableNow());
+  const needsDueDate = () => nowQty() > 0;
 
   const handleQtyBlur = (event: FocusEvent) => {
     const input = event.currentTarget as HTMLInputElement;
     const value = parseInt(input.value, 10);
     const clamped = Number.isFinite(value)
-      ? Math.min(Math.max(value, 1), availableNow())
+      ? Math.min(Math.max(value, 1), Math.max(1, maxRequest()))
       : 1;
     setQty(clamped);
     input.value = String(clamped);
@@ -45,8 +52,8 @@ export function ItemRentalForm(props: {
     event.preventDefault();
     if (saving() || !props.item) return;
 
-    if (qty() > availableNow()) {
-      setMessage(`현재 최대 ${availableNow()}개까지 대여할 수 있습니다`);
+    if (qty() > maxRequest()) {
+      setMessage(`지금은 최대 ${maxRequest()}개까지 신청할 수 있습니다`);
       setIsSuccess(false);
       return;
     }
@@ -57,7 +64,8 @@ export function ItemRentalForm(props: {
       return;
     }
 
-    if (!isDueDateInRange(dueDate())) {
+    // 예약만 하는 신청은 반납일이 없다 — 승인 시 관리자가 정한다.
+    if (needsDueDate() && !isDueDateInRange(dueDate())) {
       setMessage("반납 예정일을 내일부터 30일 이내로 선택해 주세요.");
       setIsSuccess(false);
       return;
@@ -66,7 +74,10 @@ export function ItemRentalForm(props: {
     setSaving(true);
     setMessage("");
     try {
-      await api("/api/reservations", {
+      const res = await api<{
+        group_id: string;
+        segments: { id: number; status: "pending" | "reserved"; qty: number }[];
+      }>("/api/reservations", {
         method: "POST",
         body: JSON.stringify({
           item_id: props.item.id,
@@ -75,9 +86,15 @@ export function ItemRentalForm(props: {
           due_date: dueDate(),
         }),
       });
-      setIsSuccess(true);
-      setRentedQty(qty());
+      const now = res.segments
+        .filter((segment) => segment.status === "pending")
+        .reduce((sum, segment) => sum + segment.qty, 0);
+      const wait = res.segments
+        .filter((segment) => segment.status === "reserved")
+        .reduce((sum, segment) => sum + segment.qty, 0);
+      setResult({ now, wait });
       setSubmittedDueDate(dueDate());
+      setIsSuccess(true);
       setMessage("");
       setMemo("");
       setQty(1);
@@ -85,10 +102,14 @@ export function ItemRentalForm(props: {
     } catch (err) {
       setIsSuccess(false);
       const code = err instanceof ApiError ? err.code : undefined;
-      if (code === "no_availability") {
-        setMessage("방금 대여가 마감되었습니다. 반납 후 다시 시도해 주세요.");
+      if (code === "queue_full") {
+        setMessage(
+          `대기열이 가득 찼습니다. 지금은 최대 ${maxRequest()}개까지 신청할 수 있습니다.`,
+        );
+      } else if (code === "no_availability") {
+        setMessage("방금 신청이 마감되었습니다. 반납 후 다시 시도해 주세요.");
       } else if (code === "too_many") {
-        setMessage("요청 수량이 대여 가능 수량보다 많습니다.");
+        setMessage("요청 수량이 보유 수량보다 많습니다.");
       } else if (code === "phone_required") {
         setMessage("내 정보에서 연락처를 먼저 등록해 주세요.");
       } else if (code === "affiliation_required") {
@@ -98,7 +119,7 @@ export function ItemRentalForm(props: {
       } else if (code === "bad_due_date" || code === "due_date_out_of_range") {
         setMessage("반납 예정일을 내일부터 30일 이내로 선택해 주세요.");
       } else {
-        setMessage(err instanceof Error ? err.message : "대여 신청에 실패했습니다.");
+        setMessage(err instanceof Error ? err.message : "신청에 실패했습니다.");
       }
     } finally {
       setSaving(false);
@@ -127,12 +148,27 @@ export function ItemRentalForm(props: {
               </svg>
             </span>
             <p class="mt-4 text-body font-semibold leading-normal text-ink-1">
-              대여를 신청했습니다
+              {result()?.now && result()?.wait
+                ? "대여 신청과 예약을 접수했습니다"
+                : result()?.wait
+                  ? "예약을 접수했습니다"
+                  : "대여를 신청했습니다"}
             </p>
             <p class="mt-2 text-fine leading-normal text-ink-2">
-              '{props.item.name}' {rentedQty()}개 신청을 접수했습니다.
+              '{props.item.name}'{" "}
+              {[
+                result()?.now ? `지금 대여 ${result()!.now}개` : "",
+                result()?.wait ? `반납 대기 예약 ${result()!.wait}개` : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              를 접수했습니다.
               <br />
-              관리자가 승인하면 대여가 시작됩니다. 희망 반납일은 {submittedDueDate()}입니다.
+              {result()?.wait
+                ? "예약분은 반납 순서대로 승인되며, 반납 예정일은 승인할 때 정해집니다."
+                : "관리자가 승인하면 대여가 시작됩니다."}
+              {result()?.now ? ` 희망 반납일은 ${submittedDueDate()}입니다.` : ""}
+              <br />
               진행 상황은 대여 내역에서 확인해 주세요.
             </p>
             <div class="mt-4 flex flex-wrap justify-center gap-2">
@@ -172,10 +208,10 @@ export function ItemRentalForm(props: {
                 }
               >
                 <Show
-                  when={availableNow() > 0}
+                  when={maxRequest() > 0}
                   fallback={
                     <Notice tone="danger">
-                      지금은 재고가 없습니다 — 반납 후 다시 시도해 주세요.
+                      지금은 대여도 예약도 마감되었습니다 — 반납 후 다시 확인해 주세요.
                     </Notice>
                   }
                 >
@@ -184,15 +220,22 @@ export function ItemRentalForm(props: {
                     onSubmit={handleSubmit}
                   >
                     <h3 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">
-                      대여 신청
+                      {availableNow() > 0 ? "대여 신청" : "예약 신청"}
                     </h3>
+
+                    <Show when={availableNow() === 0}>
+                      <p class="mt-2 text-fine leading-normal text-ink-2">
+                        지금은 대여 가능한 재고가 없어 예약으로 접수됩니다.
+                        관리자가 반납 순서대로 승인합니다.
+                      </p>
+                    </Show>
 
                     <div class="mt-4 flex items-center justify-between gap-4">
                       <span class="text-fine font-medium text-ink-2">
-                        대여 수량
+                        신청 수량
                       </span>
                       <Show
-                        when={availableNow() > 1}
+                        when={maxRequest() > 1}
                         fallback={
                           <span class="inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-body font-semibold text-ink-1">
                             1개
@@ -214,22 +257,22 @@ export function ItemRentalForm(props: {
                             type="number"
                             inputmode="numeric"
                             min="1"
-                            max={availableNow()}
+                            max={maxRequest()}
                             value={qty()}
                             onInput={(event) => {
                               const value = parseInt(event.currentTarget.value, 10);
                               if (Number.isFinite(value)) setQty(value);
                             }}
                             onBlur={handleQtyBlur}
-                            aria-label="대여 수량 직접 입력"
+                            aria-label="신청 수량 직접 입력"
                           />
                           <button
                             type="button"
                             class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-lg leading-[1.2] text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() =>
-                              setQty((value) => Math.min(availableNow(), value + 1))
+                              setQty((value) => Math.min(maxRequest(), value + 1))
                             }
-                            disabled={qty() >= availableNow()}
+                            disabled={qty() >= maxRequest()}
                             aria-label="수량 증가"
                           >
                             +
@@ -238,19 +281,39 @@ export function ItemRentalForm(props: {
                       </Show>
                     </div>
 
-                    <Input
-                      class="mt-4"
-                      label="반납 예정일 *"
-                      type="date"
-                      min={minDueDateKst()}
-                      max={maxDueDateKst()}
-                      value={dueDate()}
-                      onInput={setDueDate}
-                      required
-                    />
-                    <p class="mt-2 text-fine leading-normal text-ink-2">
-                      내일부터 30일 이내로 선택해 주세요.
-                    </p>
+                    <div class="mt-3 grid gap-1 rounded-card bg-surface-muted px-4 py-3 text-fine leading-normal text-ink-2">
+                      <span>
+                        지금 대여 신청{" "}
+                        <b class="font-semibold text-ink-1">{nowQty()}개</b>
+                      </span>
+                      <Show when={waitQty() > 0}>
+                        <span>
+                          반납 대기 예약{" "}
+                          <b class="font-semibold text-ink-1">{waitQty()}개</b>
+                        </span>
+                      </Show>
+                    </div>
+
+                    <Show when={needsDueDate()}>
+                      <Input
+                        class="mt-4"
+                        label="반납 예정일 *"
+                        type="date"
+                        min={minDueDateKst()}
+                        max={maxDueDateKst()}
+                        value={dueDate()}
+                        onInput={setDueDate}
+                        required
+                      />
+                      <p class="mt-2 text-fine leading-normal text-ink-2">
+                        내일부터 30일 이내로 선택해 주세요.
+                      </p>
+                    </Show>
+                    <Show when={waitQty() > 0}>
+                      <p class="mt-2 text-fine leading-normal text-ink-2">
+                        예약분의 반납 예정일은 관리자가 승인할 때 정합니다.
+                      </p>
+                    </Show>
 
                     <Input
                       class="mt-4"
@@ -276,10 +339,16 @@ export function ItemRentalForm(props: {
                       type="submit"
                       loading={saving()}
                     >
-                      대여하기
+                      {nowQty() > 0 && waitQty() > 0
+                        ? "대여 신청 + 예약"
+                        : waitQty() > 0
+                          ? "예약하기"
+                          : "대여하기"}
                     </Button>
                     <p class="mt-2 text-fine leading-normal text-ink-2">
-                      신청 후 관리자가 승인하면 대여가 시작됩니다. 승인 전에는 재고가 확정되지 않습니다.
+                      {waitQty() > 0
+                        ? "예약분은 반납 순서대로 승인됩니다. 반납 예정일은 승인할 때 정해집니다."
+                        : "신청 후 관리자가 승인하면 대여가 시작됩니다."}
                     </p>
                   </form>
                 </Show>

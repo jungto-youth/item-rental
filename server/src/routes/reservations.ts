@@ -15,6 +15,7 @@ import {
   createReservation,
   getMyReservations,
   cancelReservation,
+  cancelReservationGroup,
   returnReservationByMember,
   type CreateReservationParams,
 } from "../services/reservations.service";
@@ -89,7 +90,10 @@ reservationsRoute.post("/", async (c) => {
   const result = await createReservation(db, params);
 
   if ("ok" in result) {
-    return c.json({ id: result.id }, 201);
+    return c.json(
+      { group_id: result.group_id, segments: result.segments },
+      201,
+    );
   }
 
   // 에러 처리
@@ -97,7 +101,13 @@ reservationsRoute.post("/", async (c) => {
     return c.json({ error: "consumable" }, 409);
   if (result.error === "item_not_active")
     return c.json({ error: "item_not_active" }, 409);
-  if (result.error === "too_many") return c.json({ error: "too_many" }, 400);
+  if (result.error === "too_many")
+    return c.json({ error: "too_many", rentable: result.rentable }, 400);
+  if (result.error === "queue_full")
+    return c.json(
+      { error: "queue_full", max_request: result.max_request },
+      409,
+    );
   if (result.error === "no_availability")
     return c.json({ error: "no_availability" }, 409);
   if (result.error === "not_found") return c.json({ error: "not_found" }, 404);
@@ -113,7 +123,7 @@ reservationsRoute.get("/mine", async (c) => {
   return c.json({ reservations: rows });
 });
 
-// 대여 취소 — 본인 + 대여 중(rented)만 ()
+// 대여 취소 — 본인 + 신청 대기(pending)·예약(reserved)·대여 중(rented)만
 // 취소는 "빌리지 않기로 함", 반납은 "돌려줬음" — 둘 다 재고를 즉시 되돌린다
 reservationsRoute.post("/:id/cancel", async (c) => {
   const user = c.get("user")!;
@@ -134,6 +144,22 @@ reservationsRoute.post("/:id/cancel", async (c) => {
     return c.json({ ok: true });
   }
   // 없음/타인 건 → not_found, 종료 상태 → bad_status
+  if (result.error === "bad_status")
+    return c.json({ error: "bad_status" }, 409);
+  return c.json({ error: "not_found" }, 404);
+});
+
+// 그룹 취소 — 한 신청이 pending/reserved 두 행으로 나뉜 경우 함께 취소한다.
+// 이미 rented 가 된 행은 건드리지 않는다(개별 취소·반납으로 처리).
+reservationsRoute.post("/groups/:groupId/cancel", async (c) => {
+  const user = c.get("user")!;
+  const groupId = c.req.param("groupId");
+  if (!groupId) return c.json({ error: "bad_id" }, 400);
+
+  const db: Sql = getDb(c.env);
+  const result = await cancelReservationGroup(db, groupId, user.id);
+
+  if ("ok" in result) return c.json({ ok: true });
   if (result.error === "bad_status")
     return c.json({ error: "bad_status" }, 409);
   return c.json({ error: "not_found" }, 404);
