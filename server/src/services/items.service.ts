@@ -35,7 +35,10 @@ export type ListItemRow = ItemAttrs & {
   rentable_qty: number;
   lifecycle: "active" | "retired";
   photos: { id: number; url: string }[];
+  // rented — 기존 이름 유지. pending/reserved 는 0012 이후 SQL 이 채운다.
   active_now: number;
+  pending_qty?: number;
+  reserved_qty?: number;
   // 관리자 목록·검색 응답에만 채운다 — 회원 응답에는 없다 (shared Item.categories? 참조)
   categories?: { id: number; name: string }[];
 };
@@ -76,6 +79,10 @@ export async function getItemDetail(
               WHERE p.item_id = items.id ORDER BY p.sort_order) p) AS photos,
       (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
         WHERE r.item_id = items.id AND r.status = 'rented') AS active_now,
+      (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
+        WHERE r.item_id = items.id AND r.status = 'pending') AS pending_qty,
+      (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
+        WHERE r.item_id = items.id AND r.status = 'reserved') AS reserved_qty,
       (SELECT json_group_array(json_object('id', c.id, 'name', c.name))
        FROM (SELECT c.id, c.name FROM item_categories ic
               JOIN categories c ON c.id = ic.category_id
@@ -202,7 +209,9 @@ type UpdateItemResult =
   | { ok: true }
   | { error: "not_found" }
   | { error: "qty_constraint" }
-  | { error: "rented_qty_constraint" };
+  | { error: "rented_qty_constraint" }
+  | { error: "reserved_qty_constraint" }
+  | { error: "has_open_reservations" };
 
 export async function updateItem(
   db: Sql,
@@ -237,18 +246,37 @@ export async function updateItem(
     nextRepair = (fields.qty_repair as number | undefined) ?? cur.qty_repair;
     if (nextRepair > nextTotal) return { error: "qty_constraint" };
 
-    // 보유를 대여 중인 수량보다 줄이면 재고가 음수가 된다 — 대여 가능 수량은
-    // (total_qty − qty_repair) 이고, 이 값이 현재 점유량보다 작아지면 대여 중인 물품을
-    // 회수할 수 없는 물품이 생긴다. 수량을 안 건드리는 수정은 이 검사를 걸지 않는다 —
-    // 이미 잘못된 상태인 물품도 이름·위치·사진 편집으로 갇히면 안 된다.
+    // 보유를 점유 수량보다 줄이면 재고가 음수가 된다. 대여 중·승인 대기는 실제 점유이고,
+    // 예약 대기는 아직 점유가 아니지만 "신규 예약 <= 보유 수량" 불변식을 지키기 위해 함께 본다.
+    // 수량을 안 건드리는 수정은 이 검사를 걸지 않는다 — 이미 잘못된 상태인 물품도
+    // 이름·위치·사진 편집으로 갇히면 안 된다.
     const [active] = (await db.query(
-      `SELECT COALESCE(SUM(qty), 0) AS active_now FROM reservations
-        WHERE item_id = ?1 AND status = 'rented'`,
+      `SELECT
+         COALESCE(SUM(CASE WHEN status = 'rented'  THEN qty ELSE 0 END), 0) AS rented_qty,
+         COALESCE(SUM(CASE WHEN status = 'pending' THEN qty ELSE 0 END), 0) AS pending_qty,
+         COALESCE(SUM(CASE WHEN status = 'reserved' THEN qty ELSE 0 END), 0) AS reserved_qty
+       FROM reservations
+       WHERE item_id = ?1 AND status IN ('rented', 'pending', 'reserved')`,
       [itemId],
-    )) as { active_now: number }[];
-    if (nextTotal - nextRepair < active.active_now) {
+    )) as { rented_qty: number; pending_qty: number; reserved_qty: number }[];
+    const nextRentable = nextTotal - nextRepair;
+    if (nextRentable < active.rented_qty + active.pending_qty) {
       return { error: "rented_qty_constraint" };
     }
+    if (nextRentable < active.reserved_qty) {
+      return { error: "reserved_qty_constraint" };
+    }
+  }
+
+  // 폐기·소모품 전환은 대기·대여 건이 없을 때만. 남아 있으면 승인할 수 없는 예약이 생긴다.
+  const closesItem = fields.lifecycle === "retired" || fields.kind === "consumable";
+  if (closesItem) {
+    const [open] = (await db.query(
+      `SELECT COALESCE(SUM(qty), 0) AS open_qty FROM reservations
+        WHERE item_id = ?1 AND status IN ('rented', 'pending', 'reserved')`,
+      [itemId],
+    )) as { open_qty: number }[];
+    if (open.open_qty > 0) return { error: "has_open_reservations" };
   }
   // 태그만 보낸 요청(keys 비움)은 UPDATE 문이 문법 오류가 되므로 컬럼 갱신을 건너뛴다 —
   // 이 경우 존재 여부는 조인 테이블 작업 전 가드 SELECT 로 확인한다.
@@ -267,11 +295,26 @@ export async function updateItem(
       // 수량 수정이면 UPDATE 안에 가드까지 넣는다. 위 사전 검사와 UPDATE 사이에 다른 관리자가
       // 마지막 수량을 빌려갈 수 있고, 이때 가드가 없으면 재고가 음수가 그대로 저장된다.
       // 조건부 UPDATE(0행면 거절)가 이 프로젝트의 원자 판정 방식이다(applyMemberRole 참조).
-      const guard = qtyTouched
-        ? ` AND ?${keys.length + 2} - ?${keys.length + 3} >=
-              (SELECT COALESCE(SUM(qty), 0) FROM reservations
-                WHERE item_id = ?1 AND status = 'rented')`
-        : "";
+      const nextTotalParam = keys.length + 2;
+      const nextRepairParam = keys.length + 3;
+      const guardParts: string[] = [];
+      if (qtyTouched) {
+        guardParts.push(
+          `?${nextTotalParam} - ?${nextRepairParam} >=
+             (SELECT COALESCE(SUM(qty), 0) FROM reservations
+               WHERE item_id = ?1 AND status IN ('rented', 'pending'))`,
+          `?${nextTotalParam} - ?${nextRepairParam} >=
+             (SELECT COALESCE(SUM(qty), 0) FROM reservations
+               WHERE item_id = ?1 AND status = 'reserved')`,
+        );
+      }
+      if (closesItem) {
+        guardParts.push(
+          `(SELECT COALESCE(SUM(qty), 0) FROM reservations
+             WHERE item_id = ?1 AND status IN ('rented', 'pending', 'reserved')) = 0`,
+        );
+      }
+      const guard = guardParts.length > 0 ? ` AND ${guardParts.join(" AND ")}` : "";
       const setSql = keys.map((k, i) => `${k} = ?${i + 2}`).join(", ");
       stmts.push({
         // updated_at 은 수정 경로에서만 갱신한다 — 등록 시엔 created_at 과 같은 값이다
@@ -303,13 +346,39 @@ export async function updateItem(
       // 컬럼 갱신이 있었는데 0행이면 물품이 없다 — 태그·FTS 문은 없는 물품에 no-op 이라
       // batch 가 부분 변경을 남기지 않는다
       if (keys.length > 0 && results[0].length === 0) {
-        // UPDATE 가드는 물품 부재와 대여 중 수량 초과 두 가지를 함께 막는다.
+        // UPDATE 가드는 물품 부재·점유 수량 초과·대기 건이 있는 폐기 전환을 함께 막는다.
         // 어느 쪽인지 한 번 더 물어 구분한다 — 어느 쪽이든 부분 변경은 남지 않는다.
+        const [still] = (await db.query(`SELECT id FROM items WHERE id = ?1`, [
+          itemId,
+        ])) as { id: number }[];
+        if (!still) return { error: "not_found" };
+
+        if (closesItem) {
+          const [open] = (await db.query(
+            `SELECT COALESCE(SUM(qty), 0) AS open_qty FROM reservations
+              WHERE item_id = ?1 AND status IN ('rented', 'pending', 'reserved')`,
+            [itemId],
+          )) as { open_qty: number }[];
+          if (open.open_qty > 0) return { error: "has_open_reservations" };
+        }
+
         if (qtyTouched) {
-          const [still] = (await db.query(`SELECT id FROM items WHERE id = ?1`, [
-            itemId,
-          ])) as { id: number }[];
-          if (still) return { error: "rented_qty_constraint" };
+          const [active] = (await db.query(
+            `SELECT
+               COALESCE(SUM(CASE WHEN status = 'rented'  THEN qty ELSE 0 END), 0) AS rented_qty,
+               COALESCE(SUM(CASE WHEN status = 'pending' THEN qty ELSE 0 END), 0) AS pending_qty,
+               COALESCE(SUM(CASE WHEN status = 'reserved' THEN qty ELSE 0 END), 0) AS reserved_qty
+             FROM reservations
+             WHERE item_id = ?1 AND status IN ('rented', 'pending', 'reserved')`,
+            [itemId],
+          )) as { rented_qty: number; pending_qty: number; reserved_qty: number }[];
+          const rentableNow = nextTotal - nextRepair;
+          if (rentableNow < active.rented_qty + active.pending_qty) {
+            return { error: "rented_qty_constraint" };
+          }
+          if (rentableNow < active.reserved_qty) {
+            return { error: "reserved_qty_constraint" };
+          }
         }
         return { error: "not_found" };
       }

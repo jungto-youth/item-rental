@@ -34,7 +34,8 @@ export function ItemCard(props: { item: Item; href: string }) {
   const location = () => props.item.location ?? "";
   const photo = () => props.item.photos?.[0]?.url ?? "";
   const primary = () => statusParts(props.item)[0];
-  const strong = () => primary()?.key === "available";
+  const strong = () =>
+    primary()?.key === "available" || primary()?.key === "reserved";
 
   return (
     <a
@@ -91,7 +92,7 @@ export function ItemCard(props: { item: Item; href: string }) {
               >
                 <span
                   class={`size-1.5 shrink-0 rounded-full ${
-                    part().key === "available"
+                    part().key === "available" || part().key === "reserved"
                       ? "bg-primary"
                       : part().key === "repair"
                         ? "bg-warning"

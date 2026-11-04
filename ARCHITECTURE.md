@@ -74,7 +74,7 @@ web/src/
 
 web-lit/src/          — 옮기기 전 Lit 앱 (deprecated, Shadow DOM)
 shared/api-types.ts   — 서버·웹이 함께 쓰는 API 타입 계약
-shared/stock.ts       — 가용 수량 계산 (서버·웹 공용)
+shared/stock.ts       — 재고 3영역·신청 가능·예약 가능 수량 계산 (서버·웹 공용)
 shared/photo-limits.ts — 사진 장수·크기 한도
 migrations-d1/        — D1 스키마 마이그레이션 (현재)
 data/sheet-import/    — 시트 물품 원장과 반영 리포트 (생성물 포함)
@@ -92,7 +92,11 @@ server/scripts/       — 시드·시트 반영 SQL 생성기, 로컬 개발 런
 - **마이그레이션은 추가만 한다.** `migrations-d1/`의 기존 파일을 고치지 않고 새 번호를
   붙인다. 로컬·운영 모두 같은 순서로 적용한다.
 - **여러 문장은 batch로 묶는다.** 물품 등록·수정처럼 태그·검색 색인이 함께 바뀌는 작업은
-  하나의 트랜잭션이어야 한다.
+  하나의 트랜잭션이어야 한다. D1 batch에서 0행은 오류가 아니므로, 조건부 INSERT 두 개를
+  나누지 말고 한 문장으로 처리한다.
+- **재고 계산은 한 규칙으로** — `shared/stock.ts`의 JS 계산과 `reservations.service.ts`의
+  SQL 가드가 같은 식(`rented + pending ≤ R`, `reserved ≤ R`, `newCap`/`queueCap`)을 쓴다.
+  한쪽만 바꾸면 화면과 서버 판정이 어긋난다.
 - **디자인 값은 `web/src/styles/tokens.css`가 단일 출처다.** 컴포넌트에 hex를 쓰지 않는다.
 
 ## 6. 데이터
@@ -104,13 +108,40 @@ D1 테이블은 `migrations-d1/`이 정의한다. 주요 축은 다음과 같다
 | 회원 | `members`, `allowed_emails` | 역할 `user`/`admin`, 소속(`affiliation`), 탈퇴·등록 정보 삭제 상태 |
 | 물품 | `items`, `item_photos` | 생애주기 `active`/`retired`, 수량 상태 `total_qty`·`qty_repair` |
 | 분류 | `categories`, `item_categories` | 다대다 |
-| 대여 | `reservations` | 신청 대기·대여 중·반납·취소·거절, 반납 예정일(`due_at`), 승인·거절 처리자 |
+| 대여 | `reservations` | 신청 대기(`pending`)·예약(`reserved`)·대여 중·반납·취소·거절, `group_id`, 반납 예정일(`due_at`), 승인·거절 처리자 |
 | 반납 사진 | `reservation_photos` | 반납 시점 상태 사진(최대 3장), 회원·관리자 첨부 구분, 본인·관리자만 열람 |
 | 검색 | `items_fts` (FTS5) | 키워드 색인, 임베딩은 `items`에 저장 |
 
-- 물품 상태 배지는 `available` · `rented` · `repair` · `retired` 네 가지다.
-  `retired`는 관리자 목록에서만 보인다.
+- 물품 상태 배지는 `available` · `reserved` · `unavailable` · `rented` · `repair` · `retired`
+  다. `retired`는 관리자 목록에서만 보인다. `reserved`는 "예약 신청 가능", `unavailable`은
+  "신청 마감"이다.
 - 소모품(`consumable`)은 재고가 줄기만 하고 대여 기간 개념이 없다.
+
+### 6.1 대여 상태와 재고
+
+```
+R        = total_qty - qty_repair
+rented + pending <= R
+신규 reserved <= R
+
+newCap   = max(0, R - rented - pending - reserved)   // 신규가 지금 받을 수 있는 양
+queueCap = max(0, R - reserved)                      // 신규가 예약할 수 있는 양
+
+신청 N: N <= R, N <= newCap + queueCap
+  now  = min(N, newCap)  -> pending
+  wait = N - now         -> reserved (due_at NULL)
+```
+
+```
+신청 ─┬─ pending  (재고 있음) ─┐
+      └─ reserved (재고 없음) ─┴─→ 관리자 승인 → rented → returned
+                                  → rejected / cancelled
+```
+
+- 한 신청은 최대 두 행(`pending`/`reserved`)이 되고 같은 `group_id`로 묶인다.
+- `pending`은 신청 시 재고를 점유하고, `reserved`는 점유하지 않는다.
+- 승인 가드: `pending`은 `qty + rented ≤ R`, `reserved`는 `qty + rented + pending ≤ R`.
+- 자동 승격(`reserved → pending`)과 부분 배정은 v1 범위 밖이다. 승인 시점이 배정 시점이다.
 
 ## 7. 검색
 

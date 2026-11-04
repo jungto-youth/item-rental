@@ -26,7 +26,11 @@ const LIST_COLUMNS = `SELECT items.id, items.name, items.description, items.tota
              FROM (SELECT p.id, p.r2_key FROM item_photos p
                     WHERE p.item_id = items.id ORDER BY p.sort_order) p) AS photos,
             (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
-             WHERE r.item_id = items.id AND r.status = 'rented') AS active_now`;
+             WHERE r.item_id = items.id AND r.status = 'rented') AS active_now,
+            (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
+             WHERE r.item_id = items.id AND r.status = 'pending') AS pending_qty,
+            (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
+             WHERE r.item_id = items.id AND r.status = 'reserved') AS reserved_qty`;
 
 // 행별 카테고리 — 관리자 요청에만 붙인다. 회원 응답은 오늘과 같은 모양(카테고리 제외) 유지
 const CATEGORIES_COLUMN = `(SELECT json_group_array(json_object('id', c.id, 'name', c.name))
@@ -68,17 +72,28 @@ function categoryWhere(category: string | null | undefined): string {
   return "";
 }
 
-// 대여 가능 조건 — shared/stock 의 availableQty 와 같은 규칙 (유일한 차이는 SQL 표현).
+// 대여 가능 조건 — shared/stock 의 availableQty(newCap) 와 같은 규칙.
 // 소모품은 대여 대상이 아니므로 항상 "가능". 폐기(lifecycle)와 수리 소진·재고 0은 제외.
+// newCap = R - rented - pending - reserved 이므로 세 상태의 합과 비교한다.
 const AVAILABLE_SQL = `(items.kind = 'consumable'
    OR (items.lifecycle = 'active'
        AND (items.total_qty - items.qty_repair) > (SELECT COALESCE(SUM(r.qty), 0)
              FROM reservations r
-             WHERE r.item_id = items.id AND r.status = 'rented')))`;
+             WHERE r.item_id = items.id
+               AND r.status IN ('rented', 'pending', 'reserved'))))`;
 
 // 대여 중 — 지금 점유가 있는 물품 (상태 탭 '대여 중')
 const RENTED_SQL = `EXISTS (SELECT 1 FROM reservations r
    WHERE r.item_id = items.id AND r.status = 'rented')`;
+
+// 예약 가능 — 지금은 0이지만 대기열 자리가 남은 대여품 (newCap = 0, queueCap > 0)
+const RESERVED_SQL = `(items.lifecycle = 'active' AND items.kind = 'rental'
+   AND (items.total_qty - items.qty_repair) <= (SELECT COALESCE(SUM(r.qty), 0)
+         FROM reservations r
+         WHERE r.item_id = items.id AND r.status IN ('rented', 'pending', 'reserved'))
+   AND (items.total_qty - items.qty_repair) > (SELECT COALESCE(SUM(r.qty), 0)
+         FROM reservations r
+         WHERE r.item_id = items.id AND r.status = 'reserved'))`;
 
 // 대여 가능 종류 — 소모품은 '대여' 대상이 아니다 (요약 숫자와 같은 규칙)
 const RENTAL_AVAILABLE_SQL = `(items.kind = 'rental' AND ${AVAILABLE_SQL})`;
@@ -91,14 +106,19 @@ const REPAIR_SQL = `items.qty_repair > 0`;
 //   available = 지금 빌릴 수 있는 대여품 (종류)
 //   repair    = 수리 중 수량이 있는 물품 (종류)
 // WHERE 절과 COUNT 식이 같은 조건을 쓰도록 식 하나만 만든다.
-const stateExpr = (state: "rented" | "available" | "repair" | null | undefined): string => {
+const stateExpr = (
+  state: "rented" | "available" | "reserved" | "repair" | null | undefined,
+): string => {
   if (state === "rented") return RENTED_SQL;
   if (state === "available") return RENTAL_AVAILABLE_SQL;
+  if (state === "reserved") return RESERVED_SQL;
   if (state === "repair") return REPAIR_SQL;
   return "";
 };
 
-const stateWhere = (state: "rented" | "available" | "repair" | null | undefined): string => {
+const stateWhere = (
+  state: "rented" | "available" | "reserved" | "repair" | null | undefined,
+): string => {
   const expr = stateExpr(state);
   return expr ? ` AND ${expr}` : "";
 };
@@ -150,7 +170,7 @@ export async function listItems(
     includeRetired?: boolean;
     q?: string;
     // 상태 탭 — null 이면 전체. summary·total 은 이 필터의 영향을 받지 않는다.
-    state?: "rented" | "available" | "repair" | null;
+    state?: "rented" | "available" | "reserved" | "repair" | null;
   },
 ): Promise<BrowseList> {
   const retired = opts.includeRetired ?? false;
@@ -173,17 +193,19 @@ export async function listItems(
       `SELECT COUNT(*) AS total,
               COALESCE(SUM(CASE WHEN ${matchExpr} THEN 1 ELSE 0 END), 0) AS matched,
               COALESCE(SUM(CASE WHEN items.lifecycle <> 'retired' THEN 1 ELSE 0 END), 0) AS types,
-              COALESCE(SUM(CASE WHEN items.lifecycle <> 'retired' AND COALESCE(r.borrowed, 0) > 0 THEN 1 ELSE 0 END), 0) AS rented,
+              COALESCE(SUM(CASE WHEN items.lifecycle <> 'retired' AND COALESCE(r.rented, 0) > 0 THEN 1 ELSE 0 END), 0) AS rented,
               COALESCE(SUM(CASE WHEN items.lifecycle <> 'retired' AND items.qty_repair > 0 THEN 1 ELSE 0 END), 0) AS repair,
               COALESCE(SUM(CASE
                 WHEN items.lifecycle <> 'retired' AND items.kind = 'rental'
-                 AND items.total_qty - items.qty_repair - COALESCE(r.borrowed, 0) > 0 THEN 1
+                 AND items.total_qty - items.qty_repair - COALESCE(r.held, 0) > 0 THEN 1
                 ELSE 0
               END), 0) AS available
        FROM items
        LEFT JOIN locations l ON l.id = items.location_id
-       LEFT JOIN (SELECT item_id, SUM(qty) AS borrowed FROM reservations
-                   WHERE status = 'rented' GROUP BY item_id) r ON r.item_id = items.id
+       LEFT JOIN (SELECT item_id,
+                         SUM(CASE WHEN status = 'rented' THEN qty ELSE 0 END) AS rented,
+                         SUM(CASE WHEN status IN ('rented', 'pending', 'reserved') THEN qty ELSE 0 END) AS held
+                    FROM reservations GROUP BY item_id) r ON r.item_id = items.id
       WHERE ${retired ? "" : "items.lifecycle <> 'retired' AND "}1=1${categoryWhere(opts.category)}${tf.sql}`,
       tf.params,
     ),

@@ -3,7 +3,12 @@ import { api, ApiError } from "../../api/client";
 import { syncScrollKey } from "../../router";
 import type { AdminReservation, ReservationStatus } from "../../types";
 import { fmtKstDate } from "../../utils/date";
-import { confirmDialog } from "../../utils/confirm";
+import {
+  defaultDueDateKst,
+  isDueDateInRange,
+  maxDueDateKst,
+  minDueDateKst,
+} from "../../../../shared/rental-period";
 import { AdminPage } from "../../components/admin/admin-page";
 import { Button } from "../../components/ui/button";
 import { Chip } from "../../components/ui/chip";
@@ -27,6 +32,12 @@ export default function AdminReservations() {
     "info",
   );
   const [error, setError] = createSignal("");
+  const [approveTarget, setApproveTarget] = createSignal<AdminReservation | null>(
+    null,
+  );
+  const [approveDueDate, setApproveDueDate] = createSignal(defaultDueDateKst());
+  const [approveError, setApproveError] = createSignal("");
+  const [approveBusy, setApproveBusy] = createSignal(false);
   const [rejectTarget, setRejectTarget] = createSignal<AdminReservation | null>(null);
   const [rejectReason, setRejectReason] = createSignal("");
   const [rejectError, setRejectError] = createSignal("");
@@ -58,7 +69,7 @@ export default function AdminReservations() {
     const status = new URLSearchParams(window.location.search).get("status");
     if (
       status &&
-      ["pending", "rented", "returned", "cancelled", "rejected", "overdue"].includes(status)
+      ["pending", "reserved", "rented", "returned", "cancelled", "rejected", "overdue"].includes(status)
     ) {
       setFilter(status as Filter);
     }
@@ -104,46 +115,62 @@ export default function AdminReservations() {
     await reload(true);
   };
 
-  const approve = async (reservation: AdminReservation) => {
+  const openApprove = (reservation: AdminReservation) => {
     if (processingId() !== null) return;
-    const label =
-      reservation.qty > 1
-        ? `'${reservation.item_name}' ${reservation.qty}개`
-        : `'${reservation.item_name}'`;
-    if (
-      !(await confirmDialog("", {
-        title: `${label} 신청을 승인하시겠습니까?`,
-        description:
-          "승인하면 대여가 시작되고 재고가 확정됩니다. 재고가 없으면 승인되지 않습니다.",
-        confirmLabel: "승인",
-      }))
-    )
+    setApproveTarget(reservation);
+    setApproveError("");
+    const stored = reservation.due_at ? fmtKstDate(reservation.due_at) : "";
+    setApproveDueDate(
+      reservation.status === "reserved"
+        ? defaultDueDateKst()
+        : stored && isDueDateInRange(stored)
+          ? stored
+          : defaultDueDateKst(),
+    );
+  };
+
+  const closeApprove = () => {
+    if (approveBusy()) return;
+    setApproveTarget(null);
+  };
+
+  const submitApprove = async () => {
+    const target = approveTarget();
+    if (!target || approveBusy()) return;
+    if (!isDueDateInRange(approveDueDate())) {
+      setApproveError("반납 예정일을 내일부터 30일 이내로 선택해 주세요.");
       return;
-    setProcessingId(reservation.id);
-    setMessage("");
+    }
+    setApproveBusy(true);
+    setApproveError("");
+    setProcessingId(target.id);
     try {
-      await api(`/api/admin/reservations/${reservation.id}/approve`, {
+      await api(`/api/admin/reservations/${target.id}/approve`, {
         method: "POST",
+        body: JSON.stringify({ due_date: approveDueDate() }),
       });
       setMessage("신청을 승인했습니다");
       setMessageTone("success");
+      setApproveTarget(null);
       await reload(true);
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
-      setMessage(
+      setApproveError(
         code === "no_availability"
-          ? "재고가 없어 승인할 수 없습니다. 반납 후 다시 시도해 주세요"
-          : code === "due_date_passed"
-            ? "희망 반납일이 지나 승인할 수 없습니다. 거절 후 다시 신청받아 주세요"
+          ? "재고가 없어 승인할 수 없습니다. 반납 후 다시 시도해 주세요."
+          : code === "due_date_required"
+            ? "반납 예정일을 선택해 주세요."
             : code === "item_not_active" || code === "consumable"
-              ? "지금은 대여할 수 없는 물품입니다"
-              : err instanceof Error
-                ? err.message
-                : "승인에 실패했습니다",
+              ? "지금은 대여할 수 없는 물품입니다."
+              : code === "bad_status"
+                ? "이미 처리된 신청입니다. 목록을 새로고침해 주세요."
+                : err instanceof Error
+                  ? err.message
+                  : "승인에 실패했습니다",
       );
-      setMessageTone("error");
       await reload(true);
     } finally {
+      setApproveBusy(false);
       setProcessingId(null);
     }
   };
@@ -231,8 +258,9 @@ export default function AdminReservations() {
         <section class="rounded-card border border-line bg-surface p-4">
           <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">반납 처리 안내</h2>
           <p class="mt-2 text-fine leading-normal text-ink-2">
-            신청 대기 건은 <b class="font-semibold text-ink-1">승인</b> 또는{" "}
-            <b class="font-semibold text-ink-1">거절</b>로 처리합니다. 승인할 때 재고를 다시 확인하고,
+            승인 대기·예약 대기 건은 <b class="font-semibold text-ink-1">승인</b> 또는{" "}
+            <b class="font-semibold text-ink-1">거절</b>로 처리합니다. 예약은 반납 순서대로
+            승인 후보가 되며, 승인할 때 반납 예정일을 정합니다. 승인 시점에 재고를 다시 확인하고,
             승인하면 대여가 시작됩니다. 물품을 돌려받았으면{" "}
             <b class="font-semibold text-ink-1">반납</b>을 눌러 주세요. 반납할 때 회수 확인 사진을
             남길 수 있고, 회원이 직접 반납한 건은 목록에서 따로 표시됩니다. 반납 예정일이 지난 건은{" "}
@@ -247,6 +275,7 @@ export default function AdminReservations() {
           options={[
             { value: "", label: "전체" },
             { value: "pending", label: "승인 대기" },
+            { value: "reserved", label: "예약 대기" },
             { value: "rented", label: "대여 중" },
             { value: "overdue", label: "기한 지남" },
             { value: "returned", label: "반납 완료" },
@@ -286,16 +315,28 @@ export default function AdminReservations() {
                       ? "overdue"
                       : reservation.status
                   }
-                  active={reservation.status === "rented"}
+                  active={
+                    reservation.status === "pending" ||
+                    reservation.status === "reserved"
+                  }
                   inlineActions
                   actions={
                     <>
-                      <Show when={reservation.status === "pending"}>
+                      <Show
+                        when={
+                          reservation.status === "pending" ||
+                          reservation.status === "reserved"
+                        }
+                      >
                         <Button
                           variant="primary"
                           loading={processing()}
-                          disabled={processingId() !== null && !processing()}
-                          onClick={() => void approve(reservation)}
+                          disabled={
+                            (processingId() !== null && !processing()) ||
+                            (reservation.status === "reserved" &&
+                              !reservation.approvable)
+                          }
+                          onClick={() => openApprove(reservation)}
                         >
                           승인
                         </Button>
@@ -320,8 +361,30 @@ export default function AdminReservations() {
                   }
                 >
                   {contactLine(reservation)}
+                  <Show
+                    when={
+                      reservation.status === "pending" ||
+                      reservation.status === "reserved"
+                    }
+                  >
+                    <span>
+                      재고 {reservation.item_rentable_qty} · 대여 중{" "}
+                      {reservation.item_rented_qty} · 승인 대기{" "}
+                      {reservation.item_pending_qty} · 예약 대기{" "}
+                      {reservation.item_reserved_qty}
+                    </span>
+                    <Show when={reservation.status === "reserved"}>
+                      <span class={reservation.approvable ? "" : "text-danger"}>
+                        앞에 {reservation.queue_ahead_qty ?? 0}개 대기 ·{" "}
+                        {reservation.approvable
+                          ? "지금 승인 가능"
+                          : "재고가 없어 승인할 수 없습니다"}
+                      </span>
+                    </Show>
+                  </Show>
                   <span>
-                    {fmtKstDate(reservation.created_at)} 대여
+                    {fmtKstDate(reservation.created_at)}{" "}
+                    {reservation.status === "reserved" ? "예약" : "대여"}
                     {reservation.status === "returned"
                       ? ` → ${fmtKstDate(reservation.updated_at)} 반납`
                       : ""}
@@ -377,6 +440,64 @@ export default function AdminReservations() {
         onClose={() => setReturnTarget(null)}
         onFinished={(result) => void finishReturn(result)}
       />
+
+      <Modal
+        open={approveTarget() !== null}
+        title={
+          approveTarget()?.status === "reserved"
+            ? "예약 승인"
+            : "대여 신청 승인"
+        }
+        maxWidth="420px"
+        onClose={closeApprove}
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={closeApprove}
+              disabled={approveBusy()}
+            >
+              닫기
+            </Button>
+            <Button
+              variant="primary"
+              loading={approveBusy()}
+              onClick={() => void submitApprove()}
+            >
+              승인
+            </Button>
+          </>
+        }
+      >
+        <p class="m-0 text-fine leading-normal text-ink-2">
+          '{approveTarget()?.item_name ?? "물품"}' {approveTarget()?.qty ?? 1}개를
+          승인합니다. 재고는 승인 시점에 다시 확인합니다.
+        </p>
+        <Show when={approveTarget()?.status === "reserved"}>
+          <p class="mt-2 m-0 text-fine leading-normal text-ink-2">
+            예약 건입니다. 반납 순서에 따라 승인하고, 아래에서 반납 예정일을 정해
+            주세요.
+          </p>
+        </Show>
+        <Input
+          class="mt-4"
+          label="반납 예정일 *"
+          type="date"
+          min={minDueDateKst()}
+          max={maxDueDateKst()}
+          value={approveDueDate()}
+          onInput={setApproveDueDate}
+          required
+        />
+        <p class="mt-2 text-fine leading-normal text-ink-2">
+          내일부터 30일 이내로 선택해 주세요.
+        </p>
+        <Show when={approveError()}>
+          <p class="mt-2 m-0 text-fine leading-normal text-danger" role="alert">
+            {approveError()}
+          </p>
+        </Show>
+      </Modal>
 
       <Modal
         open={rejectTarget() !== null}

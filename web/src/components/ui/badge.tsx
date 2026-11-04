@@ -1,5 +1,7 @@
 const LABELS: Record<string, string> = {
   available: "대여 가능",
+  reserved: "예약 가능",
+  unavailable: "신청 마감",
   rented: "대여 중",
   repair: "수리 중",
   retired: "폐기",
@@ -15,6 +17,8 @@ const LABELS: Record<string, string> = {
 
 const TONES: Record<string, string> = {
   available: "bg-primary-soft text-primary-strong",
+  reserved: "bg-primary-soft text-primary-strong",
+  unavailable: "bg-surface-muted text-ink-2",
   admin: "bg-primary-soft text-primary-strong",
   repair: "bg-warning-soft text-warning",
   overdue: "bg-danger-soft text-danger",
@@ -25,6 +29,8 @@ const TONES: Record<string, string> = {
 
 const DOTS: Record<string, string> = {
   available: "bg-primary",
+  reserved: "bg-primary",
+  unavailable: "bg-ink-3",
   admin: "bg-primary",
   repair: "bg-warning",
   overdue: "bg-danger",
@@ -38,6 +44,7 @@ export function Badge(props: { kind?: string; label?: string }) {
   const text = () => props.label || LABELS[kind()] || kind();
   const tone = () =>
     kind() === "available" ||
+    kind() === "reserved" ||
     kind() === "admin" ||
     kind() === "repair" ||
     kind() === "overdue" ||

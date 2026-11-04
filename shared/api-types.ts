@@ -9,9 +9,19 @@ export type Photo = { id: number; url: string };
 // 물품 단위 생애주기 — '수리중'은 생애주기가 아니라 수량 상태(qty_repair)다.
 // status(active/repair/retired)를 두 축에 나눠 담던 것을 0005 에서 분리했다 (이슈 #12 §3.1).
 export type ItemLifecycle = "active" | "retired";
-// 날짜 개념이 없어져 '예약 있음'(reserved)이 사라졌다 — 대여 중이거나 아니거나 둘 중 하나다.
+// 재고 3영역(rented/pending/reserved) 도입(0012)으로 배지가 늘었다.
+//   available   지금 신청 가능 (newCap > 0)
+//   reserved    지금은 없지만 예약 가능 (newCap = 0, queueCap > 0)
+//   unavailable 지금도 없고 예약도 마감 (queueCap = 0)
 // retired 는 관리자 목록에서만 보인다 — 공개 목록은 폐기 물품을 내리지 않는다.
-export type AvailabilityBadge = "available" | "rented" | "repair" | "retired";
+// rented 는 이전 계약과의 호환을 위해 남겨 둔다 — 새 badgeFor 는 반환하지 않는다.
+export type AvailabilityBadge =
+  | "available"
+  | "reserved"
+  | "unavailable"
+  | "rented"
+  | "repair"
+  | "retired";
 
 // 대여품/소모품  — 소모품은 재고가 줄기만 하고 대여 기간 개념이 없다
 export type ItemKind = "rental" | "consumable";
@@ -50,8 +60,12 @@ export type Item = {
   category_ids?: number[];
   photos: Photo[];
   availability_badge?: AvailabilityBadge;
-  // 현재 대여 중인 수량 합 — 가용성 판정의 유일한 근거
+  // 실제 대여 중(rented) 수량 합 — 재고를 점유한다
   active_now?: number;
+  // 승인 대기(pending) 수량 합 — 재고를 점유한다
+  pending_qty?: number;
+  // 예약(reserved) 수량 합 — 재고를 점유하지 않고 반납을 기다린다
+  reserved_qty?: number;
   // 태그(카테고리) — 목록에서는 안 내리고 상세에서만
   categories?: { id: number; name: string }[];
 };
@@ -80,10 +94,12 @@ export type AllowedEmail = {
   created_at: string;
 };
 
-// 대여 — 신청(pending) → 승인(rented) → 반납(returned), 신청 → 거절(rejected),
-// 신청·대여 중 → 취소(cancelled).
+// 대여 — 신청(pending) 또는 예약(reserved) → 승인(rented) → 반납(returned),
+// 신청·예약 → 거절(rejected), 신청·예약·대여 중 → 취소(cancelled).
+// pending 은 재고를 점유하고, reserved 는 반납을 기다리며 점유하지 않는다.
 export type ReservationStatus =
   | "pending"
+  | "reserved"
   | "rented"
   | "returned"
   | "cancelled"
@@ -118,6 +134,10 @@ export type MyReservation = {
   rejected_reason: string | null;
   // 반납 시점에 첨부한 상태 사진 — 최대 3장, 없으면 빈 배열.
   return_photos: ReservationPhoto[];
+  // 한 신청을 이루는 행들을 묶는 키. 기존 행은 'legacy-<id>' 다.
+  group_id: string | null;
+  // 예약(reserved) 건에서 앞에 대기 중인 수량. 그 외에는 0.
+  queue_ahead_qty?: number;
 };
 
 export type AdminReservation = MyReservation & {
@@ -142,5 +162,12 @@ export type AdminReservation = MyReservation & {
   returned_at: string | null;
   // 관리자가 반납 처리할 때 남기는 메모 — 지금은 writer 가 없어 null 이다.
   admin_memo: string | null;
+  // 물품 재고 스냅샷 — 관리자 화면이 승인 가능 여부를 계산한다.
+  item_rentable_qty: number;
+  item_rented_qty: number;
+  item_pending_qty: number;
+  item_reserved_qty: number;
+  // reserved 행이 지금 승인 가능한지(파생). pending 은 항상 true.
+  approvable: boolean;
 };
 

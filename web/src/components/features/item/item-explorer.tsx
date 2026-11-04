@@ -12,7 +12,7 @@ import { api } from "../../../api/client";
 import { session } from "../../../context/session";
 import { navigate } from "../../../router";
 import type { Item } from "../../../types";
-import { availableQty } from "../../../utils/stock";
+import { availableQty, queueCapacity } from "../../../utils/stock";
 import type { JSX } from "@solidjs/web";
 import { Button } from "../../ui/button";
 import { Empty } from "../../ui/empty";
@@ -20,11 +20,12 @@ import { Notice } from "../../ui/notice";
 import { Skeleton } from "../../ui/skeleton";
 import { ItemCard } from "./item-card";
 
-export type TabKey = "all" | "available" | "rented" | "repair";
+export type TabKey = "all" | "available" | "reserved" | "rented" | "repair";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "all", label: "전체" },
   { key: "available", label: "대여 가능" },
+  { key: "reserved", label: "예약 가능" },
   { key: "rented", label: "대여 중" },
   { key: "repair", label: "수리 중" },
 ];
@@ -76,6 +77,14 @@ export function ItemExplorer(props: {
     if (props.tab === "rented") return (item.active_now ?? 0) > 0;
     if (props.tab === "repair")
       return item.lifecycle !== "retired" && (item.qty_repair ?? 0) > 0;
+    if (props.tab === "reserved") {
+      return (
+        item.lifecycle === "active" &&
+        item.kind !== "consumable" &&
+        availableQty(item) === 0 &&
+        queueCapacity(item) > 0
+      );
+    }
     return item.kind !== "consumable" && availableQty(item) > 0;
   };
 

@@ -183,12 +183,21 @@ adminItemsRoute.put("/:id", async (c) => {
   }
 
   const db: Sql = getDb(c.env);
-  // qty_constraint(수리중 수량 > 보유 수량)·not_found 구분은 서비스가 한다
+  // 수량·폐기 제약과 not_found 구분은 서비스가 한다
   const result = await updateItem(db, c.env, id, fields);
   if ("ok" in result) return c.json({ ok: true });
   if (result.error === "not_found") return c.json({ error: "not_found" }, 404);
   if (result.error === "rented_qty_constraint") {
-    return c.json({ error: "대여 중인 물품 수량보다 적게 줄일 수 없습니다" }, 400);
+    return c.json({ error: "대여 중·승인 대기 수량보다 적게 줄일 수 없습니다" }, 400);
+  }
+  if (result.error === "reserved_qty_constraint") {
+    return c.json({ error: "예약 대기 수량보다 적게 줄일 수 없습니다" }, 400);
+  }
+  if (result.error === "has_open_reservations") {
+    return c.json(
+      { error: "대여·승인 대기·예약 건이 남아 있어 폐기·소모품으로 바꿀 수 없습니다" },
+      409,
+    );
   }
   return c.json({ error: "수리중 수량은 보유 수량 이하" }, 400);
 });

@@ -9,7 +9,7 @@ import { api } from "../api/client";
 import { session, type SessionUser } from "../context/session";
 import { navigate } from "../router";
 import type { Item } from "../types";
-import { availableQty } from "../utils/stock";
+import { availableQty, queueCapacity } from "../utils/stock";
 import { Button } from "../components/ui/button";
 import { Empty } from "../components/ui/empty";
 import { InfoList } from "../components/ui/info-list";
@@ -104,6 +104,16 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
       pairs.push(["구분", "소모품"]);
     } else {
       pairs.push(["대여 가능", `${availableNow()}개`]);
+      if (availableNow() === 0) {
+        const queue = queueCapacity(it);
+        if (queue > 0) pairs.push(["예약 가능", `${queue}개`]);
+      }
+      if ((it.pending_qty ?? 0) > 0) {
+        pairs.push(["승인 대기", `${it.pending_qty}개`]);
+      }
+      if ((it.reserved_qty ?? 0) > 0) {
+        pairs.push(["예약 대기", `${it.reserved_qty}개`]);
+      }
       pairs.push(["전체 보유", `${it.total_qty}개`]);
       if ((it.qty_repair ?? 0) > 0) pairs.push(["수리 중", `${it.qty_repair}개`]);
     }
@@ -113,8 +123,14 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
 
   const availabilityText = (it: Item) => {
     if (it.availability_badge === "available") return `대여 가능 ${availableNow()}개`;
+    if (it.availability_badge === "reserved") {
+      const queue = queueCapacity(it);
+      return queue > 1 ? `예약 가능 ${queue}개` : "예약 가능";
+    }
+    if (it.availability_badge === "unavailable") return "신청 마감";
     if (it.availability_badge === "repair") return "수리 중";
     if (it.availability_badge === "retired") return "폐기";
+    // 0012 이전 계약과의 호환 — 새 API 는 rented 대신 reserved/unavailable 을 내린다.
     if (it.availability_badge === "rented") return "대여 중";
     return "";
   };
@@ -199,9 +215,9 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
                   <div class="flex flex-wrap items-center gap-2">
                     <h1 class="m-0 text-page-title font-bold tracking-tight text-ink-1">{it().name}</h1>
                     <Show when={availability()}>
-                      <span class={`inline-flex h-7 items-center gap-1.5 rounded-pill px-3 text-fine font-medium whitespace-nowrap ${it().availability_badge === "available" ? "bg-primary-soft text-primary-strong" : it().availability_badge === "repair" ? "bg-warning-soft text-warning" : "bg-surface-muted text-ink-2"}`}>
+                      <span class={`inline-flex h-7 items-center gap-1.5 rounded-pill px-3 text-fine font-medium whitespace-nowrap ${it().availability_badge === "available" || it().availability_badge === "reserved" ? "bg-primary-soft text-primary-strong" : it().availability_badge === "repair" ? "bg-warning-soft text-warning" : "bg-surface-muted text-ink-2"}`}>
                         <span
-                          class={`size-1.5 shrink-0 rounded-full ${it().availability_badge === "available" ? "bg-primary" : it().availability_badge === "repair" ? "bg-warning" : "bg-ink-3"}`}
+                          class={`size-1.5 shrink-0 rounded-full ${it().availability_badge === "available" || it().availability_badge === "reserved" ? "bg-primary" : it().availability_badge === "repair" ? "bg-warning" : "bg-ink-3"}`}
                           aria-hidden="true"
                         />
                         {availability()}
