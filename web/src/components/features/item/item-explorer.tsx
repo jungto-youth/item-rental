@@ -58,6 +58,8 @@ export function ItemExplorer(props: {
   const [hasMore, setHasMore] = createSignal(false);
   const [loadingMore, setLoadingMore] = createSignal(false);
   const [noticeMsg, setNoticeMsg] = createSignal("");
+  // 검색어와 키워드로 맞는 물품이 없어 의미 검색의 비슷한 물품만 나온 경우
+  const [similarOnly, setSimilarOnly] = createSignal(false);
 
   const [adminItems, setAdminItems] = createSignal<Item[]>([]);
   const [adminLoading, setAdminLoading] = createSignal(false);
@@ -165,14 +167,16 @@ export function ItemExplorer(props: {
     try {
       if (props.q) {
         const params = new URLSearchParams({ q: props.q });
-        const res = await api<{ items: Item[] }>(`/api/items?${params}`);
+        const res = await api<{ items: Item[]; similar?: boolean }>(`/api/items?${params}`);
         if (gen !== fetchGen || untrack(isAdmin)) return;
         setItems(res.items);
+        setSimilarOnly(res.similar === true);
         setHasMore(false);
       } else {
         const res = await api<BrowseResponse>(browseUrl(0));
         if (gen !== fetchGen || untrack(isAdmin)) return;
         setItems(res.items);
+        setSimilarOnly(false);
         setHasMore(res.hasMore);
       }
     } catch (err) {
@@ -484,6 +488,13 @@ export function ItemExplorer(props: {
           )}
         </Show>
         <Show when={!error() && !loading() && visible().length > 0}>
+          <Show when={props.q && similarOnly()}>
+            <div class="mb-4 block">
+              <Notice>
+                '{props.q}'에 정확히 맞는 물품이 없어 비슷한 물품을 보여줍니다.
+              </Notice>
+            </div>
+          </Show>
           <Show when={noticeMsg()}>
             <div class="mb-4 block">
               <Notice

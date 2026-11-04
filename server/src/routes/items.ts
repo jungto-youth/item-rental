@@ -66,8 +66,8 @@ itemsRoute.get("/", async (c) => {
     }
     // 분류는 목록 행의 '분류' 칸이 쓰므로 회원 응답에도 얹는다 (이슈 #12 §6.1).
     // 태그는 민감 정보가 아니고, 행 렌더가 관리자/회원에 따라 갈리지 않게 한다.
-    const items = await searchHybrid(c.env, db, q, { withCategories: true });
-    return c.json({ items });
+    const { items, similar } = await searchHybrid(c.env, db, q, { withCategories: true });
+    return c.json({ items, similar });
   }
 
   // 탐색 — 전체 목록을 OFFSET/LIMIT 으로 나눠 내린다 (홈 무한스크롤)
