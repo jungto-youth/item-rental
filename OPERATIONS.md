@@ -40,7 +40,9 @@ npx wrangler secret put AUTH_ALLOWED_EMAILS
 ```
 
 정식 예외 목록은 DB `allowed_emails` 테이블이며 관리자 화면에서 관리한다.
-`AUTH_ALLOWED_EMAILS`는 비상용 폴백이다.
+`AUTH_ALLOWED_EMAILS`는 비상용 폴백이다. 허용 목록에서 이메일을 지우면 그 계정의 기존
+세션도 다음 요청부터 막힌다(로그인 때와 같은 기준을 매 요청에 확인한다). 관리자 본인이
+예외 계정이면 자기 이메일을 지우는 순간 관리 화면에 들어올 수 없으니 주의한다.
 
 ## 3. D1 마이그레이션
 
