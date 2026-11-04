@@ -22,8 +22,9 @@ const LIST_COLUMNS = `SELECT items.id, items.name, items.description, items.tota
             items.kind, l.name AS location,
             items.qty_repair,
             (items.total_qty - items.qty_repair) AS rentable_qty,
-             (SELECT json_group_array(json_object('id', p.id, 'url', '/api/photos/' || p.r2_key || '?access=members'))
-             FROM (SELECT p.id, p.r2_key FROM item_photos p
+             (SELECT json_group_array(json_object('id', p.id, 'url', '/api/photos/' || p.r2_key || '?access=members',
+                                                    'thumb_url', '/api/photos/' || COALESCE(p.thumb_r2_key, p.r2_key) || '?access=members'))
+             FROM (SELECT p.id, p.r2_key, p.thumb_r2_key FROM item_photos p
                     WHERE p.item_id = items.id ORDER BY p.sort_order) p) AS photos,
             (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
              WHERE r.item_id = items.id AND r.status = 'rented') AS active_now,

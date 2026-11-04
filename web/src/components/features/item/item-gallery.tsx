@@ -67,7 +67,7 @@ export function ItemGallery(props: { photos: Photo[]; name: string }) {
                 </span>
                 <img
                   class="absolute inset-0 block size-full object-cover"
-                  src={photo.url}
+                  src={photo.thumb_url}
                   alt=""
                   loading="lazy"
                   onError={(event) => {

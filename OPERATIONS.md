@@ -67,6 +67,7 @@ npx wrangler d1 migrations apply item-rental-db --remote
 | `0007_reservation_approval.sql` | 대여 승인 상태·소속 스냅샷 |
 | `0008_drop_inventory_adjustments.sql` | 재고 수량 조정 이력 기능 제거 |
 | `0009_reservation_photos.sql` | 반납 상태 사진 (`reservation_photos`) |
+| `0013_item_photo_thumbnails.sql` | 물품 사진 썸네일 키 (`item_photos.thumb_r2_key`) — 적용 후 관리자 홈의 '썸네일 채우기'로 기존 사진을 채운다 |
 
 로컬과 운영은 자동으로 다른 DB를 쓴다(로컬은 로컬 SQLite 파일, 운영은 원격 D1).
 

@@ -34,7 +34,7 @@ export type ListItemRow = ItemAttrs & {
   total_qty: number;
   rentable_qty: number;
   lifecycle: "active" | "retired";
-  photos: { id: number; url: string }[];
+  photos: { id: number; url: string; thumb_url: string }[];
   // rented — 기존 이름 유지. pending/reserved 는 0012 이후 SQL 이 채운다.
   active_now: number;
   pending_qty?: number;
@@ -74,8 +74,9 @@ export async function getItemDetail(
       items.kind, l.name AS location,
       items.qty_repair,
       (items.total_qty - items.qty_repair) AS rentable_qty,
-      (SELECT json_group_array(json_object('id', p.id, 'url', '/api/photos/' || p.r2_key || '?access=members'))
-       FROM (SELECT p.id, p.r2_key FROM item_photos p
+      (SELECT json_group_array(json_object('id', p.id, 'url', '/api/photos/' || p.r2_key || '?access=members',
+                                                    'thumb_url', '/api/photos/' || COALESCE(p.thumb_r2_key, p.r2_key) || '?access=members'))
+       FROM (SELECT p.id, p.r2_key, p.thumb_r2_key FROM item_photos p
               WHERE p.item_id = items.id ORDER BY p.sort_order) p) AS photos,
       (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
         WHERE r.item_id = items.id AND r.status = 'rented') AS active_now,
@@ -418,8 +419,11 @@ export async function deleteItem(
   // 사진 R2 키를 먼저 읽는다 — 행은 FK CASCADE 로 함께 지워지지만 R2 오브젝트는 그대로 남아
   // 영구 고아가 되므로 키를 읽어 함께 삭제한다(v3.1). R2 삭제가 일부 실패하면 오브젝트가 남을
   // 수 있으나 키를 잃어 사후 정리조차 못 하는 것보다 낫다.
+  // 썸네일(thumb_r2_key)도 같은 이유로 함께 읽는다.
   const keys = (await db.query(
-    `SELECT r2_key FROM item_photos WHERE item_id = ?1`,
+    `SELECT r2_key FROM item_photos WHERE item_id = ?1
+     UNION ALL
+     SELECT thumb_r2_key FROM item_photos WHERE item_id = ?1 AND thumb_r2_key IS NOT NULL`,
     [itemId],
   )) as { r2_key: string }[];
   // 물품 + FTS 행을 한 트랜잭션으로 — FTS 에 고아가 남지 않는다
@@ -441,16 +445,28 @@ export async function deleteItem(
 
 // 사진 추가 결과 — too_many: 최대 장수 초과 (라우트가 409 응답)
 type AddPhotoResult =
-  | { ok: true; id: number; url: string }
+  | { ok: true; id: number; url: string; thumb_url: string }
   | { error: "not_found" }
   | { error: "too_many" };
 
+// 사진 URL — 목록·상세 SQL 이 만드는 모양과 같다
+function photoUrl(key: string): string {
+  return `/api/photos/${key}?access=members`;
+}
+
+// 원본과 썸네일은 같은 UUID 를 쓴다 — R2 에서 짝을 눈으로 찾을 수 있게
+function thumbKeyFor(itemId: number, uuid: string, ext: string): string {
+  return `items/${itemId}/${uuid}.thumb.${ext}`;
+}
+
+// thumb — 브라우저가 만든 썸네일(선택). 구버전 클라이언트(web-lit)는 보내지 않는다.
 export async function addPhoto(
   db: Sql,
   env: Bindings,
   itemId: number,
   file: File,
   ext: string,
+  thumb?: { file: File; ext: string },
 ): Promise<AddPhotoResult> {
   // 물품 존재 확인
   const exists = (await db.query(`SELECT id FROM items WHERE id = ?1`, [
@@ -458,33 +474,96 @@ export async function addPhoto(
   ])) as { id: number }[];
   if (exists.length === 0) return { error: "not_found" };
 
-  const key = `items/${itemId}/${crypto.randomUUID()}.${ext}`;
+  const uuid = crypto.randomUUID();
+  const key = `items/${itemId}/${uuid}.${ext}`;
+  const thumbKey = thumb ? thumbKeyFor(itemId, uuid, thumb.ext) : null;
   // 사진 개수 상한을 INSERT 가드로 검사 — COUNT-then-INSERT 사이 동시 업로드로
   // MAX_PHOTOS 를 넘기지 않는다. sort_order 도 같은 문장에서 최댓값+1 로 정한다
   // (등록순 확정 — 대표 사진이 첫 사진이 되는 근거).
   const inserted = (await db.query(
-    `INSERT INTO item_photos (item_id, r2_key, sort_order)
-     SELECT ?1, ?2, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM item_photos WHERE item_id = ?1)
+    `INSERT INTO item_photos (item_id, r2_key, sort_order, thumb_r2_key)
+     SELECT ?1, ?2, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM item_photos WHERE item_id = ?1), ?3
       WHERE (SELECT COUNT(*) FROM item_photos WHERE item_id = ?1) < ${MAX_PHOTOS}
       RETURNING id`,
-    [itemId, key],
+    [itemId, key, thumbKey],
   )) as { id: number }[];
   if (inserted.length === 0) return { error: "too_many" };
   const photoId = inserted[0].id;
 
-  // R2 업로드가 실패하면 슬롯을 환수한다 — 오브젝트 없는 행(깨진 이미지)을 남기지 않게
+  // R2 업로드가 실패하면 슬롯을 환수한다 — 오브젝트 없는 행(깨진 이미지)을 남기지 않게.
+  // 원본은 올라갔는데 썸네일이 실패한 경우도 원본까지 지워 짝이 어긋난 행을 남기지 않는다.
   try {
     await env.PHOTOS.put(key, file.stream(), {
       httpMetadata: { contentType: file.type },
     });
+    if (thumb && thumbKey) {
+      await env.PHOTOS.put(thumbKey, thumb.file.stream(), {
+        httpMetadata: { contentType: thumb.file.type },
+      });
+    }
   } catch (err) {
     await db.query(`DELETE FROM item_photos WHERE id = ?1`, [photoId]);
+    await env.PHOTOS.delete(key).catch(() => {});
     throw err;
   }
-  return { ok: true, id: photoId, url: `/api/photos/${key}?access=members` };
+  return { ok: true, id: photoId, url: photoUrl(key), thumb_url: photoUrl(thumbKey ?? key) };
 }
 
-// 사진 삭제 — 행 먼저 지우고 R2 오브젝트를 지운다. R2 삭제가 실패해도 남는 건
+// 기존 사진에 썸네일을 채우거나 바꾼다 — 0013 이전 사진의 백필과, 썸네일이 빠진 사진의 복구.
+// 새 썸네일을 먼저 올리고 행을 바꾼 뒤 옛 썸네일을 지운다 — 도중에 실패해도 행이 없는
+// 오브젝트를 가리키는 일은 없다(남는 건 회수 가능한 고아뿐, deletePhoto 와 같은 기준).
+export async function setPhotoThumb(
+  db: Sql,
+  env: Bindings,
+  itemId: number,
+  photoId: number,
+  thumb: { file: File; ext: string },
+): Promise<{ ok: true; thumb_url: string } | { error: "not_found" }> {
+  const [row] = (await db.query(
+    `SELECT r2_key, thumb_r2_key FROM item_photos WHERE id = ?1 AND item_id = ?2`,
+    [photoId, itemId],
+  )) as { r2_key: string; thumb_r2_key: string | null }[];
+  if (!row) return { error: "not_found" };
+
+  // 원본 파일명의 UUID 를 그대로 쓰고, 교체 시에는 새 UUID 를 붙여 캐시된 옛 썸네일과 겹치지 않게 한다
+  const uuid = row.r2_key.slice(row.r2_key.lastIndexOf("/") + 1).replace(/\..+$/, "");
+  const thumbKey = row.thumb_r2_key
+    ? thumbKeyFor(itemId, `${uuid}-${crypto.randomUUID()}`, thumb.ext)
+    : thumbKeyFor(itemId, uuid, thumb.ext);
+  await env.PHOTOS.put(thumbKey, thumb.file.stream(), {
+    httpMetadata: { contentType: thumb.file.type },
+  });
+  const updated = (await db.query(
+    `UPDATE item_photos SET thumb_r2_key = ?3 WHERE id = ?1 AND item_id = ?2 RETURNING id`,
+    [photoId, itemId, thumbKey],
+  )) as { id: number }[];
+  if (updated.length === 0) {
+    // 그 사이 사진이 지워졌다 — 방금 올린 썸네일을 회수한다
+    await env.PHOTOS.delete(thumbKey).catch(() => {});
+    return { error: "not_found" };
+  }
+  if (row.thumb_r2_key) {
+    try {
+      await env.PHOTOS.delete(row.thumb_r2_key);
+    } catch (err) {
+      console.error(`R2 옛 썸네일 삭제 실패 (photo ${photoId})`, err);
+    }
+  }
+  return { ok: true, thumb_url: photoUrl(thumbKey) };
+}
+
+// 썸네일이 없는 물품 사진 — 관리자 화면의 '썸네일 채우기'가 이 목록을 돌며 채운다.
+export async function listPhotosMissingThumb(
+  db: Sql,
+): Promise<{ item_id: number; photo_id: number; url: string }[]> {
+  return (await db.query(
+    `SELECT item_id, id AS photo_id, '/api/photos/' || r2_key || '?access=members' AS url
+       FROM item_photos WHERE thumb_r2_key IS NULL
+      ORDER BY item_id, sort_order`,
+  )) as { item_id: number; photo_id: number; url: string }[];
+}
+
+// 사진 삭제 — 행 먼저 지우고 R2 오브젝트(원본·썸네일)를 지운다. R2 삭제가 실패해도 남는 건
 // 회수 가능한 고아 오브젝트뿐이다 (행이 남아 깨진 이미지를 보여주는 것보다 낫다 —
 // deleteItem 과 같은 기준). false 면 없음(404)
 export async function deletePhoto(
@@ -494,12 +573,13 @@ export async function deletePhoto(
   photoId: number,
 ): Promise<boolean> {
   const rows = (await db.query(
-    `DELETE FROM item_photos WHERE id = ?1 AND item_id = ?2 RETURNING r2_key`,
+    `DELETE FROM item_photos WHERE id = ?1 AND item_id = ?2 RETURNING r2_key, thumb_r2_key`,
     [photoId, itemId],
-  )) as { r2_key: string }[];
+  )) as { r2_key: string; thumb_r2_key: string | null }[];
   if (rows.length === 0) return false;
   try {
     await env.PHOTOS.delete(rows[0].r2_key);
+    if (rows[0].thumb_r2_key) await env.PHOTOS.delete(rows[0].thumb_r2_key);
   } catch (err) {
     console.error(`R2 사진 삭제 실패 (photo ${photoId})`, err);
   }

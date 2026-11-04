@@ -1,10 +1,11 @@
 import type { MiddlewareHandler } from "hono";
 import type { Bindings, Variables } from "../types";
-import { MAX_PHOTO_UPLOAD_BYTES } from "../../../shared/photo-limits";
+import { MAX_PHOTO_UPLOAD_BYTES, MAX_THUMB_UPLOAD_BYTES } from "../../../shared/photo-limits";
 
 type AppEnv = { Bindings: Bindings; Variables: Variables };
 export const MAX_API_BODY_BYTES = 32 * 1024;
-export const MAX_PHOTO_BODY_BYTES = MAX_PHOTO_UPLOAD_BYTES + 64 * 1024;
+// 물품 사진 업로드는 원본과 썸네일을 한 요청에 담는다
+export const MAX_PHOTO_BODY_BYTES = MAX_PHOTO_UPLOAD_BYTES + MAX_THUMB_UPLOAD_BYTES + 64 * 1024;
 
 export function canonicalAuthRequest(request: Request): Request {
   const url = new URL(request.url);
@@ -35,8 +36,11 @@ export const guardApiRequest: MiddlewareHandler<AppEnv> = async (c, next) => {
   if (!c.req.raw.body) return next();
   // 사진 업로드 경로만 2MB+multipart 여유를 허용한다. 새 사진 경로를 추가하면
   // 여기에도 넣어야 한다 — 빠뜨리면 32KB 기본 한도에 걸려 413 이 난다.
-  const maximum = c.req.method === "POST" && /^\/api\/(?:admin\/)?(?:items|reservations)\/[^/]+\/photos$/.test(c.req.path)
-    ? MAX_PHOTO_BODY_BYTES : MAX_API_BODY_BYTES;
+  const photoUpload =
+    (c.req.method === "POST" && /^\/api\/(?:admin\/)?(?:items|reservations)\/[^/]+\/photos$/.test(c.req.path)) ||
+    // 기존 사진의 썸네일 채우기 (관리자)
+    (c.req.method === "PUT" && /^\/api\/admin\/items\/[^/]+\/photos\/[^/]+\/thumb$/.test(c.req.path));
+  const maximum = photoUpload ? MAX_PHOTO_BODY_BYTES : MAX_API_BODY_BYTES;
   const claimed = c.req.header("content-length");
   if (claimed !== undefined) {
     if (!/^\d+$/.test(claimed)) return c.json({ error: "bad_content_length" }, 400);

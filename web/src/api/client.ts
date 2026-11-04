@@ -64,3 +64,16 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(res.status, "서버 응답이 올바른 JSON이 아닙니다");
   }
 }
+
+// 이미지 등 바이너리 응답 — 썸네일 채우기가 기존 원본 사진을 받아 올 때 쓴다.
+export async function apiBlob(path: string): Promise<Blob> {
+  let res: Response;
+  try {
+    res = await fetch(path);
+  } catch {
+    throw new ApiError(0, "네트워크에 연결할 수 없습니다 — 연결 상태를 확인해 주세요");
+  }
+  if (res.status === 401) onUnauthorized?.();
+  if (!res.ok) throw new ApiError(res.status, `API ${res.status}`);
+  return res.blob();
+}

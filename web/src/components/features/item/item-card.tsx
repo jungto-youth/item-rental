@@ -32,7 +32,7 @@ function StatusLabel(props: { part: { key: string; label: string } }) {
 export function ItemCard(props: { item: Item; href: string }) {
   const categories = () => (props.item.categories ?? []).map((c) => c.name).join(", ");
   const location = () => props.item.location ?? "";
-  const photo = () => props.item.photos?.[0]?.url ?? "";
+  const photo = () => props.item.photos?.[0]?.thumb_url ?? "";
   const primary = () => statusParts(props.item)[0];
   const strong = () =>
     primary()?.key === "available" || primary()?.key === "reserved";
