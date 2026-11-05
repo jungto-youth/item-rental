@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { Bindings, Variables } from "../../types";
 import { getDb, type Sql } from "../../db";
 import { requireAdmin } from "../../middleware/auth";
-import { validatePhotoFile } from "../../photo-upload";
+import { validatePhotoFile, validateThumbFile } from "../../photo-upload";
 import { MAX_PHOTOS } from "../../../../shared/photo-limits";
 import {
   getAdminItem,
@@ -11,6 +11,9 @@ import {
   deleteItem,
   addPhoto,
   deletePhoto,
+  setPhotoThumb,
+  listPhotosMissingThumb,
+  countPhotosMissingThumb,
 } from "../../services/items.service";
 import { listItems } from "../../services/search.service";
 
@@ -104,6 +107,19 @@ adminItemsRoute.get("/", async (c) => {
     includeRetired: true,
   });
   return c.json({ items, total, hasMore: offset + items.length < total });
+});
+
+// 썸네일이 없는 사진 목록 — 관리자 화면의 '썸네일 채우기'가 id 커서로 나눠 받는다 (0013 이전 사진).
+// limit/after 로 나눠 내려 목록이 커도 응답이 한없이 커지지 않는다. total 은 남은 전체 개수다.
+adminItemsRoute.get("/photo-thumbs/missing", async (c) => {
+  const limit = clampInt(c.req.query("limit"), 20, 1, 100);
+  const after = clampInt(c.req.query("after"), 0, 0, Number.MAX_SAFE_INTEGER);
+  const db = getDb(c.env);
+  const [photos, total] = await Promise.all([
+    listPhotosMissingThumb(db, after, limit),
+    countPhotosMissingThumb(db),
+  ]);
+  return c.json({ photos, total });
 });
 
 // 편집용 단건 — 관리자 화면용으로 태그까지 내려준다. 편집 폼이 공개 상세를 씨드로
@@ -218,7 +234,7 @@ adminItemsRoute.delete("/:id", async (c) => {
   return c.json({ error: "not_found" }, 404);
 });
 
-// 사진 업로드 — multipart/form-data "file" 필드 → R2 직접 저장
+// 사진 업로드 — multipart/form-data "file"(원본) + "thumb"(썸네일, 선택) 필드 → R2 직접 저장
 adminItemsRoute.post("/:id/photos", async (c) => {
   const itemId = Number(c.req.param("id"));
   if (!Number.isInteger(itemId)) return c.json({ error: "bad_id" }, 400);
@@ -227,13 +243,39 @@ adminItemsRoute.post("/:id/photos", async (c) => {
   if (!(file instanceof File)) return c.json({ error: "file 필드 필요" }, 400);
   const checked = await validatePhotoFile(file);
   if (!checked.ok) return c.json({ error: checked.error }, checked.status);
+  // 썸네일은 선택이다 — 없으면 응답이 원본으로 물러나고 나중에 채울 수 있다.
+  // 보냈는데 잘못됐으면 원본도 저장하지 않는다(짝이 어긋난 채로 남기지 않는다).
+  const thumbFile = form.get("thumb") as unknown;
+  let thumb: { file: File; ext: string } | undefined;
+  if (thumbFile instanceof File) {
+    const thumbChecked = await validateThumbFile(thumbFile);
+    if (!thumbChecked.ok) return c.json({ error: thumbChecked.error }, thumbChecked.status);
+    thumb = { file: thumbFile, ext: thumbChecked.ext };
+  }
 
   const db: Sql = getDb(c.env);
-  const result = await addPhoto(db, c.env, itemId, file, checked.ext);
-  if ("ok" in result) return c.json({ id: result.id, url: result.url }, 201);
+  const result = await addPhoto(db, c.env, itemId, file, checked.ext, thumb);
+  if ("ok" in result) return c.json({ id: result.id, url: result.url, thumb_url: result.thumb_url }, 201);
   if (result.error === "too_many") {
     return c.json({ error: `사진은 최대 ${MAX_PHOTOS}장` }, 409);
   }
+  return c.json({ error: "not_found" }, 404);
+});
+
+// 썸네일 채우기·교체 — multipart/form-data "thumb" 필드. 기존 사진의 썸네일만 바꾼다
+adminItemsRoute.put("/:id/photos/:photoId/thumb", async (c) => {
+  const itemId = Number(c.req.param("id"));
+  const photoId = Number(c.req.param("photoId"));
+  if (!Number.isInteger(itemId) || !Number.isInteger(photoId))
+    return c.json({ error: "bad_id" }, 400);
+  const form = await c.req.formData();
+  const file = form.get("thumb") as unknown;
+  if (!(file instanceof File)) return c.json({ error: "thumb 필드 필요" }, 400);
+  const checked = await validateThumbFile(file);
+  if (!checked.ok) return c.json({ error: checked.error }, checked.status);
+
+  const result = await setPhotoThumb(getDb(c.env), c.env, itemId, photoId, { file, ext: checked.ext });
+  if ("ok" in result) return c.json({ thumb_url: result.thumb_url });
   return c.json({ error: "not_found" }, 404);
 });
 

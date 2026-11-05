@@ -67,11 +67,18 @@ export function ItemGallery(props: { photos: Photo[]; name: string }) {
                 </span>
                 <img
                   class="absolute inset-0 block size-full object-cover"
-                  src={photo.url}
+                  src={photo.thumb_url}
                   alt=""
                   loading="lazy"
                   onError={(event) => {
-                    event.currentTarget.remove();
+                    const img = event.currentTarget;
+                    // 썸네일 로드가 실패하면 원본으로 한 번 물러난다 (썸네일이 없으면 같은 URL)
+                    if (img.dataset.fellBack !== "1" && photo.thumb_url !== photo.url) {
+                      img.dataset.fellBack = "1";
+                      img.src = photo.url;
+                      return;
+                    }
+                    img.remove();
                     onThumbError(idx());
                   }}
                 />

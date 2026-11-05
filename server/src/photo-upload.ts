@@ -3,6 +3,8 @@
 import {
   MAX_PHOTO_EDGE,
   MAX_PHOTO_UPLOAD_BYTES,
+  MAX_THUMB_EDGE,
+  MAX_THUMB_UPLOAD_BYTES,
 } from "../../shared/photo-limits";
 import { imageInfo } from "./image-size";
 
@@ -21,14 +23,29 @@ export type PhotoFileCheck =
 // 클라이언트가 1600px·q80 WebP로 줄여 보내므로 정상 업로드는 150KB 안쪽이다.
 // 2MB는 그 경로를 거치지 않은 업로드를 거르는 상한이고, MAX_PHOTO_EDGE는
 // 용량이 작아도 픽셀이 큰 경우(예: 4000×3000 JPEG q25 ≈ 700KB)를 잡는다.
-export async function validatePhotoFile(file: File): Promise<PhotoFileCheck> {
+export function validatePhotoFile(file: File): Promise<PhotoFileCheck> {
+  return checkImage(file, "사진", MAX_PHOTO_UPLOAD_BYTES, `${MAX_PHOTO_UPLOAD_BYTES / 1024 / 1024}MB`, MAX_PHOTO_EDGE);
+}
+
+// 물품 사진 썸네일 — 원본과 같은 형식·내용 일치 검사에 더 좁은 용량·픽셀 한도를 건다.
+export function validateThumbFile(file: File): Promise<PhotoFileCheck> {
+  return checkImage(file, "썸네일", MAX_THUMB_UPLOAD_BYTES, `${MAX_THUMB_UPLOAD_BYTES / 1024}KB`, MAX_THUMB_EDGE);
+}
+
+async function checkImage(
+  file: File,
+  label: string,
+  maxBytes: number,
+  maxBytesText: string,
+  maxEdge: number,
+): Promise<PhotoFileCheck> {
   const ext = PHOTO_TYPES[file.type];
   if (!ext) return { ok: false, status: 400, error: "지원 형식: JPEG/PNG/WebP" };
-  if (file.size > MAX_PHOTO_UPLOAD_BYTES) {
+  if (file.size > maxBytes) {
     return {
       ok: false,
       status: 400,
-      error: `사진은 최대 ${MAX_PHOTO_UPLOAD_BYTES / 1024 / 1024}MB`,
+      error: `${label}은 최대 ${maxBytesText}`,
     };
   }
   const dim = imageInfo(new Uint8Array(await file.arrayBuffer()));
@@ -42,12 +59,12 @@ export async function validatePhotoFile(file: File): Promise<PhotoFileCheck> {
       error: "이미지 형식과 파일 내용이 일치하지 않습니다",
     };
   }
-  if (dim.width > MAX_PHOTO_EDGE || dim.height > MAX_PHOTO_EDGE) {
+  if (dim.width > maxEdge || dim.height > maxEdge) {
     return {
       ok: false,
       status: 400,
       error:
-        `사진은 가로·세로 ${MAX_PHOTO_EDGE}px 이하여야 합니다 ` +
+        `${label}은 가로·세로 ${maxEdge}px 이하여야 합니다 ` +
         `(현재 ${dim.width}×${dim.height})`,
     };
   }

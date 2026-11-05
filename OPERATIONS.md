@@ -22,6 +22,10 @@ npm run check:production
 `check:production`은 개발용 로그인 경로(`/api/dev/login`)가 운영 번들에 남아 있지 않은지
 확인한다.
 
+- DB 마이그레이션이 필요한 코드는 **마이그레이션을 먼저** 적용한다. 새 코드가 새 컬럼을
+  참조하면 코드만 먼저 배포한 동안 해당 API가 500이 난다. 마이그레이션은 구코드와
+  호환되게(additive) 작성한다 — 예: `0013`의 nullable `thumb_r2_key`.
+
 ## 2. 환경 변수
 
 로컬은 `.dev.vars`, 운영은 `wrangler secret put`으로 넣는다.
@@ -72,6 +76,7 @@ npx wrangler d1 migrations apply item-rental-db --remote
 | `0007_reservation_approval.sql` | 대여 승인 상태·소속 스냅샷 |
 | `0008_drop_inventory_adjustments.sql` | 재고 수량 조정 이력 기능 제거 |
 | `0009_reservation_photos.sql` | 반납 상태 사진 (`reservation_photos`) |
+| `0013_item_photo_thumbnails.sql` | 물품 사진 썸네일 키 (`item_photos.thumb_r2_key`) — **코드 배포 전에 적용**하고, 배포 후 관리자 홈의 '썸네일 채우기'로 기존 사진을 채운다 |
 
 로컬과 운영은 자동으로 다른 DB를 쓴다(로컬은 로컬 SQLite 파일, 운영은 원격 D1).
 

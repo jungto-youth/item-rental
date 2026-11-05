@@ -107,7 +107,7 @@ D1 테이블은 `migrations-d1/`이 정의한다. 주요 축은 다음과 같다
 | 영역 | 테이블 | 비고 |
 | --- | --- | --- |
 | 회원 | `members`, `allowed_emails` | 역할 `user`/`admin`, 소속(`affiliation`), 탈퇴·등록 정보 삭제 상태 |
-| 물품 | `items`, `item_photos` | 생애주기 `active`/`retired`, 수량 상태 `total_qty`·`qty_repair` |
+| 물품 | `items`, `item_photos` | 생애주기 `active`/`retired`, 수량 상태 `total_qty`·`qty_repair`, 사진 원본·썸네일 키(`r2_key`·`thumb_r2_key`) |
 | 분류 | `categories`, `item_categories` | 다대다 |
 | 대여 | `reservations` | 신청 대기(`pending`)·예약(`reserved`)·대여 중·반납·취소·거절, `group_id`, 반납 예정일(`due_at`), 승인·거절 처리자 |
 | 반납 사진 | `reservation_photos` | 반납 시점 상태 사진(최대 3장), 회원·관리자 첨부 구분, 본인·관리자만 열람 |
@@ -173,6 +173,8 @@ DB에 직접 넣은 물품은 임베딩이 없다. 관리자 세션으로 `POST 
 - Lit 라우터 대신 `web/src/router.tsx`가 경로 매칭·가드·리다이렉트·스크롤 복원을 맡는다.
 - 세션은 `/api/me` 캐시·세대 번호·401 처리 규약을 그대로 옮겼다.
 - 사진은 업로드 전 1600px·2MB로 축소한다. 물품 사진과 반납 사진 모두 최대 3장이다.
+  물품 사진은 짧은 변 400px 썸네일도 함께 만들어 올리고, 카드·썸네일 줄·내 대여 목록은 `thumb_url`을 쓴다.
+  썸네일이 없는 사진(0013 이전)은 `thumb_url`이 원본으로 물러나고, 관리자 홈의 '썸네일 채우기'가 브라우저에서 채운다.
 
 `web-lit/`은 사진 파이프라인·시각 회귀 기준선이 남아 있어 비교용으로만 유지한다.
 배포에는 쓰지 않는다.

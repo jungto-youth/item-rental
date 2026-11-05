@@ -9,7 +9,7 @@ import { api } from "../../api/client";
 import { navigate } from "../../router";
 import { confirmDialog } from "../../utils/confirm";
 import { getCategories, resolveCategoryIds } from "../../utils/categories";
-import { processPhoto } from "../../utils/photo";
+import { makeThumbnail, processPhoto } from "../../utils/photo";
 import { MAX_PHOTOS } from "../../../../shared/photo-limits";
 import type { Item, ItemKind, ItemLifecycle, Photo } from "../../types";
 import { AdminPage } from "../../components/admin/admin-page";
@@ -55,7 +55,9 @@ type AdminItemDetail = {
   categories?: { id: number; name: string }[];
 };
 
-type StagedPhoto = { file: File; url: string };
+// thumb — 업로드 때 함께 보내는 썸네일. 만들지 못하면 null 로 두고 원본만 올린다
+// (서버 응답이 원본으로 물러나고, 관리자 화면의 '썸네일 채우기'로 나중에 채울 수 있다).
+type StagedPhoto = { file: File; thumb: File | null; url: string };
 
 function SkeletonField(props: { labelWidth?: string }) {
   return (
@@ -229,7 +231,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
   const photoEntries = (): PhotoEntry[] => {
     const kept = photos()
       .filter((photo) => !removedIds().includes(photo.id))
-      .map((photo) => ({ url: photo.url, key: photo.id }));
+      .map((photo) => ({ url: photo.thumb_url, key: photo.id }));
     const fresh = staged().map((entry, index) => ({
       url: entry.url,
       key: `s${index}`,
@@ -250,10 +252,11 @@ export default function AdminItemForm(props: { params: Record<string, string> })
         }
         try {
           const processed = await processPhoto(file);
+          const thumb = await makeThumbnail(processed, processed.name).catch(() => null);
           if (generation !== photoGeneration) return;
           setStaged([
             ...staged(),
-            { file: processed, url: URL.createObjectURL(processed) },
+            { file: processed, thumb, url: URL.createObjectURL(processed) },
           ]);
         } catch (err) {
           if (generation !== photoGeneration) return;
@@ -302,6 +305,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
     for (const entry of staged()) {
       const data = new FormData();
       data.append("file", entry.file);
+      if (entry.thumb) data.append("thumb", entry.thumb);
       try {
         await api(`/api/admin/items/${id}/photos`, {
           method: "POST",

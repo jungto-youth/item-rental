@@ -220,7 +220,7 @@ export async function getMyReservations(
 ): Promise<MyReservation[]> {
   const rows = (await db.query(
     `SELECT r.id, r.item_id, items.name AS item_name,
-            (SELECT '/api/photos/' || p.r2_key || '?access=members' FROM item_photos p
+            (SELECT '/api/photos/' || COALESCE(p.thumb_r2_key, p.r2_key) || '?access=members' FROM item_photos p
               WHERE p.item_id = items.id ORDER BY p.sort_order LIMIT 1) AS item_photo,
             r.qty, r.status, r.member_memo, r.created_at, r.updated_at,
             r.group_id,

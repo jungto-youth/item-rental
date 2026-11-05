@@ -6,6 +6,7 @@ import { Chip } from "../components/ui/chip";
 import { Notice } from "../components/ui/notice";
 import { PageHeader } from "../components/ui/page-header";
 import { SearchIcon } from "../components/icons";
+import { ThumbnailBackfill } from "../components/admin/thumbnail-backfill";
 import {
   ItemExplorer,
   type TabKey,
@@ -145,6 +146,10 @@ export default function Home() {
               </a>
             </div>
           </section>
+
+          <Show when={isAdmin()}>
+            <ThumbnailBackfill />
+          </Show>
         </aside>
 
         <div class="min-w-0 lg:col-start-1 lg:row-start-2">

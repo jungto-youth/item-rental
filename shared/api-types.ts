@@ -4,7 +4,8 @@
 // 이 타입들을 채택해 드리프트를 컴파일 타임에 잡는다.
 
 // API 응답 타입
-export type Photo = { id: number; url: string };
+// thumb_url — 카드·썸네일 줄용 작은 사진. 썸네일이 아직 없으면 서버가 url 과 같은 값을 내린다.
+export type Photo = { id: number; url: string; thumb_url: string };
 
 // 물품 단위 생애주기 — '수리중'은 생애주기가 아니라 수량 상태(qty_repair)다.
 // status(active/repair/retired)를 두 축에 나눠 담던 것을 0005 에서 분리했다 (이슈 #12 §3.1).
