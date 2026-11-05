@@ -13,6 +13,7 @@ import {
   deletePhoto,
   setPhotoThumb,
   listPhotosMissingThumb,
+  countPhotosMissingThumb,
 } from "../../services/items.service";
 import { listItems } from "../../services/search.service";
 
@@ -108,10 +109,17 @@ adminItemsRoute.get("/", async (c) => {
   return c.json({ items, total, hasMore: offset + items.length < total });
 });
 
-// 썸네일이 없는 사진 목록 — 관리자 화면의 '썸네일 채우기'가 돌며 채운다 (0013 이전 사진)
+// 썸네일이 없는 사진 목록 — 관리자 화면의 '썸네일 채우기'가 id 커서로 나눠 받는다 (0013 이전 사진).
+// limit/after 로 나눠 내려 목록이 커도 응답이 한없이 커지지 않는다. total 은 남은 전체 개수다.
 adminItemsRoute.get("/photo-thumbs/missing", async (c) => {
-  const photos = await listPhotosMissingThumb(getDb(c.env));
-  return c.json({ photos });
+  const limit = clampInt(c.req.query("limit"), 20, 1, 100);
+  const after = clampInt(c.req.query("after"), 0, 0, Number.MAX_SAFE_INTEGER);
+  const db = getDb(c.env);
+  const [photos, total] = await Promise.all([
+    listPhotosMissingThumb(db, after, limit),
+    countPhotosMissingThumb(db),
+  ]);
+  return c.json({ photos, total });
 });
 
 // 편집용 단건 — 관리자 화면용으로 태그까지 내려준다. 편집 폼이 공개 상세를 씨드로

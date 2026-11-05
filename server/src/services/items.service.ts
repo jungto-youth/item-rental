@@ -402,6 +402,18 @@ type DeleteItemResult =
   | { error: "not_found" }
   | { error: "has_history" };
 
+// R2 오브젝트 삭제 — 하나가 실패해도 나머지를 계속 지운다. 남는 건 회수 가능한 고아뿐이다.
+async function deletePhotoObjects(env: Bindings, keys: (string | null)[]): Promise<void> {
+  for (const key of keys) {
+    if (!key) continue;
+    try {
+      await env.PHOTOS.delete(key);
+    } catch (err) {
+      console.error(`R2 사진 삭제 실패 (${key})`, err);
+    }
+  }
+}
+
 export async function deleteItem(
   db: Sql,
   env: Bindings,
@@ -433,11 +445,7 @@ export async function deleteItem(
   ]);
   if (results[0].length === 0) return { error: "not_found" };
   uncacheVec(itemId);
-  try {
-    for (const key of keys) await env.PHOTOS.delete(key.r2_key);
-  } catch (err) {
-    console.error(`R2 사진 삭제 실패 (item ${itemId})`, err);
-  }
+  await deletePhotoObjects(env, keys.map((key) => key.r2_key));
   return { ok: true };
 }
 
@@ -552,15 +560,31 @@ export async function setPhotoThumb(
   return { ok: true, thumb_url: photoUrl(thumbKey) };
 }
 
-// 썸네일이 없는 물품 사진 — 관리자 화면의 '썸네일 채우기'가 이 목록을 돌며 채운다.
+// 썸네일이 없는 물품 사진 — 관리자 화면의 '썸네일 채우기'가 id 커서로 나눠 받는다.
+// `id > after` 로 이어 받으므로, 처리에 실패해 목록에 남은 사진 때문에 같은 페이지를 반복하지
+// 않는다(실패분은 다음 실행에서 다시 집는다). id 는 INTEGER PRIMARY KEY 라 단조 증가한다.
+export type MissingThumbPhoto = { item_id: number; photo_id: number; url: string };
+
 export async function listPhotosMissingThumb(
   db: Sql,
-): Promise<{ item_id: number; photo_id: number; url: string }[]> {
+  after: number,
+  limit: number,
+): Promise<MissingThumbPhoto[]> {
   return (await db.query(
     `SELECT item_id, id AS photo_id, '/api/photos/' || r2_key || '?access=members' AS url
-       FROM item_photos WHERE thumb_r2_key IS NULL
-      ORDER BY item_id, sort_order`,
-  )) as { item_id: number; photo_id: number; url: string }[];
+       FROM item_photos
+      WHERE thumb_r2_key IS NULL AND id > ?1
+      ORDER BY id
+      LIMIT ?2`,
+    [after, limit],
+  )) as MissingThumbPhoto[];
+}
+
+export async function countPhotosMissingThumb(db: Sql): Promise<number> {
+  const [row] = (await db.query(
+    `SELECT COUNT(*) AS n FROM item_photos WHERE thumb_r2_key IS NULL`,
+  )) as { n: number }[];
+  return Number(row?.n ?? 0);
 }
 
 // 사진 삭제 — 행 먼저 지우고 R2 오브젝트(원본·썸네일)를 지운다. R2 삭제가 실패해도 남는 건
@@ -577,11 +601,6 @@ export async function deletePhoto(
     [photoId, itemId],
   )) as { r2_key: string; thumb_r2_key: string | null }[];
   if (rows.length === 0) return false;
-  try {
-    await env.PHOTOS.delete(rows[0].r2_key);
-    if (rows[0].thumb_r2_key) await env.PHOTOS.delete(rows[0].thumb_r2_key);
-  } catch (err) {
-    console.error(`R2 사진 삭제 실패 (photo ${photoId})`, err);
-  }
+  await deletePhotoObjects(env, [rows[0].r2_key, rows[0].thumb_r2_key]);
   return true;
 }

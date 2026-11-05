@@ -33,6 +33,8 @@ export function ItemCard(props: { item: Item; href: string }) {
   const categories = () => (props.item.categories ?? []).map((c) => c.name).join(", ");
   const location = () => props.item.location ?? "";
   const photo = () => props.item.photos?.[0]?.thumb_url ?? "";
+  // 썸네일 로드가 실패하면 원본으로 한 번 물러난다 (썸네일이 없으면 서버가 같은 URL을 내린다)
+  let thumbFailed = false;
   const primary = () => statusParts(props.item)[0];
   const strong = () =>
     primary()?.key === "available" || primary()?.key === "reserved";
@@ -55,7 +57,15 @@ export function ItemCard(props: { item: Item; href: string }) {
             src={photo()}
             alt=""
             loading="lazy"
-            onError={(event) => event.currentTarget.remove()}
+            onError={(event) => {
+              const original = props.item.photos?.[0]?.url;
+              if (!thumbFailed && original) {
+                thumbFailed = true;
+                event.currentTarget.src = original;
+                return;
+              }
+              event.currentTarget.remove();
+            }}
           />
         </Show>
       </div>

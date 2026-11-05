@@ -27,10 +27,11 @@ async function setup() {
     fixture.request("/api/admin/items/1/photos", { method: "POST", headers: { origin: TEST_ORIGIN, cookie: admin }, body });
   const putThumb = (photoId: number) =>
     fixture.request(`/api/admin/items/1/photos/${photoId}/thumb`, { method: "PUT", headers: { origin: TEST_ORIGIN, cookie: admin }, body: thumbForm() });
-  const missing = async () =>
-    ((await (await fixture.request("/api/admin/items/photo-thumbs/missing", { headers: { cookie: admin } })).json()) as {
+  const missing = async (after = 0, limit = 20) =>
+    (await (await fixture.request(`/api/admin/items/photo-thumbs/missing?after=${after}&limit=${limit}`, { headers: { cookie: admin } })).json()) as {
       photos: { item_id: number; photo_id: number; url: string }[];
-    }).photos;
+      total: number;
+    };
   return { ...fixture, admin, user, post, putThumb, missing };
 }
 
@@ -57,7 +58,7 @@ test("썸네일: 함께 올리면 원본 옆에 저장되고 목록·상세가 t
 
     const served = await request(created.thumb_url, { headers: { cookie: user } });
     expect(served.status).toBe(200);
-    expect(await missing()).toEqual([]);
+    expect(await missing()).toEqual({ photos: [], total: 0 });
     expect(db.prepare("SELECT COUNT(*) AS n FROM item_photos WHERE thumb_r2_key IS NOT NULL").get()).toEqual({ n: 1 });
   } finally { db.close(); }
 });
@@ -70,7 +71,34 @@ test("썸네일: 없이 올리면 thumb_url 이 원본으로 물러나고 백필
     const created = (await res.json()) as { id: number; url: string; thumb_url: string };
     expect(created.thumb_url).toBe(created.url);
     expect(objects.size).toBe(1);
-    expect(await missing()).toEqual([{ item_id: 1, photo_id: created.id, url: created.url }]);
+    expect(await missing()).toEqual({
+      photos: [{ item_id: 1, photo_id: created.id, url: created.url }],
+      total: 1,
+    });
+  } finally { db.close(); }
+});
+
+test("썸네일 백필: 목록은 id 커서로 나눠 내리고 total 은 남은 전체 개수다", async () => {
+  const { db, post, missing } = await setup();
+  try {
+    const ids: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const created = (await (await post(photoForm(false))).json()) as { id: number };
+      ids.push(created.id);
+    }
+
+    const first = await missing(0, 2);
+    expect(first.total).toBe(3);
+    expect(first.photos.map((p) => p.photo_id)).toEqual(ids.slice(0, 2));
+
+    const second = await missing(first.photos[1].photo_id, 2);
+    expect(second.total).toBe(3);
+    expect(second.photos.map((p) => p.photo_id)).toEqual([ids[2]]);
+
+    // 처리에 실패해 목록에 남은 사진을 같은 실행에서 다시 집지 않도록, 커서 이후만 내려온다
+    const afterLast = await missing(ids[2], 2);
+    expect(afterLast.photos).toEqual([]);
+    expect(afterLast.total).toBe(3);
   } finally { db.close(); }
 });
 
@@ -92,7 +120,7 @@ test("썸네일 백필: 채우면 목록에서 빠지고, 다시 채우면 새 �
     expect(first.status).toBe(200);
     const { thumb_url: firstThumb } = (await first.json()) as { thumb_url: string };
     expect(firstThumb).toMatch(/\.thumb\.png\?access=members$/);
-    expect(await missing()).toEqual([]);
+    expect(await missing()).toEqual({ photos: [], total: 0 });
     expect(objects.size).toBe(2);
 
     const second = await putThumb(created.id);
