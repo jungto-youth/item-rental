@@ -34,7 +34,10 @@ test("inventory: active members can read, responses are private and generated ph
     for (const path of inventoryPaths) {
       const response = await request(path, { headers: { cookie } });
       expect(response.status).toBe(200);
-      expect(response.headers.get("cache-control")).toBe("private, no-store");
+      // 사진 키는 바뀌지 않아 본인 브라우저에 하루 캐시한다 — 나머지 회원 응답은 저장하지 않는다
+      expect(response.headers.get("cache-control")).toBe(
+        path.startsWith("/api/photos/") ? "private, max-age=86400" : "private, no-store",
+      );
       expect(response.headers.get("vary")).toBe("Cookie");
     }
     const result = await (await request("/api/items/1", { headers: { cookie } })).json() as { item: { photos: { url: string }[] } };

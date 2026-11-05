@@ -39,9 +39,12 @@ app.get("/api/me", async (c) => {
 });
 
 // --- 사진 서빙 (R2) ---
-// 사진도 매 요청에 최신 회원 상태를 확인한다. 로그아웃/탈퇴 이후 캐시로 우회하지 않는다.
-// 물품 사진은 활성 회원 모두, 반납 사진은 본인·관리자만 볼 수 있다.
+// 사진도 매 요청에 최신 회원 상태를 확인한다. 물품 사진은 활성 회원 모두, 반납 사진은 본인·관리자만 볼 수 있다.
+// 물품 사진 키는 업로드마다 새 UUID라 내용이 바뀌지 않으므로 본인 브라우저에만(private) 하루 캐시한다 —
+// 이미 본 사진은 로그아웃 뒤에도 그 브라우저에 최대 하루 남는다. 반납 사진은 개인 공간이 찍힐 수 있어
+// 캐시하지 않는다(권한이 바뀌면 바로 볼 수 없어야 한다).
 const PHOTO_KEY_RE = /^(?:items|reservations)\/[1-9]\d*\/[^/]+\.(jpg|png|webp)$/;
+const ITEM_PHOTO_CACHE = "private, max-age=86400";
 app.get("/api/photos/*", requireAuth, async (c) => {
   const key = c.req.path.slice("/api/photos/".length);
   if (!PHOTO_KEY_RE.test(key) || key.includes("..")) return c.json({ error: "bad_key" }, 400);
@@ -60,7 +63,7 @@ app.get("/api/photos/*", requireAuth, async (c) => {
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
   headers.set("etag", obj.httpEtag);
-  headers.set("cache-control", "private, no-store");
+  headers.set("cache-control", key.startsWith("items/") ? ITEM_PHOTO_CACHE : "private, no-store");
   headers.set("vary", "Cookie");
   headers.set("x-content-type-options", "nosniff");
   headers.set("content-disposition", "inline");

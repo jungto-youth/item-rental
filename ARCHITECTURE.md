@@ -41,8 +41,9 @@
    들어간다. 라우트는 `requireAuth` / `requireAdmin`으로 권한을 확인하고 서비스 함수를
    호출한다. 서비스만 SQL을 실행한다.
 2. **사진** — `/api/photos/*`는 R2 키 형식을 검증하고 `requireAuth`로 최신 회원 상태를
-   확인한 뒤 `private, no-store`로 스트리밍한다. 물품 사진은 활성 회원 모두, 반납 사진은
-   본인·관리자만 볼 수 있다.
+   확인한 뒤 스트리밍한다. 물품 사진은 활성 회원 모두, 반납 사진은 본인·관리자만 볼 수 있다.
+   물품 사진은 키가 업로드마다 새 UUID라 `private, max-age=86400`로 캐시하고, 반납 사진은
+   `private, no-store`로 저장하지 않는다.
 3. **인증** — `/api/auth/*`는 Auth.js가 전담한다. 로그인 성공 시 `members`에 upsert하고,
    JWT의 `sub`를 `members.id`로 바꾼다. 이후 모든 권한 판단은 이 ID로 한다.
 4. **SPA** — 그 외 경로는 `web/dist`의 정적 파일, 없으면 `index.html`이다.

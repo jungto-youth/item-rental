@@ -1,5 +1,5 @@
 import { test, assert } from "vitest";
-const { deepEqual: assertEquals, match: assertMatch } = assert;
+const { deepEqual: assertEquals } = assert;
 import { MAX_API_BODY_BYTES, MAX_PHOTO_BODY_BYTES, canonicalAuthRequest } from "../src/middleware/security.ts";
 import { authConfig } from "../src/auth.ts";
 import { httpFixture, PNG, TEST_ORIGIN } from "./_http.fixture.ts";
@@ -123,7 +123,7 @@ test("API security: photo upload verifies permission and detected MIME; authenti
     const photo = await request(url, { headers: { cookie: user } });
     assertEquals(photo.status, 200);
     assertEquals(photo.headers.get("content-type"), "image/png");
-    assertMatch(photo.headers.get("cache-control")!, /private.*no-store/);
+    assertEquals(photo.headers.get("cache-control"), "private, max-age=86400");
     objects.set("backups/private.sql", { bytes: new Uint8Array(), type: "application/sql" });
     assertEquals((await request("/api/photos/backups/private.sql", { headers: { cookie: user } })).status, 400);
     objects.set("items/1/wrong.png", { bytes: new Uint8Array(), type: "text/html" });
