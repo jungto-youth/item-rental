@@ -387,6 +387,9 @@ const SEARCH_RESULT_CAP = 30;
  * 하이브리드 검색 — FTS5 bm25 랭킹·LIKE 폴백 랭킹·의미 랭킹을 RRF로 융합해 상위 30개만 내린다.
  * 한 물품이 여러 후보 목록에 나오면 점수가 합쳐져 위로 간다 — 순서가 랭킹 논리로 설명된다.
  * 의미 검색(Workers AI)이 실패하면 키워드 목록만으로 검색이 계속된다(폴백).
+ * similar — 키워드로 맞은 물품이 하나도 없고 의미 후보만 남았다. bge-m3 유사도는 0.4~0.65 에
+ * 뭉쳐 절대 임계로 무관한 결과를 거를 수 없으므로, 결과를 지우지 않고 화면이 '비슷한 물품'으로
+ * 안내하게 한다 (없는 물품을 검색해도 무관한 물품이 정답처럼 보이던 문제).
  * @param q - 검색어 (공백 분해, 최대 5토큰)
  * @param opts.withCategories - 관리자 요청: 행에 카테고리를 얹는다 (클라이언트 필터용)
  */
@@ -395,10 +398,10 @@ export async function searchHybrid(
   db: Sql,
   q: string,
   opts: { withCategories?: boolean } = {},
-): Promise<ListItemWithBadge[]> {
+): Promise<{ items: ListItemWithBadge[]; similar: boolean }> {
   // 토큰 처리: 단어 단위 (최대 5개 토큰)
   const tokens = q.trim().split(/\s+/).filter(Boolean).slice(0, 5);
-  if (tokens.length === 0) return [];
+  if (tokens.length === 0) return { items: [], similar: false };
   const { long, short } = splitKeywordTokens(tokens);
 
   const [ftsIds, likeIds, semIds] = await Promise.all([
@@ -411,7 +414,7 @@ export async function searchHybrid(
     0,
     SEARCH_RESULT_CAP,
   );
-  if (fusedIds.length === 0) return [];
+  if (fusedIds.length === 0) return { items: [], similar: false };
 
   // 융합 순위를 JS에서 복원 — SQL은 id 집합으로 목록 컬럼(사진·태그·active_now)만 가져온다
   const rank = new Map(fusedIds.map((id, i) => [id, i]));
@@ -422,7 +425,12 @@ export async function searchHybrid(
     )) as ListItemRow[],
   );
   rows.sort((a, b) => (rank.get(a.id) ?? 99) - (rank.get(b.id) ?? 99));
-  return rows.map(withAvailabilityBadge);
+  // 키워드 후보에 폐기 물품만 있었다면 최종 목록에서 빠지므로, 남은 행 기준으로 판정한다
+  const keywordIds = new Set([...ftsIds, ...likeIds]);
+  return {
+    items: rows.map(withAvailabilityBadge),
+    similar: rows.length > 0 && !rows.some((r) => keywordIds.has(r.id)),
+  };
 }
 
 // ===== RRF (Reciprocal Rank Fusion) =====
