@@ -61,6 +61,35 @@ test("membership: withdrawal revokes existing sessions, and logging in again res
   } finally { db.close(); }
 });
 
+test("membership: removing an exception email from the allow-list revokes that member's existing session", async () => {
+  const fixture = httpFixture();
+  const { db, request, member } = fixture;
+  try {
+    const admin = await member("admin", "admin");
+    // 정토회 계정이 아닌 예외 회원 — 대소문자가 섞여 저장돼 있어도 허용 목록(소문자)과 맞아야 한다
+    const guest = await member("guest");
+    db.prepare("UPDATE members SET email = 'Guest@Example.net' WHERE id = 'guest'").run();
+    expect((await request("/api/items", { headers: { cookie: guest } })).status).toBe(401);
+
+    const added = await request("/api/admin/allowed-emails", {
+      method: "POST",
+      headers: { origin: TEST_ORIGIN, cookie: admin, "content-type": "application/json" },
+      body: JSON.stringify({ email: "guest@example.net" }),
+    });
+    expect(added.status).toBe(201);
+    expect((await request("/api/items", { headers: { cookie: guest } })).status).toBe(200);
+
+    const { id } = db.prepare("SELECT id FROM allowed_emails WHERE email = 'guest@example.net'").get() as { id: string };
+    expect((await request(`/api/admin/allowed-emails/${id}`, { method: "DELETE", headers: { origin: TEST_ORIGIN, cookie: admin } })).status).toBe(200);
+    for (const path of inventoryPaths) expect((await request(path, { headers: { cookie: guest } })).status).toBe(401);
+    expect(await (await request("/api/me", { headers: { cookie: guest } })).json()).toEqual({ user: null });
+
+    // env 예외 목록(AUTH_ALLOWED_EMAILS)도 로그인과 같은 기준으로 세션을 통과시킨다
+    fixture.env.AUTH_ALLOWED_EMAILS = " GUEST@example.net ";
+    expect((await request("/api/items", { headers: { cookie: guest } })).status).toBe(200);
+  } finally { db.close(); }
+});
+
 test("membership: a withdrawn admin who signs in again comes back as a regular user", async () => {
   const fixture = httpFixture();
   const { db, member } = fixture;

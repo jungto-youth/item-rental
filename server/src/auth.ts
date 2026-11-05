@@ -3,6 +3,18 @@ import type { AuthConfig } from '@auth/core'
 import type { Bindings } from './types'
 import { getDb, type Sql } from './db'
 
+// 로그인 허용 도메인 — 정토회 계정은 허용 목록 없이 들어온다
+export const ALLOWED_DOMAIN = '@jungto.org'
+
+// env AUTH_ALLOWED_EMAILS (콤마 구분) → 정규화된 목록. 로그인(signIn)과 세션 확인
+// (middleware/auth)이 같은 기준을 쓰도록 여기서만 해석한다.
+export function envAllowedEmails(env: Bindings): string[] {
+  return (env.AUTH_ALLOWED_EMAILS ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+}
+
 // Auth.js (@auth/core) 구글 OAuth + JWT 세션
 // Workers에서 process.env가 없으므로 바인딩 값을 직접 주입한다.
 export function authConfig(env: Bindings, req?: Request): AuthConfig {
@@ -25,13 +37,10 @@ export function authConfig(env: Bindings, req?: Request): AuthConfig {
   // 로그인 허용 범위 — 정토회 계정(@jungto.org) + 예외 이메일.
   // 예외는 두 곳에서 온다: 어드민 화면에서 관리하는 DB 테이블 allowed_emails (정식 경로),
   // env AUTH_ALLOWED_EMAILS (콤마 구분 — 예외 목록 조회의 폴백; 로그인 자체는 DB 필요).
-  const allowedEmails = (env.AUTH_ALLOWED_EMAILS ?? '')
-    .split(',')
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean)
+  const allowedEmails = envAllowedEmails(env)
   // env 만으로 판정 — DB 조회 없이 통과시켜도 되는 경우 걸러내는 1차 관문
   const isEnvAllowed = (email: string) =>
-    email.toLowerCase().endsWith('@jungto.org') || allowedEmails.includes(email.toLowerCase())
+    email.toLowerCase().endsWith(ALLOWED_DOMAIN) || allowedEmails.includes(email.toLowerCase())
 
   return {
     secret: env.AUTH_SECRET,
