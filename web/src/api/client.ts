@@ -1,4 +1,4 @@
-// fetch 래퍼 — web-lit/src/api/client.ts 와 같은 계약.
+// fetch 래퍼 — 서버 API 계약.
 export class ApiError extends Error {
   constructor(
     readonly status: number,

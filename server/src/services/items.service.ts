@@ -467,7 +467,7 @@ function thumbKeyFor(itemId: number, uuid: string, ext: string): string {
   return `items/${itemId}/${uuid}.thumb.${ext}`;
 }
 
-// thumb — 브라우저가 만든 썸네일(선택). 구버전 클라이언트(web-lit)는 보내지 않는다.
+// thumb — 브라우저가 만든 썸네일(선택). 구버전 클라이언트는 보내지 않는다.
 export async function addPhoto(
   db: Sql,
   env: Bindings,
