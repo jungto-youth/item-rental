@@ -135,6 +135,8 @@ export type MyReservation = {
   rejected_reason: string | null;
   // 반납 시점에 첨부한 상태 사진 — 최대 3장, 없으면 빈 배열.
   return_photos: ReservationPhoto[];
+  // 반납 시점에 남긴 특이사항 — 선택 입력, 없으면 null (0014).
+  return_note: string | null;
   // 한 신청을 이루는 행들을 묶는 키. 기존 행은 'legacy-<id>' 다.
   group_id: string | null;
   // 예약(reserved) 건에서 앞에 대기 중인 수량. 그 외에는 0.
@@ -161,7 +163,7 @@ export type AdminReservation = MyReservation & {
   item_location_snapshot: string | null;
   // 반납 시각 — 반납된 건에서만 채워진다. updated_at 과 달리 반납 전용이다.
   returned_at: string | null;
-  // 관리자가 반납 처리할 때 남기는 메모 — 지금은 writer 가 없어 null 이다.
+  // 관리자 메모 슬롯 — 현재 writer 가 없어 항상 null 이다. 반납 시 글은 return_note 를 쓴다.
   admin_memo: string | null;
   // 물품 재고 스냅샷 — 관리자 화면이 승인 가능 여부를 계산한다.
   item_rentable_qty: number;

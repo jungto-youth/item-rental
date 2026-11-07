@@ -222,7 +222,8 @@ export async function getMyReservations(
     `SELECT r.id, r.item_id, items.name AS item_name,
             (SELECT '/api/photos/' || COALESCE(p.thumb_r2_key, p.r2_key) || '?access=members' FROM item_photos p
               WHERE p.item_id = items.id ORDER BY p.sort_order LIMIT 1) AS item_photo,
-            r.qty, r.status, r.member_memo, r.created_at, r.updated_at,
+            r.qty, r.status, r.member_memo, r.return_note,
+            r.created_at, r.updated_at,
             r.group_id,
             r.due_at,
             (r.status = 'rented' AND r.due_at IS NOT NULL AND r.due_at < ${SQL_NOW}) AS is_overdue,
@@ -270,8 +271,13 @@ async function ownAction(
   reservationId: number,
   memberId: string,
   sql: string,
+  extraParams: unknown[] = [],
 ): Promise<OwnActionResult> {
-  const rows = (await db.query(sql, [reservationId, memberId])) as {
+  const rows = (await db.query(sql, [
+    reservationId,
+    memberId,
+    ...extraParams,
+  ])) as {
     id: number;
   }[];
   if (rows.length > 0) return { ok: true };
@@ -327,6 +333,13 @@ export async function cancelReservationGroup(
   return { error: "bad_status" };
 }
 
+// 반납 특이사항 — 선택 입력. 공백만 있으면 없는 것으로 보고 500자에서 자른다.
+export function normalizeReturnNote(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim().slice(0, 500);
+  return trimmed || null;
+}
+
 // 반납 — 회원이 직접 처리한다. 관리자 경로(returnReservation)와 달리 admin_id 를 건드리지 않는다.
 // admin_id 는 '처리한 관리자'를 뜻하므로 회원이 반납한 건은 NULL 로 남고, 그 자체가
 // "회원이 직접 반납했다"는 사실을 담는다 — 관리자 목록이 이 값으로 구분해 보여준다.
@@ -335,14 +348,16 @@ export async function returnReservationByMember(
   db: Sql,
   reservationId: number,
   memberId: string,
+  note: string | null = null,
 ): Promise<OwnActionResult> {
   return ownAction(
     db,
     reservationId,
     memberId,
-    `UPDATE reservations SET status = 'returned', returned_at = ${SQL_NOW}, updated_at = ${SQL_NOW}
+    `UPDATE reservations SET status = 'returned', returned_at = ${SQL_NOW}, return_note = ?3, updated_at = ${SQL_NOW}
       WHERE id = ?1 AND member_id = ?2 AND status = 'rented'
       RETURNING id`,
+    [note],
   );
 }
 
@@ -425,7 +440,7 @@ export async function listReservations(
             r.member_id, m.name AS member_name, m.email AS member_email, m.phone AS member_phone,
             m.affiliation AS member_affiliation,
             r.member_affiliation_snapshot,
-            r.status, r.member_memo,
+            r.status, r.member_memo, r.return_note,
             r.decided_at, r.rejected_reason,
             d.name AS decided_by_name,
             a.name AS admin_name, r.created_at, r.updated_at,
@@ -614,12 +629,13 @@ export async function returnReservation(
   db: Sql,
   reservationId: number,
   adminId: string,
+  note: string | null = null,
 ): Promise<TransitionResult> {
   return transition(
     db,
     reservationId,
-    `UPDATE reservations SET status = 'returned', returned_at = ${SQL_NOW}, admin_id = ?2, updated_at = ${SQL_NOW}
+    `UPDATE reservations SET status = 'returned', returned_at = ${SQL_NOW}, admin_id = ?2, return_note = ?3, updated_at = ${SQL_NOW}
       WHERE id = ?1 AND status = 'rented' RETURNING id`,
-    [reservationId, adminId],
+    [reservationId, adminId, note],
   );
 }

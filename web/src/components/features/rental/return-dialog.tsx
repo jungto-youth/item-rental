@@ -10,6 +10,7 @@ import type { ReservationPhoto } from "../../../types";
 import { MAX_RETURN_PHOTOS } from "../../../../../shared/photo-limits";
 import { processPhoto } from "../../../utils/photo";
 import { Button } from "../../ui/button";
+import { Input } from "../../ui/input";
 import { Modal } from "../../ui/modal";
 import {
   PhotoUploader,
@@ -41,6 +42,7 @@ export function ReturnDialog(props: {
 }) {
   const [photos, setPhotos] = createSignal<ReservationPhoto[]>([]);
   const [staged, setStaged] = createSignal<StagedPhoto[]>([]);
+  const [note, setNote] = createSignal("");
   const [photoBusy, setPhotoBusy] = createSignal(false);
   const [returning, setReturning] = createSignal(false);
   const [uploadFailed, setUploadFailed] = createSignal(false);
@@ -71,6 +73,7 @@ export function ReturnDialog(props: {
       untrack(() => {
         clearStaged();
         setPhotos(reservation.return_photos);
+        setNote("");
         setPhotoBusy(false);
         setReturning(false);
         setUploadFailed(false);
@@ -206,7 +209,10 @@ export function ReturnDialog(props: {
         return;
       }
 
-      await api(`${basePath(reservation.id)}/return`, { method: "POST" });
+      await api(`${basePath(reservation.id)}/return`, {
+        method: "POST",
+        body: JSON.stringify({ note: note().trim() || undefined }),
+      });
       props.onFinished({
         message: `${reservation.item_name} 반납을 완료했습니다`,
         tone: "success",
@@ -261,6 +267,20 @@ export function ReturnDialog(props: {
               '{reservation().item_name}'
               {reservation().qty > 1 ? ` ${reservation().qty}개를` : "를"} 반납합니다.
               물품 상태 사진을 남기면 파손·분실 확인에 도움이 됩니다. (선택)
+            </p>
+
+            <Input
+              class="mt-4"
+              label="반납 특이사항 (선택)"
+              type="textarea"
+              rows={3}
+              placeholder="예: 구성품 일부가 빠질 뻔했습니다 / 파손은 없습니다"
+              value={note()}
+              disabled={busy()}
+              onInput={setNote}
+            />
+            <p class="mt-2 mb-0 text-fine leading-normal text-ink-2">
+              분실·파손·구성품 누락 등 남길 내용이 있으면 적어 주세요. 500자 이내.
             </p>
 
             <div class="mt-4">

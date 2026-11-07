@@ -12,6 +12,7 @@ import {
 import {
   RESERVATION_STATUSES,
   listReservations,
+  normalizeReturnNote,
   returnReservation,
   approveReservation,
   rejectReservation,
@@ -104,7 +105,13 @@ adminReservationsRoute.post("/:id/return", async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
   const db: Sql = getDb(c.env);
-  const result = await returnReservation(db, id, c.get("user")!.id);
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const result = await returnReservation(
+    db,
+    id,
+    c.get("user")!.id,
+    normalizeReturnNote(body.note),
+  );
   return mapTransition(c, result);
 });
 

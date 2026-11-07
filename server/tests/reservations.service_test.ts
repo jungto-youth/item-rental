@@ -8,6 +8,7 @@ import {
   validateReservation,
   cancelReservation,
   returnReservationByMember,
+  normalizeReturnNote,
   approveReservation,
   rejectReservation,
   type CreateReservationParams,
@@ -249,9 +250,28 @@ test("returnReservationByMember: 본인 + 대여 중이면 성공한다", async 
   // 여기서 admin_id 를 채우면 관리자 목록이 '회원이 직접 반납'을 구분할 수 없게 된다.
   expect(calls.length, "성공 시 재조회가 없어야 한다").toEqual(1);
   const update = calls[0];
-  expect(update.values).toEqual([5, "member-1"]);
+  expect(update.values).toEqual([5, "member-1", null]);
   expect(/admin_id/.test(update.text), "admin_id 를 수정하면 안 된다").toEqual(false);
   expect(/status = 'returned'/.test(update.text)).toEqual(true);
+});
+
+test("returnReservationByMember: 반납 특이사항을 함께 저장한다", async () => {
+  const { db, calls } = stubSql({
+    query: (text) => (text.startsWith("UPDATE") ? [{ id: 5 }] : []),
+    batch: () => [],
+  });
+
+  await returnReservationByMember(db, 5, "member-1", "구성품 일부가 빠질 뻔함");
+
+  expect(calls[0].values).toEqual([5, "member-1", "구성품 일부가 빠질 뻔함"]);
+  expect(/return_note = \?3/.test(calls[0].text)).toEqual(true);
+});
+
+test("normalizeReturnNote: 공백은 null, 500자에서 자른다", () => {
+  expect(normalizeReturnNote("  ")).toBeNull();
+  expect(normalizeReturnNote(undefined)).toBeNull();
+  expect(normalizeReturnNote("  파손 없음  ")).toBe("파손 없음");
+  expect(normalizeReturnNote("가".repeat(600))).toHaveLength(500);
 });
 
 test("returnReservationByMember: SQL 이 본인·대여 중 조건을 모두 건다", async () => {

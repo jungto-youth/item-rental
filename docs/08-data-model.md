@@ -12,7 +12,7 @@ D1 테이블은 `migrations-d1/`이 정의한다. 주요 축은 다음과 같다
 | 회원 | `members`, `allowed_emails` | 역할 `user`/`admin`, 소속(`affiliation`), 탈퇴·등록 정보 삭제 상태 |
 | 물품 | `items`, `item_photos` | 생애주기 `active`/`retired`, 수량 상태 `total_qty`·`qty_repair`, 사진 원본·썸네일 키(`r2_key`·`thumb_r2_key`) |
 | 분류 | `categories`, `item_categories` | 다대다 |
-| 대여 | `reservations` | 신청 대기(`pending`)·예약(`reserved`)·대여 중·반납·취소·거절, `group_id`, 반납 예정일(`due_at`), 승인·거절 처리자 |
+| 대여 | `reservations` | 신청 대기(`pending`)·예약(`reserved`)·대여 중·반납·취소·거절, `group_id`, 반납 예정일(`due_at`), 반납 특이사항(`return_note`), 승인·거절 처리자 |
 | 반납 사진 | `reservation_photos` | 반납 시점 상태 사진(최대 3장), 회원·관리자 첨부 구분, 본인·관리자만 열람 |
 | 검색 | `items_fts` (FTS5) | 키워드 색인, 임베딩은 `items`에 저장 |
 

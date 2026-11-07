@@ -420,6 +420,9 @@ export default function AdminReservations() {
                   <Show when={reservation.member_memo}>
                     <span>메모 · {reservation.member_memo}</span>
                   </Show>
+                  <Show when={reservation.return_note}>
+                    <span>반납 특이사항 · {reservation.return_note}</span>
+                  </Show>
                   <Show when={reservation.return_photos.length > 0}>
                     <ReturnPhotoStrip
                       photos={reservation.return_photos}

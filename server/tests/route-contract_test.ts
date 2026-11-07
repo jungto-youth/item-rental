@@ -138,8 +138,51 @@ test("reservations: 메모와 반납 예정일을 검증하고 due_at 을 저장
   } finally { db.close(); }
 });
 
-// ===== /api/admin/reservations — 승인·거절 (B-10) =====
+test("reservations: 반납 특이사항을 저장하고 내 대여·관리자 목록에 내려준다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const admin = await member("admin", "admin");
+    const user = await member("user", "user");
+    db.exec("INSERT INTO items (id, name, kind, total_qty) VALUES (1, '텐트', 'rental', 2);");
+    db.exec(
+      `INSERT INTO reservations (id, item_id, member_id, qty, status, due_at)
+       VALUES (1, 1, 'user', 1, 'rented', '2099-01-01T00:00:00.000Z');`,
+    );
 
+    const returned = await request("/api/reservations/1/return", {
+      method: "POST",
+      headers: { cookie: user, ...json },
+      body: JSON.stringify({ note: "  구성품 일부가 빠질 뻔함  " }),
+    });
+    expect(returned.status).toBe(200);
+    const row = db.prepare("SELECT return_note FROM reservations WHERE id = 1").get() as {
+      return_note: string | null;
+    };
+    expect(row.return_note).toBe("구성품 일부가 빠질 뻔함");
+
+    const mine = await request("/api/reservations/mine", {
+      headers: { cookie: user, ...get },
+    });
+    const mineBody = (await mine.json()) as {
+      reservations: { id: number; return_note: string | null }[];
+    };
+    expect(mineBody.reservations.find((r) => r.id === 1)?.return_note).toBe(
+      "구성품 일부가 빠질 뻔함",
+    );
+
+    const list = await request("/api/admin/reservations", {
+      headers: { cookie: admin, ...get },
+    });
+    const listBody = (await list.json()) as {
+      reservations: { id: number; return_note: string | null }[];
+    };
+    expect(listBody.reservations.find((r) => r.id === 1)?.return_note).toBe(
+      "구성품 일부가 빠질 뻔함",
+    );
+  } finally { db.close(); }
+});
+
+// ===== /api/admin/reservations — 승인·거절 (B-10) =====
 test("admin reservations: 승인·거절 전이와 거절 사유를 검증한다", async () => {
   const { db, request, member } = httpFixture();
   try {

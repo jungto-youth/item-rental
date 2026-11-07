@@ -16,6 +16,7 @@ import {
   getMyReservations,
   cancelReservation,
   cancelReservationGroup,
+  normalizeReturnNote,
   returnReservationByMember,
   type CreateReservationParams,
 } from "../services/reservations.service";
@@ -174,7 +175,13 @@ reservationsRoute.post("/:id/return", async (c) => {
   if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
 
   const db: Sql = getDb(c.env);
-  const result = await returnReservationByMember(db, id, user.id);
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const result = await returnReservationByMember(
+    db,
+    id,
+    user.id,
+    normalizeReturnNote(body.note),
+  );
 
   if ("ok" in result) return c.json({ ok: true });
   if (result.error === "bad_status")
