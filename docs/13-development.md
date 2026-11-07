@@ -49,3 +49,17 @@ npm run preview:web        # 빌드 결과 미리보기
   점유한 프로세스를 정리한다.
 - **DB 스키마가 안 맞는다** — 로컬 D1에 `migrations-d1/`을 적용한다
   ([16 데이터베이스 운영](16-database-operations.md)).
+- **`wrangler dev`가 "bindings that need to run remotely ... could not be authenticated"로
+  죽는다** — AI 바인딩은 로컬 실행 중에도 원격 세션이 필요하다. 로그인 계정과 D1·R2 소유
+  계정이 다르거나 `node_modules/.cache/wrangler/wrangler-account.json`에 옛 계정이 캐시돼
+  있으면 인증에 실패한다. 여러 Cloudflare 계정을 쓴다면 프로젝트 `.env`(gitignore됨)에
+  계정 전용 프로필을 고정하면 `wrangler logout`/`login` 반복 없이 해결된다.
+
+  ```bash
+  # .env
+  XDG_CONFIG_HOME=/Users/<user>/.wrangler-profiles/<account>
+  CLOUDFLARE_ACCOUNT_ID=<account id>
+  ```
+
+  프로필 디렉터리에서 한 번만 `XDG_CONFIG_HOME=... npx wrangler login` 하면 되고,
+  옛 캐시는 `rm -rf node_modules/.cache/wrangler`로 지운다.
