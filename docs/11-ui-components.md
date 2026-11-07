@@ -36,6 +36,9 @@
 - **배지** 14px 알약 + 점 6px. 상태는 텍스트가 말한다 — 색만으로 구분하지 않는다.
 - **물품 카드** 사진 4:3, 본문 16px, hover는 테두리만(`--border-strong`). 확대 효과 없음.
 - **모달** `--shadow-modal`, 오버레이, Esc 닫기, 열었던 요소로 포커스 복귀.
+- **브랜드 로고** `BrandLogo` — `web/public/logo.svg` 하나를 `--primary-soft` 원형 칩에 넣는다.
+  칩과 로고의 크기 차이는 4px로 고정하고, 헤더는 `sm`(32/24px), 로그인은
+  `lg`(48/40px, 600px 이상 56/48px)을 쓴다. 파비콘·터치 아이콘도 같은 SVG에서 파생한다.
 
 모든 인터랙티브 요소는 default / hover / focus-visible(2px `--primary`) / active /
 disabled / loading / error / empty / mobile 390을 확인한다.

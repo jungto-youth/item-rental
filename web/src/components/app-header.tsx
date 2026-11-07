@@ -2,6 +2,7 @@ import { Show, createSignal, onSettled } from "solid-js";
 import { session } from "../context/session";
 import { location, navigate } from "../router";
 import { APP_NAME, APP_NAME_SHORT } from "../brand";
+import { BrandLogo } from "./brand-logo";
 import { ChevronDownIcon } from "./icons";
 
 type NavItem = { href: string; label: string };
@@ -96,7 +97,7 @@ export function AppHeader() {
           class="flex shrink-0 items-center no-underline"
           aria-label={`${APP_NAME} — 홈`}
         >
-          <img src="/logo.png" alt="" class="block size-7 rounded-card" />
+          <BrandLogo />
           {/* 모바일은 로고만 — 메뉴·계정 버튼과 겹치지 않게 데스크톱에서만 축약명을 보인다. */}
           <span class="ml-2 hidden text-body font-semibold tracking-tight text-ink-1 lg:inline">
             {APP_NAME_SHORT}

@@ -1,5 +1,6 @@
 import { Show, createSignal, onSettled } from "solid-js";
 import { api } from "../api/client";
+import { BrandLogo } from "../components/brand-logo";
 import { Button } from "../components/ui/button";
 import { APP_NAME } from "../brand";
 
@@ -87,7 +88,7 @@ export default function Login() {
       <div class="box-border flex min-h-dvh flex-col items-center justify-center p-6">
         <div class="flex w-full max-w-[340px] flex-col items-center text-center">
           <div class="flex flex-col items-center">
-            <img class="block size-10 rounded-card object-contain min-[600px]:size-12" src="/logo.png" alt="" />
+            <BrandLogo size="lg" />
             <h1 class="mt-2 text-page-title font-bold tracking-tight text-ink-1">{APP_NAME}</h1>
             <p class="mt-2 max-w-[280px] text-body leading-normal text-ink-2">
               필요한 물건을 빌리고,
