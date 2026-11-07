@@ -17,7 +17,7 @@ export function BrandLogo(props: { size?: Size }) {
   const size = () => SIZES[props.size ?? "sm"];
   return (
     <span
-      class={`inline-flex shrink-0 items-center justify-center rounded-pill bg-primary-soft ${size().chip}`}
+      class={`inline-flex shrink-0 items-center justify-center rounded-pill bg-surface ${size().chip}`}
     >
       <img src="/logo.svg" alt="" class={`block ${size().mark}`} />
     </span>
