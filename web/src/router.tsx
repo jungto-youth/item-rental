@@ -9,6 +9,7 @@ import MyPage from "./pages/mypage";
 import MyRentals from "./pages/my-rentals";
 import SignupProfile from "./pages/signup-profile";
 import Policy from "./pages/policy";
+import Design from "./pages/design";
 import NotFound from "./pages/not-found";
 import AdminItemForm from "./pages/admin/item-form";
 import AdminReservations from "./pages/admin/reservations";
@@ -78,6 +79,11 @@ const routes: RouteDef[] = [
     component: SignupProfile,
     guard: "session",
     title: () => `프로필 등록 — ${APP_NAME}`,
+  },
+  {
+    pattern: "/design",
+    component: Design,
+    title: () => `디자인 시스템 — ${APP_NAME}`,
   },
   {
     pattern: "/admin/reservations",

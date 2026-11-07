@@ -26,6 +26,7 @@ export function Shell() {
       "/my/rentals",
       "/admin/reservations",
       "/admin/members",
+      "/design",
     ];
     if (known.includes(path)) return "default";
     return "surface";
