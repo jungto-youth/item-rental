@@ -40,7 +40,7 @@ function sameDigest(a: string, b: string): boolean {
 async function ensureDevAdmin(db: Sql): Promise<string> {
   await db.query(
     `INSERT INTO members (id, email, name, phone, affiliation, role)
-     VALUES (?1, ?2, ?3, ?4, '서울 · 동부', 'admin')
+     VALUES (?1, ?2, ?3, ?4, '청년지부 · 서울 · 동부', 'admin')
      ON CONFLICT (id) DO UPDATE SET
        email = excluded.email, name = excluded.name, phone = excluded.phone,
        affiliation = excluded.affiliation, role = 'admin',

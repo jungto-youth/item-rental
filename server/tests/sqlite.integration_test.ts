@@ -31,6 +31,12 @@ const schemaBefore0012 = migrationFiles
   .map(readMigration)
   .join("\n");
 const migration0012 = readMigration("0012_reservation_queue.sql");
+// 0015 이전 스키마 — 소속 3단 마이그레이션을 실제 데이터로 검증한다.
+const schemaBefore0015 = migrationFiles
+  .filter((name) => name < "0015")
+  .map(readMigration)
+  .join("\n");
+const migration0015 = readMigration("0015_affiliation_division.sql");
 
 // node:sqlite를 Sql 어댑터로 — db.ts(getDb)와 같은 시그니처. 번호 파라미터(?1)는
 // 전달 순서대로 묶인다는 것이 D1 과 같다(본 파일 상단에서 실증).
@@ -690,6 +696,53 @@ test("0012: 초과 pending 을 FIFO로 강등하고 반납 사진을 보존한�
     db.prepare("SELECT COUNT(*) AS n FROM reservation_photos WHERE reservation_id = 1").get(),
   ).toEqual({ n: 0 });
   db.exec("ROLLBACK");
+});
+
+// ===== 0015 소속 3단 마이그레이션 =====
+
+test("0015: 기존 지회·모둠 2단 값에 청년지부를 붙이고 모르는 값은 보존한다", () => {
+  const db = new DatabaseSync(":memory:");
+  db.exec("PRAGMA foreign_keys = ON");
+  db.exec(schemaBefore0015);
+
+  db.prepare(
+    `INSERT INTO members (id, email, name, role, affiliation) VALUES
+       ('m1', 'm1@example.invalid', '회원1', 'user', '서울 · 동부'),
+       ('m2', 'm2@example.invalid', '회원2', 'user', '남부 · 부산/경남'),
+       ('m3', 'm3@example.invalid', '회원3', 'user', NULL),
+       ('m4', 'm4@example.invalid', '회원4', 'user', '알 수 없음')`,
+  ).run();
+
+  const itemId = Number(
+    (db.prepare(
+      `INSERT INTO items (name, lifecycle, total_qty, qty_repair, kind)
+       VALUES ('마이그레이션 테스트', 'active', 10, 0, 'rental') RETURNING id`,
+    ).all() as { id: number }[])[0].id,
+  );
+
+  db.prepare(
+    `INSERT INTO reservations
+       (id, item_id, member_id, status, qty, member_affiliation_snapshot)
+     VALUES (1, ?1, 'm1', 'pending', 1, '서울 · 동부'),
+            (2, ?1, 'm1', 'pending', 1, '서울지부'),
+            (3, ?1, 'm1', 'pending', 1, NULL)`,
+  ).run(itemId);
+
+  db.exec(migration0015);
+
+  expect(db.prepare("SELECT id, affiliation FROM members ORDER BY id").all()).toEqual([
+    { id: "m1", affiliation: "청년지부 · 서울 · 동부" },
+    { id: "m2", affiliation: "청년지부 · 남부 · 부산/경남" },
+    { id: "m3", affiliation: null },
+    { id: "m4", affiliation: "알 수 없음" },
+  ]);
+  expect(
+    db.prepare("SELECT id, member_affiliation_snapshot FROM reservations ORDER BY id").all(),
+  ).toEqual([
+    { id: 1, member_affiliation_snapshot: "청년지부 · 서울 · 동부" },
+    { id: 2, member_affiliation_snapshot: "서울지부" },
+    { id: 3, member_affiliation_snapshot: null },
+  ]);
 });
 
 // ===== 마지막 관리자 보호 =====

@@ -212,7 +212,7 @@ export default function MyRentals() {
                         <p class="mt-2 text-fine leading-normal text-ink-2">
                           관리자가 승인하면 대여가 시작됩니다.
                         </p>
-                        <div class="mt-4 grid gap-2">
+                        <div class="mt-6 grid gap-2">
                           <For each={pendingList()}>
                             {(reservation) => {
                               const mine = () =>
@@ -265,7 +265,7 @@ export default function MyRentals() {
                           지금은 재고가 없어 반납을 기다리고 있습니다. 반납되면 오래된 예약부터
                           승인되며, 반납 예정일은 승인할 때 정해집니다.
                         </p>
-                        <div class="mt-4 grid gap-2">
+                        <div class="mt-6 grid gap-2">
                           <For each={reservedList()}>
                             {(reservation) => {
                               const mine = () =>
@@ -317,7 +317,7 @@ export default function MyRentals() {
                       <Show
                         when={rentedList().length > 0}
                         fallback={
-                          <div class="mt-4 box-border rounded-card border border-line bg-surface px-6 py-10 text-center">
+                          <div class="mt-6 box-border rounded-card border border-line bg-surface px-6 py-10 text-center">
                             <p class="m-0 text-body font-semibold text-ink-1">현재 대여 중인 물품이 없습니다</p>
                             <p class="mt-2 text-fine text-ink-2">
                               필요한 물품을 찾아 대여를 신청할 수 있습니다.
@@ -332,7 +332,7 @@ export default function MyRentals() {
                           </div>
                         }
                       >
-                        <div class="mt-4 grid gap-2">
+                        <div class="mt-6 grid gap-2">
                           <For each={rentedList()}>
                             {(reservation) => {
                               const mine = () =>
@@ -406,7 +406,7 @@ export default function MyRentals() {
                           <span>대여 이력</span>
                           <ChevronDownIcon />
                         </summary>
-                        <div class="mt-4 grid gap-2">
+                        <div class="mt-6 grid gap-2">
                           <For each={historyList()}>
                             {(reservation) => (
                               <ReservationRow

@@ -404,7 +404,7 @@ export default function AdminMembers() {
 
   const renderEmailsSkeleton = () => (
     <div
-      class="mt-4 grid gap-2"
+      class="mt-6 grid gap-2"
       role="status"
       aria-label="로그인 허용 이메일을 불러오는 중"
     >
@@ -446,7 +446,7 @@ export default function AdminMembers() {
 
   const renderEmails = () => (
     <Show when={!emailsLoading()} fallback={renderEmailsSkeleton()}>
-      <div class="mt-4 box-border rounded-card border border-line bg-surface p-4">
+      <div class="mt-6 box-border rounded-card border border-line bg-surface p-4">
         <p class="m-0 text-fine text-ink-2">
           정토회(@jungto.org) 계정 외에 로그인을 허용할 이메일입니다.
         </p>

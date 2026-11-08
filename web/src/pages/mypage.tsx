@@ -109,7 +109,7 @@ export default function MyPage() {
 
                 <Show when={!u().phone || !isAffiliationValid(u().affiliation)}>
                   <div class="mt-4 mb-6 box-border flex flex-col gap-2 rounded-card border border-line bg-primary-soft px-4 py-2 text-fine leading-normal text-primary-strong sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                    <p class="m-0">물품을 대여하려면 연락처와 지회·모둠을 등록해야 합니다.</p>
+                    <p class="m-0">물품을 대여하려면 연락처와 지부·지회·모둠을 등록해야 합니다.</p>
                     <button class="cursor-pointer self-start border-0 bg-transparent p-0 text-inherit font-semibold underline underline-offset-2 hover:text-primary-deep" type="button" onClick={startEdit}>
                       정보 등록하기
                     </button>
@@ -124,7 +124,7 @@ export default function MyPage() {
                       <Show
                         when={editing()}
                         fallback={
-                          <div class="card mt-4 box-border rounded-card border border-line bg-surface p-6 max-sm:p-4">
+                          <div class="card mt-6 box-border rounded-card border border-line bg-surface p-6 max-sm:p-4">
                             <div class="flex items-start justify-between gap-4">
                               <div class="flex min-w-0 items-center gap-4">
                                 <span class="flex size-12 shrink-0 items-center justify-center rounded-pill bg-primary-soft text-body font-semibold text-primary-strong" aria-hidden="true">
@@ -169,7 +169,7 @@ export default function MyPage() {
                         }
                       >
                         <ProfileForm
-                          class="mt-4"
+                          class="mt-6"
                           title="계정 정보 수정"
                           hint="이메일은 변경할 수 없습니다."
                           avatar

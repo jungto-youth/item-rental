@@ -1,112 +1,64 @@
-import { For, Show } from "solid-js";
+import { Show } from "solid-js";
+import { DocPage } from "../components/ui/doc-page";
+import { DocArticle, DocTable } from "../components/ui/doc-article";
+import type { DocSection } from "../components/ui/doc-toc";
 
-type Section = { id: string; title: string };
-
-const PRIVACY_SECTIONS: Section[] = [
-  { id: "privacy-1", title: "1. 수집하는 개인정보 항목" },
-  { id: "privacy-2", title: "2. 수집 목적" },
-  { id: "privacy-3", title: "3. 보관 기간 및 파기" },
-  { id: "privacy-4", title: "4. 개인정보 제3자 제공" },
-  { id: "privacy-5", title: "5. 개인정보 처리 위탁" },
-  { id: "privacy-6", title: "6. 회원 권리" },
-  { id: "privacy-7", title: "7. 문의처" },
+const PRIVACY_SECTIONS: DocSection[] = [
+  { id: "privacy-1", label: "수집하는 개인정보 항목" },
+  { id: "privacy-2", label: "수집 목적" },
+  { id: "privacy-3", label: "보관 기간 및 파기" },
+  { id: "privacy-4", label: "개인정보 제3자 제공" },
+  { id: "privacy-5", label: "개인정보 처리 위탁" },
+  { id: "privacy-6", label: "회원 권리" },
+  { id: "privacy-7", label: "문의처" },
 ];
 
-const TERMS_SECTIONS: Section[] = [
-  { id: "terms-1", title: "1. 목적" },
-  { id: "terms-2", title: "2. 회원 가입" },
-  { id: "terms-3", title: "3. 물품 대여" },
-  { id: "terms-4", title: "4. 회원 의무" },
-  { id: "terms-5", title: "5. 운영진 의무" },
-  { id: "terms-6", title: "6. 책임 제한" },
-  { id: "terms-7", title: "7. 약관 변경" },
+const TERMS_SECTIONS: DocSection[] = [
+  { id: "terms-1", label: "목적" },
+  { id: "terms-2", label: "회원 가입" },
+  { id: "terms-3", label: "물품 대여" },
+  { id: "terms-4", label: "회원 의무" },
+  { id: "terms-5", label: "운영진 의무" },
+  { id: "terms-6", label: "책임 제한" },
+  { id: "terms-7", label: "약관 변경" },
 ];
 
 export default function Policy(props: { params: Record<string, string> }) {
-  const kind = () => (props.params.kind === "terms" ? "terms" : "privacy");
-  const sections = () => (kind() === "privacy" ? PRIVACY_SECTIONS : TERMS_SECTIONS);
+  const isPrivacy = () => props.params.kind !== "terms";
+  const title = () => (isPrivacy() ? "개인정보 처리방침" : "이용약관");
+  const effective = () => (isPrivacy() ? "2026-11-02" : "2026-09-10");
+  const sections = () => (isPrivacy() ? PRIVACY_SECTIONS : TERMS_SECTIONS);
 
-  const scrollToSection = (id: string, event: Event) => {
-    event.preventDefault();
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  };
+  const tabs = () => [
+    { href: "/policy/terms", label: "이용약관", active: !isPrivacy() },
+    {
+      href: "/policy/privacy",
+      label: "개인정보 처리방침",
+      active: isPrivacy(),
+    },
+  ];
 
   return (
-    <div class="page-policy mx-auto block max-w-doc">
-      <nav class="tabs flex gap-6 border-b border-line" aria-label="정책 종류">
-        <a
-          href="/policy/terms"
-          class={`mb-[-1px] border-b-2 pb-2 text-body no-underline hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${kind() === "terms" ? "border-ink-1 font-semibold text-ink-1" : "border-transparent text-ink-2"}`}
-          aria-current={kind() === "terms" ? "page" : undefined}
-        >
-          이용약관
-        </a>
-        <a
-          href="/policy/privacy"
-          class={`mb-[-1px] border-b-2 pb-2 text-body no-underline hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${kind() === "privacy" ? "border-ink-1 font-semibold text-ink-1" : "border-transparent text-ink-2"}`}
-          aria-current={kind() === "privacy" ? "page" : undefined}
-        >
-          개인정보 처리방침
-        </a>
-      </nav>
-
-      <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6">
-        <aside class="hidden lg:sticky lg:top-24 lg:order-2 lg:block lg:self-start">
-          <p class="m-0 text-fine font-semibold text-ink-1">목차</p>
-          <nav
-            class="mt-2 grid gap-2"
-            aria-label={
-              kind() === "privacy"
-                ? "개인정보 처리방침 목차"
-                : "이용약관 목차"
-            }
-          >
-            <For each={sections()}>
-              {(section) => (
-                <a
-                  class="text-fine text-ink-2 no-underline hover:text-ink-1"
-                  href={`#${section.id}`}
-                  onClick={(event) => scrollToSection(section.id, event)}
-                >
-                  {section.title}
-                </a>
-              )}
-            </For>
-          </nav>
-        </aside>
-
-        <Show
-          when={kind() === "privacy"}
-          fallback={<TermsArticle />}
-        >
-          <PrivacyArticle />
-        </Show>
-      </div>
-    </div>
-  );
-}
-
-function ToTop() {
-  return (
-    <a
-      class="mt-10 inline-flex text-fine text-ink-2 underline underline-offset-2 hover:text-ink-1"
-      href="#top"
-      onClick={(event) => {
-        event.preventDefault();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }}
+    <DocPage
+      title={title()}
+      tabs={tabs()}
+      tabsLabel="정책 문서"
+      sections={sections()}
+      tocLabel={`${title()} 목차`}
     >
-      맨 위로
-    </a>
+      <Show
+        when={isPrivacy()}
+        fallback={<TermsArticle effective={effective()} />}
+      >
+        <PrivacyArticle effective={effective()} />
+      </Show>
+    </DocPage>
   );
 }
 
-function PrivacyArticle() {
+function PrivacyArticle(props: { effective: string }) {
   return (
-    <article class="max-w-[680px] min-w-0 text-body leading-[1.75] lg:order-1 [&_h1]:m-0 [&_h1]:text-page-title [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:text-ink-1 [&_h2]:mt-8 [&_h2]:scroll-mt-24 [&_h2]:text-heading [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:leading-[1.4] [&_h2]:text-ink-1 [&_p]:mt-2 [&_p]:text-ink-2 [&_li]:text-ink-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-6 [&_li+li]:mt-1 [&_b]:font-semibold [&_b]:text-ink-1 [&_table]:w-full [&_table]:min-w-[420px] [&_table]:border-collapse [&_table]:text-fine [&_table]:leading-[1.75] [&_th]:border [&_th]:border-line [&_th]:bg-surface-muted [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-ink-1 [&_td]:border [&_td]:border-line [&_td]:p-2 [&_td]:text-left [&_td]:text-ink-2">
-      <h1>개인정보 처리방침</h1>
-      <p class="mt-2 text-fine text-ink-2">시행일: 2026-11-02</p>
-
+    <DocArticle label="개인정보 처리방침">
       <h2 id="privacy-1">1. 수집하는 개인정보 항목</h2>
       <ul>
         <li>
@@ -133,33 +85,28 @@ function PrivacyArticle() {
         대여 이력 보존을 위해 탈퇴(비활성화) 후에도 기록이 남습니다. 개인정보는 이용
         목적이 소멸하면 지체 없이 파기하며, 보관 기간은 다음과 같습니다.
       </p>
-      <div class="mt-4 overflow-x-auto [scrollbar-width:thin]">
-        <table>
-          <thead>
-            <tr>
-              <th>항목</th>
-              <th>보관 기간</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>이메일·이름</td>
-              <td>회원 활동 기간 + 탈퇴 후 1년</td>
-            </tr>
-            <tr>
-              <td>휴대폰 번호</td>
-              <td>회원 활동 기간 + 탈퇴 후 1년</td>
-            </tr>
-            <tr>
-              <td>대여 이력</td>
-              <td>관련 법령에 따라 보관 (분쟁 대응)</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="mt-1 text-fine text-ink-2 sm:hidden">
-        표는 좌우로 넘겨서 볼 수 있습니다.
-      </p>
+      <DocTable>
+        <thead>
+          <tr>
+            <th>항목</th>
+            <th>보관 기간</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>이메일·이름</td>
+            <td>회원 활동 기간 + 탈퇴 후 1년</td>
+          </tr>
+          <tr>
+            <td>휴대폰 번호</td>
+            <td>회원 활동 기간 + 탈퇴 후 1년</td>
+          </tr>
+          <tr>
+            <td>대여 이력</td>
+            <td>관련 법령에 따라 보관 (분쟁 대응)</td>
+          </tr>
+        </tbody>
+      </DocTable>
 
       <h2 id="privacy-4">4. 개인정보 제3자 제공</h2>
       <p>
@@ -169,29 +116,24 @@ function PrivacyArticle() {
 
       <h2 id="privacy-5">5. 개인정보 처리 위탁</h2>
       <p>서비스 운영을 위해 아래 사업자에 개인정보 처리를 위탁하고 있습니다.</p>
-      <div class="mt-4 overflow-x-auto [scrollbar-width:thin]">
-        <table>
-          <thead>
-            <tr>
-              <th>수탁자</th>
-              <th>위탁 업무</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Google LLC (OAuth)</td>
-              <td>소셜 로그인 인증</td>
-            </tr>
-            <tr>
-              <td>Cloudflare (호스팅·데이터베이스·이미지 저장)</td>
-              <td>서비스 운영 인프라, 회원·대여 정보 및 이미지 저장</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="mt-1 text-fine text-ink-2 sm:hidden">
-        표는 좌우로 넘겨서 볼 수 있습니다.
-      </p>
+      <DocTable>
+        <thead>
+          <tr>
+            <th>수탁자</th>
+            <th>위탁 업무</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Google LLC (OAuth)</td>
+            <td>소셜 로그인 인증</td>
+          </tr>
+          <tr>
+            <td>Cloudflare (호스팅·데이터베이스·이미지 저장)</td>
+            <td>서비스 운영 인프라, 회원·대여 정보 및 이미지 저장</td>
+          </tr>
+        </tbody>
+      </DocTable>
 
       <h2 id="privacy-6">6. 회원 권리</h2>
       <p>
@@ -204,20 +146,17 @@ function PrivacyArticle() {
         개인정보 보호 관련 문의: 운영진 담당자 (서비스 관리자에게 문의해 주세요)
       </p>
 
-      <ToTop />
-    </article>
+      <p>시행일: {props.effective}</p>
+    </DocArticle>
   );
 }
 
-function TermsArticle() {
+function TermsArticle(props: { effective: string }) {
   return (
-    <article class="max-w-[680px] min-w-0 text-body leading-[1.75] lg:order-1 [&_h1]:m-0 [&_h1]:text-page-title [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:text-ink-1 [&_h2]:mt-8 [&_h2]:scroll-mt-24 [&_h2]:text-heading [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:leading-[1.4] [&_h2]:text-ink-1 [&_p]:mt-2 [&_p]:text-ink-2 [&_li]:text-ink-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-6 [&_li+li]:mt-1 [&_b]:font-semibold [&_b]:text-ink-1 [&_table]:w-full [&_table]:min-w-[420px] [&_table]:border-collapse [&_table]:text-fine [&_table]:leading-[1.75] [&_th]:border [&_th]:border-line [&_th]:bg-surface-muted [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-ink-1 [&_td]:border [&_td]:border-line [&_td]:p-2 [&_td]:text-left [&_td]:text-ink-2">
-      <h1>서비스 이용약관</h1>
-      <p class="mt-2 text-fine text-ink-2">시행일: 2026-09-10</p>
-
+    <DocArticle label="이용약관">
       <h2 id="terms-1">1. 목적</h2>
       <p>
-        이 약관은 물품 대여 서비스(이하 “서비스”)의 이용 조건을 정해, 물품 대여
+        이 약관은 물품 대여 서비스(이하 '서비스')의 이용 조건을 정해, 물품 대여
         절차와 회원·운영진의 권리·의무를 명확히 하는 데 목적이 있습니다.
       </p>
 
@@ -262,7 +201,7 @@ function TermsArticle() {
       <h2 id="terms-7">7. 약관 변경</h2>
       <p>약관이 바뀌면 서비스 내 공지로 알려드립니다.</p>
 
-      <ToTop />
-    </article>
+      <p>시행일: {props.effective}</p>
+    </DocArticle>
   );
 }

@@ -20,6 +20,9 @@
 | 행 목록 | 일반 / 강조 | 마지막 행, 모바일 줄바꿈 |
 | 사진 업로더 | 0–3장 | 업로드 중, 오류, 삭제 |
 | 페이지 헤더 | 제목·부제·액션 | — |
+| 문서 셸 (`DocPage`) | 선택적 탭 → 제목 → 2열 | active 탭(`aria-current`), focus-visible |
+| 문서 본문 (`DocArticle`) | h2 / p / ul / table | — |
+| 문서 목차 (`DocToc`) | 데스크톱 오른쪽 레일 / 모바일 숨김 | active(`aria-current`), focus-visible |
 | 접이식 섹션 (`details`) | 펼침/접힘 | focus-visible, 화살표 회전 |
 
 핵심 규격:
@@ -50,4 +53,4 @@ disabled / loading / error / empty / mobile 390을 확인한다.
   `tailwind.css`의 `@theme inline`으로 노출한 토큰 유틸리티(`bg-surface`, `text-ink-2`,
   `rounded-card`)로만 참조한다. 임의 hex·중간 px 값은 만들지 않는다.
 - 같은 규격이 2곳 이상에서 반복되면 `components/ui/`의 컴포넌트로 올린다
-  (`Button`, `TextButton`, `Badge`, `Chip`, `Empty`, `Input`, `Modal`, `Notice`, `PageHeader`, `InfoList`).
+  (`Button`, `TextButton`, `Badge`, `Chip`, `Empty`, `Input`, `Modal`, `Notice`, `PageHeader`, `DocPage`, `DocArticle`, `InfoList`).

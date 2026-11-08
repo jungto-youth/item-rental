@@ -15,7 +15,7 @@ type Props = {
   onChange?: (value: string) => void;
 };
 
-// Input 과 같은 모양의 공용 select — 지회·모둠처럼 정해진 목록에서 고를 때 쓴다.
+// Input 과 같은 모양의 공용 select — 지부·지회·모둠처럼 정해진 목록에서 고를 때 쓴다.
 export function Select(props: Props) {
   const id = createUniqueId();
   const controlClass = () =>

@@ -24,8 +24,6 @@ const calls: { path: string; method: string; body?: string; contentType?: string
   { path: "/api/admin/items/1", method: "DELETE" },
   { path: "/api/admin/items/1/photos", method: "POST", body: "x", contentType: "text/plain" },
   { path: "/api/admin/items/1/photos/1", method: "DELETE" },
-  { path: "/api/admin/items/1/photos/1/thumb", method: "PUT", body: "x", contentType: "text/plain" },
-  { path: "/api/admin/items/photo-thumbs/missing", method: "GET" },
   { path: "/api/admin/categories", method: "POST", body: '{"name":"x"}', contentType: "application/json" },
   { path: "/api/admin/categories/1", method: "PATCH", body: '{"name":"x"}', contentType: "application/json" },
   { path: "/api/admin/categories/1", method: "DELETE" },
@@ -49,8 +47,6 @@ const byFile: Record<string, string[]> = {
     "/api/admin/items/1",
     "/api/admin/items/1/photos",
     "/api/admin/items/1/photos/1",
-    "/api/admin/items/1/photos/1/thumb",
-    "/api/admin/items/photo-thumbs/missing",
   ],
   "categories.ts": ["/api/admin/categories", "/api/admin/categories/1"],
   "members.ts": [

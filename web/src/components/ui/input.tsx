@@ -11,6 +11,7 @@ type Props = {
   rows?: number;
   min?: string;
   max?: string;
+  maxlength?: number;
   inputmode?: "text" | "numeric" | "tel" | "email" | "url" | "search" | "none" | "decimal";
   autocomplete?: string;
   onInput?: (value: string) => void;
@@ -42,6 +43,7 @@ export function Input(props: Props) {
             type={type()}
             min={props.min || undefined}
             max={props.max || undefined}
+            maxlength={props.maxlength}
             inputmode={props.inputmode || undefined}
             autocomplete={props.autocomplete}
             placeholder={props.placeholder}

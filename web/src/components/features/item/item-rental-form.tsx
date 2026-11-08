@@ -113,7 +113,7 @@ export function ItemRentalForm(props: {
       } else if (code === "phone_required") {
         setMessage("내 정보에서 연락처를 먼저 등록해 주세요.");
       } else if (code === "affiliation_required") {
-        setMessage("내 정보에서 지회·모둠을 먼저 선택해 주세요.");
+        setMessage("내 정보에서 지부·지회·모둠을 먼저 등록해 주세요.");
       } else if (code === "memo_required") {
         setMessage("메모를 입력해 주세요.");
       } else if (code === "bad_due_date" || code === "due_date_out_of_range") {
@@ -230,7 +230,7 @@ export function ItemRentalForm(props: {
                       </p>
                     </Show>
 
-                    <div class="mt-4 flex items-center justify-between gap-4">
+                    <div class="mt-6 flex items-center justify-between gap-4">
                       <span class="text-fine font-medium text-ink-2">
                         신청 수량
                       </span>
@@ -281,7 +281,7 @@ export function ItemRentalForm(props: {
                       </Show>
                     </div>
 
-                    <div class="mt-3 grid gap-1 rounded-card bg-surface-muted px-4 py-3 text-fine leading-normal text-ink-2">
+                    <div class="mt-4 grid gap-1 rounded-card bg-surface-muted px-4 py-3 text-fine leading-normal text-ink-2">
                       <span>
                         지금 대여 신청{" "}
                         <b class="font-semibold text-ink-1">{nowQty()}개</b>

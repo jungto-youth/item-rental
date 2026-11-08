@@ -223,7 +223,7 @@ async function resolve() {
       redirectTo("/?role=denied");
       return;
     }
-    // 관리자를 포함한 모든 회원 — 연락처·지회·모둠이 없으면 프로필 등록으로 보낸다.
+    // 관리자를 포함한 모든 회원 — 연락처·지부·지회·모둠이 없으면 프로필 등록으로 보낸다.
     // 프로필 화면 자체는 막지 않는다(입력 후 저장하면 다음 이동부터 통과).
     if (
       (!user.phone || !isAffiliationValid(user.affiliation)) &&

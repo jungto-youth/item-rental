@@ -24,7 +24,7 @@ export type SessionUser = {
   email: string;
   name: string;
   phone: string | null; // nullable — 최초 로그인 후 프로필 입력에서 채움
-  affiliation: string | null; // 소속 지회·모둠 — "서울 · 동부" 형식, 프로필에서 필수. 대여 신청 시 스냅샷으로 남는다
+  affiliation: string | null; // 소속 지부·지회·모둠 — "청년지부 · 서울 · 동부" 형식, 프로필에서 필수. 대여 신청 시 스냅샷으로 남는다
   role: Role;
   deactivated_at: string | null; // null = 활성, 값 있으면 탈퇴(소프트 삭제) 시각
 };

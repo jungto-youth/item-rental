@@ -33,8 +33,8 @@ export default function SignupProfile() {
             </h1>
             <p class="mt-2 text-body leading-normal text-ink-2">
               {hasName()
-                ? "물품을 빌리려면 전화번호와 지회·모둠이 필요합니다."
-                : "물품을 빌리려면 이름, 전화번호, 지회·모둠이 필요합니다."}
+                ? "물품을 빌리려면 전화번호와 지부·지회·모둠이 필요합니다."
+                : "물품을 빌리려면 이름, 전화번호, 지부·지회·모둠이 필요합니다."}
             </p>
           </div>
 

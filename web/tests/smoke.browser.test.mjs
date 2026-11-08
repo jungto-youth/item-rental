@@ -17,7 +17,7 @@ const MEMBER = {
   email: "member@example.invalid",
   name: "김하늘",
   phone: "010-0000-0000",
-  affiliation: "서울 · 동부",
+  affiliation: "청년지부 · 서울 · 동부",
   role: "user",
   deactivated_at: null,
 };
@@ -27,7 +27,7 @@ const ADMIN = {
   email: "admin@example.invalid",
   name: "김운영",
   phone: "010-0000-0000",
-  affiliation: "서울 · 동부",
+  affiliation: "청년지부 · 서울 · 동부",
   role: "admin",
   deactivated_at: null,
 };
@@ -402,6 +402,7 @@ const SCREENS = [
   { name: "admin-reservations", path: "/admin/reservations", user: ADMIN, ready: ".reservation-row" },
   { name: "admin-members", path: "/admin/members", user: ADMIN, ready: ".member" },
   { name: "item-form", path: "/items/new", user: ADMIN, ready: ".admin-page form" },
+  { name: "design", path: "/design", user: MEMBER, ready: "#foundation" },
   { name: "policy", path: "/policy/privacy", user: MEMBER, ready: "article" },
   { name: "not-found", path: "/nope", user: MEMBER, ready: ".page-not-found" },
 ];
@@ -560,8 +561,8 @@ try {
     const page = await context.newPage();
     await mockApi(page, MEMBER);
     await page.goto(new URL("policy/privacy", base).href);
-    await page.locator(".page-policy .tabs").getByRole("link", { name: "이용약관", exact: true }).click();
-    await page.getByRole("heading", { name: "서비스 이용약관", exact: true }).waitFor();
+    await page.getByRole("navigation", { name: "정책 문서" }).getByRole("link", { name: "이용약관", exact: true }).click();
+    await page.getByRole("heading", { name: "이용약관", exact: true }).waitFor();
     console.log("PASS policy tab navigation");
     await context.close();
   }
@@ -605,12 +606,14 @@ try {
         phone: body.phone,
         branch: body.branch,
         group: body.group,
-        affiliation: `${body.branch} · ${body.group}`,
+        affiliation: `${body.division} · ${body.branch} · ${body.group}`,
       };
       await route.fulfill({ json: { ok: true } });
     });
     await page.goto(new URL("signup/profile", base).href);
     await page.getByLabel("휴대폰 번호").fill("010-0000-0001");
+    // 지부를 먼저 고르면 청년지부의 지회·모둠 select 가 열린다.
+    await page.getByLabel("지부").selectOption("청년지부");
     // 모둠은 지회에 종속된다 — 새 지회에 없는 모둠은 비우고, 공통 모둠은 유지한다.
     await page.getByLabel("지회").selectOption("경기");
     await page.getByLabel("모둠").selectOption("동부");
@@ -625,21 +628,28 @@ try {
     await page.getByRole("button", { name: "저장", exact: true }).click();
     await page.waitForURL(base + "mypage");
     await page.getByText("010-0000-0001", { exact: true }).waitFor();
-    await page.getByText("서울 · 동부", { exact: true }).waitFor();
+    await page.getByText("청년지부 · 서울 · 동부", { exact: true }).waitFor();
     assert.deepEqual(updates, [
-      { name: "김하늘", phone: "010-0000-0001", branch: "서울", group: "동부" },
+      {
+        name: "김하늘",
+        phone: "010-0000-0001",
+        division: "청년지부",
+        branch: "서울",
+        group: "동부",
+      },
     ]);
     console.log("PASS profile save refreshes mypage");
     await context.close();
   }
 
-  // 7-1) 저장된 소속은 지회·모둠 select 로 복원된다.
+  // 7-1) 저장된 소속은 지부·지회·모둠 select 로 복원된다.
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
     await mockApi(page, MEMBER);
     await page.goto(new URL("signup/profile", base).href);
     await page.locator(".profile-form").waitFor();
+    assert.equal(await page.getByLabel("지부").inputValue(), "청년지부");
     assert.equal(await page.getByLabel("지회").inputValue(), "서울");
     assert.equal(await page.getByLabel("모둠").inputValue(), "동부");
     // 지회·모둠은 가로 2열, 지회 옵션에는 "지회"가 붙지 않는다
@@ -653,6 +663,48 @@ try {
     assert.ok(Math.abs(branchBox.y - groupBox.y) < 2, "지회·모둠은 같은 줄에 있어야 한다");
     assert.ok(groupBox.x > branchBox.x, "모둠은 지회 오른쪽에 있어야 한다");
     console.log("PASS profile selects hydrate from saved affiliation");
+    await context.close();
+  }
+
+  // 7-2) 대중지부는 지회·모둠을 직접 입력하고, 저장값에서 그대로 복원한다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    let user = { ...MEMBER, affiliation: "대중지부 · 부산 · 해운대" };
+    const updates = [];
+    await page.route("**/api/me", (route) => route.fulfill({ json: { user } }));
+    await page.route("**/api/me/profile", async (route) => {
+      const body = route.request().postDataJSON();
+      updates.push(body);
+      user = {
+        ...user,
+        name: body.name,
+        phone: body.phone,
+        affiliation: `${body.division} · ${body.branch} · ${body.group}`,
+      };
+      await route.fulfill({ json: { ok: true } });
+    });
+    await page.goto(new URL("signup/profile", base).href);
+    await page.locator(".profile-form").waitFor();
+    assert.equal(await page.getByLabel("지부").inputValue(), "대중지부");
+    assert.equal(await page.getByLabel("지회").inputValue(), "부산");
+    assert.equal(await page.getByLabel("모둠").inputValue(), "해운대");
+    await page.getByLabel("지부").selectOption("대중지부");
+    await page.getByLabel("지회").fill("광주");
+    await page.getByLabel("모둠").fill("서구");
+    await page.getByRole("button", { name: "저장", exact: true }).click();
+    await page.waitForURL(base + "mypage");
+    await page.getByText("대중지부 · 광주 · 서구", { exact: true }).waitFor();
+    assert.deepEqual(updates, [
+      {
+        name: "김하늘",
+        phone: "010-0000-0000",
+        division: "대중지부",
+        branch: "광주",
+        group: "서구",
+      },
+    ]);
+    console.log("PASS public division profile saves free-form affiliation");
     await context.close();
   }
 
@@ -918,7 +970,7 @@ try {
 
   // 16) 모바일 폭에서 가로 스크롤이 없다 — 긴 이름·이메일·소속 카드 포함.
   for (const [user, routes] of [
-    [MEMBER, ["/", "/items/101", "/mypage", "/my/rentals", "/policy/privacy"]],
+    [MEMBER, ["/", "/items/101", "/mypage", "/my/rentals", "/policy/privacy", "/design"]],
     [ADMIN, ["/admin/members", "/admin/reservations"]],
   ]) {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });

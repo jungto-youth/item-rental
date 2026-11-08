@@ -95,7 +95,7 @@ export function Modal(props: Props) {
           aria-modal="true"
           aria-labelledby={titleId}
         >
-          <div class="flex items-center justify-between p-0">
+          <div class="mb-2 flex items-center justify-between p-0">
             <h3
               class="m-0 text-heading leading-[1.4] font-semibold tracking-tight"
               id={titleId}

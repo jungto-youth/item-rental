@@ -256,7 +256,7 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
               </div>
 
               <Show when={related().length > 0}>
-                <section class="mt-10 border-t border-line pt-8">
+                <section class="mt-8 border-t border-line pt-8">
                   <div class="flex items-end justify-between gap-4">
                     <div>
                       <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">{relatedCategory()} 물품 더 보기</h2>
@@ -264,7 +264,7 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
                     </div>
                     <a class="text-body font-medium text-primary-strong no-underline hover:text-primary" href="/">전체 보기</a>
                   </div>
-                  <div class="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4" role="list">
+                  <div class="mt-6 grid grid-cols-2 gap-2 md:grid-cols-4" role="list">
                     <For each={related()}>
                       {(entry) => (
                         <div role="listitem">

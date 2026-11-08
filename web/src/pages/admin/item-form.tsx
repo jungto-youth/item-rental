@@ -55,9 +55,22 @@ type AdminItemDetail = {
   categories?: { id: number; name: string }[];
 };
 
-// thumb — 업로드 때 함께 보내는 썸네일. 만들지 못하면 null 로 두고 원본만 올린다
-// (서버 응답이 원본으로 물러나고, 관리자 화면의 '썸네일 채우기'로 나중에 채울 수 있다).
-type StagedPhoto = { file: File; thumb: File | null; url: string };
+// thumb — 업로드할 때 항상 함께 보내는 썸네일. 만들지 못하면 사진을 추가하지 않는다
+// (썸네일 없는 사진이 조용히 쌓이지 않게).
+type StagedPhoto = { file: File; thumb: File; url: string };
+
+// 썸네일 생성은 캔버스 메모리 같은 일시적 이유로 실패할 수 있다 — 한 번 더 시도하고,
+// 그래도 실패하면 업로드를 막는다. 원본만 올려 두면 나중에 채울 관리자 경로가 없다.
+async function makeThumbnailRequired(file: File): Promise<File> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await makeThumbnail(file, file.name);
+    } catch {
+      // 두 번째 시도도 실패하면 아래에서 사용자에게 알린다
+    }
+  }
+  throw new Error("썸네일을 만들지 못해 사진을 추가하지 못했습니다. 다시 시도해 주세요");
+}
 
 function SkeletonField(props: { labelWidth?: string }) {
   return (
@@ -252,7 +265,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
         }
         try {
           const processed = await processPhoto(file);
-          const thumb = await makeThumbnail(processed, processed.name).catch(() => null);
+          const thumb = await makeThumbnailRequired(processed);
           if (generation !== photoGeneration) return;
           setStaged([
             ...staged(),
@@ -305,7 +318,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
     for (const entry of staged()) {
       const data = new FormData();
       data.append("file", entry.file);
-      if (entry.thumb) data.append("thumb", entry.thumb);
+      data.append("thumb", entry.thumb);
       try {
         await api(`/api/admin/items/${id}/photos`, {
           method: "POST",
@@ -522,7 +535,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
           </Show>
 
           <section class="flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4">
-            <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">기본 정보</h2>
+            <h2 class="m-0 mb-2 text-heading leading-normal font-semibold tracking-tight text-ink-1">기본 정보</h2>
             <Input
               label="이름 *"
               value={form().name}
@@ -545,7 +558,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
           </section>
 
           <section class="flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4">
-            <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">분류 · 상태</h2>
+            <h2 class="m-0 mb-2 text-heading leading-normal font-semibold tracking-tight text-ink-1">분류 · 상태</h2>
             <span class="flex flex-col gap-2 text-fine font-normal text-ink-2">
               카테고리
               <CategoryTagsInput
@@ -587,7 +600,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
           </section>
 
           <section class="flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4">
-            <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">재고</h2>
+            <h2 class="m-0 mb-2 text-heading leading-normal font-semibold tracking-tight text-ink-1">재고</h2>
             <div class="grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
               <Input
                 label="보유 수량 *"
@@ -620,7 +633,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
           </section>
 
           <section class="flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface p-6 max-sm:p-4">
-            <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">사진</h2>
+            <h2 class="m-0 mb-2 text-heading leading-normal font-semibold tracking-tight text-ink-1">사진</h2>
             <PhotoUploader
               multiple
               disabled={processingPhotos() || saving()}
@@ -639,7 +652,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
           <Show when={!isCreate()}>
             <section class="flex flex-wrap items-center justify-between gap-4 rounded-card border border-line bg-surface p-6 max-sm:flex-col max-sm:items-start max-sm:p-4">
               <div class="min-w-0">
-                <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">위험 영역</h2>
+                <h2 class="m-0 mb-2 text-heading leading-normal font-semibold tracking-tight text-ink-1">위험 영역</h2>
                 <p class="mt-2 text-fine leading-normal text-ink-2">
                   물품을 삭제하면 목록에서 사라지고 복구할 수 없습니다. 연결된 대여 이력은 남습니다.
                 </p>

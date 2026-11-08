@@ -102,8 +102,8 @@ test("reservations: 메모와 반납 예정일을 검증하고 due_at 을 저장
   const { db, request, member } = httpFixture();
   try {
     const user = await member("user", "user");
-    // 지회·모둠 검사를 통과시킨 뒤 이 테스트가 보려는 메모·반납 예정일 검증에 집중한다.
-    db.prepare("UPDATE members SET affiliation = '서울 · 동부' WHERE id = 'user'").run();
+    // 지부·지회·모둠 검사를 통과시킨 뒤 이 테스트가 보려는 메모·반납 예정일 검증에 집중한다.
+    db.prepare("UPDATE members SET affiliation = '청년지부 · 서울 · 동부' WHERE id = 'user'").run();
     db.exec("INSERT INTO items (id, name, kind, total_qty) VALUES (1, '4인용 텐트', 'rental', 2);");
     const post = (body: Record<string, unknown>) =>
       request("/api/reservations", {
@@ -425,9 +425,9 @@ test("admin items: 등록 시 위치 이름이 locations 로 정규화되고 단
   } finally { db.close(); }
 });
 
-// ===== PUT /api/me/profile — 지회·모둠 필수 =====
+// ===== PUT /api/me/profile — 지부·지회·모둠 필수 =====
 
-test("profile: 지회·모둠 조합을 검증하고 소속 문자열을 만든다", async () => {
+test("profile: 지부·지회·모둠 조합을 검증하고 소속 문자열을 만든다", async () => {
   const { db, request, member } = httpFixture();
   try {
     const user = await member("user", "user");
@@ -439,22 +439,58 @@ test("profile: 지회·모둠 조합을 검증하고 소속 문자열을 만든�
       });
     const base = { name: "김하늘", phone: "010-1234-5678" };
 
-    // 지회·모둠은 선택이 아니다 — 누락·잘못된 조합은 저장 전에 거부한다
+    // 지부·지회·모둠은 선택이 아니다 — 누락·잘못된 조합은 저장 전에 거부한다
     expect((await put(base)).status).toBe(400);
-    expect((await put({ ...base, branch: "서울" })).status).toBe(400);
-    expect((await put({ ...base, branch: "서울", group: "부산/경남" })).status).toBe(400);
+    expect((await put({ ...base, division: "청년지부" })).status).toBe(400);
+    expect((await put({ ...base, division: "청년지부", branch: "서울" })).status).toBe(400);
+    expect(
+      (await put({ ...base, division: "청년지부", branch: "서울", group: "부산/경남" })).status,
+    ).toBe(400);
+    expect((await put({ ...base, division: "대중지부", branch: "", group: "해운대" })).status).toBe(
+      400,
+    );
     expect(
       (db.prepare("SELECT affiliation FROM members WHERE id = 'user'").get() as { affiliation: string | null })
         .affiliation,
     ).toBeNull();
 
-    const ok = await put({ ...base, branch: "남부", group: "부산/경남" });
+    const ok = await put({ ...base, division: "청년지부", branch: "남부", group: "부산/경남" });
     expect(ok.status).toBe(200);
     expect(db.prepare("SELECT name, phone, affiliation FROM members WHERE id = 'user'").get()).toMatchObject({
       name: "김하늘",
       phone: "010-1234-5678",
-      affiliation: "남부 · 부산/경남",
+      affiliation: "청년지부 · 남부 · 부산/경남",
     });
+
+    // 대중지부는 목록에 없는 지회·모둠을 그대로 저장한다
+    const custom = await put({ ...base, division: "대중지부", branch: "부산", group: "해운대" });
+    expect(custom.status).toBe(200);
+    expect(
+      (db.prepare("SELECT affiliation FROM members WHERE id = 'user'").get() as { affiliation: string })
+        .affiliation,
+    ).toBe("대중지부 · 부산 · 해운대");
+  } finally { db.close(); }
+});
+
+test("profile: division 없이 오는 예전 클라이언트는 청년지부로 저장한다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const user = await member("user", "user");
+    const res = await request("/api/me/profile", {
+      method: "PUT",
+      headers: { cookie: user, ...json },
+      body: JSON.stringify({
+        name: "김하늘",
+        phone: "010-1234-5678",
+        branch: "서울",
+        group: "동부",
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(
+      (db.prepare("SELECT affiliation FROM members WHERE id = 'user'").get() as { affiliation: string })
+        .affiliation,
+    ).toBe("청년지부 · 서울 · 동부");
   } finally { db.close(); }
 });
 
