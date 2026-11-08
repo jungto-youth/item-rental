@@ -50,7 +50,7 @@ SolidJS SPA(`web/`)이고, 룩은 중립 회색 바탕 · 흰 카드 · 오렌�
 | --- | --- |
 | `--space-1` … `--space-5` | 8 / 16 / 24 / 32 / 40px |
 | `--radius` / `--radius-pill` | 8px / 999px |
-| `--line-height` / `--line-height-button` | 1.5 / 1.2 |
+| `--line-height` | 1.6 — 제목·본문·버튼 공통 |
 | `--layout-max` | 1280px — 헤더·본문·푸터 공통 |
 | `--layout-form` | 720px — 폼·계정 카드 |
 | `--layout-onboarding` | 400px — 로그인·프로필 등록 |

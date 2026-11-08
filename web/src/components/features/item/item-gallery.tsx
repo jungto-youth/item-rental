@@ -53,7 +53,7 @@ export function ItemGallery(props: { photos: Photo[]; name: string }) {
             {(photo, idx) => (
               <button
                 type="button"
-                class={`relative flex aspect-[4/3] w-full cursor-pointer items-center justify-center overflow-hidden rounded-card border bg-surface-muted p-0 text-ink-3 leading-[1.2] [&_svg]:size-6 ${
+                class={`relative flex aspect-[4/3] w-full cursor-pointer items-center justify-center overflow-hidden rounded-card border bg-surface-muted p-0 text-ink-3 [&_svg]:size-6 ${
                   idx() === selected()
                     ? "border-2 border-ink-1 hover:border-ink-1"
                     : "border-line hover:border-line-strong"

@@ -75,11 +75,11 @@ export function CategoryTagsInput(props: {
     <div class="category-tags-input box-border flex min-h-[38px] flex-wrap items-center gap-2 rounded-card border border-line bg-surface px-4 py-2 focus-within:border-primary">
       <For each={props.value}>
         {(name, index) => (
-          <span class="tag inline-flex h-7 items-center gap-2 rounded-pill bg-primary-soft px-2 text-fine leading-[1.2] text-primary-strong">
+          <span class="tag inline-flex h-7 items-center gap-2 rounded-pill bg-primary-soft px-2 text-fine text-primary-strong">
             #{name}
             <button
               type="button"
-              class="cursor-pointer border-0 bg-transparent p-2 text-fine leading-[1.2] text-ink-2 hover:text-danger"
+              class="cursor-pointer border-0 bg-transparent p-2 text-fine text-ink-2 hover:text-danger"
               aria-label={`${name} 태그 제거`}
               onClick={() => removeTag(index())}
             >

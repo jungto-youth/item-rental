@@ -28,14 +28,15 @@
   --radius-card: var(--radius);
   --radius-pill: var(--radius-pill);
 
+  --leading-normal: var(--line-height);
   --text-fine: var(--text-fine);
-  --text-fine--line-height: 1.5;
+  --text-fine--line-height: var(--line-height);
   --text-body: var(--text-body);
-  --text-body--line-height: 1.5;
+  --text-body--line-height: var(--line-height);
   --text-heading: var(--text-heading);
-  --text-heading--line-height: 1.4;
+  --text-heading--line-height: var(--line-height);
   --text-page-title: var(--text-page-title);
-  --text-page-title--line-height: 1.35;
+  --text-page-title--line-height: var(--line-height);
 
   --tracking-tight: var(--tracking-tight);
 
@@ -53,20 +54,20 @@
     margin: 0;
     background: var(--bg);
     color: var(--ink-1);
-    line-height: 1.5;
+    line-height: var(--line-height);
     -webkit-font-smoothing: antialiased;
   }
 
   button {
     font-family: inherit;
-    line-height: 1.2;
+    line-height: var(--line-height);
   }
 
   input,
   select,
   textarea {
     font-family: inherit;
-    line-height: 1.5;
+    line-height: var(--line-height);
   }
 
   a {

@@ -104,7 +104,7 @@ export default function Login() {
             예외 계정은 관리자에게 문의해 주세요.
           </p>
 
-          <button class="mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-surface px-4 text-body font-medium leading-[1.2] text-ink-1 transition-colors enabled:hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" type="button" disabled={busy()} onClick={() => void signIn()}>
+          <button class="mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-surface px-4 text-body font-medium text-ink-1 transition-colors enabled:hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" type="button" disabled={busy()} onClick={() => void signIn()}>
             <svg class="size-[18px] shrink-0" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 fill="#4285F4"

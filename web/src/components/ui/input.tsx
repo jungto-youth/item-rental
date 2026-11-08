@@ -39,7 +39,7 @@ export function Input(props: Props) {
         fallback={
           <input
             id={id}
-            class={`${controlClass()} h-10 px-4 leading-[1.2]`}
+            class={`${controlClass()} h-10 px-4`}
             type={type()}
             min={props.min || undefined}
             max={props.max || undefined}

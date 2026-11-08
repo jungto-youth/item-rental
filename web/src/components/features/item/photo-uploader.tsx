@@ -117,7 +117,7 @@ export function PhotoUploader(props: {
                 </Show>
                 <button
                   type="button"
-                  class="absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-pill border-0 bg-[rgba(17,24,39,0.7)] text-fine leading-[1.2] text-white hover:bg-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1 disabled:cursor-wait disabled:opacity-50"
+                  class="absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-pill border-0 bg-[rgba(17,24,39,0.7)] text-fine text-white hover:bg-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1 disabled:cursor-wait disabled:opacity-50"
                   title="사진 삭제"
                   aria-label="사진 삭제"
                   disabled={props.disabled}
@@ -132,7 +132,7 @@ export function PhotoUploader(props: {
             {() => (
               <button
                 type="button"
-                class="flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-card border border-dashed border-line-strong bg-surface p-0 text-ink-2 leading-[1.2] hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-50"
+                class="flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-card border border-dashed border-line-strong bg-surface p-0 text-ink-2 hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-50"
                 title="사진 추가"
                 disabled={props.disabled}
                 onClick={openChooser}

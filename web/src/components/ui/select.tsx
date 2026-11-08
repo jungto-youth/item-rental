@@ -19,7 +19,7 @@ type Props = {
 export function Select(props: Props) {
   const id = createUniqueId();
   const controlClass = () =>
-    `h-10 w-full cursor-pointer appearance-none rounded-card border bg-surface px-4 pr-10 text-body leading-[1.2] text-ink-1 focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
+    `h-10 w-full cursor-pointer appearance-none rounded-card border bg-surface px-4 pr-10 text-body text-ink-1 focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
       props.invalid ? "border-danger" : "border-line"
     }`;
 

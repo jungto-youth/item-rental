@@ -557,11 +557,9 @@ export default function Design() {
           <div class="mt-6 grid gap-3 border-t border-line pt-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-6">
             <p class="m-0 text-fine font-semibold text-ink-1">행간</p>
             <p class="m-0 text-fine leading-normal text-ink-2">
-              본문·입력{" "}
-              <b class="font-semibold text-ink-1 tabular-nums">1.5</b>,
-              버튼{" "}
-              <b class="font-semibold text-ink-1 tabular-nums">1.2</b>.
-              제목은 1.35–1.4.
+              제목·본문·버튼 모두{" "}
+              <b class="font-semibold text-ink-1 tabular-nums">1.6</b>.
+              본문 기준 한 값을 씁니다.
             </p>
           </div>
         </Section>
@@ -1005,7 +1003,7 @@ export default function Design() {
             <div class="min-w-0">
               <Label>앱 셸</Label>
               <div class="overflow-x-auto rounded-card border border-line bg-surface p-4">
-                <pre class="m-0 min-w-[420px] text-fine leading-relaxed text-ink-2">{`헤더 56 / 64px (sticky)
+                <pre class="m-0 min-w-[420px] text-fine leading-normal text-ink-2">{`헤더 56 / 64px (sticky)
 ├ 본문  max 1280px · padding 16 / 24px
 │   ├ 1열: 페이지 제목 → 주 행동 → 내용
 │   └ 2열: 주 컨텐츠 + 320px 보조 패널 (lg 이상)
@@ -1156,7 +1154,7 @@ export default function Design() {
           <div class="mt-8">
             <Label>검증 명령</Label>
             <div class="overflow-x-auto rounded-card border border-line bg-surface p-4">
-              <pre class="m-0 text-fine leading-relaxed whitespace-pre-wrap text-ink-2">{`npm run check          # 타입 검사
+              <pre class="m-0 text-fine leading-normal whitespace-pre-wrap text-ink-2">{`npm run check          # 타입 검사
 npm test               # 단위·통합
 npm run test:web       # 390 / 1280 스모크
 npm run build && npm run check:production`}</pre>

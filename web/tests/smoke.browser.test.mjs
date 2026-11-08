@@ -567,6 +567,30 @@ try {
     await context.close();
   }
 
+  // 5-1) 목차 스크롤스파이 — 창이 커도 최상단은 첫 항목, 최하단은 마지막 항목.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
+    const page = await context.newPage();
+    await mockApi(page, MEMBER);
+    await page.goto(new URL("policy/terms", base).href);
+    const toc = page.getByRole("navigation", { name: "이용약관 목차" });
+    const activeLabel = () => toc.locator("a[aria-current='location']").textContent();
+    await page.getByRole("heading", { name: "이용약관", exact: true }).waitFor();
+    assert.equal(await activeLabel(), "목적", "최상단에서는 첫 항목이 활성");
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(300);
+    assert.equal(await activeLabel(), "약관 변경", "문서 끝에서는 마지막 항목이 활성");
+    await toc.getByRole("link", { name: "물품 대여" }).click();
+    await page.waitForTimeout(900);
+    assert.equal(await activeLabel(), "물품 대여", "클릭한 항목이 활성");
+    await page.mouse.move(400, 300);
+    for (let i = 0; i < 8; i++) await page.mouse.wheel(0, -600);
+    await page.waitForTimeout(500);
+    assert.equal(await activeLabel(), "목적", "직접 스크롤하면 다시 위치를 따라감");
+    console.log("PASS doc toc scrollspy");
+    await context.close();
+  }
+
   // 6) 회원 관리 — 대여 중 회원은 삭제가 막히고, 가능한 회원은 확인 후 삭제된다.
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });

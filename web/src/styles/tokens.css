@@ -74,10 +74,8 @@
   --tracking-tight: -0.015em;
 
   /* ===== 행간 ===== */
-  --line-height: 1.5;
-  /* 본문·인풋 */
-  --line-height-button: 1.2;
-  /* 버튼만 */
+  --line-height: 1.6;
+  /* 모든 텍스트(제목·본문·버튼)에 같은 값 */
 
   /* ===== 깊이 ===== */
   --shadow-menu: 0 8px 24px rgba(23, 23, 23, 0.1);

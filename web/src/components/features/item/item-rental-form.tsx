@@ -245,7 +245,7 @@ export function ItemRentalForm(props: {
                         <div class="inline-flex h-10 items-center overflow-hidden rounded-card border border-line bg-surface">
                           <button
                             type="button"
-                            class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-lg leading-[1.2] text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
+                            class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-lg text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() => setQty((value) => Math.max(1, value - 1))}
                             disabled={qty() <= 1}
                             aria-label="수량 감소"
@@ -268,7 +268,7 @@ export function ItemRentalForm(props: {
                           />
                           <button
                             type="button"
-                            class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-lg leading-[1.2] text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
+                            class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-lg text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() =>
                               setQty((value) => Math.min(maxRequest(), value + 1))
                             }

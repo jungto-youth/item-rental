@@ -2,6 +2,10 @@ import { For, createEffect, createSignal } from "solid-js";
 
 export type DocSection = { id: string; label: string };
 
+// 제목이 화면 위에서 이만큼 올라오면 그 섹션이 현재 섹션이다.
+// 본문 h2 의 scroll-mt-24(96px)와 같은 값이라, 목차로 이동한 위치와 판정이 맞는다.
+const ACTIVE_LINE = 96;
+
 // 문서형 화면(정책·디자인 시스템)의 공통 목차.
 // 데스크톱은 오른쪽 320px sticky 레일, lg 미만에서는 숨긴다.
 // 스크롤 위치를 관찰해 현재 읽는 섹션을 굵게 표시한다.
@@ -19,10 +23,11 @@ export function DocToc(props: { sections: DocSection[]; ariaLabel: string }) {
       setActive(firstId);
       pinned = "";
 
-      // 뷰포트 위에서 38% 지점(기준선)을 지난 마지막 섹션이 현재 섹션이다.
+      // 제목이 상단 기준선(ACTIVE_LINE)을 지난 마지막 섹션이 현재 섹션이다.
+      // 아직 아무 제목도 지나지 않았으면 첫 섹션을 유지한다.
       // 마지막 섹션은 문서 끝에 붙어 있어 기준선까지 올라오지 못하므로,
       // 바닥에 닿았을 때는 마지막 섹션을 활성화한다.
-      const atBottom = () => {
+      const isAtBottom = () => {
         const doc = document.documentElement;
         // 스크롤할 여지가 없는 문서는 '바닥'으로 보지 않는다.
         if (doc.scrollHeight <= window.innerHeight + 2) return false;
@@ -31,15 +36,14 @@ export function DocToc(props: { sections: DocSection[]; ariaLabel: string }) {
 
       const compute = () => {
         if (pinned) return;
-        if (lastId && atBottom()) {
+        if (lastId && isAtBottom()) {
           setActive(lastId);
           return;
         }
-        const line = window.innerHeight * 0.38;
         let current = firstId;
         for (const section of sections) {
           const element = document.getElementById(section.id);
-          if (element && element.getBoundingClientRect().top <= line) {
+          if (element && element.getBoundingClientRect().top <= ACTIVE_LINE) {
             current = section.id;
           }
         }

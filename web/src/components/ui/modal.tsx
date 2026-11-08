@@ -97,7 +97,7 @@ export function Modal(props: Props) {
         >
           <div class="mb-2 flex items-center justify-between p-0">
             <h3
-              class="m-0 text-heading leading-[1.4] font-semibold tracking-tight"
+              class="m-0 text-heading font-semibold tracking-tight"
               id={titleId}
             >
               {props.title}
