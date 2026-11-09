@@ -161,7 +161,7 @@ export function AppHeader() {
                 <a
                   role="menuitem"
                   href="/mypage"
-                  class="block w-full p-4 text-left text-body text-ink-1 no-underline hover:bg-surface-muted"
+                  class="block w-full p-4 text-left text-14 text-ink-1 no-underline hover:bg-surface-muted"
                   onClick={() => setMenuOpen(false)}
                 >
                   내 정보
@@ -169,7 +169,7 @@ export function AppHeader() {
                 <a
                   role="menuitem"
                   href="/my/rentals"
-                  class="block w-full p-4 text-left text-body text-ink-1 no-underline hover:bg-surface-muted"
+                  class="block w-full p-4 text-left text-14 text-ink-1 no-underline hover:bg-surface-muted"
                   onClick={() => setMenuOpen(false)}
                 >
                   대여 내역
@@ -177,7 +177,7 @@ export function AppHeader() {
                 <button
                   type="button"
                   role="menuitem"
-                  class="block w-full cursor-pointer border-0 bg-transparent p-4 text-left text-body text-danger hover:bg-surface-muted"
+                  class="block w-full cursor-pointer border-0 bg-transparent p-4 text-left text-14 text-danger hover:bg-surface-muted"
                   onClick={() => void signOut()}
                 >
                   로그아웃

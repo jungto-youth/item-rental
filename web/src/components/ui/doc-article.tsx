@@ -3,7 +3,7 @@ import type { JSX } from "@solidjs/web";
 // 정책 문서 본문의 타이포를 한 곳에서 정의한다.
 // 두 문서가 같은 arbitrary 클래스 문자열을 복붙하지 않도록 DocArticle로 감싼다.
 const DOC_ARTICLE_CLASS =
-  "max-w-[680px] min-w-0 text-body " +
+  "max-w-[680px] min-w-0 text-fine " +
   "[&>h2]:mt-8 [&>h2:first-child]:mt-0 [&>h2]:scroll-mt-24 [&>h2]:text-heading [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:text-ink-1 " +
   "[&>h2+p]:mt-6 [&>h2+ul]:mt-6 [&>h2+div]:mt-6 " +
   "[&>p]:mt-4 [&>p]:text-ink-2 " +
