@@ -215,7 +215,7 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
                   <div class="flex flex-wrap items-center gap-2">
                     <h1 class="m-0 text-page-title font-bold tracking-tight text-ink-1">{it().name}</h1>
                     <Show when={availability()}>
-                      <span class={`inline-flex h-7 items-center gap-1.5 rounded-pill px-3 text-fine font-medium whitespace-nowrap ${it().availability_badge === "available" || it().availability_badge === "reserved" ? "bg-primary-soft text-primary-strong" : it().availability_badge === "repair" ? "bg-warning-soft text-warning" : "bg-surface-muted text-ink-2"}`}>
+                      <span class={`inline-flex h-7 items-center gap-1.5 rounded-pill px-2 text-12 font-medium whitespace-nowrap ${it().availability_badge === "available" || it().availability_badge === "reserved" ? "bg-primary-soft text-primary-strong" : it().availability_badge === "repair" ? "bg-warning-soft text-warning" : "bg-surface-muted text-ink-2"}`}>
                         <span
                           class={`size-1.5 shrink-0 rounded-full ${it().availability_badge === "available" || it().availability_badge === "reserved" ? "bg-primary" : it().availability_badge === "repair" ? "bg-warning" : "bg-ink-3"}`}
                           aria-hidden="true"
@@ -229,9 +229,9 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
                     <p class="mt-4 whitespace-pre-wrap text-body leading-normal text-ink-2 [overflow-wrap:anywhere]">{it().description}</p>
                   </Show>
                   <Show when={it().categories?.length}>
-                    <div class="mt-4 flex flex-wrap gap-2" aria-label="분류">
+                    <div class="mt-4 flex flex-wrap gap-1" aria-label="분류">
                       <For each={it().categories}>
-                        {(category) => <span class="inline-flex h-7 items-center rounded-pill bg-primary-soft px-3 text-fine text-primary-strong">#{category.name}</span>}
+                        {(category) => <span class="inline-flex h-7 items-center rounded-pill bg-primary-soft px-2 text-12 text-primary-strong">#{category.name}</span>}
                       </For>
                     </div>
                   </Show>

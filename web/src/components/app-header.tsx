@@ -83,7 +83,7 @@ export function AppHeader() {
   });
 
   const navLinkClass = (href: string) =>
-    `flex h-full shrink-0 items-center border-b-2 text-body whitespace-nowrap no-underline hover:text-ink-1 ${
+    `flex h-full shrink-0 items-center border-b-2 text-14 whitespace-nowrap no-underline hover:text-ink-1 ${
       isActive(href)
         ? "border-primary font-semibold text-ink-1"
         : "border-transparent text-ink-2"
@@ -91,7 +91,7 @@ export function AppHeader() {
 
   return (
     <header class="sticky top-0 z-10 h-14 border-b border-line bg-surface md:h-16">
-      <div class="mx-auto flex h-full w-full max-w-layout items-center gap-4 px-4 md:gap-6 md:px-6">
+      <div class="mx-auto flex h-full w-full max-w-layout items-center gap-4 px-5 md:gap-6">
         <a
           href="/"
           class="flex shrink-0 items-center no-underline"
@@ -108,7 +108,7 @@ export function AppHeader() {
           when={user()}
           fallback={
             <a
-              class="ml-auto flex h-10 items-center rounded-card border border-primary-strong bg-primary-strong px-4 text-body font-semibold tracking-tight text-white no-underline hover:border-primary-deep hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
+              class="ml-auto flex h-10 items-center rounded-card border border-primary-strong bg-primary-strong px-4 text-14 font-semibold tracking-tight text-white no-underline hover:border-primary-deep hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
               href="/login"
             >
               로그인
@@ -116,7 +116,7 @@ export function AppHeader() {
           }
         >
           <nav
-            class="flex min-w-0 items-stretch gap-6 self-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            class="flex min-w-0 items-stretch gap-4 self-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             aria-label="주 메뉴"
           >
             <Show when={user()}>

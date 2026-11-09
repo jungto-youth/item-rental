@@ -5,7 +5,7 @@ import type { JSX } from "@solidjs/web";
 // 내비게이션·반복 동작에 쓴다. hover는 배경 없이 글자색(또는 danger 밑줄)으로 바뀐다.
 // href가 있으면 <a>, 없으면 <button>으로 렌더한다.
 const BASE =
-  "inline-flex h-9 cursor-pointer items-center gap-1 rounded-card text-body font-medium no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-45 [&_svg]:size-4";
+  "inline-flex h-9 cursor-pointer items-center gap-1 rounded-card text-14 font-medium no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-45 [&_svg]:size-4";
 
 const TONES = {
   default: "text-ink-2 hover:text-ink-1",

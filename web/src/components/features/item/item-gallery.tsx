@@ -39,7 +39,7 @@ export function ItemGallery(props: { photos: Photo[]; name: string }) {
         </Show>
         <Show when={props.photos.length > 0}>
           <span
-            class="absolute right-4 bottom-4 rounded-pill bg-[rgba(17,24,39,0.7)] px-2 py-1 text-fine leading-none tabular-nums text-white"
+            class="absolute right-4 bottom-4 rounded-pill bg-[rgba(17,24,39,0.7)] px-2 py-1 text-12 tabular-nums text-white"
             aria-hidden="true"
           >
             {selected() + 1} / {props.photos.length}

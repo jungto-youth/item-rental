@@ -404,8 +404,8 @@ export function ItemExplorer(props: {
       <For each={Array.from({ length: 5 })}>
         {() => (
           <div class="overflow-hidden rounded-card border border-line bg-surface max-sm:[&:nth-child(n+4)]:hidden md:max-xl:[&:nth-child(n+5)]:hidden" aria-hidden="true">
-            <Skeleton tone="muted" class="aspect-[4/3]" />
-            <div class="grid gap-2 p-4 max-sm:p-2">
+            <Skeleton tone="muted" class="aspect-[3/2]" />
+            <div class="grid gap-1 p-4 max-sm:p-3">
               <Skeleton class="h-4 w-3/4 rounded" />
               <Skeleton class="h-3 w-1/2 rounded" />
               <Skeleton class="h-3 w-2/3 rounded" />

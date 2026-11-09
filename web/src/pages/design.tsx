@@ -114,41 +114,105 @@ const FLAT_COLORS = COLOR_GROUPS.flatMap((group) => group.tokens);
 // ===== 타이포 =====
 const TYPE_SCALE = [
   {
-    token: "text-page-title",
+    token: "text-64",
+    size: "64px",
+    weight: "700",
+    role: "표시용 대형",
+    sample: "가나다 Aa",
+    className: "text-64 font-bold tracking-tight",
+  },
+  {
+    token: "text-56",
+    size: "56px",
+    weight: "700",
+    role: "표시용",
+    sample: "가나다 Aa",
+    className: "text-56 font-bold tracking-tight",
+  },
+  {
+    token: "text-48",
+    size: "48px",
+    weight: "700",
+    role: "표시용",
+    sample: "가나다 Aa",
+    className: "text-48 font-bold tracking-tight",
+  },
+  {
+    token: "text-40",
+    size: "40px",
+    weight: "700",
+    role: "표시용",
+    sample: "가나다 Aa",
+    className: "text-40 font-bold tracking-tight",
+  },
+  {
+    token: "text-32",
+    size: "32px",
+    weight: "700",
+    role: "히어로 제목",
+    sample: "물품 현황",
+    className: "text-32 font-bold tracking-tight",
+  },
+  {
+    token: "text-28",
+    size: "28px",
+    weight: "600",
+    role: "큰 제목",
+    sample: "물품 현황",
+    className: "text-28 font-semibold tracking-tight",
+  },
+  {
+    token: "text-24",
     size: "24px",
     weight: "700",
     role: "페이지 제목",
     sample: "물품 현황",
-    className: "text-page-title font-bold tracking-tight",
+    className: "text-24 font-bold tracking-tight",
   },
   {
-    token: "text-heading",
+    token: "text-20",
     size: "20px",
     weight: "600",
     role: "섹션 제목",
     sample: "현재 대여 중",
-    className: "text-heading font-semibold tracking-tight",
+    className: "text-20 font-semibold tracking-tight",
   },
   {
-    token: "text-body",
+    token: "text-16",
     size: "16px",
     weight: "400",
-    role: "본문·버튼·입력",
+    role: "본문·입력",
     sample: "신청 후 관리자가 승인하면 대여가 시작됩니다.",
-    className: "text-body font-normal",
+    className: "text-16 font-normal",
   },
   {
-    token: "text-fine",
+    token: "text-14",
     size: "14px",
     weight: "400",
-    role: "캡션·배지·라벨",
+    role: "캡션·라벨·버튼",
     sample: "관리자가 승인하면 대여가 시작됩니다.",
-    className: "text-fine font-normal",
+    className: "text-14 font-normal",
+  },
+  {
+    token: "text-12",
+    size: "12px",
+    weight: "400",
+    role: "칩·배지·보조 캡션",
+    sample: "관리자가 승인하면 대여가 시작됩니다.",
+    className: "text-12 font-normal",
+  },
+  {
+    token: "text-10",
+    size: "10px",
+    weight: "500",
+    role: "최소 라벨",
+    sample: "관리자가 승인하면 대여가 시작됩니다.",
+    className: "text-10 font-medium",
   },
 ];
 
 // ===== 간격·형태 =====
-const SPACING = [8, 16, 24, 32, 40];
+const SPACING = [2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48, 56];
 
 const RADII = [
   { token: "rounded-card", value: "8px", use: "버튼·카드·모달", radius: "8px" },
@@ -164,7 +228,7 @@ const LAYOUTS = [
 
 const BREAKPOINTS = [
   { name: "sm", value: "640px", use: "그리드 3열" },
-  { name: "md", value: "768px", use: "헤더 64px·본문 패딩 24px·그리드 4열" },
+  { name: "md", value: "768px", use: "헤더 64px·본문 패딩 20px·그리드 4열" },
   { name: "lg", value: "1024px", use: "2열 셸·보조 패널 표시" },
   { name: "xl", value: "1280px", use: "그리드 5열" },
 ];
@@ -349,8 +413,8 @@ const DO_LIST = [
 const DONT_LIST = [
   "장식용 그림자·그라데이션·큰 색면을 쓰지 않습니다.",
   "컴포넌트에 hex 값을 직접 쓰지 않습니다.",
-  "8px 그리드 밖의 12·20px 간격을 만들지 않습니다.",
-  "14px 미만 글자로 정보를 숨기지 않습니다.",
+  "간격 눈금(2·4·6·8·12·16·20·24·32·40·48·56px) 밖의 값을 만들지 않습니다.",
+  "10px 미만 글자로 정보를 숨기지 않습니다.",
   "색만으로 상태를 구분하지 않습니다.",
 ];
 
@@ -456,8 +520,8 @@ export default function Design() {
         <dl class="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Meta label="화면" value="12개 경로" />
           <Meta label="색" value="16개 토큰" />
-          <Meta label="타이포" value="4단계" />
-          <Meta label="간격" value="8px 그리드" />
+          <Meta label="타이포" value="12단계" />
+          <Meta label="간격" value="2px 눈금" />
         </dl>
       </div>
 
@@ -532,8 +596,8 @@ export default function Design() {
         <Section
           id="type"
           title="타이포"
-          meta="4단계"
-          intro="Noto Sans KR 한 서체를 씁니다. 14px 미만은 쓰지 않고, 제목 700 / 카드·버튼 제목 600 / 본문 400이 기본입니다."
+          meta="12단계"
+          intro="Noto Sans KR 한 서체를 씁니다. 10px 미만은 쓰지 않고, 제목 700 / 카드·버튼 제목 600 / 본문 400이 기본입니다."
         >
           <div>
             <For each={TYPE_SCALE}>
@@ -558,7 +622,7 @@ export default function Design() {
             <p class="m-0 text-fine font-semibold text-ink-1">행간</p>
             <p class="m-0 text-fine leading-normal text-ink-2">
               제목·본문·버튼 모두{" "}
-              <b class="font-semibold text-ink-1 tabular-nums">1.6</b>.
+              <b class="font-semibold text-ink-1 tabular-nums">1.5</b>.
               본문 기준 한 값을 씁니다.
             </p>
           </div>
@@ -567,15 +631,15 @@ export default function Design() {
         <Section
           id="space"
           title="간격 · 형태"
-          meta="8px 그리드"
-          intro="간격은 8px 단위만 씁니다. 라운드는 컨트롤·카드 8px, 칩·배지 999px 두 종류입니다. 그림자는 떠 있는 층(메뉴·모달·FAB)에만 씁니다."
+          meta="2px 눈금"
+          intro="간격은 2·4·6·8·12·16·20·24·32·40·48·56px만 씁니다. 라운드는 컨트롤·카드 8px, 칩·배지 999px 두 종류입니다. 그림자는 떠 있는 층(메뉴·모달·FAB)에만 씁니다."
         >
           <div class="grid gap-8 lg:grid-cols-2">
             <div>
               <Label>간격</Label>
               <div class="rounded-card border border-line bg-surface p-4">
                 <For each={SPACING}>
-                  {(space, index) => (
+                  {(space) => (
                     <div class="flex items-center gap-3 py-1">
                       <span class="w-12 shrink-0 text-fine text-ink-2 tabular-nums">
                         {space}px
@@ -585,13 +649,13 @@ export default function Design() {
                         style={{ width: `${space}px` }}
                       />
                       <span class="text-fine text-ink-2">
-                        space-{index() + 1}
+                        --space-{space}
                       </span>
                     </div>
                   )}
                 </For>
                 <p class="mt-2 border-t border-line pt-2 text-fine text-ink-2">
-                  실제 크기 — 8 / 16 / 24 / 32 / 40
+                  실제 크기 — 2 / 4 / 6 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48 / 56
                 </p>
               </div>
             </div>
@@ -712,7 +776,7 @@ export default function Design() {
                 </TextButton>
               </div>
               <p class="mt-3 text-fine leading-normal text-ink-2">
-                높이 40px · 16px/600 · primary는 primary-strong 채움,
+                높이 40px · 14px/600 · 좌우 16px · primary는 primary-strong 채움,
                 hover는 primary-deep.
               </p>
             </Spec>
@@ -728,11 +792,11 @@ export default function Design() {
                 </TextButton>
               </div>
               <p class="mt-3 text-fine leading-normal text-ink-2">
-                36px · 16px/500 · 테두리·배경 없이 글자색만 바뀝니다.
+                36px · 14px/500 · 패딩 없이 테두리·배경 없이 글자색만 바뀝니다.
               </p>
             </Spec>
 
-            <Spec name="칩" note="sm / lg · active · disabled">
+            <Spec name="칩" note="sm / lg · 12px · 좌우 8px · active · disabled">
               <Chip
                 ariaLabel="상태 필터"
                 value={chip()}
@@ -749,18 +813,18 @@ export default function Design() {
                 />
               </div>
               <p class="mt-3 text-fine leading-normal text-ink-2">
-                높이 36px, lg 44px · active는 ink-1 채움 + 흰 글자 + 600.
+                높이 36px, lg 44px · 12px 글자 · 좌우 8px · 칩 사이 4px · active는 ink-1 채움 + 흰 글자 + 600.
               </p>
             </Spec>
 
-            <Spec name="배지" note="상태 텍스트 · 읽기 전용">
-              <div class="flex flex-wrap gap-2">
+            <Spec name="배지" note="상태 텍스트 · 12px · 좌우 8px · 읽기 전용">
+              <div class="flex flex-wrap gap-1">
                 <For each={BADGE_KINDS}>
                   {(kind) => <Badge kind={kind} />}
                 </For>
               </div>
               <p class="mt-3 text-fine leading-normal text-ink-2">
-                14px 알약 + 6px 점. 색만으로 구분하지 않고 텍스트가 상태를
+                12px 알약 + 6px 점 + 좌우 8px. 색만으로 구분하지 않고 텍스트가 상태를
                 말합니다.
               </p>
             </Spec>
@@ -941,7 +1005,7 @@ export default function Design() {
                 <ItemCard item={SAMPLE_ITEMS[1]} href="/design" />
               </div>
               <p class="mt-3 text-fine leading-normal text-ink-2">
-                사진 4:3 · hover는 테두리만(line-strong) · 확대 효과 없음.
+                사진 3:2 · hover는 테두리만(line-strong) · 확대 효과 없음.
               </p>
             </Spec>
 
@@ -1004,7 +1068,7 @@ export default function Design() {
               <Label>앱 셸</Label>
               <div class="overflow-x-auto rounded-card border border-line bg-surface p-4">
                 <pre class="m-0 min-w-[420px] text-fine leading-normal text-ink-2">{`헤더 56 / 64px (sticky)
-├ 본문  max 1280px · padding 16 / 24px
+├ 본문  max 1280px · padding 20px
 │   ├ 1열: 페이지 제목 → 주 행동 → 내용
 │   └ 2열: 주 컨텐츠 + 320px 보조 패널 (lg 이상)
 └ 푸터  서비스명 · 약관 · 개인정보`}</pre>
@@ -1040,9 +1104,9 @@ export default function Design() {
               <Label>목록 탐색</Label>
               <div class="max-w-[560px]">
                 <div class="relative">
-                  <SearchIcon class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3" />
+                  <SearchIcon class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-3" />
                   <input
-                    class="h-10 w-full rounded-card border border-line bg-surface pr-4 pl-10 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none"
+                    class="h-10 w-full rounded-card border border-line bg-surface pr-10 pl-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none"
                     type="search"
                     placeholder="이름, 위치, 분류 검색"
                     aria-label="목록 탐색 예시"

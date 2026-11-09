@@ -15,7 +15,7 @@ export function Chip(props: Props) {
   const size = () => props.size ?? "sm";
   return (
     <div
-      class="flex min-w-0 flex-wrap items-center gap-2"
+      class="flex min-w-0 flex-wrap items-center gap-1"
       role="group"
       aria-label={props.ariaLabel || undefined}
     >
@@ -23,7 +23,7 @@ export function Chip(props: Props) {
         {(option) => (
           <button
             type="button"
-            class={`inline-flex items-center rounded-pill border px-4 text-body whitespace-nowrap ${
+            class={`inline-flex items-center rounded-pill border px-2 text-12 whitespace-nowrap ${
               size() === "lg" ? "h-11" : "h-9"
             } ${
               option.value === props.value

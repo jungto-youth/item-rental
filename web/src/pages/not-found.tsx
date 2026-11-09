@@ -4,7 +4,7 @@ import { Button } from "../components/ui/button";
 
 export default function NotFound() {
   return (
-    <div class="page-not-found box-border flex min-h-[60vh] flex-col items-center justify-center px-6 py-10 text-center">
+    <div class="page-not-found box-border flex min-h-[60vh] flex-col items-center justify-center px-5 py-10 text-center">
       <span class="flex size-14 items-center justify-center rounded-pill bg-surface-muted text-ink-3 [&_svg]:size-7" aria-hidden="true">
         <BoxIcon />
       </span>

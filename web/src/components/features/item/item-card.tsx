@@ -44,7 +44,7 @@ export function ItemCard(props: { item: Item; href: string }) {
       class="item-card flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface text-inherit no-underline hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       href={props.href}
     >
-      <div class="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-surface-muted text-ink-3">
+      <div class="relative flex aspect-[3/2] items-center justify-center overflow-hidden bg-surface-muted text-ink-3">
         <span class="flex flex-col items-center gap-2" aria-hidden="true">
           <ImageIcon class="size-8" />
           <Show when={!photo()}>
@@ -70,7 +70,7 @@ export function ItemCard(props: { item: Item; href: string }) {
         </Show>
       </div>
 
-      <div class="flex flex-1 flex-col gap-2 p-4 max-sm:p-2">
+      <div class="flex flex-1 flex-col gap-1 p-4 max-sm:p-3">
         <span
           class="line-clamp-2 text-body font-semibold tracking-tight text-ink-1 max-sm:text-fine"
           title={props.item.name}
@@ -89,7 +89,7 @@ export function ItemCard(props: { item: Item; href: string }) {
           </Show>
           <span>{location() || (categories() ? "" : "위치 미지정")}</span>
         </span>
-        <span class="flex flex-wrap items-center gap-2 text-fine leading-normal tabular-nums [word-break:keep-all]">
+        <span class="flex flex-wrap items-center gap-1 text-fine leading-normal tabular-nums [word-break:keep-all]">
           <Show
             when={primary()}
             fallback={<span class="text-ink-2">미지정</span>}

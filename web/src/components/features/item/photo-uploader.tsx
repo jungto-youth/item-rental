@@ -110,10 +110,10 @@ export function PhotoUploader(props: {
         <div class="grid grid-cols-3 gap-2">
           <For each={props.entries}>
             {(photo, index) => (
-              <div class="relative aspect-[4/3] w-full overflow-hidden rounded-card border border-line bg-surface-muted">
+              <div class="relative aspect-[3/2] w-full overflow-hidden rounded-card border border-line bg-surface-muted">
                 <img class="block size-full object-cover" src={photo.url} alt="" />
                 <Show when={props.showCoverBadge !== false && index() === 0}>
-                  <span class="absolute top-2 left-2 inline-flex h-6 items-center rounded-pill bg-primary-soft px-2 text-fine font-medium text-primary-strong">대표</span>
+                  <span class="absolute top-2 left-2 inline-flex h-6 items-center rounded-pill bg-primary-soft px-2 text-12 font-medium text-primary-strong">대표</span>
                 </Show>
                 <button
                   type="button"
@@ -132,7 +132,7 @@ export function PhotoUploader(props: {
             {() => (
               <button
                 type="button"
-                class="flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-card border border-dashed border-line-strong bg-surface p-0 text-ink-2 hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-50"
+                class="flex aspect-[3/2] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-card border border-dashed border-line-strong bg-surface p-0 text-ink-2 hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-50"
                 title="사진 추가"
                 disabled={props.disabled}
                 onClick={openChooser}

@@ -5,6 +5,10 @@
 @import "./tokens.css";
 
 @theme inline {
+  /* 간격은 Tailwind 기본 4px 배수 눈금을 쓴다.
+     허용 단계는 tokens.css 의 --space-* 와 같다: 2·4·6·8·12·16·20·24·32·40·48·56px. */
+  --spacing: 0.25rem;
+
   --font-sans: var(--font-body);
   --default-font-family: var(--font-body);
 
@@ -29,6 +33,34 @@
   --radius-pill: var(--radius-pill);
 
   --leading-normal: var(--line-height);
+
+  /* 글자 눈금 — Tailwind 기본 text-* 를 지우고 이 12단계만 노출한다. */
+  --text-*: initial;
+  --text-10: var(--text-10);
+  --text-10--line-height: var(--line-height);
+  --text-12: var(--text-12);
+  --text-12--line-height: var(--line-height);
+  --text-14: var(--text-14);
+  --text-14--line-height: var(--line-height);
+  --text-16: var(--text-16);
+  --text-16--line-height: var(--line-height);
+  --text-20: var(--text-20);
+  --text-20--line-height: var(--line-height);
+  --text-24: var(--text-24);
+  --text-24--line-height: var(--line-height);
+  --text-28: var(--text-28);
+  --text-28--line-height: var(--line-height);
+  --text-32: var(--text-32);
+  --text-32--line-height: var(--line-height);
+  --text-40: var(--text-40);
+  --text-40--line-height: var(--line-height);
+  --text-48: var(--text-48);
+  --text-48--line-height: var(--line-height);
+  --text-56: var(--text-56);
+  --text-56--line-height: var(--line-height);
+  --text-64: var(--text-64);
+  --text-64--line-height: var(--line-height);
+
   --text-fine: var(--text-fine);
   --text-fine--line-height: var(--line-height);
   --text-body: var(--text-body);

@@ -56,7 +56,7 @@ export function Badge(props: { kind?: string; label?: string }) {
   return (
     <span class="inline-flex align-middle">
       <span
-        class={`inline-flex h-6 items-center gap-1.5 rounded-pill px-2.5 text-fine leading-none whitespace-nowrap ${TONES[tone()]}`}
+        class={`inline-flex h-6 items-center gap-1.5 rounded-pill px-2 text-12 whitespace-nowrap ${TONES[tone()]}`}
       >
         <span
           class={`size-1.5 shrink-0 rounded-full ${DOTS[tone()]}`}

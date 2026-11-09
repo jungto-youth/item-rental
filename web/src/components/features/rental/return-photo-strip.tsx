@@ -25,7 +25,7 @@ export function ReturnPhotoStrip(props: {
               <div class="flex w-20 flex-col items-center gap-1">
                 <button
                   type="button"
-                  class="aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-card border border-line bg-surface-muted p-0 hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
+                  class="aspect-[3/2] w-full cursor-pointer overflow-hidden rounded-card border border-line bg-surface-muted p-0 hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
                   onClick={() => setSelected(photo)}
                   aria-label={`반납 사진 ${index() + 1} 크게 보기`}
                 >
