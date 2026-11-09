@@ -85,7 +85,7 @@ export default function Login() {
 
   return (
     <div class="page-login block">
-      <div class="box-border flex min-h-dvh flex-col items-center justify-center p-5">
+      <div class="box-border flex min-h-dvh flex-col items-center justify-center p-4">
         <div class="flex w-full max-w-[340px] flex-col items-center text-center">
           <div class="flex flex-col items-center">
             <BrandLogo size="lg" />
@@ -104,7 +104,7 @@ export default function Login() {
             예외 계정은 관리자에게 문의해 주세요.
           </p>
 
-          <button class="mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-surface px-4 text-14 font-medium text-ink-1 transition-colors enabled:hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" type="button" disabled={busy()} onClick={() => void signIn()}>
+          <button class="mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-card border border-line-strong bg-surface px-3 text-14 font-medium text-ink-1 transition-colors enabled:hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" type="button" disabled={busy()} onClick={() => void signIn()}>
             <svg class="size-[18px] shrink-0" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 fill="#4285F4"

@@ -29,19 +29,8 @@ import { Notice } from "../components/ui/notice";
 import { PageHeader } from "../components/ui/page-header";
 import { Select } from "../components/ui/select";
 import { Skeleton } from "../components/ui/skeleton";
+import { Tag } from "../components/ui/tag";
 import { TextButton } from "../components/ui/text-button";
-
-// ===== 목차 =====
-const SECTIONS = [
-  { id: "foundation", label: "기초" },
-  { id: "color", label: "색" },
-  { id: "type", label: "타이포" },
-  { id: "space", label: "간격 · 형태" },
-  { id: "components", label: "컴포넌트" },
-  { id: "patterns", label: "패턴" },
-  { id: "screens", label: "화면" },
-  { id: "rules", label: "접근성 · 검증" },
-];
 
 // ===== 기초 =====
 const PRINCIPLES = [
@@ -228,7 +217,7 @@ const LAYOUTS = [
 
 const BREAKPOINTS = [
   { name: "sm", value: "640px", use: "그리드 3열" },
-  { name: "md", value: "768px", use: "헤더 64px·본문 패딩 20px·그리드 4열" },
+  { name: "md", value: "768px", use: "헤더 64px·본문 패딩 16px·그리드 4열" },
   { name: "lg", value: "1024px", use: "2열 셸·보조 패널 표시" },
   { name: "xl", value: "1280px", use: "그리드 5열" },
 ];
@@ -306,101 +295,6 @@ const SAMPLE_ITEMS: Item[] = [
   },
 ];
 
-// ===== 화면 =====
-const SCREENS = [
-  {
-    path: "/",
-    name: "물품 현황",
-    access: "로그인",
-    action: "카드 선택",
-    note: "검색 · 상태 필터 · 무한 스크롤",
-  },
-  {
-    path: "/items/:id",
-    name: "물품 상세",
-    access: "로그인",
-    action: "대여·예약 신청",
-    note: "갤러리 · 수량 스테퍼 · 절차 안내",
-  },
-  {
-    path: "/items/new",
-    name: "물품 등록",
-    access: "관리자",
-    action: "저장",
-    note: "검증 · 분류 태그 · 사진",
-  },
-  {
-    path: "/items/:id/edit",
-    name: "물품 수정",
-    access: "관리자",
-    action: "저장 / 삭제",
-    note: "등록 폼과 같은 구조",
-  },
-  {
-    path: "/login",
-    name: "로그인",
-    access: "공개",
-    action: "Google로 계속하기",
-    note: "헤더·푸터 없는 전체 화면",
-  },
-  {
-    path: "/signup/profile",
-    name: "프로필 등록",
-    access: "로그인",
-    action: "저장",
-    note: "이름·연락처·지부·지회·모둠",
-  },
-  {
-    path: "/mypage",
-    name: "내 정보",
-    access: "로그인",
-    action: "수정 → 저장",
-    note: "필수 정보 미등록 안내",
-  },
-  {
-    path: "/my/rentals",
-    name: "대여 내역",
-    access: "로그인",
-    action: "반납 / 취소",
-    note: "승인 대기 · 예약 · 대여 중 · 이력",
-  },
-  {
-    path: "/admin/reservations",
-    name: "대여 관리",
-    access: "관리자",
-    action: "승인 / 거절 / 반납",
-    note: "기한 지남 필터",
-  },
-  {
-    path: "/admin/members",
-    name: "회원 관리",
-    access: "관리자",
-    action: "역할 변경 / 탈퇴",
-    note: "허용 이메일 관리",
-  },
-  {
-    path: "/policy/:kind",
-    name: "정책",
-    access: "공개",
-    action: "목차 이동",
-    note: "이용약관 · 개인정보 처리방침",
-  },
-  {
-    path: "/design",
-    name: "디자인 시스템",
-    access: "공개",
-    action: "토큰·컴포넌트 참고",
-    note: "이 화면",
-  },
-  {
-    path: "그 외",
-    name: "404",
-    access: "공개",
-    action: "물품 현황으로",
-    note: "잘못된 주소 안내",
-  },
-];
-
 // ===== 접근성 =====
 const DO_LIST = [
   "주 행동은 화면당 하나만 primary로 둡니다.",
@@ -438,9 +332,13 @@ function Section(props: {
   children?: JSX.Element;
 }) {
   return (
-    <section id={props.id} class="min-w-0 scroll-mt-24">
-      <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line pb-2">
-        <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">
+    <section class="min-w-0">
+      <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2
+          data-toc
+          id={props.id}
+          class="m-0 scroll-mt-24 text-heading leading-normal font-semibold tracking-tight text-ink-1"
+        >
           {props.title}
         </h2>
         <Show when={props.meta}>
@@ -461,7 +359,7 @@ function Section(props: {
 
 function Spec(props: { name: string; note: string; children?: JSX.Element }) {
   return (
-    <div class="grid gap-4 border-t border-line py-6 first:border-t-0 first:pt-0 lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-8">
+    <div class="grid gap-4 py-4 first:pt-0 lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-8">
       <div>
         <h3 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">
           {props.name}
@@ -481,6 +379,26 @@ function Label(props: { children?: JSX.Element }) {
   );
 }
 
+// 기초 섹션 안에서 색·타이포·간격을 묶는 하위 블록.
+// 상위 Section 을 늘리지 않아 목차와 제목 구조가 단순해진다.
+function Block(props: {
+  label: string;
+  intro?: string;
+  children?: JSX.Element;
+}) {
+  return (
+    <div class="mt-8">
+      <Label>{props.label}</Label>
+      <Show when={props.intro}>
+        <p class="mb-4 max-w-[64ch] text-fine leading-normal text-ink-2">
+          {props.intro}
+        </p>
+      </Show>
+      {props.children}
+    </div>
+  );
+}
+
 export default function Design() {
   const [busy, setBusy] = createSignal(false);
   const [chip, setChip] = createSignal("all");
@@ -490,11 +408,10 @@ export default function Design() {
     <DocPage
       title="디자인 시스템"
       subtitle={`${APP_NAME}의 화면을 이루는 토큰과 컴포넌트를 한곳에 모았습니다. 이 페이지는 실제 컴포넌트로만 만들었고, 값의 출처는 tokens.css입니다.`}
-      sections={SECTIONS}
       tocLabel="디자인 시스템 목차"
     >
       {/* 브랜드 · 팔레트 — 컨텐츠 첫머리에서 서비스의 인상과 토큰을 함께 보여준다. */}
-      <div class="grid gap-4 border-b border-line pb-6">
+      <div class="grid gap-4 pb-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">
             <BrandLogo />
@@ -529,13 +446,13 @@ export default function Design() {
         <Section
           id="foundation"
           title="기초"
-          meta="룩 · 원칙"
-          intro="따뜻한 중립 회색 바탕, 흰 카드, 잉크 텍스트, 오렌지 포인트. 미니멀은 필요한 신호까지 지우는 것이 아니라 과업에 불필요한 노이즈만 줄이는 것입니다."
+          meta="토큰 · 원칙"
+          intro="따뜻한 중립 회색 바탕, 흰 카드, 잉크 텍스트, 오렌지 포인트. 아래 색·타이포·간격 값의 출처는 tokens.css입니다."
         >
           <div class="grid gap-6 sm:grid-cols-3">
             <For each={PRINCIPLES}>
               {(principle) => (
-                <div class="border-t-2 border-line-strong pt-3">
+                <div class="pt-3">
                   <h3 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">
                     {principle.title}
                   </h3>
@@ -546,14 +463,10 @@ export default function Design() {
               )}
             </For>
           </div>
-        </Section>
-
-        <Section
-          id="color"
-          title="색"
-          meta="16개 토큰"
-          intro="새 색은 토큰에 먼저 추가하고 컴포넌트에는 hex를 직접 쓰지 않습니다. 오렌지는 주 행동과 선택에만, 빨강은 오류와 파괴적 행동에만 씁니다."
-        >
+          <Block
+            label="색 · 16개 토큰"
+            intro="새 색은 토큰에 먼저 추가하고 컴포넌트에는 hex를 직접 쓰지 않습니다. 오렌지는 주 행동과 선택에만, 빨강은 오류와 파괴적 행동에만 씁니다."
+          >
           <div class="grid gap-8">
             <For each={COLOR_GROUPS}>
               {(group) => (
@@ -587,22 +500,20 @@ export default function Design() {
               )}
             </For>
           </div>
-          <p class="mt-6 border-t border-line pt-4 text-fine leading-normal text-ink-2">
+          <p class="mt-6 text-fine leading-normal text-ink-2">
             텍스트 대비 4.5:1, UI 경계·포커스 3:1 이상. 상태 배지는 점과
             텍스트를 함께 써서 색만으로 구분하지 않습니다.
           </p>
-        </Section>
+          </Block>
 
-        <Section
-          id="type"
-          title="타이포"
-          meta="12단계"
-          intro="Noto Sans KR 한 서체를 씁니다. 10px 미만은 쓰지 않고, 제목 700 / 카드·버튼 제목 600 / 본문 400이 기본입니다."
-        >
+          <Block
+            label="타이포 · 12단계"
+            intro="Noto Sans KR 한 서체를 씁니다. 10px 미만은 쓰지 않고, 제목 700 / 카드·버튼 제목 600 / 본문 400이 기본입니다."
+          >
           <div>
             <For each={TYPE_SCALE}>
               {(type) => (
-                <div class="grid gap-2 border-t border-line py-4 first:pt-0 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-6">
+                <div class="grid gap-2 py-4 first:pt-0 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-6">
                   <div>
                     <p class="m-0 text-fine font-semibold text-ink-1">
                       {type.token}
@@ -618,7 +529,7 @@ export default function Design() {
               )}
             </For>
           </div>
-          <div class="mt-6 grid gap-3 border-t border-line pt-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-6">
+          <div class="mt-6 grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-6">
             <p class="m-0 text-fine font-semibold text-ink-1">행간</p>
             <p class="m-0 text-fine leading-normal text-ink-2">
               제목·본문·버튼 모두{" "}
@@ -626,14 +537,12 @@ export default function Design() {
               본문 기준 한 값을 씁니다.
             </p>
           </div>
-        </Section>
+          </Block>
 
-        <Section
-          id="space"
-          title="간격 · 형태"
-          meta="2px 눈금"
-          intro="간격은 2·4·6·8·12·16·20·24·32·40·48·56px만 씁니다. 라운드는 컨트롤·카드 8px, 칩·배지 999px 두 종류입니다. 그림자는 떠 있는 층(메뉴·모달·FAB)에만 씁니다."
-        >
+          <Block
+            label="간격 · 형태 · 2px 눈금"
+            intro="간격은 2·4·6·8·12·16·20·24·32·40·48·56px만 씁니다. 라운드는 컨트롤·카드 8px, 칩·배지 999px 두 종류입니다. 그림자는 떠 있는 층(메뉴·모달·FAB)에만 씁니다."
+          >
           <div class="grid gap-8 lg:grid-cols-2">
             <div>
               <Label>간격</Label>
@@ -654,7 +563,7 @@ export default function Design() {
                     </div>
                   )}
                 </For>
-                <p class="mt-2 border-t border-line pt-2 text-fine text-ink-2">
+                <p class="mt-2 text-fine text-ink-2">
                   실제 크기 — 2 / 4 / 6 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48 / 56
                 </p>
               </div>
@@ -686,7 +595,7 @@ export default function Design() {
                 <div class="rounded-card border border-line bg-surface p-4">
                   <For each={LAYOUTS}>
                     {(layout) => (
-                      <div class="border-t border-line py-2 first:border-t-0 first:pt-0">
+                      <div class="py-2 first:pt-0">
                         <div class="flex items-center justify-between gap-4 text-fine">
                           <span class="font-semibold text-ink-1">
                             {layout.token}
@@ -716,10 +625,10 @@ export default function Design() {
 
           <div class="mt-8">
             <Label>반응형 기준</Label>
-            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div class="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
               <For each={BREAKPOINTS}>
                 {(breakpoint) => (
-                  <div class="border-t-2 border-line-strong pt-2">
+                  <div class="pt-2">
                     <p class="m-0 text-fine font-semibold text-ink-1">
                       {breakpoint.name}
                     </p>
@@ -734,6 +643,7 @@ export default function Design() {
               </For>
             </div>
           </div>
+          </Block>
         </Section>
 
         <Section
@@ -776,7 +686,7 @@ export default function Design() {
                 </TextButton>
               </div>
               <p class="mt-3 text-fine leading-normal text-ink-2">
-                높이 40px · 14px/600 · 좌우 16px · primary는 primary-strong 채움,
+                높이 40px · 14px/600 · 좌우 12px · primary는 primary-strong 채움,
                 hover는 primary-deep.
               </p>
             </Spec>
@@ -796,7 +706,7 @@ export default function Design() {
               </p>
             </Spec>
 
-            <Spec name="칩" note="sm / lg · 12px · 좌우 8px · active · disabled">
+            <Spec name="칩" note="12px · 좌우 8px · active · disabled">
               <Chip
                 ariaLabel="상태 필터"
                 value={chip()}
@@ -813,12 +723,12 @@ export default function Design() {
                 />
               </div>
               <p class="mt-3 text-fine leading-normal text-ink-2">
-                높이 36px, lg 44px · 12px 글자 · 좌우 8px · 칩 사이 4px · active는 ink-1 채움 + 흰 글자 + 600.
+                높이 36px · 12px 글자 · 좌우 8px · 칩 사이 8px · active는 ink-1 채움 + 흰 글자 + 600.
               </p>
             </Spec>
 
             <Spec name="배지" note="상태 텍스트 · 12px · 좌우 8px · 읽기 전용">
-              <div class="flex flex-wrap gap-1">
+              <div class="flex flex-wrap gap-2">
                 <For each={BADGE_KINDS}>
                   {(kind) => <Badge kind={kind} />}
                 </For>
@@ -826,6 +736,17 @@ export default function Design() {
               <p class="mt-3 text-fine leading-normal text-ink-2">
                 12px 알약 + 6px 점 + 좌우 8px. 색만으로 구분하지 않고 텍스트가 상태를
                 말합니다.
+              </p>
+            </Spec>
+
+            <Spec name="태그" note="분류·대표 · 12px · 좌우 8px · 읽기 전용">
+              <div class="flex flex-wrap gap-2">
+                <Tag>#야외</Tag>
+                <Tag>#공구</Tag>
+                <Tag>대표</Tag>
+              </div>
+              <p class="mt-3 text-fine leading-normal text-ink-2">
+                24px 알약 · 12px · 좌우 8px. 상태 변화가 없는 라벨에 씁니다.
               </p>
             </Spec>
 
@@ -1068,7 +989,7 @@ export default function Design() {
               <Label>앱 셸</Label>
               <div class="overflow-x-auto rounded-card border border-line bg-surface p-4">
                 <pre class="m-0 min-w-[420px] text-fine leading-normal text-ink-2">{`헤더 56 / 64px (sticky)
-├ 본문  max 1280px · padding 20px
+├ 본문  max 1280px · padding 16px
 │   ├ 1열: 페이지 제목 → 주 행동 → 내용
 │   └ 2열: 주 컨텐츠 + 320px 보조 패널 (lg 이상)
 └ 푸터  서비스명 · 약관 · 개인정보`}</pre>
@@ -1130,59 +1051,8 @@ export default function Design() {
         </Section>
 
         <Section
-          id="screens"
-          title="화면"
-          meta="12개 경로"
-          intro="회원과 관리자의 진입점이 다릅니다. 관리자도 물품을 빌릴 수 있어 '대여 내역'은 역할과 무관하게 둡니다."
-        >
-          <div class="overflow-x-auto">
-            <table class="w-full min-w-[640px] border-collapse text-left">
-              <thead>
-                <tr class="border-b border-line-strong">
-                  <th class="py-2 pr-4 text-fine font-semibold text-ink-2">
-                    경로
-                  </th>
-                  <th class="py-2 pr-4 text-fine font-semibold text-ink-2">
-                    화면
-                  </th>
-                  <th class="py-2 pr-4 text-fine font-semibold text-ink-2">
-                    접근
-                  </th>
-                  <th class="py-2 text-fine font-semibold text-ink-2">
-                    주 행동
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <For each={SCREENS}>
-                  {(screen) => (
-                    <tr class="border-b border-line align-top">
-                      <td class="py-2 pr-4 text-fine text-ink-1 tabular-nums">
-                        {screen.path}
-                      </td>
-                      <td class="py-2 pr-4 text-fine text-ink-1">
-                        {screen.name}
-                        <p class="m-0 mt-1 text-fine leading-normal text-ink-2">
-                          {screen.note}
-                        </p>
-                      </td>
-                      <td class="py-2 pr-4 text-fine text-ink-2">
-                        {screen.access}
-                      </td>
-                      <td class="py-2 text-fine text-ink-2">
-                        {screen.action}
-                      </td>
-                    </tr>
-                  )}
-                </For>
-              </tbody>
-            </table>
-          </div>
-        </Section>
-
-        <Section
           id="rules"
-          title="접근성 · 검증"
+          title="규칙 · 검증"
           meta="WCAG 2.2 AA"
           intro="모든 인터랙티브 요소는 default / hover / focus-visible / active / disabled / loading / error / empty / 모바일 390을 확인합니다."
         >
@@ -1192,7 +1062,7 @@ export default function Design() {
               <ul class="m-0 grid list-none gap-2 p-0">
                 <For each={DO_LIST}>
                   {(item) => (
-                    <li class="flex gap-2 border-t border-line py-2 text-fine leading-normal text-ink-2">
+                    <li class="flex gap-2 py-2 text-fine leading-normal text-ink-2">
                       <CheckIcon class="mt-0.5 size-4 shrink-0 text-primary-strong" />
                       <span>{item}</span>
                     </li>
@@ -1205,7 +1075,7 @@ export default function Design() {
               <ul class="m-0 grid list-none gap-2 p-0">
                 <For each={DONT_LIST}>
                   {(item) => (
-                    <li class="flex gap-2 border-t border-line py-2 text-fine leading-normal text-ink-2">
+                    <li class="flex gap-2 py-2 text-fine leading-normal text-ink-2">
                       <CloseIcon class="mt-0.5 size-4 shrink-0 text-ink-3" />
                       <span>{item}</span>
                     </li>

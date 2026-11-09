@@ -456,7 +456,7 @@ export default function MyRentals() {
                         반납할 때 물품 상태 사진을 남길 수 있고, 반납 예정일이 지나면{" "}
                         <b class="font-semibold text-ink-1">기한 지남</b>으로 표시됩니다.
                       </p>
-                      <a class="mt-4 inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1" href="/">물품 둘러보기</a>
+                      <a class="mt-4 inline-flex h-10 items-center rounded-card border border-line bg-surface px-3 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1" href="/">물품 둘러보기</a>
                     </section>
 
                     <section class="rounded-card border border-line bg-surface p-4">

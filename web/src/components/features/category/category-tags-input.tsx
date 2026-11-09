@@ -72,7 +72,7 @@ export function CategoryTagsInput(props: {
   };
 
   return (
-    <div class="category-tags-input box-border flex min-h-[38px] flex-wrap items-center gap-1 rounded-card border border-line bg-surface px-4 py-2 focus-within:border-primary">
+    <div class="category-tags-input box-border flex min-h-[38px] flex-wrap items-center gap-2 rounded-card border border-line bg-surface px-4 py-2 focus-within:border-primary">
       <For each={props.value}>
         {(name, index) => (
           <span class="tag inline-flex h-7 items-center gap-2 rounded-pill bg-primary-soft px-2 text-12 text-primary-strong">

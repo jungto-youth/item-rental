@@ -89,7 +89,7 @@ export function ItemCard(props: { item: Item; href: string }) {
           </Show>
           <span>{location() || (categories() ? "" : "위치 미지정")}</span>
         </span>
-        <span class="flex flex-wrap items-center gap-1 text-fine leading-normal tabular-nums [word-break:keep-all]">
+        <span class="flex flex-wrap items-center gap-2 text-fine leading-normal tabular-nums [word-break:keep-all]">
           <Show
             when={primary()}
             fallback={<span class="text-ink-2">미지정</span>}

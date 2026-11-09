@@ -192,7 +192,7 @@ export default function MyPage() {
                       <p class="mt-2 text-fine leading-normal text-ink-2">
                         대여 중인 물품은 <b class="font-semibold text-ink-1">대여 내역</b>에서 확인할 수 있습니다.
                       </p>
-                      <a class="mt-4 inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1" href="/my/rentals">대여 내역 보기</a>
+                      <a class="mt-4 inline-flex h-10 items-center rounded-card border border-line bg-surface px-3 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1" href="/my/rentals">대여 내역 보기</a>
                     </section>
 
                     <section class="rounded-card border border-line bg-surface p-4">

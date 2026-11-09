@@ -6,16 +6,14 @@ type Props = {
   value: string;
   options: ChipOption[];
   ariaLabel?: string;
-  size?: "sm" | "lg";
   disabled?: boolean;
   onChange: (value: string) => void;
 };
 
 export function Chip(props: Props) {
-  const size = () => props.size ?? "sm";
   return (
     <div
-      class="flex min-w-0 flex-wrap items-center gap-1"
+      class="flex min-w-0 flex-wrap items-center gap-2"
       role="group"
       aria-label={props.ariaLabel || undefined}
     >
@@ -23,9 +21,7 @@ export function Chip(props: Props) {
         {(option) => (
           <button
             type="button"
-            class={`inline-flex items-center rounded-pill border px-2 text-12 whitespace-nowrap ${
-              size() === "lg" ? "h-11" : "h-9"
-            } ${
+            class={`inline-flex h-9 items-center rounded-pill border px-2 text-12 whitespace-nowrap ${
               option.value === props.value
                 ? "border-ink-1 bg-ink-1 font-semibold text-white"
                 : "border-line bg-surface font-normal text-ink-1 hover:border-line-strong hover:bg-surface-muted"

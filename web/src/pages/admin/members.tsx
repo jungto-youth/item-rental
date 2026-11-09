@@ -555,9 +555,11 @@ export default function AdminMembers() {
       }
     >
       <div class="relative">
-        <SearchIcon class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-3" />
+        <Show when={!q()}>
+          <SearchIcon class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-3" />
+        </Show>
         <input
-          class={`box-border h-10 w-full min-w-0 rounded-card border border-line bg-surface py-2 pl-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none ${q() ? "pr-20" : "pr-10"}`}
+          class="box-border h-10 w-full min-w-0 rounded-card border border-line bg-surface py-2 pr-10 pl-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
           type="search"
           aria-label="회원 검색"
           placeholder="이름, 이메일, 연락처 검색…"
@@ -573,7 +575,7 @@ export default function AdminMembers() {
         <Show when={q()}>
           <button
             type="button"
-            class="absolute top-1/2 right-10 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill border-0 bg-transparent p-0 text-fine text-ink-2 hover:bg-surface-muted hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
+            class="absolute top-1/2 right-1 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill border-0 bg-transparent p-0 text-fine text-ink-2 hover:bg-surface-muted hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
             aria-label="검색어 지우기"
             title="검색어 지우기"
             onClick={() => setQ("")}

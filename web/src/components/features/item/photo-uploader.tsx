@@ -2,6 +2,7 @@ import { For, Show, createEffect, createSignal } from "solid-js";
 import { MAX_PHOTOS } from "../../../../../shared/photo-limits";
 import { Button } from "../../ui/button";
 import { Modal } from "../../ui/modal";
+import { Tag } from "../../ui/tag";
 import { CameraCaptureDialog } from "./camera-capture-dialog";
 
 export type PhotoEntry = { url: string; key: string | number };
@@ -113,7 +114,7 @@ export function PhotoUploader(props: {
               <div class="relative aspect-[3/2] w-full overflow-hidden rounded-card border border-line bg-surface-muted">
                 <img class="block size-full object-cover" src={photo.url} alt="" />
                 <Show when={props.showCoverBadge !== false && index() === 0}>
-                  <span class="absolute top-2 left-2 inline-flex h-6 items-center rounded-pill bg-primary-soft px-2 text-12 font-medium text-primary-strong">대표</span>
+                  <Tag class="absolute top-2 left-2 font-medium">대표</Tag>
                 </Show>
                 <button
                   type="button"

@@ -24,7 +24,7 @@ export default function SignupProfile() {
   });
 
   return (
-    <div class="box-border flex min-h-dvh items-center justify-center px-5 py-8">
+    <div class="box-border flex min-h-dvh items-center justify-center px-4 py-8">
       <Show when={ready()}>
         <div class="w-full max-w-[340px]">
           <div class="text-center">
