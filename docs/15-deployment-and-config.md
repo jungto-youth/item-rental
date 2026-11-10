@@ -68,7 +68,21 @@ npx wrangler secret put TELEGRAM_CHAT_ID
   Workers 로그(`observability`)에만 남는다.
 - 메시지는 `parse_mode=HTML`이며 물품명·이름·특이사항 같은 사용자 입력은 이스케이프한다.
 - 단체방을 여러 줄 차지하지 않도록 알림은 한 줄로 보낸다.
-- 전화번호 같은 개인정보는 단체방에 남기지 않는다 — 필요하면 앱 링크로 확인한다.
+- 전화번호 같은 개인정보는 단체방에 남기지 않는다 — 필요하면 앱에서 확인한다.
 
-현재 1단계로 **대여 신청·회원 반납**만 보낸다. 관리자 승인·거절, 연체 다이제스트,
-건의사항은 [17 백로그](17-backlog.md)의 B-09에 남아 있다.
+보내는 알림:
+- 대여 신청(예약 포함)
+- 회원·관리자 반납
+- 관리자 승인·거절
+- 반납 지연 — 매일 09:00 KST에 한 번 집계
+
+반납 지연은 `wrangler.jsonc`의 `triggers.crons`(`0 0 * * *`)와
+`server/src/index.ts`의 `scheduled` 핸들러가 맡는다. 같은 날 중복 전송을 막기 위해
+`notification_log` 테이블(`0016_notification_log.sql`)을 쓰므로, 배포 전에 마이그레이션을
+적용한다.
+
+```bash
+npx wrangler d1 migrations apply item-rental-db --remote
+```
+
+건의사항 수신은 아직 없다. [17 백로그](17-backlog.md)의 B-09에 남아 있다.

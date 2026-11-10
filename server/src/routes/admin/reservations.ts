@@ -1,5 +1,6 @@
 import { Hono, type Context } from "hono";
 import type { Bindings, Variables } from "../../types";
+import { runInBackground } from "../../background";
 import { getDb, type Sql } from "../../db";
 import { requireAdmin } from "../../middleware/auth";
 import { validatePhotoFile } from "../../photo-upload";
@@ -16,8 +17,15 @@ import {
   returnReservation,
   approveReservation,
   rejectReservation,
+  getReservationNotice,
   type TransitionResult,
 } from "../../services/reservations.service";
+import {
+  isTelegramConfigured,
+  notifyReservationApproved,
+  notifyReservationRejected,
+  notifyReservationReturned,
+} from "../../services/telegram.service";
 import {
   addReturnPhoto,
   deleteReturnPhoto,
@@ -74,7 +82,21 @@ adminReservationsRoute.post("/:id/approve", async (c) => {
 
   const db: Sql = getDb(c.env);
   const result = await approveReservation(db, id, c.get("user")!.id, dueAt);
-  if ("ok" in result) return c.json({ ok: true });
+  if ("ok" in result) {
+    if (isTelegramConfigured(c.env)) {
+      runInBackground(c, async () => {
+        const notice = await getReservationNotice(db, id);
+        if (!notice) return;
+        await notifyReservationApproved(c.env, {
+          itemName: notice.itemName,
+          qty: notice.qty,
+          memberName: notice.memberName,
+          dueAt: notice.dueAt,
+        });
+      });
+    }
+    return c.json({ ok: true });
+  }
   if (result.error === "not_found") return c.json({ error: "not_found" }, 404);
   if (result.error === "bad_status") return c.json({ error: "bad_status" }, 409);
   if (result.error === "due_date_required")
@@ -92,7 +114,21 @@ adminReservationsRoute.post("/:id/reject", async (c) => {
 
   const db: Sql = getDb(c.env);
   const result = await rejectReservation(db, id, c.get("user")!.id, reason);
-  if ("ok" in result) return c.json({ ok: true });
+  if ("ok" in result) {
+    if (isTelegramConfigured(c.env)) {
+      runInBackground(c, async () => {
+        const notice = await getReservationNotice(db, id);
+        if (!notice) return;
+        await notifyReservationRejected(c.env, {
+          itemName: notice.itemName,
+          qty: notice.qty,
+          memberName: notice.memberName,
+          reason,
+        });
+      });
+    }
+    return c.json({ ok: true });
+  }
   if (result.error === "not_found") return c.json({ error: "not_found" }, 404);
   if (result.error === "reason_required") {
     return c.json({ error: "reason_required" }, 400);
@@ -112,6 +148,19 @@ adminReservationsRoute.post("/:id/return", async (c) => {
     c.get("user")!.id,
     normalizeReturnNote(body.note),
   );
+  if ("ok" in result && isTelegramConfigured(c.env)) {
+    runInBackground(c, async () => {
+      const notice = await getReservationNotice(db, id);
+      if (!notice) return;
+      await notifyReservationReturned(c.env, {
+        itemName: notice.itemName,
+        qty: notice.qty,
+        memberName: notice.memberName,
+        note: notice.returnNote,
+        byMember: false,
+      });
+    });
+  }
   return mapTransition(c, result);
 });
 

@@ -1,5 +1,6 @@
-import { Hono, type Context } from "hono";
+import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
+import { runInBackground } from "../background";
 import { getDb, type Sql } from "../db";
 import { requireAuth } from "../middleware/auth";
 import { validatePhotoFile } from "../photo-upload";
@@ -14,6 +15,7 @@ import {
 import {
   createReservation,
   getMyReservations,
+  getReservationNotice,
   cancelReservation,
   cancelReservationGroup,
   normalizeReturnNote,
@@ -43,22 +45,6 @@ export const reservationsRoute = new Hono<{
 // 로그인 필수 — requireAuth가 세션 사용자를 조회해 c.set("user") ()
 // 1e622e3이 requireApproved 삭제 시 함께 지워 /api/reservations/* 가 500 을 냈던 줄 복원
 reservationsRoute.use("*", requireAuth);
-
-type Ctx = Context<{ Bindings: Bindings; Variables: Variables }>;
-
-// 알림은 응답 뒤에 보낸다 — 텔레그램이 느리거나 실패해도 신청·반납은 이미 성공이다.
-// ExecutionContext 가 없는 환경(단위 테스트·스크립트)에서는 그냥 실행하고 결과를 버린다.
-function runInBackground(c: Ctx, work: () => Promise<unknown>): void {
-  const task = work().catch((err) => {
-    console.error("telegram: background task failed", err);
-  });
-  try {
-    c.executionCtx.waitUntil(task);
-  } catch {
-    // ExecutionContext 가 없는 환경(단위 테스트·스크립트) — task 는 그대로 진행되고
-    // 결과만 버려진다.
-  }
-}
 
 // 알림에 필요한 물품 이름 — 응답 경로에서 읽지 않고 백그라운드에서 조회한다.
 async function loadItemName(db: Sql, itemId: number): Promise<string> {
@@ -233,19 +219,13 @@ reservationsRoute.post("/:id/return", async (c) => {
     // 관리자 알림 — 회원이 직접 반납했음을 알린다 (B-09 1단계)
     if (isTelegramConfigured(c.env)) {
       runInBackground(c, async () => {
-        const [row] = (await db.query(
-          `SELECT COALESCE(r.item_name_snapshot, items.name) AS item_name,
-                  r.qty, r.return_note
-             FROM reservations r
-             JOIN items ON items.id = r.item_id
-            WHERE r.id = ?1`,
-          [id],
-        )) as { item_name: string; qty: number; return_note: string | null }[];
+        const notice = await getReservationNotice(db, id);
+        if (!notice) return;
         await notifyReservationReturned(c.env, {
-          itemName: row?.item_name ?? `대여 #${id}`,
-          qty: row?.qty ?? 1,
-          memberName: user.name,
-          note: row?.return_note ?? note,
+          itemName: notice.itemName,
+          qty: notice.qty,
+          memberName: notice.memberName,
+          note: notice.returnNote ?? note,
           byMember: true,
         });
       });

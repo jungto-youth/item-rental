@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { encode } from "@auth/core/jwt";
 import type { Hono } from "hono";
 import type { Bindings, Variables } from "../src/types.ts";
-import productionApp from "../src/index.ts";
+import { app as productionApp } from "../src/index.ts";
 
 // Synthetic credentials and in-memory storage; never used by a running server.
 export const TEST_CODE = "development-fixture-code-0123456789abcdef";

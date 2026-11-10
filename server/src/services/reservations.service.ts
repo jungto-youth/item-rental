@@ -213,6 +213,46 @@ export async function createReservation(
   return { error: "no_availability" };
 }
 
+// ===== 알림용 대여 정보 =====
+// 이력 표기는 스냅샷을 우선한다 — 물품이 개명돼도 알림에는 그 시점 이름을 쓴다.
+export type ReservationNotice = {
+  itemName: string;
+  qty: number;
+  memberName: string;
+  dueAt: string | null;
+  returnNote: string | null;
+};
+
+export async function getReservationNotice(
+  db: Sql,
+  reservationId: number,
+): Promise<ReservationNotice | null> {
+  const [row] = (await db.query(
+    `SELECT COALESCE(r.item_name_snapshot, items.name) AS item_name,
+            r.qty, r.due_at, r.return_note,
+            members.name AS member_name
+       FROM reservations r
+       JOIN items ON items.id = r.item_id
+       JOIN members ON members.id = r.member_id
+      WHERE r.id = ?1`,
+    [reservationId],
+  )) as {
+    item_name: string;
+    qty: number;
+    due_at: string | null;
+    return_note: string | null;
+    member_name: string;
+  }[];
+  if (!row) return null;
+  return {
+    itemName: row.item_name,
+    qty: row.qty,
+    memberName: row.member_name,
+    dueAt: row.due_at,
+    returnNote: row.return_note,
+  };
+}
+
 // ===== 내 대여 조회 () =====
 export async function getMyReservations(
   db: Sql,

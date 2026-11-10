@@ -191,3 +191,97 @@ export async function notifyReservationReturned(
 ): Promise<boolean> {
   return sendTelegram(env, formatReservationReturned(notice), fetchImpl);
 }
+
+// ===== 관리자 승인·거절 =====
+
+export type ReservationApprovedNotice = {
+  itemName: string;
+  qty: number;
+  memberName: string;
+  dueAt: string | null;
+};
+
+export function formatReservationApproved(
+  notice: ReservationApprovedNotice,
+): string {
+  const due = formatDueDateShortKst(notice.dueAt);
+  return joinParts([
+    `📦 <b>대여 시작</b>: ${escapeHtml(oneLine(notice.itemName))}${quantitySuffix(notice.qty)}`,
+    escapeHtml(oneLine(notice.memberName)),
+    due ? `~${due}` : null,
+  ]);
+}
+
+export async function notifyReservationApproved(
+  env: TelegramEnv,
+  notice: ReservationApprovedNotice,
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  return sendTelegram(env, formatReservationApproved(notice), fetchImpl);
+}
+
+export type ReservationRejectedNotice = {
+  itemName: string;
+  qty: number;
+  memberName: string;
+  reason: string;
+};
+
+export function formatReservationRejected(
+  notice: ReservationRejectedNotice,
+): string {
+  const reason = notice.reason.trim()
+    ? `사유: ${escapeHtml(clip(notice.reason, 40))}`
+    : null;
+  return joinParts([
+    `🚫 <b>거절</b>: ${escapeHtml(oneLine(notice.itemName))}${quantitySuffix(notice.qty)}`,
+    escapeHtml(oneLine(notice.memberName)),
+    reason,
+  ]);
+}
+
+export async function notifyReservationRejected(
+  env: TelegramEnv,
+  notice: ReservationRejectedNotice,
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  return sendTelegram(env, formatReservationRejected(notice), fetchImpl);
+}
+
+// ===== 반납 지연 다이제스트 =====
+
+export type OverdueEntry = {
+  itemName: string;
+  qty: number;
+  memberName: string;
+  dueAt: string | null;
+};
+
+export function formatOverdueDigest(
+  entries: OverdueEntry[],
+  total: number,
+): string {
+  const head = `⏰ <b>반납 지연</b> ${total}건`;
+  if (entries.length === 0) return head;
+
+  const list = entries
+    .map((entry) => {
+      const due = formatDueDateShortKst(entry.dueAt);
+      const item = `${escapeHtml(oneLine(entry.itemName))}${quantitySuffix(entry.qty)}`;
+      const member = escapeHtml(oneLine(entry.memberName));
+      return `${item} · ${member}${due ? `(~${due})` : ""}`;
+    })
+    .join(" / ");
+  const more =
+    total > entries.length ? ` 외 ${total - entries.length}건` : "";
+  return `${head}: ${list}${more}`;
+}
+
+export async function notifyOverdueDigest(
+  env: TelegramEnv,
+  entries: OverdueEntry[],
+  total: number,
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  return sendTelegram(env, formatOverdueDigest(entries, total), fetchImpl);
+}

@@ -16,8 +16,9 @@ import { adminAllowedEmailsRoute } from "./routes/admin/allowed-emails";
 import { adminReservationsRoute } from "./routes/admin/reservations";
 import { adminReembedRoute } from "./routes/admin/reembed";
 import { apiSecurityHeaders, guardApiRequest, canonicalAuthRequest } from "./middleware/security";
+import { sendOverdueDigest } from "./services/overdue.service";
 
-const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+export const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // --- 공통 가드 ---
 app.use("/api/*", apiSecurityHeaders, guardApiRequest);
@@ -89,4 +90,17 @@ app.onError((err, c) => {
   return c.json({ error: "internal" }, 500);
 });
 
-export default app;
+// Cloudflare Workers — HTTP(fetch)와 Cron(scheduled)을 함께 내보낸다.
+// 테스트·개발 앱은 named export `app` 을 써서 Hono 인스턴스로 라우팅한다.
+export default {
+  fetch: (request: Request, env: Bindings, ctx: ExecutionContext) =>
+    app.fetch(request, env, ctx),
+  scheduled: async (
+    _controller: ScheduledController,
+    env: Bindings,
+    ctx: ExecutionContext,
+  ) => {
+    // 반납 지연 다이제스트 — 매일 09:00 KST (wrangler.jsonc 의 crons).
+    ctx.waitUntil(sendOverdueDigest(env));
+  },
+};

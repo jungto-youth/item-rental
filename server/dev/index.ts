@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import productionApp from "../src/index";
+import { app as productionApp } from "../src/index";
 import type { Variables } from "../src/types";
 import { createDevLoginRoute, resolveDevelopmentSession, type DevBindings } from "./login";
 

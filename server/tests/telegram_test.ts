@@ -7,7 +7,10 @@ import {
   escapeHtml,
   formatDueDateKst,
   formatDueDateShortKst,
+  formatOverdueDigest,
+  formatReservationApproved,
   formatReservationCreated,
+  formatReservationRejected,
   formatReservationReturned,
   isTelegramConfigured,
   notifyReservationCreated,
@@ -124,6 +127,55 @@ test("formatReservationReturned: 관리자 반납은 라벨로 구분하고 긴 
   expect(text).toBe(
     `✅ <b>반납(관리)</b>: 텐트 ×2 · 홍길동 · ⚠️ ${"가".repeat(39)}…`,
   );
+});
+
+test("formatReservationApproved: 대여 시작을 한 줄로 알린다", () => {
+  const text = formatReservationApproved({
+    itemName: "텐트",
+    qty: 2,
+    memberName: "홍길동",
+    dueAt: "2026-11-16T14:59:59.999Z",
+  });
+
+  expect(text).toBe("📦 <b>대여 시작</b>: 텐트 ×2 · 홍길동 · ~11/16");
+});
+
+test("formatReservationRejected: 거절 사유를 붙인다", () => {
+  const text = formatReservationRejected({
+    itemName: "텐트",
+    qty: 1,
+    memberName: "홍길동",
+    reason: "재고가 부족합니다",
+  });
+
+  expect(text).toBe(
+    "🚫 <b>거절</b>: 텐트 · 홍길동 · 사유: 재고가 부족합니다",
+  );
+});
+
+test("formatOverdueDigest: 지연 건을 한 줄로 요약하고 초과분은 외 N건", () => {
+  const text = formatOverdueDigest(
+    [
+      {
+        itemName: "텐트",
+        qty: 2,
+        memberName: "홍길동",
+        dueAt: "2026-11-10T14:59:59.999Z",
+      },
+      {
+        itemName: "의자",
+        qty: 1,
+        memberName: "김회원",
+        dueAt: "2026-11-09T14:59:59.999Z",
+      },
+    ],
+    5,
+  );
+
+  expect(text).toBe(
+    "⏰ <b>반납 지연</b> 5건: 텐트 ×2 · 홍길동(~11/10) / 의자 · 김회원(~11/09) 외 3건",
+  );
+  expect(text).not.toContain("\n");
 });
 
 test("sendTelegram: 설정이 없으면 fetch 를 부르지 않고 false", async () => {
