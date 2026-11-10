@@ -60,21 +60,13 @@ function runInBackground(c: Ctx, work: () => Promise<unknown>): void {
   }
 }
 
-// 알림에 필요한 물품 이름·위치 — 응답 경로에서 읽지 않고 백그라운드에서 조회한다.
-async function loadItemLabel(
-  db: Sql,
-  itemId: number,
-): Promise<{ itemName: string; locationName: string | null }> {
+// 알림에 필요한 물품 이름 — 응답 경로에서 읽지 않고 백그라운드에서 조회한다.
+async function loadItemName(db: Sql, itemId: number): Promise<string> {
   const [item] = (await db.query(
-    `SELECT items.name, l.name AS location_name
-       FROM items LEFT JOIN locations l ON l.id = items.location_id
-      WHERE items.id = ?1`,
+    `SELECT name FROM items WHERE id = ?1`,
     [itemId],
-  )) as { name: string; location_name: string | null }[];
-  return {
-    itemName: item?.name ?? `물품 #${itemId}`,
-    locationName: item?.location_name ?? null,
-  };
+  )) as { name: string }[];
+  return item?.name ?? `물품 #${itemId}`;
 }
 
 // 신청 — 가용 검사는 reservations.service.createReservation에 위임
@@ -138,16 +130,14 @@ reservationsRoute.post("/", async (c) => {
         .filter((segment) => segment.status === "reserved")
         .reduce((sum, segment) => sum + segment.qty, 0);
       runInBackground(c, async () => {
-        const label = await loadItemLabel(db, itemId);
+        const itemName = await loadItemName(db, itemId);
         await notifyReservationCreated(c.env, {
-          ...label,
+          itemName,
           qty,
           pendingQty,
           reservedQty,
           dueAt,
-          memo,
           memberName: user.name,
-          affiliation: user.affiliation,
         });
       });
     }
@@ -255,7 +245,6 @@ reservationsRoute.post("/:id/return", async (c) => {
           itemName: row?.item_name ?? `대여 #${id}`,
           qty: row?.qty ?? 1,
           memberName: user.name,
-          affiliation: user.affiliation,
           note: row?.return_note ?? note,
           byMember: true,
         });

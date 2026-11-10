@@ -6,6 +6,7 @@ import { test, expect, vi } from "vitest";
 import {
   escapeHtml,
   formatDueDateKst,
+  formatDueDateShortKst,
   formatReservationCreated,
   formatReservationReturned,
   isTelegramConfigured,
@@ -17,7 +18,6 @@ import {
 const env: TelegramEnv = {
   TELEGRAM_BOT_TOKEN: "123:abc",
   TELEGRAM_CHAT_ID: "-100999",
-  PUBLIC_BASE_URL: "https://rental.example.com/",
 };
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -49,72 +49,81 @@ test("formatDueDateKst: UTC 저장값을 KST 달력 날짜로 되돌린다", () 
   expect(formatDueDateKst("not-a-date")).toBeNull();
 });
 
-test("formatReservationCreated: 물품·수량 분해·신청자·메모·링크를 담는다", () => {
-  const text = formatReservationCreated(
-    {
-      itemName: "텐트 <4인용>",
-      locationName: "창고 A",
-      qty: 3,
-      pendingQty: 2,
-      reservedQty: 1,
-      dueAt: "2026-11-16T14:59:59.999Z",
-      memo: "행사 & <사용>",
-      memberName: "홍길동",
-      affiliation: "청년지부 · 서울",
-    },
-    env,
-  );
-
-  expect(text).toContain("새 대여 신청");
-  expect(text).toContain("물품: 텐트 &lt;4인용&gt; (창고 A)");
-  expect(text).toContain("수량: 3 (즉시 2 · 예약 1)");
-  expect(text).toContain("신청자: 홍길동 · 청년지부 · 서울");
-  expect(text).toContain("반납 예정: 2026-11-16");
-  expect(text).toContain("메모: 행사 &amp; &lt;사용&gt;");
-  // 끝의 슬래시는 정규화되고 관리자 대여 관리 화면을 가리킨다
-  expect(text).toContain(
-    '<a href="https://rental.example.com/admin/reservations">대여 관리 열기</a>',
-  );
+test("formatDueDateShortKst: 한 줄 메시지용 MM/DD 로 줄인다", () => {
+  expect(formatDueDateShortKst("2026-11-16T14:59:59.999Z")).toBe("11/16");
+  expect(formatDueDateShortKst(null)).toBeNull();
 });
 
-test("formatReservationCreated: 예약만 있으면 (예약), 링크 설정이 없으면 링크를 뺀다", () => {
-  const text = formatReservationCreated(
-    {
-      itemName: "의자",
-      qty: 2,
-      pendingQty: 0,
-      reservedQty: 2,
-      dueAt: null,
-      memo: null,
-      memberName: "김회원",
-      affiliation: null,
-    },
-    { TELEGRAM_BOT_TOKEN: "t", TELEGRAM_CHAT_ID: "-1" },
-  );
+test("formatReservationCreated: 라벨·물품·수량·이름·날짜를 한 줄로 담는다", () => {
+  const text = formatReservationCreated({
+    itemName: "텐트 <4인용>",
+    qty: 3,
+    pendingQty: 2,
+    reservedQty: 1,
+    dueAt: "2026-11-16T14:59:59.999Z",
+    memberName: "홍길동",
+  });
 
-  expect(text).toContain("수량: 2 (예약)");
-  expect(text).not.toContain("반납 예정");
-  expect(text).not.toContain("메모:");
-  expect(text).not.toContain("<a href=");
+  expect(text).toBe(
+    "🔔 <b>신청</b>: 텐트 &lt;4인용&gt; ×3 (예약 1) · 홍길동 · ~11/16",
+  );
+  // 단체방을 여러 줄 차지하지 않도록 한 줄로 보낸다
+  expect(text).not.toContain("\n");
 });
 
-test("formatReservationReturned: 반납 주체와 특이사항을 구분한다", () => {
-  const text = formatReservationReturned(
-    {
-      itemName: "빔 프로젝터",
-      qty: 1,
-      memberName: "홍길동",
-      affiliation: "청년지부",
-      note: "렌즈 캡 분실",
-      byMember: true,
-    },
-    env,
-  );
+test("formatReservationCreated: 전부 예약이면 라벨이 예약이고 날짜를 뺀다", () => {
+  const text = formatReservationCreated({
+    itemName: "의자",
+    qty: 2,
+    pendingQty: 0,
+    reservedQty: 2,
+    dueAt: "2026-11-16T14:59:59.999Z",
+    memberName: "김회원",
+  });
 
-  expect(text).toContain("반납 완료");
-  expect(text).toContain("회원 직접 반납");
-  expect(text).toContain("물품: 빔 프로젝터");
-  expect(text).toContain("특이사항: 렌즈 캡 분실");
+  // 예약 행은 due_at 이 NULL 이라 승인 전에는 날짜를 알 수 없다
+  expect(text).toBe("🔔 <b>예약</b>: 의자 ×2 · 김회원");
+});
+
+test("formatReservationCreated: 1개는 수량을 생략하고 입력의 줄바꿈을 접는다", () => {
+  const text = formatReservationCreated({
+    itemName: "텐트\n4인용",
+    qty: 1,
+    pendingQty: 1,
+    reservedQty: 0,
+    dueAt: "2026-11-16T14:59:59.999Z",
+    memberName: "홍\n길동",
+  });
+
+  expect(text).toBe("🔔 <b>신청</b>: 텐트 4인용 · 홍 길동 · ~11/16");
+  expect(text).not.toContain("\n");
+});
+
+test("formatReservationReturned: 회원 반납과 특이사항을 한 줄로 담는다", () => {
+  const text = formatReservationReturned({
+    itemName: "빔 프로젝터",
+    qty: 1,
+    memberName: "홍길동",
+    note: "렌즈 캡 분실",
+    byMember: true,
+  });
+
+  expect(text).toBe("✅ <b>반납</b>: 빔 프로젝터 · 홍길동 · ⚠️ 렌즈 캡 분실");
+  expect(text).not.toContain("\n");
+});
+
+test("formatReservationReturned: 관리자 반납은 라벨로 구분하고 긴 특이사항은 자른다", () => {
+  const text = formatReservationReturned({
+    itemName: "텐트",
+    qty: 2,
+    memberName: "홍길동",
+    note: "가".repeat(50),
+    byMember: false,
+  });
+
+  expect(text).toBe(
+    `✅ <b>반납(관리)</b>: 텐트 ×2 · 홍길동 · ⚠️ ${"가".repeat(39)}…`,
+  );
 });
 
 test("sendTelegram: 설정이 없으면 fetch 를 부르지 않고 false", async () => {
@@ -177,9 +186,7 @@ test("notifyReservationCreated: 전송이 실패해도 false 로 끝난다", asy
         pendingQty: 1,
         reservedQty: 0,
         dueAt: null,
-        memo: null,
         memberName: "홍길동",
-        affiliation: null,
       },
       failingFetch,
     );

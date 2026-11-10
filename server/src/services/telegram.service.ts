@@ -14,7 +14,7 @@ const MAX_TEXT_LENGTH = 4_096;
 
 export type TelegramEnv = Pick<
   Bindings,
-  "TELEGRAM_BOT_TOKEN" | "TELEGRAM_CHAT_ID" | "PUBLIC_BASE_URL"
+  "TELEGRAM_BOT_TOKEN" | "TELEGRAM_CHAT_ID"
 >;
 
 export function isTelegramConfigured(env: TelegramEnv): boolean {
@@ -46,13 +46,33 @@ export function formatDueDateKst(dueAt: string | null | undefined): string | nul
   }).format(date);
 }
 
-function adminReservationsUrl(env: TelegramEnv): string | null {
-  const base = env.PUBLIC_BASE_URL?.trim().replace(/\/+$/, "");
-  return base ? `${base}/admin/reservations` : null;
+// "11/16" — 한 줄 메시지에는 연도를 뺀다.
+export function formatDueDateShortKst(
+  dueAt: string | null | undefined,
+): string | null {
+  const full = formatDueDateKst(dueAt);
+  return full ? full.slice(5).replace("-", "/") : null;
 }
 
-function joinLines(lines: (string | null | false)[]): string {
-  return lines.filter((line): line is string => Boolean(line)).join("\n");
+// 사용자 입력이 메시지를 여러 줄로 만들지 않게 공백을 하나로 접는다.
+function oneLine(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+// 특이사항이 길어도 한 줄이 길어지지 않게 자른다.
+function clip(value: string, max: number): string {
+  const text = oneLine(value);
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+// 1개는 굳이 "×1"을 붙이지 않는다.
+function quantitySuffix(qty: number): string {
+  return qty > 1 ? ` ×${qty}` : "";
+}
+
+// 알림은 한 줄로 보낸다 — 단체방에서 여러 줄을 차지하지 않게 필드를 " · "로 잇는다.
+function joinParts(parts: (string | null | false)[]): string {
+  return parts.filter((part): part is string => Boolean(part)).join(" · ");
 }
 
 // 토큰·chat_id 가 없으면 아무것도 하지 않는다. 실패는 로그만 남기고 false 로 끝낸다.
@@ -102,45 +122,32 @@ export async function sendTelegram(
 
 export type ReservationCreatedNotice = {
   itemName: string;
-  locationName?: string | null;
   qty: number;
   pendingQty: number;
   reservedQty: number;
   dueAt: string | null;
-  memo: string | null;
   memberName: string;
-  affiliation: string | null;
 };
 
 export function formatReservationCreated(
   notice: ReservationCreatedNotice,
-  env: TelegramEnv,
 ): string {
-  // 한 신청이 즉시 배정(pending)과 예약(reserved)으로 나뉠 수 있다 — 둘 다 보여준다.
-  let qtyLine = `수량: ${notice.qty}`;
-  if (notice.pendingQty > 0 && notice.reservedQty > 0) {
-    qtyLine += ` (즉시 ${notice.pendingQty} · 예약 ${notice.reservedQty})`;
-  } else if (notice.reservedQty > 0) {
-    qtyLine += " (예약)";
-  }
+  // 즉시 배정(pending) 없이 전부 예약이면 라벨을 "예약"으로 바꾼다.
+  const reservedOnly = notice.pendingQty === 0 && notice.reservedQty > 0;
+  const label = reservedOnly ? "예약" : "신청";
+  // 일부만 예약된 경우에만 꼬리에 수량을 붙인다.
+  const reservedSuffix =
+    notice.pendingQty > 0 && notice.reservedQty > 0
+      ? ` (예약 ${notice.reservedQty})`
+      : "";
+  // 예약 행은 due_at 이 NULL 이다 — 승인 시 날짜가 정해지므로 예약에는 날짜를 넣지 않는다.
+  const due =
+    notice.pendingQty > 0 ? formatDueDateShortKst(notice.dueAt) : null;
 
-  const location = notice.locationName
-    ? ` (${escapeHtml(notice.locationName)})`
-    : "";
-  const affiliation = notice.affiliation
-    ? ` · ${escapeHtml(notice.affiliation)}`
-    : "";
-  const due = formatDueDateKst(notice.dueAt);
-  const link = adminReservationsUrl(env);
-
-  return joinLines([
-    "🔔 <b>새 대여 신청</b>",
-    `물품: ${escapeHtml(notice.itemName)}${location}`,
-    qtyLine,
-    `신청자: ${escapeHtml(notice.memberName)}${affiliation}`,
-    due ? `반납 예정: ${due}` : null,
-    notice.memo ? `메모: ${escapeHtml(notice.memo)}` : null,
-    link ? `<a href="${escapeHtml(link)}">대여 관리 열기</a>` : null,
+  return joinParts([
+    `🔔 <b>${label}</b>: ${escapeHtml(oneLine(notice.itemName))}${quantitySuffix(notice.qty)}${reservedSuffix}`,
+    escapeHtml(oneLine(notice.memberName)),
+    due ? `~${due}` : null,
   ]);
 }
 
@@ -149,7 +156,7 @@ export async function notifyReservationCreated(
   notice: ReservationCreatedNotice,
   fetchImpl: typeof fetch = fetch,
 ): Promise<boolean> {
-  return sendTelegram(env, formatReservationCreated(notice, env), fetchImpl);
+  return sendTelegram(env, formatReservationCreated(notice), fetchImpl);
 }
 
 // ===== 반납 =====
@@ -158,7 +165,6 @@ export type ReservationReturnedNotice = {
   itemName: string;
   qty: number;
   memberName: string;
-  affiliation: string | null;
   note: string | null;
   // true = 회원이 직접 반납, false = 관리자가 처리
   byMember: boolean;
@@ -166,21 +172,15 @@ export type ReservationReturnedNotice = {
 
 export function formatReservationReturned(
   notice: ReservationReturnedNotice,
-  env: TelegramEnv,
 ): string {
-  const actor = notice.byMember ? "회원 직접 반납" : "관리자 처리";
-  const affiliation = notice.affiliation
-    ? ` · ${escapeHtml(notice.affiliation)}`
-    : "";
-  const link = adminReservationsUrl(env);
+  // 회원 반납이 기본이라 관리자 처리일 때만 표시를 붙인다.
+  const label = notice.byMember ? "반납" : "반납(관리)";
+  const note = notice.note ? escapeHtml(clip(notice.note, 40)) : null;
 
-  return joinLines([
-    `✅ <b>반납 완료</b> (${actor})`,
-    `물품: ${escapeHtml(notice.itemName)}`,
-    `수량: ${notice.qty}`,
-    `반납자: ${escapeHtml(notice.memberName)}${affiliation}`,
-    notice.note ? `특이사항: ${escapeHtml(notice.note)}` : null,
-    link ? `<a href="${escapeHtml(link)}">대여 관리 열기</a>` : null,
+  return joinParts([
+    `✅ <b>${label}</b>: ${escapeHtml(oneLine(notice.itemName))}${quantitySuffix(notice.qty)}`,
+    escapeHtml(oneLine(notice.memberName)),
+    note ? `⚠️ ${note}` : null,
   ]);
 }
 
@@ -189,5 +189,5 @@ export async function notifyReservationReturned(
   notice: ReservationReturnedNotice,
   fetchImpl: typeof fetch = fetch,
 ): Promise<boolean> {
-  return sendTelegram(env, formatReservationReturned(notice, env), fetchImpl);
+  return sendTelegram(env, formatReservationReturned(notice), fetchImpl);
 }

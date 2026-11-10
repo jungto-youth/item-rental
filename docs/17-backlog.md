@@ -47,7 +47,7 @@
   - `server/src/services/telegram.service.ts`가 Bot API 전송과 메시지 포맷을 소유한다.
   - 성공 응답 뒤 `ctx.waitUntil`로 보내므로 전송 실패가 대여를 막지 않는다.
   - 토큰·chat_id가 없으면 조용히 꺼진다. 설정은 [15 배포와 설정](15-deployment-and-config.md).
-  - 물품명·메모는 HTML 이스케이프하고, 전화번호는 메시지에 넣지 않는다.
+  - 물품명·이름·특이사항은 HTML 이스케이프해 한 줄로 보내고, 전화번호·메모·소속은 넣지 않는다.
 - **남은 것**
   - 관리자 승인·거절·반납 처리 알림
   - 반납 지체 하루 1회 집계 — Cron Trigger(`scheduled` 핸들러)와 중복 방지 키 필요

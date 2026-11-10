@@ -37,7 +37,6 @@ npm run check:production
 | `AUTH_ALLOWED_EMAILS` | 로그인 허용 예외 이메일(콤마 구분) — DB 조회 실패 시 폴백 |
 | `TELEGRAM_BOT_TOKEN` | 텔레그램 봇 토큰 (선택) — 없으면 알림을 끈다 |
 | `TELEGRAM_CHAT_ID` | 알림 받을 관리자 단체방 chat_id (선택, 그룹은 `-100...`) |
-| `PUBLIC_BASE_URL` | 알림 메시지의 앱 링크 (선택, 예: `https://item-rental.example.com`) |
 
 ```bash
 npx wrangler secret put AUTH_SECRET
@@ -61,14 +60,14 @@ npx wrangler secret put TELEGRAM_CHAT_ID
 
 `TELEGRAM_BOT_TOKEN`과 `TELEGRAM_CHAT_ID`가 모두 있어야 켜진다. 하나라도 비어 있으면
 알림 함수가 조용히 `false`를 돌려주므로 로컬·테스트는 설정 없이 그대로 동작한다.
-`PUBLIC_BASE_URL`을 넣으면 메시지에 "대여 관리 열기" 링크가 붙는다.
 
 - 봇 만들기: `@BotFather` → `/newbot` → 토큰 복사
 - chat_id: 봇을 관리자 단체방에 초대하고 방에 메시지를 하나 올린 뒤
   `https://api.telegram.org/bot<TOKEN>/getUpdates`에서 `chat.id`를 확인한다(그룹은 음수).
 - 알림은 응답 뒤 `ctx.waitUntil`로 전송한다. 전송 실패는 대여 신청·반납을 막지 않고
   Workers 로그(`observability`)에만 남는다.
-- 메시지는 `parse_mode=HTML`이며 물품명·메모 같은 사용자 입력은 이스케이프한다.
+- 메시지는 `parse_mode=HTML`이며 물품명·이름·특이사항 같은 사용자 입력은 이스케이프한다.
+- 단체방을 여러 줄 차지하지 않도록 알림은 한 줄로 보낸다.
 - 전화번호 같은 개인정보는 단체방에 남기지 않는다 — 필요하면 앱 링크로 확인한다.
 
 현재 1단계로 **대여 신청·회원 반납**만 보낸다. 관리자 승인·거절, 연체 다이제스트,
