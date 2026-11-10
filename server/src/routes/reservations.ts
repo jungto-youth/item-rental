@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import type { Bindings, Variables } from "../types";
 import { getDb, type Sql } from "../db";
 import { requireAuth } from "../middleware/auth";
@@ -25,6 +25,11 @@ import {
   deleteReservationPhotos,
   deleteReturnPhoto,
 } from "../services/reservation-photos.service";
+import {
+  isTelegramConfigured,
+  notifyReservationCreated,
+  notifyReservationReturned,
+} from "../services/telegram.service";
 
 // ===== 대여 라우트 =====
 // 대여/내 대여/취소/반납 (로그인 회원 전용 — 승인 단계 없음)
@@ -38,6 +43,39 @@ export const reservationsRoute = new Hono<{
 // 로그인 필수 — requireAuth가 세션 사용자를 조회해 c.set("user") ()
 // 1e622e3이 requireApproved 삭제 시 함께 지워 /api/reservations/* 가 500 을 냈던 줄 복원
 reservationsRoute.use("*", requireAuth);
+
+type Ctx = Context<{ Bindings: Bindings; Variables: Variables }>;
+
+// 알림은 응답 뒤에 보낸다 — 텔레그램이 느리거나 실패해도 신청·반납은 이미 성공이다.
+// ExecutionContext 가 없는 환경(단위 테스트·스크립트)에서는 그냥 실행하고 결과를 버린다.
+function runInBackground(c: Ctx, work: () => Promise<unknown>): void {
+  const task = work().catch((err) => {
+    console.error("telegram: background task failed", err);
+  });
+  try {
+    c.executionCtx.waitUntil(task);
+  } catch {
+    // ExecutionContext 가 없는 환경(단위 테스트·스크립트) — task 는 그대로 진행되고
+    // 결과만 버려진다.
+  }
+}
+
+// 알림에 필요한 물품 이름·위치 — 응답 경로에서 읽지 않고 백그라운드에서 조회한다.
+async function loadItemLabel(
+  db: Sql,
+  itemId: number,
+): Promise<{ itemName: string; locationName: string | null }> {
+  const [item] = (await db.query(
+    `SELECT items.name, l.name AS location_name
+       FROM items LEFT JOIN locations l ON l.id = items.location_id
+      WHERE items.id = ?1`,
+    [itemId],
+  )) as { name: string; location_name: string | null }[];
+  return {
+    itemName: item?.name ?? `물품 #${itemId}`,
+    locationName: item?.location_name ?? null,
+  };
+}
 
 // 신청 — 가용 검사는 reservations.service.createReservation에 위임
 // 동시 신청에도 이중 대여 불가 (D1 batch 원자 가드 + 대여 중 수량 검사)
@@ -91,6 +129,28 @@ reservationsRoute.post("/", async (c) => {
   const result = await createReservation(db, params);
 
   if ("ok" in result) {
+    // 관리자 알림 — 실패해도 응답에는 영향이 없다 (B-09 1단계)
+    if (isTelegramConfigured(c.env)) {
+      const pendingQty = result.segments
+        .filter((segment) => segment.status === "pending")
+        .reduce((sum, segment) => sum + segment.qty, 0);
+      const reservedQty = result.segments
+        .filter((segment) => segment.status === "reserved")
+        .reduce((sum, segment) => sum + segment.qty, 0);
+      runInBackground(c, async () => {
+        const label = await loadItemLabel(db, itemId);
+        await notifyReservationCreated(c.env, {
+          ...label,
+          qty,
+          pendingQty,
+          reservedQty,
+          dueAt,
+          memo,
+          memberName: user.name,
+          affiliation: user.affiliation,
+        });
+      });
+    }
     return c.json(
       { group_id: result.group_id, segments: result.segments },
       201,
@@ -176,14 +236,33 @@ reservationsRoute.post("/:id/return", async (c) => {
 
   const db: Sql = getDb(c.env);
   const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-  const result = await returnReservationByMember(
-    db,
-    id,
-    user.id,
-    normalizeReturnNote(body.note),
-  );
+  const note = normalizeReturnNote(body.note);
+  const result = await returnReservationByMember(db, id, user.id, note);
 
-  if ("ok" in result) return c.json({ ok: true });
+  if ("ok" in result) {
+    // 관리자 알림 — 회원이 직접 반납했음을 알린다 (B-09 1단계)
+    if (isTelegramConfigured(c.env)) {
+      runInBackground(c, async () => {
+        const [row] = (await db.query(
+          `SELECT COALESCE(r.item_name_snapshot, items.name) AS item_name,
+                  r.qty, r.return_note
+             FROM reservations r
+             JOIN items ON items.id = r.item_id
+            WHERE r.id = ?1`,
+          [id],
+        )) as { item_name: string; qty: number; return_note: string | null }[];
+        await notifyReservationReturned(c.env, {
+          itemName: row?.item_name ?? `대여 #${id}`,
+          qty: row?.qty ?? 1,
+          memberName: user.name,
+          affiliation: user.affiliation,
+          note: row?.return_note ?? note,
+          byMember: true,
+        });
+      });
+    }
+    return c.json({ ok: true });
+  }
   if (result.error === "bad_status")
     return c.json({ error: "bad_status" }, 409);
   return c.json({ error: "not_found" }, 404);

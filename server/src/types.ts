@@ -16,6 +16,11 @@ export type Bindings = {
   PHOTOS: R2Bucket;
   // Workers AI — 물품 임베딩 생성 (의미 검색)
   AI: Ai;
+  // 텔레그램 알림 (선택) — 관리자 단체방. 둘 중 하나라도 없으면 알림을 끈다.
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CHAT_ID?: string;
+  // 알림 메시지의 앱 링크 (예: https://item-rental.example.com). 없으면 링크를 뺀다.
+  PUBLIC_BASE_URL?: string;
 };
 
 // 미들웨어가 세팅하는 세션 사용자
