@@ -5,12 +5,16 @@
 import { test, expect, vi } from "vitest";
 import {
   escapeHtml,
+  formatDdayKst,
   formatDueDateKst,
+  formatDueDateLabelKst,
   formatDueDateShortKst,
   formatOverdueDigest,
   formatReservationApproved,
+  formatReservationApprovedBatch,
   formatReservationCreated,
   formatReservationRejected,
+  formatReservationRejectedBatch,
   formatReservationReturned,
   isTelegramConfigured,
   notifyReservationCreated,
@@ -129,15 +133,119 @@ test("formatReservationReturned: 관리자 반납은 라벨로 구분하고 긴 
   );
 });
 
-test("formatReservationApproved: 대여 시작을 한 줄로 알린다", () => {
-  const text = formatReservationApproved({
-    itemName: "텐트",
-    qty: 2,
-    memberName: "홍길동",
-    dueAt: "2026-11-16T14:59:59.999Z",
-  });
+test("formatDueDateLabelKst: 날짜에 요일을 붙인다", () => {
+  expect(formatDueDateLabelKst("2026-11-16T14:59:59.999Z")).toBe("11/16(월)");
+  expect(formatDueDateLabelKst(null)).toBeNull();
+});
 
-  expect(text).toBe("📦 <b>대여 시작</b>: 텐트 ×2 · 홍길동 · ~11/16");
+test("formatDdayKst: 반납일까지 남은 날짜를 D-day 로 표기한다", () => {
+  const now = new Date("2026-11-13T00:34:00Z"); // KST 11/13 09:34
+  expect(formatDdayKst("2026-11-15T14:59:59.999Z", now)).toBe("D-2");
+  expect(formatDdayKst("2026-11-13T14:59:59.999Z", now)).toBe("D-day");
+  expect(formatDdayKst("2026-11-12T14:59:59.999Z", now)).toBe("D+1");
+});
+
+test("formatReservationApproved: 대여 시작을 한 줄로 알린다", () => {
+  const text = formatReservationApproved(
+    {
+      itemName: "텐트",
+      qty: 2,
+      memberName: "홍길동",
+      dueAt: "2026-11-16T14:59:59.999Z",
+    },
+    new Date("2026-11-13T00:34:00Z"),
+  );
+
+  expect(text).toBe("📦 <b>대여 시작</b>: 텐트 ×2 · 홍길동 · ~11/16(월) · D-3");
+});
+
+test("formatReservationApprovedBatch: 한 회원이면 단건 알림과 같은 한 줄로 만든다", () => {
+  const dueAt = "2026-11-15T14:59:59.999Z";
+  const text = formatReservationApprovedBatch(
+    [
+      { itemName: "명찰", qty: 35, memberName: "62391이승재", dueAt },
+      { itemName: "제기", qty: 1, memberName: "62391이승재", dueAt },
+      {
+        itemName: "스피커(마이크 유선1개/무선 1개,리모컨,건전지,어뎁터)",
+        qty: 1,
+        memberName: "62391이승재",
+        dueAt,
+      },
+    ],
+    new Date("2026-11-13T00:34:00Z"),
+  );
+
+  expect(text).toBe(
+    "📦 <b>대여 시작</b>: 명찰 ×35, 제기, 스피커(마이크 유선1개/무선 1개,리모컨,건전지,어뎁터) · 62391이승재 · ~11/15(일) · D-2",
+  );
+  expect(text).not.toContain("\n");
+});
+
+test("formatReservationApprovedBatch: 반납일이 다르면 물품별로 적는다", () => {
+  const text = formatReservationApprovedBatch(
+    [
+      {
+        itemName: "텐트",
+        qty: 2,
+        memberName: "홍길동",
+        dueAt: "2026-11-16T14:59:59.999Z",
+      },
+      {
+        itemName: "의자",
+        qty: 1,
+        memberName: "홍길동",
+        dueAt: "2026-11-20T14:59:59.999Z",
+      },
+    ],
+    new Date("2026-11-13T00:34:00Z"),
+  );
+
+  expect(text).toBe(
+    "📦 <b>대여 시작</b>: 텐트 ×2 ~11/16(월), 의자 ~11/20(금) · 홍길동",
+  );
+});
+
+test("formatReservationApprovedBatch: 여러 회원이면 회원마다 한 줄로 나눈다", () => {
+  const text = formatReservationApprovedBatch(
+    [
+      {
+        itemName: "텐트",
+        qty: 2,
+        memberName: "홍길동",
+        dueAt: "2026-11-16T14:59:59.999Z",
+      },
+      {
+        itemName: "주차콘",
+        qty: 1,
+        memberName: "김하늘",
+        dueAt: "2026-11-20T14:59:59.999Z",
+      },
+    ],
+    new Date("2026-11-13T00:34:00Z"),
+  );
+
+  expect(text).toBe(
+    [
+      "📦 <b>대여 시작</b>",
+      "홍길동 · 텐트 ×2 · ~11/16(월) · D-3",
+      "김하늘 · 주차콘 · ~11/20(금) · D-7",
+    ].join("\n"),
+  );
+});
+
+test("formatReservationApprovedBatch: 목록이 길면 뒤를 외 N종으로 접는다", () => {
+  const dueAt = "2026-11-15T14:59:59.999Z";
+  const items = Array.from({ length: 20 }, (_, index) => ({
+    itemName: `아주 긴 물품 이름 ${index + 1}`,
+    qty: 1,
+    memberName: "홍길동",
+    dueAt,
+  }));
+  const text = formatReservationApprovedBatch(items, new Date("2026-11-13T00:34:00Z"));
+
+  expect(text).toContain("외 ");
+  expect(text).toContain("종 · 홍길동");
+  expect(text).not.toContain("\n");
 });
 
 test("formatReservationRejected: 거절 사유를 붙인다", () => {
@@ -150,6 +258,33 @@ test("formatReservationRejected: 거절 사유를 붙인다", () => {
 
   expect(text).toBe(
     "🚫 <b>거절</b>: 텐트 · 홍길동 · 사유: 재고가 부족합니다",
+  );
+});
+
+test("formatReservationRejectedBatch: 한 회원이면 사유까지 한 줄로 만든다", () => {
+  const text = formatReservationRejectedBatch([
+    { itemName: "텐트", qty: 2, memberName: "홍길동", reason: "재고 부족" },
+    { itemName: "의자", qty: 1, memberName: "홍길동", reason: "재고 부족" },
+  ]);
+
+  expect(text).toBe(
+    "🚫 <b>거절</b>: 텐트 ×2, 의자 · 홍길동 · 사유: 재고 부족",
+  );
+  expect(text).not.toContain("\n");
+});
+
+test("formatReservationRejectedBatch: 여러 회원이면 회원마다 한 줄로 나눈다", () => {
+  const text = formatReservationRejectedBatch([
+    { itemName: "텐트", qty: 2, memberName: "홍길동", reason: "재고 부족" },
+    { itemName: "주차콘", qty: 1, memberName: "김하늘", reason: "재고 부족" },
+  ]);
+
+  expect(text).toBe(
+    [
+      "🚫 <b>거절</b> · 사유: 재고 부족",
+      "홍길동 · 텐트 ×2",
+      "김하늘 · 주차콘",
+    ].join("\n"),
   );
 });
 

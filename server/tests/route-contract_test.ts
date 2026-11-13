@@ -240,6 +240,147 @@ test("admin reservations: 승인·거절 전이와 거절 사유를 검증한다
   } finally { db.close(); }
 });
 
+test("admin reservations: 일괄 승인은 여러 건을 한 번에 전이하고 결과를 나눠 돌려준다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const admin = await member("admin", "admin");
+    const user = await member("user", "user");
+    db.exec("INSERT INTO items (id, name, kind, total_qty) VALUES (1, '텐트', 'rental', 3);");
+    db.exec(
+      `INSERT INTO reservations (id, item_id, member_id, qty, status) VALUES
+        (1, 1, 'user', 1, 'pending'),
+        (2, 1, 'user', 1, 'pending'),
+        (3, 1, 'user', 1, 'pending'),
+        (4, 1, 'user', 1, 'rejected');`,
+    );
+
+    // 일반 회원은 일괄 승인도 불가
+    expect((await request("/api/admin/reservations/approve", {
+      method: "POST",
+      headers: { cookie: user, ...json },
+      body: JSON.stringify({ ids: [1] }),
+    })).status).toBe(403);
+
+    // ids 없는 요청은 400
+    const empty = await request("/api/admin/reservations/approve", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+      body: JSON.stringify({ ids: [] }),
+    });
+    expect(empty.status).toBe(400);
+    expect(await empty.json()).toEqual({ error: "ids_required" });
+
+    // 중복 id 는 한 번만, 이미 처리된 건은 failed 로 남고 나머지는 승인된다.
+    const res = await request("/api/admin/reservations/approve", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+      body: JSON.stringify({ ids: [1, 1, 2, 4], due_date: defaultDueDateKst() }),
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      approved: [1, 2],
+      failed: [{ id: 4, error: "bad_status" }],
+    });
+    expect(
+      db.prepare("SELECT id, status FROM reservations WHERE id IN (1, 2, 4) ORDER BY id").all(),
+    ).toEqual([
+      { id: 1, status: "rented" },
+      { id: 2, status: "rented" },
+      { id: 4, status: "rejected" },
+    ]);
+
+    // 전부 실패하면 409 — 첫 실패 사유를 에러 코드로 쓴다.
+    const none = await request("/api/admin/reservations/approve", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+      body: JSON.stringify({ ids: [1, 4] }),
+    });
+    expect(none.status).toBe(409);
+    expect(await none.json()).toEqual({
+      error: "bad_status",
+      approved: [],
+      failed: [
+        { id: 1, error: "bad_status" },
+        { id: 4, error: "bad_status" },
+      ],
+    });
+  } finally { db.close(); }
+});
+
+test("admin reservations: 일괄 거절은 같은 사유로 여러 건을 전이하고 결과를 나눠 돌려준다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const admin = await member("admin", "admin");
+    const user = await member("user", "user");
+    db.exec("INSERT INTO items (id, name, kind, total_qty) VALUES (1, '텐트', 'rental', 3);");
+    db.exec(
+      `INSERT INTO reservations (id, item_id, member_id, qty, status) VALUES
+        (1, 1, 'user', 1, 'pending'),
+        (2, 1, 'user', 1, 'pending'),
+        (3, 1, 'user', 1, 'rented');`,
+    );
+
+    // 일반 회원은 일괄 거절도 불가
+    expect((await request("/api/admin/reservations/reject", {
+      method: "POST",
+      headers: { cookie: user, ...json },
+      body: JSON.stringify({ ids: [1], reason: "재고 부족" }),
+    })).status).toBe(403);
+
+    // ids·사유 없는 요청은 400
+    const empty = await request("/api/admin/reservations/reject", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+      body: JSON.stringify({ ids: [], reason: "재고 부족" }),
+    });
+    expect(empty.status).toBe(400);
+    expect(await empty.json()).toEqual({ error: "ids_required" });
+
+    const noReason = await request("/api/admin/reservations/reject", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+      body: JSON.stringify({ ids: [1] }),
+    });
+    expect(noReason.status).toBe(400);
+    expect(await noReason.json()).toEqual({ error: "reason_required" });
+
+    // 중복 id 는 한 번만, 이미 처리된 건은 failed 로 남고 나머지는 거절된다.
+    const res = await request("/api/admin/reservations/reject", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+      body: JSON.stringify({ ids: [1, 1, 2, 3], reason: "재고 부족" }),
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      rejected: [1, 2],
+      failed: [{ id: 3, error: "bad_status" }],
+    });
+    expect(
+      db.prepare("SELECT id, status, rejected_reason FROM reservations WHERE id IN (1, 2, 3) ORDER BY id").all(),
+    ).toEqual([
+      { id: 1, status: "rejected", rejected_reason: "재고 부족" },
+      { id: 2, status: "rejected", rejected_reason: "재고 부족" },
+      { id: 3, status: "rented", rejected_reason: null },
+    ]);
+
+    // 전부 실패하면 409 — 첫 실패 사유를 에러 코드로 쓴다.
+    const none = await request("/api/admin/reservations/reject", {
+      method: "POST",
+      headers: { cookie: admin, ...json },
+      body: JSON.stringify({ ids: [1, 3], reason: "재고 부족" }),
+    });
+    expect(none.status).toBe(409);
+    expect(await none.json()).toEqual({
+      error: "bad_status",
+      rejected: [],
+      failed: [
+        { id: 1, error: "bad_status" },
+        { id: 3, error: "bad_status" },
+      ],
+    });
+  } finally { db.close(); }
+});
+
 test("admin reservations: pending·rejected 상태로 목록을 거를 수 있다", async () => {
   const { db, request, member } = httpFixture();
   try {

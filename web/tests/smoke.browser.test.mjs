@@ -914,6 +914,47 @@ try {
     await context.close();
   }
 
+  // 13-2) 관리자는 여러 건을 선택해 한 번에 승인하거나 거절한다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, ADMIN);
+    let approveBody = null;
+    let rejectBody = null;
+    await page.route("**/api/admin/reservations/approve", async (route) => {
+      approveBody = route.request().postDataJSON();
+      await route.fulfill({ json: { approved: [4, 6], failed: [] } });
+    });
+    await page.route("**/api/admin/reservations/reject", async (route) => {
+      rejectBody = route.request().postDataJSON();
+      await route.fulfill({ json: { rejected: [4, 6], failed: [] } });
+    });
+    await page.goto(new URL("admin/reservations", base).href);
+    const pending = page.locator(".reservation-row", { hasText: "주말 캠핑" });
+    const reserved = page.locator(".reservation-row", { hasText: "무선 마이크" });
+    await pending.getByRole("checkbox").check();
+    await reserved.getByRole("checkbox").check();
+    await page.getByText("2건 선택", { exact: true }).waitFor();
+
+    await page.getByRole("button", { name: "선택 승인 (2)", exact: true }).click();
+    const approveDialog = page.getByRole("dialog");
+    await approveDialog.getByRole("button", { name: "2건 승인", exact: true }).click();
+    await page.getByText("2건을 승인했습니다", { exact: true }).waitFor();
+    assert.deepEqual(approveBody?.ids, [4, 6]);
+    assert.ok(approveBody?.due_date, "일괄 승인에도 반납 예정일이 담겨야 한다");
+
+    await pending.getByRole("checkbox").check();
+    await reserved.getByRole("checkbox").check();
+    await page.getByRole("button", { name: "선택 거절 (2)", exact: true }).click();
+    const rejectDialog = page.getByRole("dialog");
+    await rejectDialog.getByLabel("거절 사유 *").fill("행사 취소");
+    await rejectDialog.getByRole("button", { name: "2건 거절", exact: true }).click();
+    await page.getByText("2건을 거절했습니다", { exact: true }).waitFor();
+    assert.deepEqual(rejectBody, { ids: [4, 6], reason: "행사 취소" });
+    console.log("PASS admin bulk approve and reject flows");
+    await context.close();
+  }
+
   // 14) 회원이 관리자 화면을 열면 권한 안내가 있는 홈으로 보낸다.
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });

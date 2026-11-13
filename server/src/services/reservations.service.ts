@@ -227,30 +227,45 @@ export async function getReservationNotice(
   db: Sql,
   reservationId: number,
 ): Promise<ReservationNotice | null> {
-  const [row] = (await db.query(
-    `SELECT COALESCE(r.item_name_snapshot, items.name) AS item_name,
+  const [notice] = await getReservationNotices(db, [reservationId]);
+  return notice ?? null;
+}
+
+// 여러 건을 한 쿼리로 — 일괄 승인 알림이 건마다 조회하지 않게 한다.
+export async function getReservationNotices(
+  db: Sql,
+  reservationIds: number[],
+): Promise<(ReservationNotice & { id: number })[]> {
+  if (reservationIds.length === 0) return [];
+  // D1 은 ?1, ?2 … 번호 파라미터를 쓴다.
+  const placeholders = reservationIds.map((_, index) => `?${index + 1}`).join(", ");
+  const rows = (await db.query(
+    `SELECT r.id,
+            COALESCE(r.item_name_snapshot, items.name) AS item_name,
             r.qty, r.due_at, r.return_note,
             members.name AS member_name
        FROM reservations r
        JOIN items ON items.id = r.item_id
        JOIN members ON members.id = r.member_id
-      WHERE r.id = ?1`,
-    [reservationId],
+      WHERE r.id IN (${placeholders})
+      ORDER BY r.id`,
+    reservationIds,
   )) as {
+    id: number;
     item_name: string;
     qty: number;
     due_at: string | null;
     return_note: string | null;
     member_name: string;
   }[];
-  if (!row) return null;
-  return {
+  return rows.map((row) => ({
+    id: row.id,
     itemName: row.item_name,
     qty: row.qty,
     memberName: row.member_name,
     dueAt: row.due_at,
     returnNote: row.return_note,
-  };
+  }));
 }
 
 // ===== 내 대여 조회 () =====

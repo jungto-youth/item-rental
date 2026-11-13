@@ -54,6 +54,77 @@ export function formatDueDateShortKst(
   return full ? full.slice(5).replace("-", "/") : null;
 }
 
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+// "11/16(일)" — 요일까지 붙이면 날짜를 머릿속으로 계산하지 않아도 된다.
+export function formatDueDateLabelKst(
+  dueAt: string | null | undefined,
+): string | null {
+  const full = formatDueDateKst(dueAt);
+  if (!full) return null;
+  // 달력 날짜의 요일 — UTC 자정으로 파싱하면 시간대와 무관하게 그 날짜의 요일이 나온다.
+  const weekday = WEEKDAYS[new Date(`${full}T00:00:00Z`).getUTCDay()];
+  return `${full.slice(5).replace("-", "/")}(${weekday})`;
+}
+
+// "D-2" / "D-day" / "D+1"(지남) — 반납일이 얼마나 남았는지 한눈에.
+export function formatDdayKst(
+  dueAt: string | null | undefined,
+  now: Date = new Date(),
+): string | null {
+  const dueFull = formatDueDateKst(dueAt);
+  const todayFull = formatDueDateKst(now.toISOString());
+  if (!dueFull || !todayFull) return null;
+  const days = Math.round(
+    (Date.parse(`${dueFull}T00:00:00Z`) - Date.parse(`${todayFull}T00:00:00Z`)) /
+      86_400_000,
+  );
+  if (days === 0) return "D-day";
+  return days > 0 ? `D-${days}` : `D+${-days}`;
+}
+
+// 한 줄에 담는 물품 목록의 상한(문자 수). 넘으면 뒤를 "외 N종"으로 접어
+// 단체방에서 메시지가 여러 줄로 늘어지지 않게 한다.
+const ITEM_LIST_MAX = 120;
+
+// 물품 목록을 ", "로 잇는다. 반납일이 물품마다 다르면 이름 뒤에 짧게 붙인다.
+function joinItemList(
+  rows: { itemName: string; qty: number }[],
+  dueLabels: (string | null)[] | null = null,
+): string {
+  const labels = rows.map((row, index) => {
+    const name = `${escapeHtml(oneLine(row.itemName))}${quantitySuffix(row.qty)}`;
+    const due = dueLabels?.[index];
+    return due ? `${name} ~${due}` : name;
+  });
+
+  const shown: string[] = [];
+  let length = 0;
+  for (const label of labels) {
+    // 첫 물품은 길어도 그대로 둔다 — 목록이 통째로 사라지는 것보다 낫다.
+    if (shown.length > 0 && length + label.length + 2 > ITEM_LIST_MAX) break;
+    shown.push(label);
+    length += label.length + 2;
+  }
+
+  const hidden = labels.length - shown.length;
+  return `${shown.join(", ")}${hidden > 0 ? ` 외 ${hidden}종` : ""}`;
+}
+
+// 회원 이름을 키로 묶는다 — 한 사람이 여러 물품을 빌린 경우가 가장 흔하다.
+function groupByMember<T extends { memberName: string }>(
+  notices: T[],
+): [string, T[]][] {
+  const groups = new Map<string, T[]>();
+  for (const notice of notices) {
+    const member = escapeHtml(oneLine(notice.memberName));
+    const rows = groups.get(member);
+    if (rows) rows.push(notice);
+    else groups.set(member, [notice]);
+  }
+  return [...groups];
+}
+
 // 사용자 입력이 메시지를 여러 줄로 만들지 않게 공백을 하나로 접는다.
 function oneLine(value: string): string {
   return value.replace(/\s+/g, " ").trim();
@@ -203,12 +274,15 @@ export type ReservationApprovedNotice = {
 
 export function formatReservationApproved(
   notice: ReservationApprovedNotice,
+  now: Date = new Date(),
 ): string {
-  const due = formatDueDateShortKst(notice.dueAt);
+  const due = formatDueDateLabelKst(notice.dueAt);
+  const dday = formatDdayKst(notice.dueAt, now);
   return joinParts([
     `📦 <b>대여 시작</b>: ${escapeHtml(oneLine(notice.itemName))}${quantitySuffix(notice.qty)}`,
     escapeHtml(oneLine(notice.memberName)),
     due ? `~${due}` : null,
+    dday,
   ]);
 }
 
@@ -218,6 +292,58 @@ export async function notifyReservationApproved(
   fetchImpl: typeof fetch = fetch,
 ): Promise<boolean> {
   return sendTelegram(env, formatReservationApproved(notice), fetchImpl);
+}
+
+// 관리자 화면에서 여러 건을 한 번에 승인했을 때 — 건별 메시지 대신 묶음 1건.
+// 한 회원이면 기존 단건 알림과 같은 한 줄 모양을 유지하고, 물품만 ", "로 잇는다.
+// 여러 회원이면 회원마다 한 줄씩 — 각 줄은 독립적으로 읽힌다.
+export function formatReservationApprovedBatch(
+  notices: ReservationApprovedNotice[],
+  now: Date = new Date(),
+): string {
+  if (notices.length === 0) return "";
+
+  const groups = groupByMember(notices).map(([member, rows]) => {
+    const labels = rows.map((row) => formatDueDateLabelKst(row.dueAt));
+    // 반납일이 모두 같으면 목록 끝에 한 번만, 다르면 물품 이름 뒤에 붙인다.
+    const sharedDue =
+      labels.every((label) => label !== null && label === labels[0])
+        ? labels[0]
+        : null;
+    return {
+      member,
+      items: joinItemList(rows, sharedDue ? null : labels),
+      due: sharedDue ? `~${sharedDue}` : null,
+      dday: sharedDue ? formatDdayKst(rows[0].dueAt, now) : null,
+    };
+  });
+
+  // 가장 흔한 경우(한 회원)는 통째로 한 줄 — 기존 단건 알림과 같은 순서로 읽힌다.
+  const [only] = groups;
+  if (groups.length === 1) {
+    return joinParts([
+      `📦 <b>대여 시작</b>: ${only.items}`,
+      only.member,
+      only.due,
+      only.dday,
+    ]);
+  }
+
+  return [
+    `📦 <b>대여 시작</b>`,
+    ...groups.map((group) =>
+      joinParts([group.member, group.items, group.due, group.dday]),
+    ),
+  ].join("\n");
+}
+
+export async function notifyReservationApprovedBatch(
+  env: TelegramEnv,
+  notices: ReservationApprovedNotice[],
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  if (notices.length === 0) return false;
+  return sendTelegram(env, formatReservationApprovedBatch(notices), fetchImpl);
 }
 
 export type ReservationRejectedNotice = {
@@ -246,6 +372,46 @@ export async function notifyReservationRejected(
   fetchImpl: typeof fetch = fetch,
 ): Promise<boolean> {
   return sendTelegram(env, formatReservationRejected(notice), fetchImpl);
+}
+
+// 관리자 화면에서 여러 건을 한 번에 거절했을 때 — 일괄 승인과 같은 한 줄 규칙.
+// 일괄 거절은 사유가 하나로 공통이므로 줄 끝에 한 번만 적는다.
+export function formatReservationRejectedBatch(
+  notices: ReservationRejectedNotice[],
+): string {
+  if (notices.length === 0) return "";
+
+  const groups = groupByMember(notices).map(([member, rows]) => ({
+    member,
+    items: joinItemList(rows),
+  }));
+
+  const reason = notices[0]?.reason.trim()
+    ? `사유: ${escapeHtml(clip(notices[0].reason, 40))}`
+    : null;
+
+  const [only] = groups;
+  if (groups.length === 1) {
+    return joinParts([
+      `🚫 <b>거절</b>: ${only.items}`,
+      only.member,
+      reason,
+    ]);
+  }
+
+  return [
+    joinParts([`🚫 <b>거절</b>`, reason]),
+    ...groups.map((group) => joinParts([group.member, group.items])),
+  ].join("\n");
+}
+
+export async function notifyReservationRejectedBatch(
+  env: TelegramEnv,
+  notices: ReservationRejectedNotice[],
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  if (notices.length === 0) return false;
+  return sendTelegram(env, formatReservationRejectedBatch(notices), fetchImpl);
 }
 
 // ===== 반납 지연 다이제스트 =====

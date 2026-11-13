@@ -8,6 +8,8 @@ type Props = {
   badgeKind?: string;
   active?: boolean;
   inlineActions?: boolean;
+  /** 제목 앞에 붙는 요소 — 관리자 목록의 선택 체크박스 등 */
+  leading?: JSX.Element;
   actions?: JSX.Element;
   children?: JSX.Element;
 };
@@ -25,6 +27,9 @@ export function ReservationRow(props: Props) {
             props.inlineActions ? "max-sm:flex-nowrap" : "max-sm:flex-wrap"
           }`}
         >
+          <Show when={props.leading}>
+            <span class="flex shrink-0 items-center">{props.leading}</span>
+          </Show>
           <span class="min-w-0 truncate text-body font-semibold tracking-tight">
             {props.title}
           </span>

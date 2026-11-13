@@ -32,6 +32,8 @@ const calls: { path: string; method: string; body?: string; contentType?: string
   { path: "/api/admin/members/1/role", method: "PUT", body: '{"role":"user"}', contentType: "application/json" },
   { path: "/api/admin/members/1/withdraw", method: "POST" },
   { path: "/api/admin/reservations", method: "GET" },
+  { path: "/api/admin/reservations/approve", method: "POST", body: '{"ids":[1]}', contentType: "application/json" },
+  { path: "/api/admin/reservations/reject", method: "POST", body: '{"ids":[1],"reason":"x"}', contentType: "application/json" },
   { path: "/api/admin/reservations/1/return", method: "POST" },
   { path: "/api/admin/allowed-emails", method: "GET" },
   { path: "/api/admin/allowed-emails", method: "POST", body: '{"email":"a@b.kr"}', contentType: "application/json" },

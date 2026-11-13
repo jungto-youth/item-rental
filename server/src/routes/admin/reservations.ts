@@ -18,12 +18,15 @@ import {
   approveReservation,
   rejectReservation,
   getReservationNotice,
+  getReservationNotices,
   type TransitionResult,
 } from "../../services/reservations.service";
 import {
   isTelegramConfigured,
   notifyReservationApproved,
+  notifyReservationApprovedBatch,
   notifyReservationRejected,
+  notifyReservationRejectedBatch,
   notifyReservationReturned,
 } from "../../services/telegram.service";
 import {
@@ -50,6 +53,21 @@ function mapTransition(c: Ctx, result: TransitionResult): Response {
   return c.json({ error: "bad_status" }, 409);
 }
 
+// 승인 요청의 due_date 파싱 — 단건·일괄 라우트가 같은 규칙을 쓴다.
+function parseDueDateBody(
+  body: Record<string, unknown>,
+):
+  | { ok: true; dueAt: string | null }
+  | { ok: false; error: "bad_due_date" | "due_date_out_of_range" } {
+  const raw = typeof body.due_date === "string" ? body.due_date.trim() : "";
+  if (!raw) return { ok: true, dueAt: null };
+  if (!isIsoDate(raw)) return { ok: false, error: "bad_due_date" };
+  if (!isDueDateInRange(raw)) return { ok: false, error: "due_date_out_of_range" };
+  const dueAt = dueAtFromKstDate(raw);
+  if (!dueAt) return { ok: false, error: "bad_due_date" };
+  return { ok: true, dueAt };
+}
+
 // 목록 — 대여 중이 맨 위, 최근 신청순
 adminReservationsRoute.get("/", async (c) => {
   const status = c.req.query("status") || null;
@@ -69,16 +87,9 @@ adminReservationsRoute.post("/:id/approve", async (c) => {
   if (!Number.isInteger(id)) return c.json({ error: "bad_id" }, 400);
 
   const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
-  const dueDateRaw = typeof body.due_date === "string" ? body.due_date.trim() : "";
-  let dueAt: string | null = null;
-  if (dueDateRaw) {
-    if (!isIsoDate(dueDateRaw)) return c.json({ error: "bad_due_date" }, 400);
-    if (!isDueDateInRange(dueDateRaw)) {
-      return c.json({ error: "due_date_out_of_range" }, 400);
-    }
-    dueAt = dueAtFromKstDate(dueDateRaw);
-    if (!dueAt) return c.json({ error: "bad_due_date" }, 400);
-  }
+  const due = parseDueDateBody(body);
+  if (!due.ok) return c.json({ error: due.error }, 400);
+  const dueAt = due.dueAt;
 
   const db: Sql = getDb(c.env);
   const result = await approveReservation(db, id, c.get("user")!.id, dueAt);
@@ -102,6 +113,130 @@ adminReservationsRoute.post("/:id/approve", async (c) => {
   if (result.error === "due_date_required")
     return c.json({ error: "due_date_required" }, 409);
   return c.json({ error: result.error }, 409);
+});
+
+// 일괄 라우트 공용 — D1 부하와 텔레그램 폭주를 막기 위해 한 번에 50건까지만 받는다.
+const MAX_BATCH_IDS = 50;
+
+function parseBatchIds(body: Record<string, unknown>): number[] {
+  const rawIds = Array.isArray(body.ids) ? body.ids : [];
+  return [
+    ...new Set(
+      rawIds.filter(
+        (value): value is number => Number.isInteger(value) && (value as number) > 0,
+      ),
+    ),
+  ];
+}
+
+// 일괄 승인 — 관리자 화면에서 여러 건을 한 번에 승인한다.
+// 건별 라우트를 N번 부르면 텔레그램에 N건이 쌓이므로, 여기서 전이를 모아
+// 알림을 회원별 묶음 1건으로 보낸다. 일부 실패는 정상 흐름이라 approved/failed 로 나눈다.
+adminReservationsRoute.post("/approve", async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const ids = parseBatchIds(body);
+  if (ids.length === 0) return c.json({ error: "ids_required" }, 400);
+  if (ids.length > MAX_BATCH_IDS) {
+    return c.json({ error: "too_many_ids" }, 400);
+  }
+
+  const due = parseDueDateBody(body);
+  if (!due.ok) return c.json({ error: due.error }, 400);
+
+  const db: Sql = getDb(c.env);
+  const adminId = c.get("user")!.id;
+  const approved: number[] = [];
+  const failed: { id: number; error: string }[] = [];
+
+  // D1 은 문장 단위로만 원자적이라 순차 처리한다 — 한 건이 실패해도 나머지는 계속한다.
+  for (const id of ids) {
+    const result = await approveReservation(db, id, adminId, due.dueAt);
+    if ("ok" in result) approved.push(id);
+    else failed.push({ id, error: result.error });
+  }
+
+  if (approved.length === 0) {
+    return c.json({ error: failed[0]?.error ?? "bad_status", approved, failed }, 409);
+  }
+
+  if (isTelegramConfigured(c.env)) {
+    runInBackground(c, async () => {
+      const notices = await getReservationNotices(db, approved);
+      if (notices.length === 0) return;
+      // 한 건뿐이면 기존 한 줄 알림을 그대로 쓴다 — 선택 승인 1건이 길어지지 않게.
+      if (notices.length === 1) {
+        const [notice] = notices;
+        await notifyReservationApproved(c.env, {
+          itemName: notice.itemName,
+          qty: notice.qty,
+          memberName: notice.memberName,
+          dueAt: notice.dueAt,
+        });
+        return;
+      }
+      await notifyReservationApprovedBatch(
+        c.env,
+        notices.map((notice) => ({
+          itemName: notice.itemName,
+          qty: notice.qty,
+          memberName: notice.memberName,
+          dueAt: notice.dueAt,
+        })),
+      );
+    });
+  }
+
+  return c.json({ approved, failed });
+});
+
+// 일괄 거절 — 선택한 신청에 같은 사유를 적용한다. 승인과 같은 이유로 건별 호출 대신
+// 한 라우트에서 모아 처리하고, 텔레그램은 회원별 묶음 1건으로 보낸다.
+adminReservationsRoute.post("/reject", async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+  const ids = parseBatchIds(body);
+  if (ids.length === 0) return c.json({ error: "ids_required" }, 400);
+  if (ids.length > MAX_BATCH_IDS) {
+    return c.json({ error: "too_many_ids" }, 400);
+  }
+
+  const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+  if (!reason) return c.json({ error: "reason_required" }, 400);
+
+  const db: Sql = getDb(c.env);
+  const adminId = c.get("user")!.id;
+  const rejected: number[] = [];
+  const failed: { id: number; error: string }[] = [];
+
+  for (const id of ids) {
+    const result = await rejectReservation(db, id, adminId, reason);
+    if ("ok" in result) rejected.push(id);
+    else failed.push({ id, error: result.error });
+  }
+
+  if (rejected.length === 0) {
+    return c.json({ error: failed[0]?.error ?? "bad_status", rejected, failed }, 409);
+  }
+
+  if (isTelegramConfigured(c.env)) {
+    runInBackground(c, async () => {
+      const notices = await getReservationNotices(db, rejected);
+      if (notices.length === 0) return;
+      const payload = notices.map((notice) => ({
+        itemName: notice.itemName,
+        qty: notice.qty,
+        memberName: notice.memberName,
+        reason,
+      }));
+      // 한 건뿐이면 기존 한 줄 알림을 그대로 쓴다 — 선택 거절 1건이 길어지지 않게.
+      if (payload.length === 1) {
+        await notifyReservationRejected(c.env, payload[0]);
+        return;
+      }
+      await notifyReservationRejectedBatch(c.env, payload);
+    });
+  }
+
+  return c.json({ rejected, failed });
 });
 
 // 거절 — pending → rejected. 사유는 필수다.
