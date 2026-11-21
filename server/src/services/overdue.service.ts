@@ -19,6 +19,7 @@ type OverdueRow = {
   qty: number;
   due_at: string | null;
   member_name: string;
+  member_phone: string | null;
 };
 
 // 실패해도 throw 하지 않는다 — Cron 이 재시도 폭주하지 않게 로그만 남긴다.
@@ -43,7 +44,8 @@ export async function sendOverdueDigest(
 
     const rows = (await db.query(
       `SELECT COALESCE(r.item_name_snapshot, items.name) AS item_name,
-              r.qty, r.due_at, members.name AS member_name
+              r.qty, r.due_at, members.name AS member_name,
+              members.phone AS member_phone
          FROM reservations r
          JOIN items ON items.id = r.item_id
          JOIN members ON members.id = r.member_id
@@ -68,6 +70,7 @@ export async function sendOverdueDigest(
       itemName: row.item_name,
       qty: row.qty,
       memberName: row.member_name,
+      memberPhone: row.member_phone,
       dueAt: row.due_at,
     }));
     const sent = await notifyOverdueDigest(env, entries, total, fetchImpl);

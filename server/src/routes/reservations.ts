@@ -124,6 +124,7 @@ reservationsRoute.post("/", async (c) => {
           reservedQty,
           dueAt,
           memberName: user.name,
+          memberPhone: user.phone,
         });
       });
     }
@@ -225,6 +226,7 @@ reservationsRoute.post("/:id/return", async (c) => {
           itemName: notice.itemName,
           qty: notice.qty,
           memberName: notice.memberName,
+          memberPhone: notice.memberPhone,
           note: notice.returnNote ?? note,
           byMember: true,
         });

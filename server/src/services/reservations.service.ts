@@ -219,6 +219,7 @@ export type ReservationNotice = {
   itemName: string;
   qty: number;
   memberName: string;
+  memberPhone: string | null;
   dueAt: string | null;
   returnNote: string | null;
 };
@@ -243,7 +244,7 @@ export async function getReservationNotices(
     `SELECT r.id,
             COALESCE(r.item_name_snapshot, items.name) AS item_name,
             r.qty, r.due_at, r.return_note,
-            members.name AS member_name
+            members.name AS member_name, members.phone AS member_phone
        FROM reservations r
        JOIN items ON items.id = r.item_id
        JOIN members ON members.id = r.member_id
@@ -257,12 +258,14 @@ export async function getReservationNotices(
     due_at: string | null;
     return_note: string | null;
     member_name: string;
+    member_phone: string | null;
   }[];
   return rows.map((row) => ({
     id: row.id,
     itemName: row.item_name,
     qty: row.qty,
     memberName: row.member_name,
+    memberPhone: row.member_phone,
     dueAt: row.due_at,
     returnNote: row.return_note,
   }));

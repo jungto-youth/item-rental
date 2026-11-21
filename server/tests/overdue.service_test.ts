@@ -17,8 +17,8 @@ function withTelegram(env: Bindings): Bindings {
 
 function seedOverdue(db: ReturnType<typeof httpFixture>["db"]): void {
   db.exec(`
-    INSERT INTO members (id, email, name, role)
-    VALUES ('m1', 'm1@jungto.org', '홍길동', 'user');
+    INSERT INTO members (id, email, name, phone, role)
+    VALUES ('m1', 'm1@jungto.org', '홍길동', '010-1234-5678', 'user');
     INSERT INTO items (id, name, total_qty)
     VALUES (1, '텐트', 2);
     INSERT INTO reservations (id, item_id, member_id, status, qty, due_at, group_id)
@@ -48,7 +48,7 @@ test("sendOverdueDigest: 지연 건을 한 번만 보낸다", async () => {
     const body = JSON.parse(bodies[0]) as { text: string };
     expect(body.text).toContain("반납 지연");
     expect(body.text).toContain("텐트 ×2");
-    expect(body.text).toContain("홍길동");
+    expect(body.text).toContain("홍길동(010-1234-5678)");
     // 중복 방지 키가 하루치만 남는다
     const log = db
       .prepare("SELECT COUNT(*) AS n FROM notification_log")

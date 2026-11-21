@@ -111,6 +111,17 @@ function joinItemList(
   return `${shown.join(", ")}${hidden > 0 ? ` 외 ${hidden}종` : ""}`;
 }
 
+// "홍길동(010-1234-5678)" — 단체방에서 바로 연락할 수 있게 이름 옆에 붙인다.
+// 연락처가 비어 있으면 이름만 쓴다. 이름·연락처 모두 사용자 입력이라 이스케이프한다.
+function memberLabel(
+  name: string,
+  phone: string | null | undefined,
+): string {
+  const safeName = escapeHtml(oneLine(name));
+  const tel = phone ? oneLine(phone) : "";
+  return tel ? `${safeName}(${escapeHtml(tel)})` : safeName;
+}
+
 // 회원 이름을 키로 묶는다 — 한 사람이 여러 물품을 빌린 경우가 가장 흔하다.
 function groupByMember<T extends { memberName: string }>(
   notices: T[],
@@ -198,6 +209,7 @@ export type ReservationCreatedNotice = {
   reservedQty: number;
   dueAt: string | null;
   memberName: string;
+  memberPhone: string | null;
 };
 
 export function formatReservationCreated(
@@ -217,7 +229,7 @@ export function formatReservationCreated(
 
   return joinParts([
     `🔔 <b>${label}</b>: ${escapeHtml(oneLine(notice.itemName))}${quantitySuffix(notice.qty)}${reservedSuffix}`,
-    escapeHtml(oneLine(notice.memberName)),
+    memberLabel(notice.memberName, notice.memberPhone),
     due ? `~${due}` : null,
   ]);
 }
@@ -236,6 +248,7 @@ export type ReservationReturnedNotice = {
   itemName: string;
   qty: number;
   memberName: string;
+  memberPhone: string | null;
   note: string | null;
   // true = 회원이 직접 반납, false = 관리자가 처리
   byMember: boolean;
@@ -250,7 +263,7 @@ export function formatReservationReturned(
 
   return joinParts([
     `✅ <b>${label}</b>: ${escapeHtml(oneLine(notice.itemName))}${quantitySuffix(notice.qty)}`,
-    escapeHtml(oneLine(notice.memberName)),
+    memberLabel(notice.memberName, notice.memberPhone),
     note ? `⚠️ ${note}` : null,
   ]);
 }
@@ -269,6 +282,7 @@ export type ReservationApprovedNotice = {
   itemName: string;
   qty: number;
   memberName: string;
+  memberPhone: string | null;
   dueAt: string | null;
 };
 
@@ -280,7 +294,7 @@ export function formatReservationApproved(
   const dday = formatDdayKst(notice.dueAt, now);
   return joinParts([
     `📦 <b>대여 시작</b>: ${escapeHtml(oneLine(notice.itemName))}${quantitySuffix(notice.qty)}`,
-    escapeHtml(oneLine(notice.memberName)),
+    memberLabel(notice.memberName, notice.memberPhone),
     due ? `~${due}` : null,
     dday,
   ]);
@@ -303,7 +317,7 @@ export function formatReservationApprovedBatch(
 ): string {
   if (notices.length === 0) return "";
 
-  const groups = groupByMember(notices).map(([member, rows]) => {
+  const groups = groupByMember(notices).map(([, rows]) => {
     const labels = rows.map((row) => formatDueDateLabelKst(row.dueAt));
     // 반납일이 모두 같으면 목록 끝에 한 번만, 다르면 물품 이름 뒤에 붙인다.
     const sharedDue =
@@ -311,7 +325,7 @@ export function formatReservationApprovedBatch(
         ? labels[0]
         : null;
     return {
-      member,
+      member: memberLabel(rows[0].memberName, rows[0].memberPhone),
       items: joinItemList(rows, sharedDue ? null : labels),
       due: sharedDue ? `~${sharedDue}` : null,
       dday: sharedDue ? formatDdayKst(rows[0].dueAt, now) : null,
@@ -350,6 +364,7 @@ export type ReservationRejectedNotice = {
   itemName: string;
   qty: number;
   memberName: string;
+  memberPhone: string | null;
   reason: string;
 };
 
@@ -361,7 +376,7 @@ export function formatReservationRejected(
     : null;
   return joinParts([
     `🚫 <b>거절</b>: ${escapeHtml(oneLine(notice.itemName))}${quantitySuffix(notice.qty)}`,
-    escapeHtml(oneLine(notice.memberName)),
+    memberLabel(notice.memberName, notice.memberPhone),
     reason,
   ]);
 }
@@ -381,8 +396,8 @@ export function formatReservationRejectedBatch(
 ): string {
   if (notices.length === 0) return "";
 
-  const groups = groupByMember(notices).map(([member, rows]) => ({
-    member,
+  const groups = groupByMember(notices).map(([, rows]) => ({
+    member: memberLabel(rows[0].memberName, rows[0].memberPhone),
     items: joinItemList(rows),
   }));
 
@@ -420,6 +435,7 @@ export type OverdueEntry = {
   itemName: string;
   qty: number;
   memberName: string;
+  memberPhone: string | null;
   dueAt: string | null;
 };
 
@@ -434,8 +450,8 @@ export function formatOverdueDigest(
     .map((entry) => {
       const due = formatDueDateShortKst(entry.dueAt);
       const item = `${escapeHtml(oneLine(entry.itemName))}${quantitySuffix(entry.qty)}`;
-      const member = escapeHtml(oneLine(entry.memberName));
-      return `${item} · ${member}${due ? `(~${due})` : ""}`;
+      const member = memberLabel(entry.memberName, entry.memberPhone);
+      return `${item} · ${member}${due ? ` · ~${due}` : ""}`;
     })
     .join(" / ");
   const more =

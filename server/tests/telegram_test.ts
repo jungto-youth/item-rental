@@ -61,7 +61,7 @@ test("formatDueDateShortKst: 한 줄 메시지용 MM/DD 로 줄인다", () => {
   expect(formatDueDateShortKst(null)).toBeNull();
 });
 
-test("formatReservationCreated: 라벨·물품·수량·이름·날짜를 한 줄로 담는다", () => {
+test("formatReservationCreated: 라벨·물품·수량·이름·연락처·날짜를 한 줄로 담는다", () => {
   const text = formatReservationCreated({
     itemName: "텐트 <4인용>",
     qty: 3,
@@ -69,10 +69,11 @@ test("formatReservationCreated: 라벨·물품·수량·이름·날짜를 한 �
     reservedQty: 1,
     dueAt: "2026-11-16T14:59:59.999Z",
     memberName: "홍길동",
+    memberPhone: "010-1234-5678",
   });
 
   expect(text).toBe(
-    "🔔 <b>신청</b>: 텐트 &lt;4인용&gt; ×3 (예약 1) · 홍길동 · ~11/16",
+    "🔔 <b>신청</b>: 텐트 &lt;4인용&gt; ×3 (예약 1) · 홍길동(010-1234-5678) · ~11/16",
   );
   // 단체방을 여러 줄 차지하지 않도록 한 줄로 보낸다
   expect(text).not.toContain("\n");
@@ -86,10 +87,11 @@ test("formatReservationCreated: 전부 예약이면 라벨이 예약이고 날�
     reservedQty: 2,
     dueAt: "2026-11-16T14:59:59.999Z",
     memberName: "김회원",
+    memberPhone: "010-2222-3333",
   });
 
   // 예약 행은 due_at 이 NULL 이라 승인 전에는 날짜를 알 수 없다
-  expect(text).toBe("🔔 <b>예약</b>: 의자 ×2 · 김회원");
+  expect(text).toBe("🔔 <b>예약</b>: 의자 ×2 · 김회원(010-2222-3333)");
 });
 
 test("formatReservationCreated: 1개는 수량을 생략하고 입력의 줄바꿈을 접는다", () => {
@@ -100,6 +102,7 @@ test("formatReservationCreated: 1개는 수량을 생략하고 입력의 줄바�
     reservedQty: 0,
     dueAt: "2026-11-16T14:59:59.999Z",
     memberName: "홍\n길동",
+    memberPhone: null,
   });
 
   expect(text).toBe("🔔 <b>신청</b>: 텐트 4인용 · 홍 길동 · ~11/16");
@@ -111,11 +114,14 @@ test("formatReservationReturned: 회원 반납과 특이사항을 한 줄로 담
     itemName: "빔 프로젝터",
     qty: 1,
     memberName: "홍길동",
+    memberPhone: "010-1234-5678",
     note: "렌즈 캡 분실",
     byMember: true,
   });
 
-  expect(text).toBe("✅ <b>반납</b>: 빔 프로젝터 · 홍길동 · ⚠️ 렌즈 캡 분실");
+  expect(text).toBe(
+    "✅ <b>반납</b>: 빔 프로젝터 · 홍길동(010-1234-5678) · ⚠️ 렌즈 캡 분실",
+  );
   expect(text).not.toContain("\n");
 });
 
@@ -124,6 +130,7 @@ test("formatReservationReturned: 관리자 반납은 라벨로 구분하고 긴 
     itemName: "텐트",
     qty: 2,
     memberName: "홍길동",
+    memberPhone: null,
     note: "가".repeat(50),
     byMember: false,
   });
@@ -151,24 +158,40 @@ test("formatReservationApproved: 대여 시작을 한 줄로 알린다", () => {
       itemName: "텐트",
       qty: 2,
       memberName: "홍길동",
+      memberPhone: "010-1234-5678",
       dueAt: "2026-11-16T14:59:59.999Z",
     },
     new Date("2026-11-13T00:34:00Z"),
   );
 
-  expect(text).toBe("📦 <b>대여 시작</b>: 텐트 ×2 · 홍길동 · ~11/16(월) · D-3");
+  expect(text).toBe(
+    "📦 <b>대여 시작</b>: 텐트 ×2 · 홍길동(010-1234-5678) · ~11/16(월) · D-3",
+  );
 });
 
 test("formatReservationApprovedBatch: 한 회원이면 단건 알림과 같은 한 줄로 만든다", () => {
   const dueAt = "2026-11-15T14:59:59.999Z";
   const text = formatReservationApprovedBatch(
     [
-      { itemName: "명찰", qty: 35, memberName: "62391이승재", dueAt },
-      { itemName: "제기", qty: 1, memberName: "62391이승재", dueAt },
+      {
+        itemName: "명찰",
+        qty: 35,
+        memberName: "62391이승재",
+        memberPhone: "010-1111-2222",
+        dueAt,
+      },
+      {
+        itemName: "제기",
+        qty: 1,
+        memberName: "62391이승재",
+        memberPhone: "010-1111-2222",
+        dueAt,
+      },
       {
         itemName: "스피커(마이크 유선1개/무선 1개,리모컨,건전지,어뎁터)",
         qty: 1,
         memberName: "62391이승재",
+        memberPhone: "010-1111-2222",
         dueAt,
       },
     ],
@@ -176,7 +199,7 @@ test("formatReservationApprovedBatch: 한 회원이면 단건 알림과 같은 �
   );
 
   expect(text).toBe(
-    "📦 <b>대여 시작</b>: 명찰 ×35, 제기, 스피커(마이크 유선1개/무선 1개,리모컨,건전지,어뎁터) · 62391이승재 · ~11/15(일) · D-2",
+    "📦 <b>대여 시작</b>: 명찰 ×35, 제기, 스피커(마이크 유선1개/무선 1개,리모컨,건전지,어뎁터) · 62391이승재(010-1111-2222) · ~11/15(일) · D-2",
   );
   expect(text).not.toContain("\n");
 });
@@ -188,12 +211,14 @@ test("formatReservationApprovedBatch: 반납일이 다르면 물품별로 적는
         itemName: "텐트",
         qty: 2,
         memberName: "홍길동",
+        memberPhone: "010-1234-5678",
         dueAt: "2026-11-16T14:59:59.999Z",
       },
       {
         itemName: "의자",
         qty: 1,
         memberName: "홍길동",
+        memberPhone: "010-1234-5678",
         dueAt: "2026-11-20T14:59:59.999Z",
       },
     ],
@@ -201,7 +226,7 @@ test("formatReservationApprovedBatch: 반납일이 다르면 물품별로 적는
   );
 
   expect(text).toBe(
-    "📦 <b>대여 시작</b>: 텐트 ×2 ~11/16(월), 의자 ~11/20(금) · 홍길동",
+    "📦 <b>대여 시작</b>: 텐트 ×2 ~11/16(월), 의자 ~11/20(금) · 홍길동(010-1234-5678)",
   );
 });
 
@@ -212,12 +237,14 @@ test("formatReservationApprovedBatch: 여러 회원이면 회원마다 한 줄�
         itemName: "텐트",
         qty: 2,
         memberName: "홍길동",
+        memberPhone: "010-1234-5678",
         dueAt: "2026-11-16T14:59:59.999Z",
       },
       {
         itemName: "주차콘",
         qty: 1,
         memberName: "김하늘",
+        memberPhone: "010-9999-8888",
         dueAt: "2026-11-20T14:59:59.999Z",
       },
     ],
@@ -227,8 +254,8 @@ test("formatReservationApprovedBatch: 여러 회원이면 회원마다 한 줄�
   expect(text).toBe(
     [
       "📦 <b>대여 시작</b>",
-      "홍길동 · 텐트 ×2 · ~11/16(월) · D-3",
-      "김하늘 · 주차콘 · ~11/20(금) · D-7",
+      "홍길동(010-1234-5678) · 텐트 ×2 · ~11/16(월) · D-3",
+      "김하늘(010-9999-8888) · 주차콘 · ~11/20(금) · D-7",
     ].join("\n"),
   );
 });
@@ -239,6 +266,7 @@ test("formatReservationApprovedBatch: 목록이 길면 뒤를 외 N종으로 접
     itemName: `아주 긴 물품 이름 ${index + 1}`,
     qty: 1,
     memberName: "홍길동",
+    memberPhone: "010-1234-5678",
     dueAt,
   }));
   const text = formatReservationApprovedBatch(items, new Date("2026-11-13T00:34:00Z"));
@@ -253,37 +281,62 @@ test("formatReservationRejected: 거절 사유를 붙인다", () => {
     itemName: "텐트",
     qty: 1,
     memberName: "홍길동",
+    memberPhone: "010-1234-5678",
     reason: "재고가 부족합니다",
   });
 
   expect(text).toBe(
-    "🚫 <b>거절</b>: 텐트 · 홍길동 · 사유: 재고가 부족합니다",
+    "🚫 <b>거절</b>: 텐트 · 홍길동(010-1234-5678) · 사유: 재고가 부족합니다",
   );
 });
 
 test("formatReservationRejectedBatch: 한 회원이면 사유까지 한 줄로 만든다", () => {
   const text = formatReservationRejectedBatch([
-    { itemName: "텐트", qty: 2, memberName: "홍길동", reason: "재고 부족" },
-    { itemName: "의자", qty: 1, memberName: "홍길동", reason: "재고 부족" },
+    {
+      itemName: "텐트",
+      qty: 2,
+      memberName: "홍길동",
+      memberPhone: "010-1234-5678",
+      reason: "재고 부족",
+    },
+    {
+      itemName: "의자",
+      qty: 1,
+      memberName: "홍길동",
+      memberPhone: "010-1234-5678",
+      reason: "재고 부족",
+    },
   ]);
 
   expect(text).toBe(
-    "🚫 <b>거절</b>: 텐트 ×2, 의자 · 홍길동 · 사유: 재고 부족",
+    "🚫 <b>거절</b>: 텐트 ×2, 의자 · 홍길동(010-1234-5678) · 사유: 재고 부족",
   );
   expect(text).not.toContain("\n");
 });
 
 test("formatReservationRejectedBatch: 여러 회원이면 회원마다 한 줄로 나눈다", () => {
   const text = formatReservationRejectedBatch([
-    { itemName: "텐트", qty: 2, memberName: "홍길동", reason: "재고 부족" },
-    { itemName: "주차콘", qty: 1, memberName: "김하늘", reason: "재고 부족" },
+    {
+      itemName: "텐트",
+      qty: 2,
+      memberName: "홍길동",
+      memberPhone: "010-1234-5678",
+      reason: "재고 부족",
+    },
+    {
+      itemName: "주차콘",
+      qty: 1,
+      memberName: "김하늘",
+      memberPhone: "010-9999-8888",
+      reason: "재고 부족",
+    },
   ]);
 
   expect(text).toBe(
     [
       "🚫 <b>거절</b> · 사유: 재고 부족",
-      "홍길동 · 텐트 ×2",
-      "김하늘 · 주차콘",
+      "홍길동(010-1234-5678) · 텐트 ×2",
+      "김하늘(010-9999-8888) · 주차콘",
     ].join("\n"),
   );
 });
@@ -295,12 +348,14 @@ test("formatOverdueDigest: 지연 건을 한 줄로 요약하고 초과분은 �
         itemName: "텐트",
         qty: 2,
         memberName: "홍길동",
+        memberPhone: "010-1234-5678",
         dueAt: "2026-11-10T14:59:59.999Z",
       },
       {
         itemName: "의자",
         qty: 1,
         memberName: "김회원",
+        memberPhone: "010-2222-3333",
         dueAt: "2026-11-09T14:59:59.999Z",
       },
     ],
@@ -308,7 +363,7 @@ test("formatOverdueDigest: 지연 건을 한 줄로 요약하고 초과분은 �
   );
 
   expect(text).toBe(
-    "⏰ <b>반납 지연</b> 5건: 텐트 ×2 · 홍길동(~11/10) / 의자 · 김회원(~11/09) 외 3건",
+    "⏰ <b>반납 지연</b> 5건: 텐트 ×2 · 홍길동(010-1234-5678) · ~11/10 / 의자 · 김회원(010-2222-3333) · ~11/09 외 3건",
   );
   expect(text).not.toContain("\n");
 });
@@ -374,6 +429,7 @@ test("notifyReservationCreated: 전송이 실패해도 false 로 끝난다", asy
         reservedQty: 0,
         dueAt: null,
         memberName: "홍길동",
+        memberPhone: null,
       },
       failingFetch,
     );

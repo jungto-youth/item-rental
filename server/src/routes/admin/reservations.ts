@@ -102,6 +102,7 @@ adminReservationsRoute.post("/:id/approve", async (c) => {
           itemName: notice.itemName,
           qty: notice.qty,
           memberName: notice.memberName,
+          memberPhone: notice.memberPhone,
           dueAt: notice.dueAt,
         });
       });
@@ -170,6 +171,7 @@ adminReservationsRoute.post("/approve", async (c) => {
           itemName: notice.itemName,
           qty: notice.qty,
           memberName: notice.memberName,
+          memberPhone: notice.memberPhone,
           dueAt: notice.dueAt,
         });
         return;
@@ -180,6 +182,7 @@ adminReservationsRoute.post("/approve", async (c) => {
           itemName: notice.itemName,
           qty: notice.qty,
           memberName: notice.memberName,
+          memberPhone: notice.memberPhone,
           dueAt: notice.dueAt,
         })),
       );
@@ -225,6 +228,7 @@ adminReservationsRoute.post("/reject", async (c) => {
         itemName: notice.itemName,
         qty: notice.qty,
         memberName: notice.memberName,
+        memberPhone: notice.memberPhone,
         reason,
       }));
       // 한 건뿐이면 기존 한 줄 알림을 그대로 쓴다 — 선택 거절 1건이 길어지지 않게.
@@ -258,6 +262,7 @@ adminReservationsRoute.post("/:id/reject", async (c) => {
           itemName: notice.itemName,
           qty: notice.qty,
           memberName: notice.memberName,
+          memberPhone: notice.memberPhone,
           reason,
         });
       });
@@ -291,6 +296,7 @@ adminReservationsRoute.post("/:id/return", async (c) => {
         itemName: notice.itemName,
         qty: notice.qty,
         memberName: notice.memberName,
+        memberPhone: notice.memberPhone,
         note: notice.returnNote,
         byMember: false,
       });
