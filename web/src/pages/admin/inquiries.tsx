@@ -5,10 +5,12 @@ import { fmtKstDate } from "../../utils/date";
 import { AdminPage } from "../../components/admin/admin-page";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
+import { Chip } from "../../components/ui/chip";
 import { Empty } from "../../components/ui/empty";
 import { Input } from "../../components/ui/input";
+import { SearchField } from "../../components/ui/search-field";
 import { Skeleton } from "../../components/ui/skeleton";
-import { ChevronDownIcon, SearchIcon } from "../../components/icons";
+import { ChevronDownIcon } from "../../components/icons";
 
 const ANSWER_MAX = 2_000;
 
@@ -64,6 +66,14 @@ export default function AdminInquiries() {
     answered: inquiries().filter((inquiry) => inquiry.status === "answered")
       .length,
   }));
+
+  // 필터는 대여 관리와 같은 Chip 을 쓴다 — 개수는 라벨에 붙여 정보를 유지한다.
+  const tabOptions = createMemo(() =>
+    TABS.map((tab) => ({
+      value: tab.key,
+      label: `${tab.label} ${counts()[tab.key]}`,
+    })),
+  );
 
   const filtered = createMemo(() => {
     const query = q().trim().toLowerCase();
@@ -159,8 +169,7 @@ export default function AdminInquiries() {
           <div class="min-w-0 flex-1">
             <div class="flex min-w-0 flex-wrap items-center gap-2">
               <Badge
-                kind={saved() ? "available" : "pending"}
-                label={saved() ? "답변 완료" : "답변 대기"}
+                kind={saved() ? "answered" : "open"}
               />
               <p
                 class="m-0 min-w-0 flex-1 truncate text-body font-semibold text-ink-1"
@@ -183,7 +192,7 @@ export default function AdminInquiries() {
             </p>
           </div>
           <ChevronDownIcon
-            class={`mt-0.5 size-5 shrink-0 text-ink-2 transition-transform ${
+            class={`mt-1 size-5 shrink-0 text-ink-2 transition-transform ${
               open() ? "rotate-180" : ""
             }`}
           />
@@ -270,50 +279,33 @@ export default function AdminInquiries() {
       message={message()}
       messageTone={messageTone()}
       onRetry={retry}
+      side
+      sideContent={
+        <section class="rounded-card border border-line bg-surface p-4">
+          <h2 class="m-0 text-body leading-normal font-semibold tracking-tight text-ink-1">답변 안내</h2>
+          <p class="mt-2 text-fine leading-normal text-ink-2">
+            답변을 등록하면 회원의 문의 상세에 바로 표시되고 상태가{" "}
+            <b class="font-semibold text-ink-1">답변 완료</b>로 바뀝니다. 등록한
+            답변은 나중에 다시 수정할 수 있습니다.
+          </p>
+        </section>
+      }
     >
       <div class="flex flex-col gap-4">
-        <div class="flex flex-col gap-3 md:flex-row md:items-center">
-          <div class="flex flex-wrap gap-2" role="group" aria-label="답변 상태 필터">
-            <For each={TABS}>
-              {(tab) => (
-                <button
-                  type="button"
-                  class={`h-9 cursor-pointer rounded-pill border px-3 text-fine font-medium transition-colors ${
-                    filter() === tab.key
-                      ? "border-primary-strong bg-primary-soft text-primary-strong"
-                      : "border-line bg-surface text-ink-2 hover:bg-surface-muted hover:text-ink-1"
-                  }`}
-                  aria-pressed={filter() === tab.key ? "true" : "false"}
-                  onClick={() => {
-                    setFilter(tab.key);
-                  }}
-                >
-                  {tab.label} {counts()[tab.key]}
-                </button>
-              )}
-            </For>
-          </div>
+        <SearchField
+          class="w-full max-w-[560px] lg:max-w-[400px]"
+          value={q()}
+          onInput={setQ}
+          label="문의 검색"
+          placeholder="제목, 회원, 물품 검색…"
+        />
 
-          <div class="relative min-w-0 flex-1">
-            <Show when={!q()}>
-              <SearchIcon class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-3" />
-            </Show>
-            <input
-              class="box-border h-10 w-full min-w-0 rounded-card border border-line bg-surface py-2 pr-10 pl-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
-              type="search"
-              aria-label="문의 검색"
-              placeholder="제목, 회원, 물품 검색…"
-              value={q()}
-              onInput={(event) => setQ(event.currentTarget.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Escape" && q()) {
-                  event.preventDefault();
-                  setQ("");
-                }
-              }}
-            />
-          </div>
-        </div>
+        <Chip
+          ariaLabel="답변 상태 필터"
+          value={filter()}
+          options={tabOptions()}
+          onChange={(value) => setFilter(value as Filter)}
+        />
 
         <Show
           when={filtered().length > 0}

@@ -48,7 +48,7 @@ export function Empty(props: Props) {
           fallback={
             <>
               <span
-                class={`${props.compact ? "hidden" : "flex"} size-12 items-center justify-center rounded-pill ${
+                class={`${props.compact ? "hidden" : "flex"} size-12 items-center justify-center rounded-pill [&_svg]:size-6 ${
                   state() === "error"
                     ? "bg-danger-soft text-danger"
                     : "bg-surface-muted text-ink-3"

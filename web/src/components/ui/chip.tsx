@@ -17,24 +17,24 @@ export function Chip(props: Props) {
       role="group"
       aria-label={props.ariaLabel || undefined}
     >
-      <For each={props.options}>
+      <For each={props.options} keyed={(option) => option.value}>
         {(option) => (
           <button
             type="button"
             class={`inline-flex h-9 items-center rounded-pill border px-2 text-12 whitespace-nowrap ${
-              option.value === props.value
+              option().value === props.value
                 ? "border-ink-1 bg-ink-1 font-semibold text-white"
                 : "border-line bg-surface font-normal text-ink-1 hover:border-line-strong hover:bg-surface-muted"
             } cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1 disabled:cursor-not-allowed disabled:opacity-45`}
-            aria-pressed={option.value === props.value ? "true" : "false"}
+            aria-pressed={option().value === props.value ? "true" : "false"}
             disabled={props.disabled}
             onClick={() => {
               if (props.disabled) return;
-              if (option.value === props.value) return;
-              props.onChange(option.value);
+              if (option().value === props.value) return;
+              props.onChange(option().value);
             }}
           >
-            {option.label}
+            {option().label}
           </button>
         )}
       </For>

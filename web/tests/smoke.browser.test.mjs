@@ -510,11 +510,11 @@ try {
   }
 
   // 1-1) 필수 프로필(연락처·지회·모둠)이 없으면 로그인 후 프로필 등록으로 이동한다.
-  for (const [label, user, path] of [
-    ["member without phone", { ...MEMBER, phone: null }, "/"],
-    ["admin without phone", { ...ADMIN, phone: null }, "/admin/members"],
+  for (const [label, user, path, expectedNext] of [
+    ["member without phone", { ...MEMBER, phone: null }, "/", "/"],
+    ["admin without phone", { ...ADMIN, phone: null }, "/admin/members", "/admin/members"],
     // 기존 자유 입력 소속은 유효한 지회·모둠 조합이 아니다 — 다시 선택하게 한다
-    ["member with legacy affiliation", { ...MEMBER, affiliation: "서울지부" }, "/mypage"],
+    ["member with legacy affiliation", { ...MEMBER, affiliation: "서울지부" }, "/mypage", null],
   ]) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
@@ -525,11 +525,60 @@ try {
     });
     await mockApi(page, user);
     await page.goto(new URL(path.replace(/^\//, ""), base).href);
-    await page.waitForURL(base + "signup/profile");
+    await page.waitForURL((url) => url.pathname === "/signup/profile");
+    assert.equal(
+      new URL(page.url()).searchParams.get("next"),
+      expectedNext,
+      `${label} next`,
+    );
     await page.locator(".profile-form").waitFor();
     assert.deepEqual(errors, [], `${label} console errors`);
     await context.close();
     console.log(`PASS ${label} redirects to profile`);
+  }
+
+  // 1-2) 보호 화면에서 로그인으로 넘어가면 next 를 로그인 callbackUrl 로 넘긴다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, null);
+    await page.route("**/api/auth/csrf", (route) =>
+      route.fulfill({ json: { csrfToken: "test-csrf" } }),
+    );
+    await page.route("**/api/auth/signin/google", (route) =>
+      route.fulfill({ json: { url: "about:blank" } }),
+    );
+    await page.goto(new URL("inquiries/new?item=101", base).href);
+    await page.waitForURL((url) => url.pathname === "/login");
+    assert.equal(
+      new URL(page.url()).searchParams.get("next"),
+      "/inquiries/new?item=101",
+    );
+    const requestPromise = page.waitForRequest("**/api/auth/signin/google");
+    await page.getByRole("button", { name: "Google로 계속하기" }).click();
+    const request = await requestPromise;
+    const body = new URLSearchParams(request.postData() ?? "");
+    assert.equal(
+      body.get("callbackUrl"),
+      new URL("inquiries/new?item=101", base).href,
+    );
+    console.log("PASS login keeps next path");
+    await context.close();
+  }
+
+  // 1-3) 공개 화면의 로그인 버튼도 현재 화면을 next 로 넘긴다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, null);
+    await page.goto(new URL("policy/privacy", base).href);
+    await page.locator("header").waitFor();
+    assert.equal(
+      await page.locator('header a[href^="/login"]').getAttribute("href"),
+      "/login?next=%2Fpolicy%2Fprivacy",
+    );
+    console.log("PASS header login keeps next path");
+    await context.close();
   }
 
   // 2) 모든 화면이 렌더되고 콘솔 오류가 없다.
@@ -642,6 +691,24 @@ try {
     await context.close();
   }
 
+  // 4-1-1) 물품 연결에 실패해도 일반 문의로 진행할 수 있다는 안내를 보여준다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, MEMBER);
+    await page.route("**/api/items/999", (route) =>
+      route.fulfill({ status: 404, json: { error: "not_found" } }),
+    );
+    await page.goto(new URL("inquiries/new?item=999", base).href);
+    await page
+      .getByText("물품 정보를 불러오지 못했습니다. 일반 문의로 접수됩니다.", {
+        exact: true,
+      })
+      .waitFor();
+    console.log("PASS inquiry item link failure notice");
+    await context.close();
+  }
+
   // 4-2) 관리자 답변 등록.
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -653,6 +720,28 @@ try {
     await page.getByRole("button", { name: "답변 수정", exact: true }).click();
     await page.getByText("답변을 등록했습니다", { exact: true }).waitFor();
     console.log("PASS admin inquiry answer");
+    await context.close();
+  }
+
+  // 4-3) 문의 관리 — 검색이 상태 필터보다 위에 온다 (물품 현황과 같은 순서).
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, ADMIN);
+    await page.goto(new URL("admin/inquiries", base).href);
+    await page.locator(".admin-inquiry").first().waitFor();
+    const search = await page.getByLabel("문의 검색").boundingBox();
+    const chip = await page
+      .getByRole("group", { name: "답변 상태 필터" })
+      .getByRole("button")
+      .first()
+      .boundingBox();
+    assert.ok(search && chip, "검색과 필터가 보여야 한다");
+    assert.ok(
+      search.y + search.height <= chip.y,
+      "검색은 필터 위에 있어야 한다",
+    );
+    console.log("PASS admin inquiries search above filter");
     await context.close();
   }
 
@@ -830,6 +919,36 @@ try {
       },
     ]);
     console.log("PASS public division profile saves free-form affiliation");
+    await context.close();
+  }
+
+  // 7-3) 프로필 저장을 마치면 next 화면으로 이어진다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    let user = { ...MEMBER, phone: null, affiliation: null };
+    await page.route("**/api/me", (route) => route.fulfill({ json: { user } }));
+    await page.route("**/api/me/profile", async (route) => {
+      const body = route.request().postDataJSON();
+      user = {
+        ...user,
+        name: body.name,
+        phone: body.phone,
+        affiliation: `${body.division} · ${body.branch} · ${body.group}`,
+      };
+      await route.fulfill({ json: { ok: true } });
+    });
+    await page.goto(
+      new URL("signup/profile?next=%2Finquiries%2Fnew", base).href,
+    );
+    await page.getByLabel("휴대폰 번호").fill("010-0000-0002");
+    await page.getByLabel("지부").selectOption("청년지부");
+    await page.getByLabel("지회").selectOption("서울");
+    await page.getByLabel("모둠").selectOption("동부");
+    await page.getByRole("button", { name: "저장", exact: true }).click();
+    await page.waitForURL((url) => url.pathname === "/inquiries/new");
+    await page.locator("form").first().waitFor();
+    console.log("PASS profile save continues to next");
     await context.close();
   }
 

@@ -8,6 +8,7 @@ export type DocTab = { href: string; label: string; active: boolean };
 // 문서형 화면(정책·디자인 시스템)의 공통 셸.
 // 문서 전환 탭 → 제목 → 목차 → 본문 순서로 조립한다.
 // 목차는 본문의 h2[id]를 스캔해 자동으로 만든다 — 페이지마다 배열을 따로 두지 않는다.
+// 목차는 데스크톱 전용이다. lg 미만에서는 본문 폭을 살리려고 목차를 숨긴다.
 export function DocPage(props: {
   title: string;
   subtitle?: string;
@@ -58,18 +59,18 @@ export function DocPage(props: {
           class="flex gap-6 border-b border-line"
           aria-label={props.tabsLabel ?? "문서 전환"}
         >
-          <For each={props.tabs}>
+          <For each={props.tabs} keyed={(tab) => tab.href}>
             {(tab) => (
               <a
-                href={tab.href}
-                aria-current={tab.active ? "page" : undefined}
+                href={tab().href}
+                aria-current={tab().active ? "page" : undefined}
                 class={`mb-[-1px] border-b-2 pb-2 text-body no-underline hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                  tab.active
+                  tab().active
                     ? "border-ink-1 font-semibold text-ink-1"
                     : "border-transparent text-ink-2"
                 }`}
               >
-                {tab.label}
+                {tab().label}
               </a>
             )}
           </For>
@@ -79,30 +80,6 @@ export function DocPage(props: {
       <div class={props.tabs?.length ? "mt-6" : ""}>
         <PageHeader title={props.title} subtitle={props.subtitle} />
       </div>
-
-      <Show when={sections().length > 0}>
-        <details class="mt-6 mb-6 rounded-card border border-line bg-surface p-4 lg:hidden">
-          <summary class="cursor-pointer text-body font-semibold text-ink-1">
-            목차
-          </summary>
-          <nav class="mt-3 grid gap-2" aria-label={props.tocLabel}>
-            <For each={sections()}>
-              {(section) => (
-                <a
-                  href={`#${section.id}`}
-                  class="text-fine text-ink-2 no-underline hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  onClick={(event) => {
-                    const details = event.currentTarget.closest("details");
-                    if (details) details.open = false;
-                  }}
-                >
-                  {section.label}
-                </a>
-              )}
-            </For>
-          </nav>
-        </details>
-      </Show>
 
       <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6">
         <DocToc sections={sections()} ariaLabel={props.tocLabel} />

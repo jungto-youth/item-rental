@@ -6,7 +6,7 @@
 
 @theme inline {
   /* 간격은 Tailwind 기본 4px 배수 눈금을 쓴다.
-     허용 단계는 tokens.css 의 --space-* 와 같다: 2·4·6·8·12·16·20·24·32·40·48·56px. */
+     허용 단계는 tokens.css 의 --space-* 와 같다: 4·8·12·16·20·24·32·40·48·56px. */
   --spacing: 0.25rem;
 
   --font-sans: var(--font-body);

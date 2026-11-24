@@ -7,6 +7,8 @@ const LABELS: Record<string, string> = {
   retired: "폐기",
   overdue: "기한 지남",
   pending: "승인 대기",
+  open: "답변 대기",
+  answered: "답변 완료",
   rejected: "거절",
   withdrawn: "탈퇴",
   user: "회원",
@@ -23,6 +25,8 @@ const TONES: Record<string, string> = {
   repair: "bg-warning-soft text-warning",
   overdue: "bg-danger-soft text-danger",
   pending: "bg-warning-soft text-warning",
+  open: "bg-warning-soft text-warning",
+  answered: "bg-primary-soft text-primary-strong",
   rejected: "bg-danger-soft text-danger",
   neutral: "bg-surface-muted text-ink-2",
 };
@@ -35,6 +39,8 @@ const DOTS: Record<string, string> = {
   repair: "bg-warning",
   overdue: "bg-danger",
   pending: "bg-warning",
+  open: "bg-warning",
+  answered: "bg-primary",
   rejected: "bg-danger",
   neutral: "bg-ink-3",
 };
@@ -49,6 +55,8 @@ export function Badge(props: { kind?: string; label?: string }) {
     kind() === "repair" ||
     kind() === "overdue" ||
     kind() === "pending" ||
+    kind() === "open" ||
+    kind() === "answered" ||
     kind() === "rejected"
       ? kind()
       : "neutral";
@@ -56,7 +64,7 @@ export function Badge(props: { kind?: string; label?: string }) {
   return (
     <span class="inline-flex align-middle">
       <span
-        class={`inline-flex h-6 items-center gap-1.5 rounded-pill px-2 text-12 whitespace-nowrap ${TONES[tone()]}`}
+        class={`inline-flex h-6 items-center gap-1 rounded-pill px-2 text-12 whitespace-nowrap ${TONES[tone()]}`}
       >
         <span
           class={`size-1.5 shrink-0 rounded-full ${DOTS[tone()]}`}

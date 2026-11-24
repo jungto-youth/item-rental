@@ -3,6 +3,7 @@ import { api } from "../api/client";
 import { BrandLogo } from "../components/brand-logo";
 import { Button } from "../components/ui/button";
 import { APP_NAME } from "../brand";
+import { nextPathFromSearch } from "../utils/next-path";
 
 export default function Login() {
   const [busy, setBusy] = createSignal(false);
@@ -10,6 +11,15 @@ export default function Login() {
   const [localTestLogin, setLocalTestLogin] = createSignal(false);
   const [developmentConfigured, setDevelopmentConfigured] = createSignal(false);
   const [developmentCode, setDevelopmentCode] = createSignal("");
+  // 보호 화면에서 넘어온 경우 로그인 뒤 그 화면으로 돌아간다.
+  const nextPath = nextPathFromSearch(window.location.search, "/");
+
+  // 오류 파라미터만 지우고 next 는 남긴다 — 다시 시도해도 목적지가 유지된다.
+  const clearError = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("error");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+  };
 
   onSettled(() => {
     void loadLocalTestLogin();
@@ -17,13 +27,13 @@ export default function Login() {
     const error = params.get("error");
     if (error === "AccessDenied" || error === "denied") {
       setMessage("정토회 계정(@jungto.org) 또는 관리자가 허용한 계정으로 로그인해 주세요");
-      window.history.replaceState(null, "", window.location.pathname);
+      clearError();
     } else if (error === "AccountDeactivated") {
       setMessage("등록 정보가 삭제된 계정입니다. 관리자에게 문의해 주세요");
-      window.history.replaceState(null, "", window.location.pathname);
+      clearError();
     } else if (error === "SessionUnavailable") {
       setMessage("로그인 상태를 확인할 수 없습니다. 연결 상태를 확인하고 다시 시도해 주세요");
-      window.history.replaceState(null, "", window.location.pathname);
+      clearError();
     }
   });
 
@@ -53,7 +63,7 @@ export default function Login() {
         },
         body: new URLSearchParams({
           csrfToken,
-          callbackUrl: window.location.origin + "/",
+          callbackUrl: window.location.origin + nextPath,
         }),
       });
       const { url } = (await res.json()) as { url?: string };
@@ -76,7 +86,7 @@ export default function Login() {
         body: JSON.stringify({ code: developmentCode() }),
       });
       setDevelopmentCode("");
-      window.location.assign("/");
+      window.location.assign(nextPath);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "테스트 로그인에 실패했습니다");
       setBusy(false);

@@ -43,6 +43,13 @@ export function AppHeader() {
   const accountLabel = () => user()?.name || user()?.email || "";
   const accountInitial = () => accountLabel().trim().charAt(0).toUpperCase();
 
+  // 공개 화면에서 직접 로그인해도 보던 화면으로 돌아오게 한다.
+  const loginHref = () => {
+    const { pathname, search, hash } = location();
+    const here = pathname + search + hash;
+    return here === "/" ? "/login" : `/login?next=${encodeURIComponent(here)}`;
+  };
+
   const signOut = async () => {
     setMenuOpen(false);
     try {
@@ -110,7 +117,7 @@ export function AppHeader() {
           fallback={
             <a
               class="ml-auto flex h-10 items-center rounded-card border border-primary-strong bg-primary-strong px-3 text-14 font-semibold tracking-tight text-white no-underline hover:border-primary-deep hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
-              href="/login"
+              href={loginHref()}
             >
               로그인
             </a>

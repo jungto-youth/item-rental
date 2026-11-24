@@ -1,5 +1,6 @@
 import { For, Show, createSignal, onSettled } from "solid-js";
 import { session } from "../context/session";
+import { navigate } from "../router";
 import { Button } from "../components/ui/button";
 import { Empty } from "../components/ui/empty";
 import { PageHeader } from "../components/ui/page-header";
@@ -210,8 +211,18 @@ export default function MyPage() {
                         내역에서 확인할 수 있습니다.
                       </p>
                       <div class="mt-4 flex flex-wrap gap-2">
-                        <a class="inline-flex h-10 items-center rounded-card border border-line bg-surface px-3 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1" href="/inquiries/new">문의하기</a>
-                        <a class="inline-flex h-10 items-center rounded-card border border-line bg-surface px-3 text-fine font-medium text-ink-1 no-underline transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1" href="/inquiries">문의 내역</a>
+                        <Button
+                          variant="primary"
+                          onClick={() => navigate("/inquiries/new")}
+                        >
+                          문의하기
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => navigate("/inquiries")}
+                        >
+                          문의 내역
+                        </Button>
                       </div>
                     </section>
                   </aside>

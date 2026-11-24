@@ -7,12 +7,10 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const srcDir = path.join(root, "src");
 
-// tokens.css 의 --space-* 와 1:1 대응하는 Tailwind 단계.
+// tokens.css 의 --space-* 와 1:1 대응하는 Tailwind 단계 — 4px 배수만.
 const SPACING_STEPS = new Set([
   "0",
-  "0.5",
   "1",
-  "1.5",
   "2",
   "3",
   "4",

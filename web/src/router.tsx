@@ -244,7 +244,14 @@ async function resolve() {
     if (my !== seq) return;
     if (!user) {
       setPending(false);
-      redirectTo(session.unreachable() ? "/login?error=SessionUnavailable" : "/login");
+      // 보호 화면 경로를 next 로 넘겨 로그인 뒤 원래 화면으로 돌아오게 한다.
+      // '/' 는 로그인 기본 목적지와 같으니 URL 을 불필요하게 늘리지 않는다.
+      const params = new URLSearchParams();
+      if (session.unreachable()) params.set("error", "SessionUnavailable");
+      const nextPath = target.pathname + target.search + target.hash;
+      if (nextPath !== "/") params.set("next", nextPath);
+      const query = params.toString();
+      redirectTo(query ? `/login?${query}` : "/login");
       return;
     }
     if (guard === "admin" && user.role !== "admin") {
@@ -259,7 +266,13 @@ async function resolve() {
       next.route.pattern !== PROFILE_ROUTE
     ) {
       setPending(false);
-      redirectTo(PROFILE_ROUTE);
+      // 프로필을 마친 뒤에도 원래 화면으로 이어지게 next 를 넘긴다.
+      // '/mypage' 는 프로필 저장의 기본 목적지라 파라미터를 붙이지 않는다.
+      const nextPath = target.pathname + target.search + target.hash;
+      const params = new URLSearchParams();
+      if (nextPath !== "/mypage") params.set("next", nextPath);
+      const query = params.toString();
+      redirectTo(query ? `${PROFILE_ROUTE}?${query}` : PROFILE_ROUTE);
       return;
     }
   }

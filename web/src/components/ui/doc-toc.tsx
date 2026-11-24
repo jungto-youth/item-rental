@@ -3,7 +3,7 @@ import { For, createEffect, createSignal } from "solid-js";
 export type DocSection = { id: string; label: string };
 
 // 문서형 화면(정책·디자인 시스템)의 공통 목차.
-// 데스크톱은 오른쪽 320px sticky 레일, lg 미만에서는 DocPage가 접이식 목차를 따로 보여준다.
+// 데스크톱은 오른쪽 320px sticky 레일이고, lg 미만에서는 DocPage가 목차를 숨긴다.
 // 제목이 상단 96px(scroll-mt-24)을 지나 화면 위쪽 30% 띠에 들어오면 현재 섹션으로 본다.
 const ACTIVE_LINE = 96;
 

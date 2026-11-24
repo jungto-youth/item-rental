@@ -16,7 +16,8 @@ import { Button } from "../../components/ui/button";
 import { Empty } from "../../components/ui/empty";
 import { Input } from "../../components/ui/input";
 import { Skeleton } from "../../components/ui/skeleton";
-import { ChevronDownIcon, SearchIcon } from "../../components/icons";
+import { SearchField } from "../../components/ui/search-field";
+import { ChevronDownIcon } from "../../components/icons";
 
 export default function AdminMembers() {
   const [members, setMembers] = createSignal<AdminMember[]>([]);
@@ -554,36 +555,12 @@ export default function AdminMembers() {
         </>
       }
     >
-      <div class="relative">
-        <Show when={!q()}>
-          <SearchIcon class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-3" />
-        </Show>
-        <input
-          class="box-border h-10 w-full min-w-0 rounded-card border border-line bg-surface py-2 pr-10 pl-4 text-body text-ink-1 placeholder:text-ink-2 focus:border-primary focus:outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
-          type="search"
-          aria-label="회원 검색"
-          placeholder="이름, 이메일, 연락처 검색…"
-          value={q()}
-          onInput={(event) => setQ(event.currentTarget.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && q()) {
-              event.preventDefault();
-              setQ("");
-            }
-          }}
-        />
-        <Show when={q()}>
-          <button
-            type="button"
-            class="absolute top-1/2 right-1 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-pill border-0 bg-transparent p-0 text-fine text-ink-2 hover:bg-surface-muted hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1"
-            aria-label="검색어 지우기"
-            title="검색어 지우기"
-            onClick={() => setQ("")}
-          >
-            ✕
-          </button>
-        </Show>
-      </div>
+      <SearchField
+        value={q()}
+        onInput={setQ}
+        label="회원 검색"
+        placeholder="이름, 이메일, 연락처 검색…"
+      />
 
       <Show
         when={filtered().length > 0}

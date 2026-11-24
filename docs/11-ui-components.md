@@ -11,6 +11,7 @@
 | 버튼 | primary / secondary / danger | hover, focus-visible, disabled, loading |
 | 텍스트 버튼 | 링크 / 동작 | hover, focus-visible, disabled, loading |
 | 인풋 | text / textarea / number | focus, disabled, required, error |
+| 검색 필드 (`SearchField`) | 관리자 목록 검색 | 입력, 지우기, Esc, focus-visible |
 | 칩 | 단일 | active(`aria-pressed`), disabled, focus-visible |
 | 배지 | 상태 텍스트 | — (읽기 전용) |
 | 태그 | 분류 · 대표 | — (읽기 전용) |
@@ -23,7 +24,7 @@
 | 페이지 헤더 | 제목·부제·액션 | — |
 | 문서 셸 (`DocPage`) | 선택적 탭 → 제목 → 2열 | active 탭(`aria-current`), focus-visible |
 | 문서 본문 (`DocArticle`) | h2 / p / ul / table | — |
-| 문서 목차 (`DocToc`) | 데스크톱 오른쪽 레일 / 모바일 접이식 | active(`aria-current`), focus-visible |
+| 문서 목차 (`DocToc`) | 데스크톱 오른쪽 레일 / 모바일 숨김 | active(`aria-current`), focus-visible |
 | 접이식 섹션 (`details`) | 펼침/접힘 | focus-visible, 화살표 회전 |
 
 문서 목차는 본문의 `h2[id][data-toc]`를 자동으로 모은다. 새 섹션은 제목에 `id`와
@@ -60,4 +61,4 @@ disabled / loading / error / empty / mobile 390을 확인한다.
 - `npm run check:design`(=`npm run check`에 포함)이 간격·글자 크기·행간·기본 팔레트/hex
   색상 클래스가 토큰 눈금을 벗어나면 실패한다.
 - 같은 규격이 2곳 이상에서 반복되면 `components/ui/`의 컴포넌트로 올린다
-  (`Button`, `TextButton`, `Badge`, `Tag`, `Chip`, `Empty`, `Input`, `Modal`, `Notice`, `PageHeader`, `DocPage`, `DocArticle`, `InfoList`).
+  (`Button`, `TextButton`, `Badge`, `Tag`, `Chip`, `Empty`, `Input`, `SearchField`, `Modal`, `Notice`, `PageHeader`, `DocPage`, `DocArticle`, `InfoList`).

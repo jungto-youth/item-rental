@@ -250,9 +250,12 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
                   <RentalSteps class="mt-4" />
                   <Show when={it().lifecycle === "active"}>
                     <div class="mt-2 flex justify-end">
-                      <TextButton href={`/inquiries/new?item=${it().id}`}>
+                      <Button
+                        variant="secondary"
+                        onClick={() => navigate(`/inquiries/new?item=${it().id}`)}
+                      >
                         이 물품 문의하기
-                      </TextButton>
+                      </Button>
                     </div>
                   </Show>
                 </div>

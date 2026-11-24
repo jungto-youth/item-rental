@@ -201,7 +201,7 @@ const TYPE_SCALE = [
 ];
 
 // ===== 간격·형태 =====
-const SPACING = [2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48, 56];
+const SPACING = [4, 8, 12, 16, 20, 24, 32, 40, 48, 56];
 
 const RADII = [
   { token: "rounded-card", value: "8px", use: "버튼·카드·모달", radius: "8px" },
@@ -238,12 +238,15 @@ const BADGE_KINDS = [
   "repair",
   "overdue",
   "pending",
+  "open",
+  "answered",
   "rejected",
   "returned",
   "cancelled",
   "retired",
   "user",
   "admin",
+  "withdrawn",
 ];
 
 const ICONS = [
@@ -307,7 +310,7 @@ const DO_LIST = [
 const DONT_LIST = [
   "장식용 그림자·그라데이션·큰 색면을 쓰지 않습니다.",
   "컴포넌트에 hex 값을 직접 쓰지 않습니다.",
-  "간격 눈금(2·4·6·8·12·16·20·24·32·40·48·56px) 밖의 값을 만들지 않습니다.",
+  "간격 눈금(4·8·12·16·20·24·32·40·48·56px) 밖의 값을 만들지 않습니다.",
   "10px 미만 글자로 정보를 숨기지 않습니다.",
   "색만으로 상태를 구분하지 않습니다.",
 ];
@@ -438,7 +441,7 @@ export default function Design() {
           <Meta label="화면" value="12개 경로" />
           <Meta label="색" value="16개 토큰" />
           <Meta label="타이포" value="12단계" />
-          <Meta label="간격" value="2px 눈금" />
+          <Meta label="간격" value="4px 눈금" />
         </dl>
       </div>
 
@@ -533,15 +536,15 @@ export default function Design() {
             <p class="m-0 text-fine font-semibold text-ink-1">행간</p>
             <p class="m-0 text-fine leading-normal text-ink-2">
               제목·본문·버튼 모두{" "}
-              <b class="font-semibold text-ink-1 tabular-nums">1.5</b>.
+              <b class="font-semibold text-ink-1 tabular-nums">1.6</b>.
               본문 기준 한 값을 씁니다.
             </p>
           </div>
           </Block>
 
           <Block
-            label="간격 · 형태 · 2px 눈금"
-            intro="간격은 2·4·6·8·12·16·20·24·32·40·48·56px만 씁니다. 라운드는 컨트롤·카드 8px, 칩·배지 999px 두 종류입니다. 그림자는 떠 있는 층(메뉴·모달·FAB)에만 씁니다."
+            label="간격 · 형태 · 4px 눈금"
+            intro="간격은 4·8·12·16·20·24·32·40·48·56px만 씁니다. 라운드는 컨트롤·카드 8px, 칩·배지 999px 두 종류입니다. 그림자는 떠 있는 층(메뉴·모달·FAB)에만 씁니다."
           >
           <div class="grid gap-8 lg:grid-cols-2">
             <div>
@@ -564,7 +567,7 @@ export default function Design() {
                   )}
                 </For>
                 <p class="mt-2 text-fine text-ink-2">
-                  실제 크기 — 2 / 4 / 6 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48 / 56
+                  실제 크기 — 4 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48 / 56
                 </p>
               </div>
             </div>
@@ -604,7 +607,7 @@ export default function Design() {
                             {layout.value}
                           </span>
                         </div>
-                        <div class="mt-1 h-1.5 rounded-pill bg-surface-muted">
+                        <div class="mt-1 h-1 rounded-pill bg-surface-muted">
                           <div
                             class="h-full rounded-pill bg-ink-3"
                             style={{
@@ -1063,7 +1066,7 @@ export default function Design() {
                 <For each={DO_LIST}>
                   {(item) => (
                     <li class="flex gap-2 py-2 text-fine leading-normal text-ink-2">
-                      <CheckIcon class="mt-0.5 size-4 shrink-0 text-primary-strong" />
+                      <CheckIcon class="mt-1 size-4 shrink-0 text-primary-strong" />
                       <span>{item}</span>
                     </li>
                   )}
@@ -1076,7 +1079,7 @@ export default function Design() {
                 <For each={DONT_LIST}>
                   {(item) => (
                     <li class="flex gap-2 py-2 text-fine leading-normal text-ink-2">
-                      <CloseIcon class="mt-0.5 size-4 shrink-0 text-ink-3" />
+                      <CloseIcon class="mt-1 size-4 shrink-0 text-ink-3" />
                       <span>{item}</span>
                     </li>
                   )}

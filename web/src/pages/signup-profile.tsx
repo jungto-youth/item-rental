@@ -2,6 +2,7 @@ import { Show, createSignal, onSettled } from "solid-js";
 import { session } from "../context/session";
 import { navigate } from "../router";
 import { ProfileForm } from "../components/common/profile-form";
+import { nextPathFromSearch } from "../utils/next-path";
 
 export default function SignupProfile() {
   const [name, setName] = createSignal("");
@@ -9,6 +10,12 @@ export default function SignupProfile() {
   const [affiliation, setAffiliation] = createSignal("");
   const [email, setEmail] = createSignal("");
   const [ready, setReady] = createSignal(false);
+  // 프로필을 마치면 원래 가려던 화면으로 이어간다. 없으면 기존처럼 내 정보로.
+  const nextPath = nextPathFromSearch(window.location.search, "/mypage");
+  const loginHref = () =>
+    nextPath === "/mypage"
+      ? "/login"
+      : `/login?next=${encodeURIComponent(nextPath)}`;
 
   // 구글 계정에 이름이 있으면 전화번호만 받는다 — 연락처 미등록 회원의 공통 진입 화면.
   const hasName = () => name().trim().length > 0;
@@ -48,7 +55,7 @@ export default function SignupProfile() {
             accountVerified
             hint=""
             note="저장하면 바로 물품을 둘러볼 수 있습니다."
-            onSaved={() => navigate("/mypage")}
+            onSaved={() => navigate(nextPath)}
           />
 
           <p class="mt-4 text-center text-fine leading-normal text-ink-2">
@@ -58,7 +65,7 @@ export default function SignupProfile() {
           </p>
 
           <p class="mt-6 text-center">
-            <a class="text-fine text-ink-2 no-underline hover:text-ink-1 hover:underline" href="/login">다른 계정으로 로그인</a>
+            <a class="text-fine text-ink-2 no-underline hover:text-ink-1 hover:underline" href={loginHref()}>다른 계정으로 로그인</a>
           </p>
 
           <nav class="mt-4 flex justify-center gap-4 text-fine text-ink-3" aria-label="정책">
