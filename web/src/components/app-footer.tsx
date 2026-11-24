@@ -22,6 +22,12 @@ export function AppFooter(props: { surface?: boolean }) {
           </a>
           <a
             class="text-ink-2 no-underline hover:text-ink-1 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            href="/inquiries/new"
+          >
+            문의하기
+          </a>
+          <a
+            class="text-ink-2 no-underline hover:text-ink-1 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             href="/design"
           >
             디자인 시스템

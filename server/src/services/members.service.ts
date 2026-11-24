@@ -92,6 +92,15 @@ export async function deleteMemberRegistration(db: Sql, memberId: string): Promi
                             WHERE id = ?1 AND registration_deleted_at = ?2)`,
       params: [memberId, now],
     },
+    {
+      // 문의 본문은 자유 입력이라 익명화할 수 없다 — 등록 정보 삭제와 같은 batch 에서 지운다.
+      // 익명화가 실제로 성공한 경우에만(같은 타임스탬프) 지운다.
+      sql: `DELETE FROM inquiries
+             WHERE member_id = ?1
+               AND EXISTS (SELECT 1 FROM members
+                            WHERE id = ?1 AND registration_deleted_at = ?2)`,
+      params: [memberId, now],
+    },
   ]);
   if (results[0].length) return { ok: true };
   const [member] = await db.query<{ deactivated_at: string | null }>(

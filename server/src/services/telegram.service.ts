@@ -467,3 +467,33 @@ export async function notifyOverdueDigest(
 ): Promise<boolean> {
   return sendTelegram(env, formatOverdueDigest(entries, total), fetchImpl);
 }
+
+// ===== 문의 =====
+
+export type InquiryCreatedNotice = {
+  title: string;
+  itemName: string | null;
+  memberName: string;
+  memberPhone: string | null;
+};
+
+// 문의는 본문을 보내지 않는다 — 관리자 단체방은 새 문의가 왔다는 사실과
+// 연락에 필요한 정보만 담는다. 본문은 관리자 화면에서 읽는다.
+export function formatInquiryCreated(
+  notice: InquiryCreatedNotice,
+): string {
+  return joinParts([
+    `💬 <b>문의</b>: ${escapeHtml(clip(notice.title, 60))}`,
+    notice.itemName ? escapeHtml(oneLine(notice.itemName)) : null,
+    memberLabel(notice.memberName, notice.memberPhone),
+  ]);
+}
+
+export async function notifyInquiryCreated(
+  env: TelegramEnv,
+  notice: InquiryCreatedNotice,
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  return sendTelegram(env, formatInquiryCreated(notice), fetchImpl);
+}
+

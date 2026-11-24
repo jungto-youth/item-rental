@@ -174,3 +174,34 @@ export type AdminReservation = MyReservation & {
   approvable: boolean;
 };
 
+// ===== 문의 =====
+
+// 회원이 남긴 문의와 관리자 답변. 본문은 작성자·관리자만 조회한다.
+export type InquiryStatus = "open" | "answered";
+
+// 목록용 — 본문을 빼서 전송량을 줄인다.
+export type InquirySummary = {
+  id: number;
+  title: string;
+  status: InquiryStatus;
+  item_id: number | null;
+  item_name: string | null;
+  created_at: string;
+  answered_at: string | null;
+};
+
+// 상세용 — 작성자·관리자만 받는다.
+export type Inquiry = InquirySummary & {
+  body: string;
+  answer: string | null;
+};
+
+// 관리자 목록용 — 작성자 연락처와 답변자 이름을 함께 내린다.
+export type AdminInquiry = Inquiry & {
+  member_id: string;
+  member_name: string | null;
+  member_email: string;
+  member_phone: string | null;
+  answered_by_name: string | null;
+};
+

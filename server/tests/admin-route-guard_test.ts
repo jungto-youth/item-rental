@@ -35,6 +35,8 @@ const calls: { path: string; method: string; body?: string; contentType?: string
   { path: "/api/admin/reservations/approve", method: "POST", body: '{"ids":[1]}', contentType: "application/json" },
   { path: "/api/admin/reservations/reject", method: "POST", body: '{"ids":[1],"reason":"x"}', contentType: "application/json" },
   { path: "/api/admin/reservations/1/return", method: "POST" },
+  { path: "/api/admin/inquiries", method: "GET" },
+  { path: "/api/admin/inquiries/1/answer", method: "PUT", body: '{"answer":"x"}', contentType: "application/json" },
   { path: "/api/admin/allowed-emails", method: "GET" },
   { path: "/api/admin/allowed-emails", method: "POST", body: '{"email":"a@b.kr"}', contentType: "application/json" },
   { path: "/api/admin/allowed-emails/x", method: "DELETE" },
@@ -58,6 +60,7 @@ const byFile: Record<string, string[]> = {
     "/api/admin/members/1/withdraw",
   ],
   "reservations.ts": ["/api/admin/reservations", "/api/admin/reservations/1/return"],
+  "inquiries.ts": ["/api/admin/inquiries", "/api/admin/inquiries/1/answer"],
   "allowed-emails.ts": ["/api/admin/allowed-emails", "/api/admin/allowed-emails/x"],
   "reembed.ts": ["/api/admin/reembed-all"],
 };

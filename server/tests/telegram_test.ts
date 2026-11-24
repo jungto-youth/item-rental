@@ -9,6 +9,7 @@ import {
   formatDueDateKst,
   formatDueDateLabelKst,
   formatDueDateShortKst,
+  formatInquiryCreated,
   formatOverdueDigest,
   formatReservationApproved,
   formatReservationApprovedBatch,
@@ -17,6 +18,7 @@ import {
   formatReservationRejectedBatch,
   formatReservationReturned,
   isTelegramConfigured,
+  notifyInquiryCreated,
   notifyReservationCreated,
   sendTelegram,
   type TelegramEnv,
@@ -438,3 +440,66 @@ test("notifyReservationCreated: 전송이 실패해도 false 로 끝난다", asy
     errorSpy.mockRestore();
   }
 });
+
+// ===== 문의 =====
+
+test("formatInquiryCreated: 제목·물품·이름·연락처를 한 줄로 담는다", () => {
+  const text = formatInquiryCreated({
+    title: "이 배낭 세탁해서 빌릴 수 있나요?",
+    itemName: "등산 배낭",
+    memberName: "홍길동",
+    memberPhone: "010-1234-5678",
+  });
+
+  expect(text).toBe(
+    "💬 <b>문의</b>: 이 배낭 세탁해서 빌릴 수 있나요? · 등산 배낭 · 홍길동(010-1234-5678)",
+  );
+  expect(text).not.toContain("\n");
+});
+
+test("formatInquiryCreated: 일반 문의는 물품명을 빼고, 입력을 이스케이프한다", () => {
+  const text = formatInquiryCreated({
+    title: "대여 <기간> & 연장",
+    itemName: null,
+    memberName: "홍\n길동",
+    memberPhone: null,
+  });
+
+  expect(text).toBe("💬 <b>문의</b>: 대여 &lt;기간&gt; &amp; 연장 · 홍 길동");
+  expect(text).not.toContain("\n");
+});
+
+test("formatInquiryCreated: 긴 제목은 60자로 줄인다", () => {
+  const text = formatInquiryCreated({
+    title: "가".repeat(100),
+    itemName: null,
+    memberName: "홍길동",
+    memberPhone: null,
+  });
+
+  // '💬 <b>문의</b>: ' + 60자(마지막은 …) + ' · 홍길동'
+  expect(text).toContain(`${"가".repeat(59)}…`);
+});
+
+test("notifyInquiryCreated: 전송이 실패해도 false 로 끝난다", async () => {
+  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    const failingFetch = (async () => {
+      throw new Error("network down");
+    }) as unknown as typeof fetch;
+    const sent = await notifyInquiryCreated(
+      env,
+      {
+        title: "문의",
+        itemName: null,
+        memberName: "홍길동",
+        memberPhone: null,
+      },
+      failingFetch,
+    );
+    expect(sent).toBe(false);
+  } finally {
+    errorSpy.mockRestore();
+  }
+});
+

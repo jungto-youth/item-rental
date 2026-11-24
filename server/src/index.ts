@@ -9,11 +9,13 @@ import { itemsRoute } from "./routes/items";
 import { categoriesRoute } from "./routes/categories";
 import { meRoute } from "./routes/me";
 import { reservationsRoute } from "./routes/reservations";
+import { inquiriesRoute } from "./routes/inquiries";
 import { adminItemsRoute } from "./routes/admin/items";
 import { adminCategoriesRoute } from "./routes/admin/categories";
 import { adminMembersRoute } from "./routes/admin/members";
 import { adminAllowedEmailsRoute } from "./routes/admin/allowed-emails";
 import { adminReservationsRoute } from "./routes/admin/reservations";
+import { adminInquiriesRoute } from "./routes/admin/inquiries";
 import { adminReembedRoute } from "./routes/admin/reembed";
 import { apiSecurityHeaders, guardApiRequest, canonicalAuthRequest } from "./middleware/security";
 import { sendOverdueDigest } from "./services/overdue.service";
@@ -76,11 +78,13 @@ app.route("/api/items", itemsRoute);
 app.route("/api/categories", categoriesRoute);
 app.route("/api/me/profile", meRoute);
 app.route("/api/reservations", reservationsRoute);
+app.route("/api/inquiries", inquiriesRoute);
 app.route("/api/admin/items", adminItemsRoute);
 app.route("/api/admin/categories", adminCategoriesRoute);
 app.route("/api/admin/members", adminMembersRoute);
 app.route("/api/admin/allowed-emails", adminAllowedEmailsRoute);
 app.route("/api/admin/reservations", adminReservationsRoute);
+app.route("/api/admin/inquiries", adminInquiriesRoute);
 app.route("/api/admin/reembed-all", adminReembedRoute);
 
 // --- 에러 처리 ---

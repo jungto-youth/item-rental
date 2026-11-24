@@ -24,6 +24,7 @@ export function AppHeader() {
         ? [
             { href: "/admin/reservations", label: "대여 관리" },
             { href: "/admin/members", label: "회원 관리" },
+            { href: "/admin/inquiries", label: "문의 관리" },
           ]
         : []),
       // 관리자도 내가 빌린 물품을 확인할 수 있어야 한다. 관리자 메뉴(대여 관리)와
@@ -173,6 +174,14 @@ export function AppHeader() {
                   onClick={() => setMenuOpen(false)}
                 >
                   대여 내역
+                </a>
+                <a
+                  role="menuitem"
+                  href="/inquiries"
+                  class="block w-full p-4 text-left text-14 text-ink-1 no-underline hover:bg-surface-muted"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  문의 내역
                 </a>
                 <button
                   type="button"

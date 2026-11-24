@@ -248,6 +248,13 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
                     onRented={() => void load(true)}
                   /></div>
                   <RentalSteps class="mt-4" />
+                  <Show when={it().lifecycle === "active"}>
+                    <div class="mt-2 flex justify-end">
+                      <TextButton href={`/inquiries/new?item=${it().id}`}>
+                        이 물품 문의하기
+                      </TextButton>
+                    </div>
+                  </Show>
                 </div>
               </div>
 

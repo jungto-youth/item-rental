@@ -10,10 +10,17 @@ import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { readFileSync, readdirSync } from "node:fs";
 import { test, expect } from "vitest";
 import { createReservation, cancelReservation, returnReservation, listReservations, getMyReservations, approveReservation, rejectReservation } from "../src/services/reservations.service.ts";
-import { withdrawMember, setMemberRole } from "../src/services/members.service.ts";
+import { withdrawMember, setMemberRole, deleteMemberRegistration } from "../src/services/members.service.ts";
 import { createItem, updateItem, deleteItem } from "../src/services/items.service.ts";
 import { renameCategory, deleteCategory } from "../src/services/categories.service.ts";
 import { listItems } from "../src/services/search.service.ts";
+import {
+  answerInquiry,
+  createInquiry,
+  getInquiryForViewer,
+  listInquiriesForAdmin,
+  listMyInquiries,
+} from "../src/services/inquiries.service.ts";
 import type { Sql } from "../src/db.ts";
 
 // workers-types 의 전역 URL 과 Node 의 url.URL 이 서로 다른 타입이라 href 문자열로 넘긴다
@@ -1307,3 +1314,139 @@ test("listItems: state 탭은 행만 거르고 summary·total 은 모집단을 �
   expect(availableTab.items.some((i) => i.id === repaired)).toBe(false);
   expect(availableTab.items.some((i) => i.id === consumable)).toBe(false);
 });
+
+// ===== 문의 =====
+
+test("문의: 작성·내 목록·답변·관리자 목록이 실제 SQL 에서 동작한다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const memberId = addMember(db, "user");
+  const adminId = addMember(db, "admin");
+  const itemId = addItem(db);
+  const itemName = (
+    db.prepare("SELECT name FROM items WHERE id = ?1").get(itemId) as {
+      name: string;
+    }
+  ).name;
+
+  const created = await createInquiry(sql, {
+    memberId,
+    title: "이번 주말에 빌릴 수 있나요?",
+    body: "토요일 오전에 필요합니다.",
+    itemId,
+  });
+  expect(created).toMatchObject({ ok: true, itemName });
+  if (!("ok" in created)) return;
+
+  const mine = await listMyInquiries(sql, memberId);
+  expect(mine).toHaveLength(1);
+  expect(mine[0]).toMatchObject({
+    id: created.id,
+    title: "이번 주말에 빌릴 수 있나요?",
+    status: "open",
+    item_id: itemId,
+    item_name: itemName,
+    answered_at: null,
+  });
+
+  // 작성자·관리자만 상세를 볼 수 있다
+  expect(await getInquiryForViewer(sql, created.id, memberId, false)).toMatchObject({
+    body: "토요일 오전에 필요합니다.",
+    answer: null,
+  });
+  expect(await getInquiryForViewer(sql, created.id, "other", false)).toBeNull();
+  expect(await getInquiryForViewer(sql, created.id, adminId, true)).not.toBeNull();
+
+  expect(await answerInquiry(sql, created.id, "이번 주말에는 가능합니다.", adminId)).toEqual({
+    ok: true,
+  });
+
+  const answered = await getInquiryForViewer(sql, created.id, memberId, false);
+  expect(answered).toMatchObject({
+    status: "answered",
+    answer: "이번 주말에는 가능합니다.",
+  });
+  expect(answered?.answered_at).toBeTruthy();
+
+  const adminList = await listInquiriesForAdmin(sql);
+  const adminName = (
+    db.prepare("SELECT name FROM members WHERE id = ?1").get(adminId) as {
+      name: string;
+    }
+  ).name;
+  expect(adminList[0]).toMatchObject({
+    id: created.id,
+    member_id: memberId,
+    answered_by_name: adminName,
+  });
+});
+
+test("문의: 답변 대기 우선 정렬과 item_id SET NULL 을 지킨다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const memberId = addMember(db, "user");
+  const adminId = addMember(db, "admin");
+  const itemId = addItem(db);
+  const first = await createInquiry(sql, {
+    memberId,
+    title: "먼저 답변한 문의",
+    body: "본문",
+    itemId,
+  });
+  const second = await createInquiry(sql, {
+    memberId,
+    title: "나중에 남긴 문의",
+    body: "본문",
+    itemId: null,
+  });
+  if (!("ok" in first) || !("ok" in second)) throw new Error("문의 생성 실패");
+  await answerInquiry(sql, first.id, "답변", adminId);
+
+  const list = await listInquiriesForAdmin(sql);
+  // answered 보다 open 이 먼저
+  expect(list.map((row) => row.id)).toEqual([second.id, first.id]);
+
+  // 물품이 삭제돼도 문의는 남고 item_id 만 NULL 이 된다
+  db.prepare("DELETE FROM items WHERE id = ?1").run(itemId);
+  const row = db.prepare("SELECT item_id FROM inquiries WHERE id = ?1").get(first.id) as {
+    item_id: number | null;
+  };
+  expect(row.item_id).toBeNull();
+});
+
+test("문의: 등록 정보 삭제 시 문의도 같은 batch 에서 지운다", async () => {
+  const db = freshDb();
+  const sql = sqliteSql(db);
+  const memberId = addMember(db, "user", true);
+  const created = await createInquiry(sql, {
+    memberId,
+    title: "탈퇴 회원 문의",
+    body: "본문",
+    itemId: null,
+  });
+  expect("ok" in created).toBe(true);
+
+  expect(await deleteMemberRegistration(sql, memberId)).toEqual({ ok: true });
+  const count = (
+    db.prepare("SELECT COUNT(*) AS n FROM inquiries WHERE member_id = ?1").get(memberId) as {
+      n: number;
+    }
+  ).n;
+  expect(count).toBe(0);
+});
+
+test("문의: answered 상태는 답변·답변자·시각이 모두 있어야 한다", () => {
+  const db = freshDb();
+  const memberId = addMember(db, "user");
+  const adminId = addMember(db, "admin");
+
+  expect(() =>
+    db
+      .prepare(
+        `INSERT INTO inquiries (member_id, title, body, status, answered_by, answered_at)
+         VALUES (?1, '제목', '본문', 'answered', ?2, '2026-11-24T00:00:00.000Z')`,
+      )
+      .run(memberId, adminId),
+  ).toThrow(/CHECK constraint failed/);
+});
+

@@ -7,6 +7,9 @@ import ItemDetail from "./pages/item-detail";
 import Login from "./pages/login";
 import MyPage from "./pages/mypage";
 import MyRentals from "./pages/my-rentals";
+import Inquiries from "./pages/inquiries";
+import InquiryNew from "./pages/inquiry-new";
+import InquiryDetail from "./pages/inquiry-detail";
 import SignupProfile from "./pages/signup-profile";
 import Policy from "./pages/policy";
 import Design from "./pages/design";
@@ -14,6 +17,7 @@ import NotFound from "./pages/not-found";
 import AdminItemForm from "./pages/admin/item-form";
 import AdminReservations from "./pages/admin/reservations";
 import AdminMembers from "./pages/admin/members";
+import AdminInquiries from "./pages/admin/inquiries";
 
 export type PageProps = { params: Record<string, string> };
 export type Location = { pathname: string; search: string; hash: string };
@@ -75,6 +79,25 @@ const routes: RouteDef[] = [
     title: () => `대여 내역 — ${APP_NAME}`,
   },
   {
+    pattern: "/inquiries",
+    component: Inquiries,
+    guard: "session",
+    title: () => `문의 내역 — ${APP_NAME}`,
+  },
+  {
+    // :id 보다 먼저 등록 — "new"가 id로 해석되지 않게 한다.
+    pattern: "/inquiries/new",
+    component: InquiryNew,
+    guard: "session",
+    title: () => `문의하기 — ${APP_NAME}`,
+  },
+  {
+    pattern: "/inquiries/:id",
+    component: InquiryDetail,
+    guard: "session",
+    title: () => `문의 상세 — ${APP_NAME}`,
+  },
+  {
     pattern: "/signup/profile",
     component: SignupProfile,
     guard: "session",
@@ -96,6 +119,12 @@ const routes: RouteDef[] = [
     component: AdminMembers,
     guard: "admin",
     title: () => `회원 관리 — ${APP_NAME}`,
+  },
+  {
+    pattern: "/admin/inquiries",
+    component: AdminInquiries,
+    guard: "admin",
+    title: () => `문의 관리 — ${APP_NAME}`,
   },
   {
     pattern: "/policy/:kind",

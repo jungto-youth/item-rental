@@ -14,6 +14,7 @@ D1 테이블은 `migrations-d1/`이 정의한다. 주요 축은 다음과 같다
 | 분류 | `categories`, `item_categories` | 다대다 |
 | 대여 | `reservations` | 신청 대기(`pending`)·예약(`reserved`)·대여 중·반납·취소·거절, `group_id`, 반납 예정일(`due_at`), 반납 특이사항(`return_note`), 승인·거절 처리자 |
 | 반납 사진 | `reservation_photos` | 반납 시점 상태 사진(최대 3장), 회원·관리자 첨부 구분, 본인·관리자만 열람 |
+| 문의 | `inquiries` | 회원 1:1 문의, 관리자 답변, `open`/`answered`, 물품 연결(`item_id`), 본문은 작성자·관리자만 열람 |
 | 검색 | `items_fts` (FTS5) | 키워드 색인, 임베딩은 `items`에 저장 |
 
 - 물품 상태 배지는 `available` · `reserved` · `unavailable` · `rented` · `repair` · `retired`
@@ -46,3 +47,12 @@ queueCap = max(0, R - reserved)                      // 신규가 예약할 수 
 - `pending`은 신청 시 재고를 점유하고, `reserved`는 점유하지 않는다.
 - 승인 가드: `pending`은 `qty + rented ≤ R`, `reserved`는 `qty + rented + pending ≤ R`.
 - 자동 승격(`reserved → pending`)과 부분 배정은 v1 범위 밖이다. 승인 시점이 배정 시점이다.
+
+## 문의
+
+- 상태는 `open`(답변 대기) / `answered`(답변 완료) 두 가지다. 답변은 1개이고 수정할 수 있다.
+- `answered`는 `answer`·`answered_by`·`answered_at`이 모두 있어야 한다(DB CHECK).
+- 물품을 연결한 문의는 `item_id`로 참조하고, 물품이 삭제되면 `item_id`만 NULL이 된다.
+- 본문은 작성자와 관리자만 조회한다. 타인 문의는 404로 숨긴다.
+- 회원 등록 정보를 삭제하면 같은 batch에서 그 회원의 문의도 삭제한다.
+- 새 문의는 관리자 텔레그램 단체방에 본문 없이 한 줄로 알린다.

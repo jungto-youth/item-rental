@@ -225,6 +225,41 @@ const ADMIN_RESERVATIONS = RESERVATIONS.map((row, index) => ({
   admin_memo: null,
 }));
 
+const INQUIRIES = [
+  {
+    id: 17,
+    title: "등산 배낭 이번 주말에 빌릴 수 있나요?",
+    body: "토요일 오전에 필요합니다. 가능할까요?",
+    status: "answered",
+    item_id: 101,
+    item_name: "4인용 텐트",
+    created_at: "2026-11-24T01:00:00.000Z",
+    answered_at: "2026-11-24T03:00:00.000Z",
+    answer: "이번 주말에는 대여 가능합니다.",
+    member_id: "member",
+    member_name: "김하늘",
+    member_email: "member@example.invalid",
+    member_phone: "010-0000-0000",
+    answered_by_name: "김운영",
+  },
+  {
+    id: 18,
+    title: "대여 기간을 연장할 수 있나요?",
+    body: "조금 더 빌리고 싶습니다.",
+    status: "open",
+    item_id: null,
+    item_name: null,
+    created_at: "2026-11-23T01:00:00.000Z",
+    answered_at: null,
+    answer: null,
+    member_id: "member",
+    member_name: "김하늘",
+    member_email: "member@example.invalid",
+    member_phone: "010-0000-0000",
+    answered_by_name: null,
+  },
+];
+
 let members = [
   {
     ...ADMIN,
@@ -357,7 +392,40 @@ async function mockApi(page, user, options = {}) {
   await page.route("**/api/reservations/mine", (route) =>
     route.fulfill({ json: { reservations: RESERVATIONS } }),
   );
+  await page.route("**/api/inquiries**", (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/inquiries/mine") {
+      return route.fulfill({
+        json: {
+          inquiries: INQUIRIES.map(
+            ({
+              body: _body,
+              answer: _answer,
+              member_id: _memberId,
+              member_name: _memberName,
+              member_email: _memberEmail,
+              member_phone: _memberPhone,
+              answered_by_name: _answeredByName,
+              ...summary
+            }) => summary,
+          ),
+        },
+      });
+    }
+    if (url.pathname === "/api/inquiries" && route.request().method() === "POST") {
+      return route.fulfill({ status: 201, json: { id: 17 } });
+    }
+    const id = Number(url.pathname.split("/").pop());
+    const inquiry = INQUIRIES.find((entry) => entry.id === id) ?? INQUIRIES[0];
+    return route.fulfill({ json: { inquiry } });
+  });
   if (user?.role === "admin") {
+    await page.route("**/api/admin/inquiries**", (route) => {
+      if (route.request().method() === "PUT") {
+        return route.fulfill({ json: { ok: true } });
+      }
+      return route.fulfill({ json: { inquiries: INQUIRIES } });
+    });
     await page.route("**/api/admin/members**", async (route) => {
       if (route.request().method() === "DELETE") {
         const id = route.request().url().split("/").pop();
@@ -399,6 +467,10 @@ const SCREENS = [
   { name: "signup-profile", path: "/signup/profile", user: MEMBER, ready: ".profile-form" },
   { name: "mypage", path: "/mypage", user: MEMBER, ready: ".page-mypage .card" },
   { name: "my-rentals", path: "/my/rentals", user: MEMBER, ready: ".reservation-row" },
+  { name: "inquiries", path: "/inquiries", user: MEMBER, ready: ".inquiry-row" },
+  { name: "inquiry-new", path: "/inquiries/new", user: MEMBER, ready: "form" },
+  { name: "inquiry-detail", path: "/inquiries/17", user: MEMBER, ready: ".inquiry-detail" },
+  { name: "admin-inquiries", path: "/admin/inquiries", user: ADMIN, ready: ".admin-inquiry" },
   { name: "admin-reservations", path: "/admin/reservations", user: ADMIN, ready: ".reservation-row" },
   { name: "admin-members", path: "/admin/members", user: ADMIN, ready: ".member" },
   { name: "item-form", path: "/items/new", user: ADMIN, ready: ".admin-page form" },
@@ -552,6 +624,35 @@ try {
     await page.waitForTimeout(400);
     assert.equal(await page.locator(".item-card").count(), 2);
     console.log("PASS search and status filter");
+    await context.close();
+  }
+
+  // 4-1) 문의 작성 → 상세 이동.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, MEMBER);
+    await page.goto(new URL("inquiries/new", base).href);
+    await page.getByLabel("제목 *").fill("등산 배낭 문의");
+    await page.getByLabel("문의 내용 *").fill("이번 주말에 빌릴 수 있나요?");
+    await page.getByRole("button", { name: "문의 접수", exact: true }).click();
+    await page.waitForURL(/inquiries\/17/);
+    await page.getByText("문의가 접수되었습니다.", { exact: true }).waitFor();
+    console.log("PASS inquiry create");
+    await context.close();
+  }
+
+  // 4-2) 관리자 답변 등록.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, ADMIN);
+    await page.goto(new URL("admin/inquiries", base).href);
+    await page.locator(".admin-inquiry").first().locator("button").first().click();
+    await page.getByLabel("답변 *").fill("이번 주말에는 대여 가능합니다.");
+    await page.getByRole("button", { name: "답변 수정", exact: true }).click();
+    await page.getByText("답변을 등록했습니다", { exact: true }).waitFor();
+    console.log("PASS admin inquiry answer");
     await context.close();
   }
 

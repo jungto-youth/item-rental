@@ -59,6 +59,7 @@ export function Input(props: Props) {
           id={id}
           class={`${controlClass()} min-h-[72px] resize-y px-4 py-4 leading-normal`}
           rows={props.rows ?? 2}
+          maxlength={props.maxlength}
           placeholder={props.placeholder}
           required={props.required}
           disabled={props.disabled}

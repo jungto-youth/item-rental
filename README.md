@@ -28,7 +28,7 @@ npm run dev        # API(8787) + 웹 HMR(5173) → http://localhost:5173
 ## 문서
 
 `docs/`에 주제별로 나눠 두었다. 번호 순서대로 읽으면
-제품 규칙 → 구조 → 디자인 → 개발·운영 → 백로그 흐름이다.
+제품 규칙 → 구조 → 디자인 → 개발·운영 흐름이다.
 
 ### 제품
 
@@ -66,11 +66,8 @@ npm run dev        # API(8787) + 웹 HMR(5173) → http://localhost:5173
 | [15 배포와 설정](docs/15-deployment-and-config.md) | 배포, 환경 변수·시크릿 |
 | [16 데이터베이스 운영](docs/16-database-operations.md) | 마이그레이션, 시드·시트, 백업, 관리자, 모니터링 |
 
-### 백로그
-
-| 문서 | 내용 |
-| --- | --- |
-| [17 백로그](docs/17-backlog.md) | 사용자 요청과 처리 상태 |
+설계 초안·열린 요청은 `docs/`에 쌓지 않고 로컬 작업 메모에서 관리한다
+([13 개발](docs/13-development.md)의 “문서 운영”).
 
 운영 중에만 쓰는 시트 반영 리포트(`data/sheet-import/report.md`)는 스크립트 생성물이라
 데이터 옆에 그대로 둔다. 생성·확인 방법은 [16 데이터베이스 운영](docs/16-database-operations.md)에 있다.

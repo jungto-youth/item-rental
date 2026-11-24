@@ -20,12 +20,14 @@ export function Shell() {
     if (path.startsWith("/policy/")) return "default";
     if (path === "/items/new" || path.endsWith("/edit")) return "default";
     if (path.startsWith("/items/")) return "default";
+    if (path.startsWith("/inquiries")) return "default";
     const known = [
       "/mypage",
       "/signup/profile",
       "/my/rentals",
       "/admin/reservations",
       "/admin/members",
+      "/admin/inquiries",
       "/design",
     ];
     if (known.includes(path)) return "default";

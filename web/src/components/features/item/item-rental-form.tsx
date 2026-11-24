@@ -356,7 +356,16 @@ export function ItemRentalForm(props: {
             </Show>
           </Show>
           <Show when={props.item.kind === "consumable"}>
-            <Notice>
+            <Notice
+              action={
+                <a
+                  class="text-fine font-semibold text-primary-strong no-underline hover:text-primary"
+                  href={`/inquiries/new?item=${props.item.id}`}
+                >
+                  문의하기
+                </a>
+              }
+            >
               소모품입니다 — 별도 대여 신청 없이 관리자에게 문의해 주세요.
             </Notice>
           </Show>

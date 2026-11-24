@@ -13,7 +13,7 @@ server/src/
   image-size.ts       — 의존성 없는 이미지 헤더 파서 (업로드 검사)
   photo-upload.ts     — 사진 업로드 공통 검증 (형식·용량·픽셀)
   middleware/auth.ts  — requireAuth · requireAdmin
-  routes/             — items, categories, me, reservations + admin/*
+  routes/             — items, categories, me, reservations, inquiries + admin/*
   services/           — SQL과 도메인 로직 (SQL은 여기에만 존재)
 
 web/src/

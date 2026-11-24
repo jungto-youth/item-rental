@@ -75,6 +75,7 @@ npx wrangler secret put TELEGRAM_CHAT_ID
 - 대여 신청(예약 포함)
 - 회원·관리자 반납
 - 관리자 승인·거절
+- 새 문의
 - 반납 지연 — 매일 09:00 KST에 한 번 집계
 
 반납 지연은 `wrangler.jsonc`의 `triggers.crons`(`0 0 * * *`)와
@@ -86,4 +87,4 @@ npx wrangler secret put TELEGRAM_CHAT_ID
 npx wrangler d1 migrations apply item-rental-db --remote
 ```
 
-건의사항 수신은 아직 없다. [17 백로그](17-backlog.md)의 B-09에 남아 있다.
+문의는 앱 안 폼(`/inquiries/new`)으로 받고, 새 문의를 위 알림 목록에 포함한다.
