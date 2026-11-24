@@ -2,87 +2,74 @@ import { For, createEffect, createSignal } from "solid-js";
 
 export type DocSection = { id: string; label: string };
 
-// 제목이 화면 위에서 이만큼 올라오면 그 섹션이 현재 섹션이다.
-// 본문 h2 의 scroll-mt-24(96px)와 같은 값이라, 목차로 이동한 위치와 판정이 맞는다.
+// 문서형 화면(정책·디자인 시스템)의 공통 목차.
+// 데스크톱은 오른쪽 320px sticky 레일, lg 미만에서는 DocPage가 접이식 목차를 따로 보여준다.
+// 제목이 상단 96px(scroll-mt-24)을 지나 화면 위쪽 30% 띠에 들어오면 현재 섹션으로 본다.
 const ACTIVE_LINE = 96;
 
-// 문서형 화면(정책·디자인 시스템)의 공통 목차.
-// 데스크톱은 오른쪽 320px sticky 레일, lg 미만에서는 숨긴다.
-// 스크롤 위치를 관찰해 현재 읽는 섹션을 굵게 표시한다.
 export function DocToc(props: { sections: DocSection[]; ariaLabel: string }) {
   const [active, setActive] = createSignal("");
-
-  // 목차를 눌러 이동한 섹션. 사용자가 직접 스크롤하기 전까지는 이 섹션을 유지한다.
-  let pinned = "";
 
   createEffect(
     () => props.sections,
     (sections) => {
-      const firstId = sections[0]?.id ?? "";
-      const lastId = sections[sections.length - 1]?.id ?? "";
+      if (sections.length === 0) return;
+      const firstId = sections[0].id;
+      const lastId = sections[sections.length - 1].id;
+      const order = new Map(
+        sections.map((section, index) => [section.id, index]),
+      );
       setActive(firstId);
-      pinned = "";
 
-      // 제목이 상단 기준선(ACTIVE_LINE)을 지난 마지막 섹션이 현재 섹션이다.
-      // 아직 아무 제목도 지나지 않았으면 첫 섹션을 유지한다.
-      // 마지막 섹션은 문서 끝에 붙어 있어 기준선까지 올라오지 못하므로,
-      // 바닥에 닿았을 때는 마지막 섹션을 활성화한다.
+      // 마지막 섹션은 문서 끝에 붙어 있어 관찰 띠까지 올라오지 못한다.
+      // 바닥에 닿았을 때는 관찰 결과보다 마지막 섹션을 우선한다.
       const isAtBottom = () => {
         const doc = document.documentElement;
-        // 스크롤할 여지가 없는 문서는 '바닥'으로 보지 않는다.
         if (doc.scrollHeight <= window.innerHeight + 2) return false;
         return window.scrollY + window.innerHeight >= doc.scrollHeight - 2;
       };
 
-      const compute = () => {
-        if (pinned) return;
-        if (lastId && isAtBottom()) {
-          setActive(lastId);
-          return;
-        }
-        let current = firstId;
-        for (const section of sections) {
-          const element = document.getElementById(section.id);
-          if (element && element.getBoundingClientRect().top <= ACTIVE_LINE) {
-            current = section.id;
-          }
-        }
-        setActive(current);
+      const syncBottom = () => {
+        if (!isAtBottom()) return false;
+        setActive(lastId);
+        return true;
       };
 
-      // 스크롤 이벤트마다 측정하지 않도록 프레임당 한 번만 계산한다.
-      let frame = 0;
-      const schedule = () => {
-        if (frame) return;
-        frame = requestAnimationFrame(() => {
-          frame = 0;
-          compute();
-        });
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (syncBottom()) return;
+
+          // 여러 제목이 동시에 띠에 들어올 수 있다 — 문서 순서상 마지막 항목을 쓴다.
+          const entering = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort(
+              (a, b) =>
+                (order.get(a.target.id) ?? 0) -
+                (order.get(b.target.id) ?? 0),
+            );
+          const current = entering.at(-1);
+          if (current) setActive(current.target.id);
+        },
+        { rootMargin: `-${ACTIVE_LINE}px 0px -70% 0px`, threshold: 0 },
+      );
+
+      for (const section of sections) {
+        const element = document.getElementById(section.id);
+        if (element) observer.observe(element);
+      }
+
+      const onScroll = () => {
+        syncBottom();
       };
-
-      // 사용자가 직접 스크롤하면 클릭으로 고정한 섹션을 놓아준다.
-      const release = () => {
-        pinned = "";
-        schedule();
-      };
-
-      // 섹션 목록이 바뀐 직후(약관↔개인정보 전환)에는 DOM 반영을 한 프레임 기다린다.
-      const initial = requestAnimationFrame(compute);
-
-      window.addEventListener("wheel", release, { passive: true });
-      window.addEventListener("touchstart", release, { passive: true });
-      window.addEventListener("keydown", release);
-      window.addEventListener("scroll", schedule, { passive: true });
-      window.addEventListener("resize", schedule);
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", onScroll);
+      const initial = requestAnimationFrame(syncBottom);
 
       return () => {
         cancelAnimationFrame(initial);
-        if (frame) cancelAnimationFrame(frame);
-        window.removeEventListener("wheel", release);
-        window.removeEventListener("touchstart", release);
-        window.removeEventListener("keydown", release);
-        window.removeEventListener("scroll", schedule);
-        window.removeEventListener("resize", schedule);
+        observer.disconnect();
+        window.removeEventListener("scroll", onScroll);
+        window.removeEventListener("resize", onScroll);
       };
     },
   );
@@ -96,13 +83,13 @@ export function DocToc(props: { sections: DocSection[]; ariaLabel: string }) {
       behavior: reduced ? "auto" : "smooth",
       block: "start",
     });
+    // 이동 중에는 제목이 띠를 지나며 갱신되지만, 즉시 이동할 때도 바로 반영한다.
+    setActive(id);
     window.history.replaceState(
       null,
       "",
       `${window.location.pathname}${window.location.search}#${id}`,
     );
-    pinned = id;
-    setActive(id);
   };
 
   return (
