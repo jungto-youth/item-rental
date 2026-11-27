@@ -20,11 +20,11 @@ test("kstToday: UTC 15:00 이 KST 자정 경계다", () => {
   expect(kstToday(new Date("2026-11-03T15:00:00.000Z"))).toBe("2026-11-04");
 });
 
-test("기본값·범위: 기본 7일, 내일부터 30일", () => {
+test("기본값·범위: 기본 1일, 내일부터 30일", () => {
   const now = new Date("2026-11-03T00:00:00.000Z"); // KST 11-03 09:00
-  expect(DEFAULT_RENTAL_DAYS).toBe(7);
+  expect(DEFAULT_RENTAL_DAYS).toBe(1);
   expect(MAX_RENTAL_DAYS).toBe(30);
-  expect(defaultDueDateKst(now)).toBe("2026-11-10");
+  expect(defaultDueDateKst(now)).toBe("2026-11-04");
   expect(minDueDateKst(now)).toBe("2026-11-04");
   expect(maxDueDateKst(now)).toBe("2026-12-03");
 });
@@ -50,8 +50,8 @@ test("addDaysIso: 월·연 경계를 넘긴다", () => {
   expect(isIsoDate("2027-01-02")).toBe(true);
 });
 
-test("defaultDueAtIso: due_date 생략 시 기본 7일 뒤 KST 끝", () => {
+test("defaultDueAtIso: due_date 생략 시 기본 1일 뒤 KST 끝", () => {
   expect(defaultDueAtIso(new Date("2026-11-03T00:00:00.000Z"))).toBe(
-    "2026-11-10T14:59:59.999Z",
+    "2026-11-04T14:59:59.999Z",
   );
 });

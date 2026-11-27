@@ -86,7 +86,7 @@ reservationsRoute.post("/", async (c) => {
   if (!memoRaw) return c.json({ error: "memo_required" }, 400);
   const memo = memoRaw.slice(0, 500);
 
-  // 반납 예정일 (B-06) — KST 달력 날짜. 생략하면 기본 7일 뒤, 내일~30일만 허용.
+  // 반납 예정일 (B-06) — KST 달력 날짜. 생략하면 기본 1일 뒤, 내일~30일만 허용.
   const dueDateRaw = typeof body.due_date === "string" ? body.due_date.trim() : "";
   const dueDate = dueDateRaw || defaultDueDateKst();
   if (!isIsoDate(dueDate)) return c.json({ error: "bad_due_date" }, 400);

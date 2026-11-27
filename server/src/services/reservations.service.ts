@@ -42,7 +42,7 @@ export type ReserveItem = {
 };
 
 // 대여 생성 파라미터 — 수량·메모·반납 예정일. dueAt 은 KST 날짜의 끝(UTC ISO)이다.
-// 생략하면 기본 7일 뒤로 채운다(HTTP 경계는 항상 명시값을 넘긴다).
+// 생략하면 기본 1일 뒤로 채운다(HTTP 경계는 항상 명시값을 넘긴다).
 export type CreateReservationParams = {
   itemId: number;
   memberId: string;
@@ -583,7 +583,7 @@ export async function approveReservation(
   }
 
   // 반납일 확정 — pending 은 희망일을 쓰고, 지났으면 새 날짜가 필수다.
-  // reserved 는 희망일이 없으므로 기본값(오늘 + 7일)을 쓴다. 관리자는 언제든 덮어쓸 수 있다.
+  // reserved 는 희망일이 없으므로 기본값(오늘 + 1일)을 쓴다. 관리자는 언제든 덮어쓸 수 있다.
   const nowIso = new Date().toISOString();
   let dueAt: string;
   if (dueAtOverride) {

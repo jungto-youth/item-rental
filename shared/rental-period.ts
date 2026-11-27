@@ -4,7 +4,7 @@
 // (23:59:59.999)을 UTC ISO 로 저장해 `due_at < now` 비교가 문자열 비교로도
 // 성립하게 한다(SQL_NOW 와 같은 형식). 시작일은 따로 두지 않는다 — 신청/승인
 // 시점이 시작이고, 사용자는 반납 예정일만 고른다.
-export const DEFAULT_RENTAL_DAYS = 7;
+export const DEFAULT_RENTAL_DAYS = 1;
 export const MAX_RENTAL_DAYS = 30;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
