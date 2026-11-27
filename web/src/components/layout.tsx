@@ -37,8 +37,8 @@ export function Shell() {
   };
 
   const showFab = () => session.isAdmin() && loc().pathname === "/";
-  const showCartBar = () =>
-    !session.isAdmin() && loc().pathname === "/" && cart.count() > 0;
+  // 대여는 역할과 무관하다 — 관리자도 회원과 같은 장바구니 바를 쓴다.
+  const showCartBar = () => loc().pathname === "/" && cart.count() > 0;
 
   // 하단 고정 바가 본문·푸터의 마지막 줄을 가리지 않게 같은 높이만큼 비운다.
   const mainBottomPad = () => {
@@ -121,7 +121,11 @@ export function Shell() {
 
       <Show when={showFab()}>
         <a
-          class="hidden max-lg:fixed max-lg:right-4 max-lg:bottom-[calc(16px+env(safe-area-inset-bottom,0px))] max-lg:z-20 max-lg:flex max-lg:size-12 max-lg:items-center max-lg:justify-center max-lg:rounded-pill max-lg:border max-lg:border-primary-strong max-lg:bg-primary-strong max-lg:text-white max-lg:shadow-[0_8px_20px_rgba(226,87,30,0.28)] max-lg:transition-colors max-lg:hover:border-primary-deep max-lg:hover:bg-primary-deep max-lg:focus-visible:outline-2 max-lg:focus-visible:outline-offset-2 max-lg:focus-visible:outline-ink-1 [&_svg]:max-lg:size-5"
+          class={`hidden max-lg:fixed max-lg:right-4 ${
+            showCartBar()
+              ? "max-lg:bottom-[calc(88px+env(safe-area-inset-bottom,0px))]"
+              : "max-lg:bottom-[calc(16px+env(safe-area-inset-bottom,0px))]"
+          } max-lg:z-20 max-lg:flex max-lg:size-12 max-lg:items-center max-lg:justify-center max-lg:rounded-pill max-lg:border max-lg:border-primary-strong max-lg:bg-primary-strong max-lg:text-white max-lg:shadow-[0_8px_20px_rgba(226,87,30,0.28)] max-lg:transition-colors max-lg:hover:border-primary-deep max-lg:hover:bg-primary-deep max-lg:focus-visible:outline-2 max-lg:focus-visible:outline-offset-2 max-lg:focus-visible:outline-ink-1 [&_svg]:max-lg:size-5`}
           href="/items/new"
           aria-label="물품 등록"
         >

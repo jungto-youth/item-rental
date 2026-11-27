@@ -1099,7 +1099,38 @@ try {
     await context.close();
   }
 
-  // 10-1) 관리자 목록 카드는 상세로 가고, 상세의 '수정'으로 수정 화면에 들어간다.
+  // 10-1) 관리자도 회원과 같은 장바구니를 쓴다 — 담기·하단 바·장바구니 화면.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, ADMIN);
+    await page.goto(base);
+    await page.getByRole("button", { name: "4인용 텐트 장바구니에 담기" }).click();
+    await page.getByText(/장바구니 1종/).waitFor();
+
+    // 모바일에서는 물품 등록 FAB 이 장바구니 바 위로 비켜나야 겹치지 않는다.
+    await page.setViewportSize({ width: 390, height: 844 });
+    const fabBox = await page
+      .getByRole("link", { name: "물품 등록" })
+      .boundingBox();
+    const barBox = await page
+      .locator("div.fixed")
+      .filter({ has: page.getByRole("link", { name: "신청하기" }) })
+      .boundingBox();
+    assert.ok(fabBox && barBox, "FAB·장바구니 바가 보여야 한다");
+    assert.ok(
+      fabBox.y + fabBox.height <= barBox.y,
+      "물품 등록 FAB 은 장바구니 바 위에 있어야 한다",
+    );
+
+    await page.getByRole("link", { name: "신청하기" }).click();
+    await page.waitForURL(/\/cart$/);
+    await page.locator(".cart-line").first().waitFor();
+    console.log("PASS admin cart");
+    await context.close();
+  }
+
+  // 10-2) 관리자 목록 카드는 상세로 가고, 상세의 '수정'으로 수정 화면에 들어간다.
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
@@ -1311,7 +1342,7 @@ try {
 
   // 16) 모바일 폭에서 가로 스크롤이 없다 — 긴 이름·이메일·소속 카드 포함.
   for (const [user, routes] of [
-    [MEMBER, ["/", "/items/101", "/mypage", "/my/rentals", "/policy/privacy", "/design"]],
+    [MEMBER, ["/", "/items/101", "/mypage", "/my/rentals", "/cart", "/policy/privacy", "/design"]],
     [ADMIN, ["/admin/members", "/admin/reservations"]],
   ]) {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });

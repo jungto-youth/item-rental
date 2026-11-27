@@ -2,7 +2,6 @@ import { Show, createMemo } from "solid-js";
 import type { Item } from "../../../types";
 import { maxRequestQty, statusParts } from "../../../utils/stock";
 import { cart } from "../../../context/cart";
-import { session } from "../../../context/session";
 import { MAX_CART_LINES } from "../../../../../shared/cart";
 import { CheckIcon, ImageIcon, PlusIcon } from "../../icons";
 
@@ -48,10 +47,10 @@ export function ItemCard(props: {
   const strong = () =>
     primary()?.key === "available" || primary()?.key === "reserved";
 
-  // 장바구니는 회원 목록에서만 — 관리자 목록은 관리 동작의 자리다.
+  // 관리자도 회원과 같은 장바구니를 쓴다 — 관리자 목록은 관리 동작만 다른 화면일 뿐,
+  // 대여 자체는 회원과 동일하다. 담을 수 있는 수량이 없으면 칩을 숨긴다.
   const maxQty = () => maxRequestQty(props.item);
-  const addable = () =>
-    (props.cartEnabled ?? true) && !session.isAdmin() && maxQty() > 0;
+  const addable = () => (props.cartEnabled ?? true) && maxQty() > 0;
   const inCartQty = () => cart.qtyOf(props.item.id);
   const atMax = () => inCartQty() >= maxQty();
   const cartFull = () =>
