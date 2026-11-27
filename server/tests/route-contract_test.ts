@@ -6,6 +6,7 @@
 import { test, expect } from "vitest";
 import { httpFixture, TEST_ORIGIN } from "./_http.fixture.ts";
 import { defaultDueDateKst } from "../../shared/rental-period.ts";
+import type { CartReservationResult } from "../../shared/api-types.ts";
 
 // 상태를 바꾸는 라우트는 정확한 Origin 이 있어야 한다 — POST/PATCH/DELETE 는
 // exact-origin 검사(보안)가 걸리므로 헤더를 빼면 403 이 된다. GET 도 같이 준다.
@@ -648,5 +649,148 @@ test("reservations: 지회·모둠이 없는 회원은 신청할 수 없다", as
     });
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({ error: "affiliation_required" });
+  } finally { db.close(); }
+});
+
+// ===== /api/reservations/batch — 장바구니 묶음 신청 =====
+
+test("reservations batch: 여러 물품을 한 번에 신청하고 항목별 결과를 돌려준다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const user = await member("user", "user");
+    db.prepare("UPDATE members SET affiliation = '청년지부 · 서울 · 동부' WHERE id = 'user'").run();
+    db.exec(
+      `INSERT INTO items (id, name, kind, total_qty) VALUES
+        (1, '4인용 텐트', 'rental', 2),
+        (2, '랜턴', 'rental', 1);`,
+    );
+
+    const res = await request("/api/reservations/batch", {
+      method: "POST",
+      headers: { cookie: user, ...json },
+      body: JSON.stringify({
+        items: [
+          { item_id: 1, qty: 2 },
+          { item_id: 2, qty: 1 },
+          // 없는 물품 — 부분 성공이 성립하는지 확인한다
+          { item_id: 999, qty: 1 },
+        ],
+        memo: "행사 준비",
+        due_date: defaultDueDateKst(),
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { results: CartReservationResult[] };
+    // 응답 순서는 요청 순서와 같다 — 화면이 실패 줄을 그대로 매칭한다
+    expect(body.results.map((result) => [result.item_id, result.ok])).toEqual([
+      [1, true],
+      [2, true],
+      [999, false],
+    ]);
+    const missing = body.results[2];
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) expect(missing.error).toBe("not_found");
+
+    // 성공한 물품은 저장되고, 실패한 항목은 아무 행도 만들지 않는다
+    const rows = db
+      .prepare(
+        "SELECT item_id, qty, status, member_memo, group_id FROM reservations ORDER BY item_id",
+      )
+      .all() as {
+      item_id: number;
+      qty: number;
+      status: string;
+      member_memo: string;
+      group_id: string;
+    }[];
+    expect(rows.map((row) => [row.item_id, row.qty, row.status])).toEqual([
+      [1, 2, "pending"],
+      [2, 1, "pending"],
+    ]);
+    expect(rows.every((row) => row.member_memo === "행사 준비")).toBe(true);
+    // 한 물품의 pending/reserved 만 같은 group_id — 물품마다 독립 신청이다
+    expect(new Set(rows.map((row) => row.group_id)).size).toBe(2);
+  } finally { db.close(); }
+});
+
+test("reservations batch: 요청 모양을 검증하고 전부 실패해도 항목별 사유를 돌려준다", async () => {
+  const { db, request, member } = httpFixture();
+  try {
+    const user = await member("user", "user");
+    db.prepare("UPDATE members SET affiliation = '청년지부 · 서울 · 동부' WHERE id = 'user'").run();
+    db.exec("INSERT INTO items (id, name, kind, total_qty) VALUES (1, '텐트', 'rental', 2);");
+    // 3번은 반납을 기다리는 예약이 이미 자리를 다 차지했다 — 신규 예약도 마감.
+    db.exec("INSERT INTO items (id, name, kind, total_qty) VALUES (3, '무선 마이크', 'rental', 1);");
+    db.exec(
+      "INSERT INTO reservations (item_id, member_id, qty, status) VALUES (3, 'user', 1, 'reserved');",
+    );
+
+    const post = (body: Record<string, unknown>) =>
+      request("/api/reservations/batch", {
+        method: "POST",
+        headers: { cookie: user, ...json },
+        body: JSON.stringify(body),
+      });
+
+    const empty = await post({ items: [], memo: "모임용" });
+    expect(empty.status).toBe(400);
+    expect(await empty.json()).toEqual({ error: "empty_cart" });
+
+    const duplicated = await post({
+      items: [
+        { item_id: 1, qty: 1 },
+        { item_id: 1, qty: 1 },
+      ],
+      memo: "모임용",
+    });
+    expect(duplicated.status).toBe(400);
+    expect(await duplicated.json()).toEqual({ error: "duplicate_item" });
+
+    const tooMany = await post({
+      items: Array.from({ length: 21 }, (_, index) => ({
+        item_id: index + 1,
+        qty: 1,
+      })),
+      memo: "모임용",
+    });
+    expect(tooMany.status).toBe(400);
+    expect(await tooMany.json()).toMatchObject({ error: "too_many_items" });
+
+    const badQty = await post({ items: [{ item_id: 1, qty: 0 }], memo: "모임용" });
+    expect(badQty.status).toBe(400);
+    expect(await badQty.json()).toEqual({ error: "bad_qty" });
+
+    const noMemo = await post({ items: [{ item_id: 1, qty: 1 }] });
+    expect(noMemo.status).toBe(400);
+    expect(await noMemo.json()).toEqual({ error: "memo_required" });
+
+    const badDue = await post({
+      items: [{ item_id: 1, qty: 1 }],
+      memo: "모임용",
+      due_date: "2020-01-01",
+    });
+    expect(badDue.status).toBe(400);
+    expect(await badDue.json()).toEqual({ error: "due_date_out_of_range" });
+
+    // 전부 실패 — 요청 자체는 성립하므로 200, 본문이 항목별 사유를 담는다
+    const none = await post({
+      items: [{ item_id: 3, qty: 1 }],
+      memo: "모임용",
+      due_date: defaultDueDateKst(),
+    });
+    expect(none.status).toBe(200);
+    const noneBody = (await none.json()) as { results: CartReservationResult[] };
+    expect(noneBody.results[0]).toMatchObject({
+      item_id: 3,
+      ok: false,
+      error: "queue_full",
+      max_request: 0,
+    });
+    expect(
+      (db.prepare("SELECT COUNT(*) AS n FROM reservations WHERE item_id = 3").get() as {
+        n: number;
+      }).n,
+    ).toBe(1);
   } finally { db.close(); }
 });

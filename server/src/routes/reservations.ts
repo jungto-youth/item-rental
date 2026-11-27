@@ -22,6 +22,11 @@ import {
   returnReservationByMember,
   type CreateReservationParams,
 } from "../services/reservations.service";
+import type {
+  CartReservationItem,
+  CartReservationResult,
+} from "../../../shared/api-types";
+import { MAX_CART_LINES } from "../../../shared/cart";
 import {
   addReturnPhoto,
   deleteReservationPhotos,
@@ -30,7 +35,9 @@ import {
 import {
   isTelegramConfigured,
   notifyReservationCreated,
+  notifyReservationCreatedBatch,
   notifyReservationReturned,
+  type ReservationCreatedNotice,
 } from "../services/telegram.service";
 
 // ===== 대여 라우트 =====
@@ -149,6 +156,143 @@ reservationsRoute.post("/", async (c) => {
   if (result.error === "not_found") return c.json({ error: "not_found" }, 404);
 
   return c.json({ error: "internal" }, 500);
+});
+
+// ===== 장바구니 묶음 신청 =====
+// 여러 물품을 한 번에 신청한다. 물품별 신청은 위 단건 경로와 같은 createReservation 을
+// 쓰므로 재고·원자 가드·pending/reserved 분해 규칙이 그대로 적용된다. 항목마다 결과를
+// 나눠 돌려주고, 한 물품이 실패해도 이미 성공한 물품은 유지한다 — 재고는 물품별로
+// 독립이고, 장바구니는 '신청 전체'가 아니라 '물품별 신청의 묶음'이기 때문이다.
+reservationsRoute.post("/batch", async (c) => {
+  const user = c.get("user")!;
+
+  // 단건과 같은 프로필 가드 — 화면을 우회한 직접 호출도 서버에서 막는다.
+  if (!user.phone) return c.json({ error: "phone_required" }, 400);
+  if (!isAffiliationValid(user.affiliation))
+    return c.json({ error: "affiliation_required" }, 400);
+
+  const body = (await c.req.json().catch(() => ({}))) as Record<
+    string,
+    unknown
+  >;
+
+  // 물품 목록 검증 — 화면이 보내는 모양을 그대로 믿지 않는다.
+  const rawItems = body.items;
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
+    return c.json({ error: "empty_cart" }, 400);
+  }
+  if (rawItems.length > MAX_CART_LINES) {
+    return c.json({ error: "too_many_items", max_items: MAX_CART_LINES }, 400);
+  }
+
+  const items: CartReservationItem[] = [];
+  const seen = new Set<number>();
+  for (const raw of rawItems) {
+    const entry = (raw ?? {}) as Record<string, unknown>;
+    const itemId = Number(entry.item_id);
+    if (!Number.isInteger(itemId) || itemId < 1) {
+      return c.json({ error: "bad_id" }, 400);
+    }
+    const qty = entry.qty === undefined ? 1 : Number(entry.qty);
+    if (!Number.isInteger(qty) || qty < 1) {
+      return c.json({ error: "bad_qty" }, 400);
+    }
+    // 같은 물품을 두 줄로 담으면 한 줄로 합칠지 화면마다 달라진다 — 서버는 거절한다.
+    if (seen.has(itemId)) return c.json({ error: "duplicate_item" }, 400);
+    seen.add(itemId);
+    items.push({ item_id: itemId, qty });
+  }
+
+  // 메모·반납 예정일은 묶음 전체에 하나 — 단건과 같은 규칙이다.
+  const memoRaw = typeof body.memo === "string" ? body.memo.trim() : "";
+  if (!memoRaw) return c.json({ error: "memo_required" }, 400);
+  const memo = memoRaw.slice(0, 500);
+
+  const dueDateRaw =
+    typeof body.due_date === "string" ? body.due_date.trim() : "";
+  const dueDate = dueDateRaw || defaultDueDateKst();
+  if (!isIsoDate(dueDate)) return c.json({ error: "bad_due_date" }, 400);
+  if (!isDueDateInRange(dueDate)) {
+    return c.json({ error: "due_date_out_of_range" }, 400);
+  }
+  const dueAt = dueAtFromKstDate(dueDate);
+  if (!dueAt) return c.json({ error: "bad_due_date" }, 400);
+
+  const db: Sql = getDb(c.env);
+  const results: CartReservationResult[] = [];
+
+  // 순차 처리 — D1 은 한 연결에서 직렬화되고, 항목 순서대로 결과를 돌려주면
+  // 화면이 실패 줄을 그대로 매칭할 수 있다.
+  for (const line of items) {
+    const result = await createReservation(db, {
+      itemId: line.item_id,
+      memberId: user.id,
+      memo,
+      qty: line.qty,
+      dueAt,
+    });
+
+    if ("ok" in result) {
+      results.push({
+        item_id: line.item_id,
+        ok: true,
+        group_id: result.group_id,
+        segments: result.segments,
+      });
+    } else if (result.error === "too_many") {
+      results.push({
+        item_id: line.item_id,
+        ok: false,
+        error: result.error,
+        rentable: result.rentable,
+      });
+    } else if (result.error === "queue_full") {
+      results.push({
+        item_id: line.item_id,
+        ok: false,
+        error: result.error,
+        rentable: result.rentable,
+        max_request: result.max_request,
+      });
+    } else {
+      results.push({
+        item_id: line.item_id,
+        ok: false,
+        error: result.error,
+      });
+    }
+  }
+
+  const succeeded = results.filter((result) => result.ok);
+
+  // 관리자 알림 — 건별 메시지 대신 묶음 1건. 실패해도 응답에는 영향이 없다.
+  if (succeeded.length > 0 && isTelegramConfigured(c.env)) {
+    const qtyById = new Map(items.map((line) => [line.item_id, line.qty]));
+    runInBackground(c, async () => {
+      const notices: ReservationCreatedNotice[] = [];
+      for (const result of succeeded) {
+        if (!result.ok) continue;
+        const itemName = await loadItemName(db, result.item_id);
+        notices.push({
+          itemName,
+          qty: qtyById.get(result.item_id) ?? 1,
+          pendingQty: result.segments
+            .filter((segment) => segment.status === "pending")
+            .reduce((sum, segment) => sum + segment.qty, 0),
+          reservedQty: result.segments
+            .filter((segment) => segment.status === "reserved")
+            .reduce((sum, segment) => sum + segment.qty, 0),
+          dueAt,
+          memberName: user.name,
+          memberPhone: user.phone,
+        });
+      }
+      await notifyReservationCreatedBatch(c.env, notices);
+    });
+  }
+
+  // 하나라도 접수됐으면 201, 전부 실패면 200 — 본문의 항목별 결과가 실제 계약이다.
+  return c.json({ results }, succeeded.length > 0 ? 201 : 200);
 });
 
 // 내 대여 현황·이력  — member_id = 세션 사용자 필수

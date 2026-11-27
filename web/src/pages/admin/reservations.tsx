@@ -6,8 +6,6 @@ import { fmtKstDate } from "../../utils/date";
 import {
   defaultDueDateKst,
   isDueDateInRange,
-  maxDueDateKst,
-  minDueDateKst,
 } from "../../../../shared/rental-period";
 import { AdminPage } from "../../components/admin/admin-page";
 import { Button } from "../../components/ui/button";
@@ -19,6 +17,7 @@ import { Modal } from "../../components/ui/modal";
 import { ReservationRow, ReservationListSkeleton } from "../../components/common/reservation-row";
 import { ReturnDialog, type ReturnDialogResult } from "../../components/features/rental/return-dialog";
 import { ReturnPhotoStrip } from "../../components/features/rental/return-photo-strip";
+import { RentalPeriodPicker } from "../../components/features/rental/rental-period-picker";
 
 type Filter = "" | ReservationStatus | "overdue";
 
@@ -782,19 +781,11 @@ export default function AdminReservations() {
             주세요.
           </p>
         </Show>
-        <Input
+        <RentalPeriodPicker
           class="mt-4"
-          label="반납 예정일 *"
-          type="date"
-          min={minDueDateKst()}
-          max={maxDueDateKst()}
           value={approveDueDate()}
-          onInput={setApproveDueDate}
-          required
+          onChange={setApproveDueDate}
         />
-        <p class="mt-2 text-fine leading-normal text-ink-2">
-          내일부터 30일 이내로 선택해 주세요.
-        </p>
         <Show when={approveError()}>
           <p class="mt-2 m-0 text-fine leading-normal text-danger" role="alert">
             {approveError()}
@@ -849,19 +840,11 @@ export default function AdminReservations() {
             외 {approvableSelected().length - 8}건
           </p>
         </Show>
-        <Input
+        <RentalPeriodPicker
           class="mt-4"
-          label="반납 예정일 *"
-          type="date"
-          min={minDueDateKst()}
-          max={maxDueDateKst()}
           value={batchDueDate()}
-          onInput={setBatchDueDate}
-          required
+          onChange={setBatchDueDate}
         />
-        <p class="mt-2 text-fine leading-normal text-ink-2">
-          내일부터 30일 이내로 선택해 주세요.
-        </p>
         <Show when={batchError()}>
           <p class="mt-2 m-0 text-fine leading-normal text-danger" role="alert">
             {batchError()}

@@ -88,12 +88,14 @@ export function formatDdayKst(
 const ITEM_LIST_MAX = 120;
 
 // 물품 목록을 ", "로 잇는다. 반납일이 물품마다 다르면 이름 뒤에 짧게 붙인다.
-function joinItemList(
-  rows: { itemName: string; qty: number }[],
+// suffixFor 는 이름·수량 뒤에 붙는 상태 표시(예: 장바구니의 " (예약 1)")다.
+function joinItemList<T extends { itemName: string; qty: number }>(
+  rows: T[],
   dueLabels: (string | null)[] | null = null,
+  suffixFor: ((row: T) => string | null) | null = null,
 ): string {
   const labels = rows.map((row, index) => {
-    const name = `${escapeHtml(oneLine(row.itemName))}${quantitySuffix(row.qty)}`;
+    const name = `${escapeHtml(oneLine(row.itemName))}${quantitySuffix(row.qty)}${suffixFor?.(row) ?? ""}`;
     const due = dueLabels?.[index];
     return due ? `${name} ~${due}` : name;
   });
@@ -240,6 +242,42 @@ export async function notifyReservationCreated(
   fetchImpl: typeof fetch = fetch,
 ): Promise<boolean> {
   return sendTelegram(env, formatReservationCreated(notice), fetchImpl);
+}
+
+// 장바구니 묶음 신청 — 한 회원이 여러 물품을 한 번에 신청했으므로 알림도 1건.
+// 즉시 배정(pending)과 예약(reserved)이 섞인 물품은 이름 뒤에 예약분만 표시하고,
+// 반납일은 공통이므로 즉시 배정분이 있을 때 한 번만 붙인다.
+export function formatReservationCreatedBatch(
+  notices: ReservationCreatedNotice[],
+): string {
+  if (notices.length === 0) return "";
+  const first = notices[0];
+  const due = notices.some((notice) => notice.pendingQty > 0)
+    ? formatDueDateShortKst(first.dueAt)
+    : null;
+  return joinParts([
+    `🔔 <b>신청</b>: ${joinItemList(
+      notices,
+      null,
+      (notice) =>
+        notice.pendingQty === 0
+          ? " (예약)"
+          : notice.reservedQty > 0
+            ? ` (예약 ${notice.reservedQty})`
+            : null,
+    )}`,
+    memberLabel(first.memberName, first.memberPhone),
+    due ? `~${due}` : null,
+  ]);
+}
+
+export async function notifyReservationCreatedBatch(
+  env: TelegramEnv,
+  notices: ReservationCreatedNotice[],
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  if (notices.length === 0) return false;
+  return sendTelegram(env, formatReservationCreatedBatch(notices), fetchImpl);
 }
 
 // ===== 반납 =====

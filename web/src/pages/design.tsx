@@ -923,13 +923,14 @@ export default function Design() {
               </div>
             </Spec>
 
-            <Spec name="물품 카드" note="사진 유무 · hover · focus-visible">
+            <Spec name="물품 카드" note="사진 유무 · hover · focus-visible · 회원 목록의 담기 칩">
               <div class="grid max-w-[460px] grid-cols-2 gap-2">
-                <ItemCard item={SAMPLE_ITEMS[0]} href="/design" />
-                <ItemCard item={SAMPLE_ITEMS[1]} href="/design" />
+                <ItemCard item={SAMPLE_ITEMS[0]} href="/design" cartEnabled={false} />
+                <ItemCard item={SAMPLE_ITEMS[1]} href="/design" cartEnabled={false} />
               </div>
               <p class="mt-3 text-fine leading-normal text-ink-2">
-                사진 3:2 · hover는 테두리만(line-strong) · 확대 효과 없음.
+                사진 3:2 · hover는 테두리만(line-strong) · 확대 효과 없음. 회원 목록에서는
+                사진 우측 상단에 담기 칩이 겹친다.
               </p>
             </Spec>
 

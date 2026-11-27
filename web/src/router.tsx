@@ -7,6 +7,7 @@ import ItemDetail from "./pages/item-detail";
 import Login from "./pages/login";
 import MyPage from "./pages/mypage";
 import MyRentals from "./pages/my-rentals";
+import Cart from "./pages/cart";
 import Inquiries from "./pages/inquiries";
 import InquiryNew from "./pages/inquiry-new";
 import InquiryDetail from "./pages/inquiry-detail";
@@ -77,6 +78,12 @@ const routes: RouteDef[] = [
     component: MyRentals,
     guard: "session",
     title: () => `대여 내역 — ${APP_NAME}`,
+  },
+  {
+    pattern: "/cart",
+    component: Cart,
+    guard: "session",
+    title: () => `장바구니 — ${APP_NAME}`,
   },
   {
     pattern: "/inquiries",

@@ -1,10 +1,12 @@
-import { Show, createEffect, onSettled } from "solid-js";
+import { Show, createEffect, onSettled, untrack } from "solid-js";
 import { Dynamic } from "@solidjs/web";
 import { session } from "../context/session";
+import { cart } from "../context/cart";
 import { location, match, titleFor } from "../router";
 import { AppHeader } from "./app-header";
 import { AppFooter } from "./app-footer";
 import { PlusIcon } from "./icons";
+import { CartBar } from "./features/cart/cart-bar";
 import { ConfirmHost } from "../utils/confirm";
 import type { PageProps } from "../router";
 
@@ -35,6 +37,25 @@ export function Shell() {
   };
 
   const showFab = () => session.isAdmin() && loc().pathname === "/";
+  const showCartBar = () =>
+    !session.isAdmin() && loc().pathname === "/" && cart.count() > 0;
+
+  // 하단 고정 바가 본문·푸터의 마지막 줄을 가리지 않게 같은 높이만큼 비운다.
+  const mainBottomPad = () => {
+    if (showCartBar()) {
+      return "pb-[calc(88px+env(safe-area-inset-bottom,0px))]";
+    }
+    if (showFab()) {
+      return "pb-[calc(16px+env(safe-area-inset-bottom,0px))] max-lg:pb-[calc(80px+env(safe-area-inset-bottom,0px))]";
+    }
+    return "pb-[calc(16px+env(safe-area-inset-bottom,0px))]";
+  };
+
+  // 장바구니는 회원별로 저장한다 — 로그인 사용자가 바뀔 때만 저장소에서 읽는다.
+  createEffect(
+    () => session.user()?.id ?? null,
+    (userId) => untrack(() => cart.syncToUser(userId)),
+  );
 
   createEffect(
     () => loc(),
@@ -58,11 +79,7 @@ export function Shell() {
         class={`w-full flex-1 text-body ${
           plain()
             ? "max-w-none p-0"
-            : `mx-auto max-w-layout p-4 pb-[calc(16px+env(safe-area-inset-bottom,0px))] ${
-                showFab()
-                  ? "max-lg:pb-[calc(80px+env(safe-area-inset-bottom,0px))]"
-                  : ""
-              }`
+            : `mx-auto max-w-layout p-4 ${mainBottomPad()}`
         }`}
       >
         <Show
@@ -87,7 +104,19 @@ export function Shell() {
       </main>
 
       <Show when={footerMode() !== "none"}>
-        <AppFooter surface={footerMode() === "surface"} />
+        <div
+          class={
+            showCartBar()
+              ? "pb-[calc(72px+env(safe-area-inset-bottom,0px))]"
+              : ""
+          }
+        >
+          <AppFooter surface={footerMode() === "surface"} />
+        </div>
+      </Show>
+
+      <Show when={showCartBar()}>
+        <CartBar />
       </Show>
 
       <Show when={showFab()}>

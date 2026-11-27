@@ -6,13 +6,13 @@ import { availableQty, maxRequestQty } from "../../../utils/stock";
 import {
   defaultDueDateKst,
   isDueDateInRange,
-  maxDueDateKst,
-  minDueDateKst,
 } from "../../../../../shared/rental-period";
 import { navigate } from "../../../router";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Notice } from "../../ui/notice";
+import { QuantityStepper } from "../../ui/quantity-stepper";
+import { RentalPeriodPicker } from "../rental/rental-period-picker";
 
 export function ItemRentalForm(props: {
   item: Item;
@@ -37,16 +37,6 @@ export function ItemRentalForm(props: {
   const nowQty = () => Math.min(qty(), availableNow());
   const waitQty = () => Math.max(0, qty() - availableNow());
   const needsDueDate = () => nowQty() > 0;
-
-  const handleQtyBlur = (event: FocusEvent) => {
-    const input = event.currentTarget as HTMLInputElement;
-    const value = parseInt(input.value, 10);
-    const clamped = Number.isFinite(value)
-      ? Math.min(Math.max(value, 1), Math.max(1, maxRequest()))
-      : 1;
-    setQty(clamped);
-    input.value = String(clamped);
-  };
 
   const handleSubmit = async (event: SubmitEvent) => {
     event.preventDefault();
@@ -233,51 +223,12 @@ export function ItemRentalForm(props: {
                     <span class="text-fine font-medium text-ink-2">
                       신청 수량
                     </span>
-                    <Show
-                      when={maxRequest() > 1}
-                      fallback={
-                        <span class="inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-body font-semibold text-ink-1">
-                          1개
-                        </span>
-                      }
-                    >
-                      <div class="inline-flex h-10 items-center overflow-hidden rounded-card border border-line bg-surface">
-                        <button
-                          type="button"
-                          class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-20 text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
-                          onClick={() => setQty((value) => Math.max(1, value - 1))}
-                          disabled={qty() <= 1}
-                          aria-label="수량 감소"
-                        >
-                          −
-                        </button>
-                        <input
-                          class="h-10 w-12 border-x border-line bg-transparent text-center text-body font-semibold text-ink-1 focus:border-primary focus:outline-none"
-                          type="number"
-                          inputmode="numeric"
-                          min="1"
-                          max={maxRequest()}
-                          value={qty()}
-                          onInput={(event) => {
-                            const value = parseInt(event.currentTarget.value, 10);
-                            if (Number.isFinite(value)) setQty(value);
-                          }}
-                          onBlur={handleQtyBlur}
-                          aria-label="신청 수량 직접 입력"
-                        />
-                        <button
-                          type="button"
-                          class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-20 text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
-                          onClick={() =>
-                            setQty((value) => Math.min(maxRequest(), value + 1))
-                          }
-                          disabled={qty() >= maxRequest()}
-                          aria-label="수량 증가"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </Show>
+                    <QuantityStepper
+                      value={qty()}
+                      max={maxRequest()}
+                      label="신청"
+                      onChange={setQty}
+                    />
                   </div>
 
                   <div class="mt-4 grid gap-1 rounded-card bg-surface-muted px-4 py-3 text-fine leading-normal text-ink-2">
@@ -294,19 +245,11 @@ export function ItemRentalForm(props: {
                   </div>
 
                   <Show when={needsDueDate()}>
-                    <Input
+                    <RentalPeriodPicker
                       class="mt-4"
-                      label="반납 예정일 *"
-                      type="date"
-                      min={minDueDateKst()}
-                      max={maxDueDateKst()}
                       value={dueDate()}
-                      onInput={setDueDate}
-                      required
+                      onChange={setDueDate}
                     />
-                    <p class="mt-2 text-fine leading-normal text-ink-2">
-                      내일부터 30일 이내로 선택해 주세요.
-                    </p>
                   </Show>
                   <Show when={waitQty() > 0}>
                     <p class="mt-2 text-fine leading-normal text-ink-2">

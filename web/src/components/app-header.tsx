@@ -20,6 +20,8 @@ export function AppHeader() {
     const admin = current.role === "admin";
     return [
       { href: "/", label: "물품 현황" },
+      // 장바구니는 회원의 신청 도구다 — 관리자 목록에는 담기 동작이 없다.
+      ...(admin ? [] : [{ href: "/cart", label: "장바구니" }]),
       ...(admin
         ? [
             { href: "/admin/reservations", label: "대여 관리" },

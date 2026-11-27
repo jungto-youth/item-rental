@@ -144,6 +144,40 @@ export type MyReservation = {
   queue_ahead_qty?: number;
 };
 
+// 한 신청이 만든 행 — 재고가 있는 몫은 pending, 부족한 몫은 reserved 로 나뉜다.
+// 장바구니 묶음 신청도 물품마다 이 모양을 하나씩 돌려준다.
+export type ReservationSegment = {
+  id: number;
+  status: "pending" | "reserved";
+  qty: number;
+};
+
+// 장바구니 제출 — 물품 종류별 수량. 같은 물품을 두 줄로 담을 수는 없다.
+export type CartReservationItem = { item_id: number; qty: number };
+
+// 묶음 신청의 항목별 결과. 성공·실패가 섞여도 요청 자체는 성공이며,
+// 화면은 실패한 줄만 남겨 사유와 함께 다시 시도하게 한다.
+export type CartReservationResult =
+  | {
+      item_id: number;
+      ok: true;
+      group_id: string;
+      segments: ReservationSegment[];
+    }
+  | {
+      item_id: number;
+      ok: false;
+      error:
+        | "not_found"
+        | "item_not_active"
+        | "too_many"
+        | "queue_full"
+        | "no_availability";
+      // too_many / queue_full 일 때 화면이 안내에 쓰는 수량
+      rentable?: number;
+      max_request?: number;
+    };
+
 export type AdminReservation = MyReservation & {
   total_qty: number;
   member_id: string;

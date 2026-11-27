@@ -16,6 +16,7 @@ import type {
   AdminReservation,
   MyReservation,
   ReservationPhoto,
+  ReservationSegment,
 } from "../../../shared/api-types";
 import { defaultDueAtIso } from "../../../shared/rental-period";
 
@@ -51,11 +52,8 @@ export type CreateReservationParams = {
 };
 
 // 한 신청이 만든 행 — pending 과 reserved 가 함께 있을 수 있다.
-export type ReservationSegment = {
-  id: number;
-  status: "pending" | "reserved";
-  qty: number;
-};
+// 모양은 shared/api-types.ts 가 단일 출처다 (장바구니 응답도 같은 타입을 쓴다).
+export type { ReservationSegment };
 
 // 결과 타입 — 호출자가 switch/discriminated union으로 처리
 type ReservationResult =

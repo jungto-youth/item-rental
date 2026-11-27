@@ -366,6 +366,22 @@ async function mockApi(page, user, options = {}) {
       json: { categories: [{ id: 1, name: "캠핑", item_count: 1 }] },
     }),
   );
+  await page.route("**/api/reservations/batch", (route) => {
+    const body = route.request().postDataJSON();
+    const results = (body?.items ?? []).map((line, index) => ({
+      item_id: line.item_id,
+      ok: true,
+      group_id: `test-group-${index}`,
+      segments: [
+        {
+          id: 100 + index,
+          status: line.item_id === 104 ? "reserved" : "pending",
+          qty: line.qty,
+        },
+      ],
+    }));
+    return route.fulfill({ status: 201, json: { results } });
+  });
   await page.route("**/api/reservations", (route) => {
     if (route.request().method() === "POST") {
       const body = route.request().postDataJSON();
@@ -467,6 +483,19 @@ const SCREENS = [
   { name: "signup-profile", path: "/signup/profile", user: MEMBER, ready: ".profile-form" },
   { name: "mypage", path: "/mypage", user: MEMBER, ready: ".page-mypage .card" },
   { name: "my-rentals", path: "/my/rentals", user: MEMBER, ready: ".reservation-row" },
+  { name: "cart", path: "/cart", user: MEMBER, ready: ".page-cart" },
+  {
+    name: "cart-filled",
+    path: "/cart",
+    user: MEMBER,
+    ready: ".cart-line",
+    storage: {
+      "item-rental:cart:v1:member": JSON.stringify([
+        { itemId: 101, qty: 2 },
+        { itemId: 102, qty: 1 },
+      ]),
+    },
+  },
   { name: "inquiries", path: "/inquiries", user: MEMBER, ready: ".inquiry-row" },
   { name: "inquiry-new", path: "/inquiries/new", user: MEMBER, ready: "form" },
   { name: "inquiry-detail", path: "/inquiries/17", user: MEMBER, ready: ".inquiry-detail" },
@@ -595,6 +624,14 @@ try {
       if (message.type() === "error") errors.push(message.text());
     });
     await mockApi(page, screen.user);
+    if (screen.storage) {
+      const entries = screen.storage;
+      await page.addInitScript((seed) => {
+        for (const [key, value] of Object.entries(seed)) {
+          localStorage.setItem(key, value);
+        }
+      }, entries);
+    }
     for (const width of [390, 1280]) {
       await page.setViewportSize({
         width,
@@ -656,6 +693,25 @@ try {
     assert.equal(await page.locator(".item-card").count(), 1);
     await page.getByText("무선 마이크", { exact: true }).waitFor();
     console.log("PASS reserved tab");
+    await context.close();
+  }
+
+  // 3-3) 목록에서 담기 → 하단 바 → 장바구니 묶음 신청.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, MEMBER);
+    await page.goto(base);
+    await page.getByRole("button", { name: "4인용 텐트 장바구니에 담기" }).click();
+    await page.getByRole("button", { name: "주차콘 장바구니에 담기" }).click();
+    await page.getByText(/장바구니 2종/).waitFor();
+    await page.getByRole("link", { name: "신청하기" }).click();
+    await page.waitForURL(/\/cart$/);
+    await page.locator(".cart-line").first().waitFor();
+    await page.getByLabel("메모 *").fill("청년 모임용");
+    await page.getByRole("button", { name: "대여 신청", exact: true }).click();
+    await page.getByText("2종을 신청했습니다", { exact: true }).waitFor();
+    console.log("PASS cart batch request");
     await context.close();
   }
 

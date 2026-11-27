@@ -14,6 +14,7 @@ import {
   formatReservationApproved,
   formatReservationApprovedBatch,
   formatReservationCreated,
+  formatReservationCreatedBatch,
   formatReservationRejected,
   formatReservationRejectedBatch,
   formatReservationReturned,
@@ -109,6 +110,47 @@ test("formatReservationCreated: 1개는 수량을 생략하고 입력의 줄바�
 
   expect(text).toBe("🔔 <b>신청</b>: 텐트 4인용 · 홍 길동 · ~11/16");
   expect(text).not.toContain("\n");
+});
+
+test("formatReservationCreatedBatch: 장바구니 묶음 신청을 한 줄로 접고 예약분을 표시한다", () => {
+  const text = formatReservationCreatedBatch([
+    {
+      itemName: "4인용 텐트",
+      qty: 2,
+      pendingQty: 2,
+      reservedQty: 0,
+      dueAt: "2026-11-16T14:59:59.999Z",
+      memberName: "홍길동",
+      memberPhone: "010-1234-5678",
+    },
+    {
+      itemName: "랜턴",
+      qty: 1,
+      pendingQty: 0,
+      reservedQty: 1,
+      dueAt: null,
+      memberName: "홍길동",
+      memberPhone: "010-1234-5678",
+    },
+    {
+      itemName: "의자",
+      qty: 3,
+      pendingQty: 2,
+      reservedQty: 1,
+      dueAt: "2026-11-16T14:59:59.999Z",
+      memberName: "홍길동",
+      memberPhone: "010-1234-5678",
+    },
+  ]);
+
+  expect(text).toBe(
+    "🔔 <b>신청</b>: 4인용 텐트 ×2, 랜턴 (예약), 의자 ×3 (예약 1) · 홍길동(010-1234-5678) · ~11/16",
+  );
+  expect(text).not.toContain("\n");
+});
+
+test("formatReservationCreatedBatch: 빈 목록은 아무것도 보내지 않는다", () => {
+  expect(formatReservationCreatedBatch([])).toBe("");
 });
 
 test("formatReservationReturned: 회원 반납과 특이사항을 한 줄로 담는다", () => {
