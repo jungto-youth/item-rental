@@ -715,6 +715,26 @@ try {
     await context.close();
   }
 
+  // 3-4) 담기 칩을 다시 누르면 장바구니에서 빠진다 — 카드에서 수량을 늘리지 않는다.
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    await mockApi(page, MEMBER);
+    await page.goto(base);
+    await page.getByRole("button", { name: "4인용 텐트 장바구니에 담기" }).click();
+    await page.getByText(/장바구니 1종/).waitFor();
+    await page.getByRole("button", { name: "4인용 텐트 장바구니에서 빼기" }).click();
+    await page.getByText(/장바구니 1종/).waitFor({ state: "detached" });
+    assert.equal(
+      await page
+        .getByRole("button", { name: "4인용 텐트 장바구니에 담기" })
+        .getAttribute("aria-label"),
+      "4인용 텐트 장바구니에 담기",
+    );
+    console.log("PASS cart toggle");
+    await context.close();
+  }
+
   // 4) 검색과 상태 필터가 목록을 좁힌다.
   {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });

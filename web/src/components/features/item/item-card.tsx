@@ -50,17 +50,18 @@ export function ItemCard(props: {
   // 관리자도 회원과 같은 장바구니를 쓴다 — 관리자 목록은 관리 동작만 다른 화면일 뿐,
   // 대여 자체는 회원과 동일하다. 담을 수 있는 수량이 없으면 칩을 숨긴다.
   const maxQty = () => maxRequestQty(props.item);
-  const addable = () => (props.cartEnabled ?? true) && maxQty() > 0;
   const inCartQty = () => cart.qtyOf(props.item.id);
-  const atMax = () => inCartQty() >= maxQty();
+  const showToggle = () =>
+    (props.cartEnabled ?? true) && (maxQty() > 0 || inCartQty() > 0);
   const cartFull = () =>
     inCartQty() === 0 && cart.count() >= MAX_CART_LINES;
-  const canAdd = () => addable() && !atMax() && !cartFull();
+  // 담긴 뒤에는 수량과 무관하게 다시 눌러 뺄 수 있어야 한다.
+  const canToggle = () =>
+    inCartQty() > 0 || (maxQty() > 0 && !cartFull());
 
-  const addLabel = () => {
+  const toggleLabel = () => {
+    if (inCartQty() > 0) return `${props.item.name} 장바구니에서 빼기`;
     if (cartFull()) return "장바구니가 가득 찼습니다";
-    if (atMax()) return `${props.item.name} — 최대 ${maxQty()}개까지 담았습니다`;
-    if (inCartQty() > 0) return `${props.item.name} 장바구니에 한 개 더 담기`;
     return `${props.item.name} 장바구니에 담기`;
   };
 
@@ -144,7 +145,7 @@ export function ItemCard(props: {
         </div>
       </a>
 
-      <Show when={addable()}>
+      <Show when={showToggle()}>
         <button
           type="button"
           class={`absolute top-2 right-2 z-10 inline-flex h-8 cursor-pointer items-center gap-1 rounded-pill border px-2 text-12 font-semibold shadow-menu transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-1 disabled:cursor-not-allowed disabled:opacity-45 ${
@@ -152,10 +153,13 @@ export function ItemCard(props: {
               ? "border-primary bg-primary-soft text-primary-strong enabled:hover:bg-surface"
               : "border-line bg-surface text-ink-1 enabled:hover:border-line-strong enabled:hover:bg-surface-muted"
           }`}
-          onClick={() => cart.add(props.item)}
-          disabled={!canAdd()}
-          aria-label={addLabel()}
-          title={addLabel()}
+          onClick={() => {
+            if (inCartQty() > 0) cart.remove(props.item.id);
+            else cart.add(props.item);
+          }}
+          disabled={!canToggle()}
+          aria-label={toggleLabel()}
+          title={toggleLabel()}
         >
           <Show
             when={inCartQty() > 0}
