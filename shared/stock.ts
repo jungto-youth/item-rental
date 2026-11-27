@@ -61,19 +61,18 @@ export function queueCapacity(it: StockLike): number {
 }
 
 // 한 번에 신청할 수 있는 최대 수량 (서버의 maxReq 와 같은 식)
+// kind(대여품/소모품)는 표시용 분류일 뿐 대여 가능 여부를 가르지 않는다.
 export function maxRequestQty(it: StockLike): number {
-  if (it.lifecycle !== "active" || it.kind === "consumable") return 0;
+  if (it.lifecycle !== "active") return 0;
   return Math.min(rentableQty(it), availableQty(it) + queueCapacity(it));
 }
 
 // 카드·행 배지 — 우선순위:
-//   폐기 > 소모품 > 수리중 > 신청 마감(unavailable) > 예약 가능(reserved) > 대여 가능(available)
-// (폐기를 소모품보다 먼저 — 관리자 목록에서 폐기 소모품이 "소모품"으로 보여
-// 대시보드 그룹(폐기)과 어긋나던 버그 수정. 공개 목록엔 폐기가 안 내려와 영향 없음)
+//   폐기 > 수리중 > 신청 마감(unavailable) > 예약 가능(reserved) > 대여 가능(available)
+// kind(소모품)는 대여 가능 여부와 무관한 표시용 분류라 배지에 쓰지 않는다.
 export function badgeFor(it: StockLike): {
   kind:
     | "retired"
-    | "neutral"
     | "repair"
     | "unavailable"
     | "reserved"
@@ -81,7 +80,6 @@ export function badgeFor(it: StockLike): {
   label: string;
 } {
   if (it.lifecycle === "retired") return { kind: "retired", label: "폐기" };
-  if (it.kind === "consumable") return { kind: "neutral", label: "소모품" };
   // 수리중은 수량 축이다 — 빌려줄 수 있는 수량이 0 이면 전부 수리중이다.
   // rentable_qty 를 우선 읽는다(서버가 계산해 내려준 값) — 없으면 total_qty - qty_repair.
   if (rentableQty(it) <= 0) {
@@ -105,32 +103,27 @@ export function badgeFor(it: StockLike): {
   return { kind: "unavailable", label: "신청 마감" };
 }
 
-// API 가 내리는 가용 배지 — 소모품은 대여 대상이 아니라 null(배지를 그리지 않음).
+// API 가 내리는 가용 배지 — 모든 물품이 대여 대상이다.
 // 목록·검색·상세가 모두 이 함수를 쓴다.
 export function availabilityBadgeOf(it: StockLike): AvailabilityBadge | null {
-  const { kind } = badgeFor(it);
-  return kind === "neutral" ? null : kind;
+  return badgeFor(it).kind;
 }
 
 // 목록 상태 칸의 구성 요소 — 이슈 #12 §6.2/§6.4.
 // 첫 조각은 '지금 무엇을 할 수 있는가'다: 대여 가능 N / 예약 가능 N / 신청 마감.
 // 이어서 '대여 중 N · 수리 중 N' 을 붙인다. 화면이 구분점·색을 소유한다.
-// 수량 0 인 항은 숨기고, 폐기·소모품은 수량 분포가 아니라 단일 라벨이다.
+// 수량 0 인 항은 숨기고, 폐기는 수량 분포가 아니라 단일 라벨이다.
 export type StatusPartKey =
   | "available"
   | "reserved"
   | "unavailable"
   | "rented"
   | "repair"
-  | "consumable"
   | "retired";
 export type StatusPart = { key: StatusPartKey; label: string };
 
 export function statusParts(it: StockLike): StatusPart[] {
   if (it.lifecycle === "retired") return [{ key: "retired", label: "폐기" }];
-  if (it.kind === "consumable") {
-    return [{ key: "consumable", label: `보유 ${it.total_qty}` }];
-  }
   const available = availableQty(it);
   const rented = rentedQty(it);
   const repair = it.qty_repair ?? 0;
@@ -161,8 +154,8 @@ export function catalogSummary(items: StockLike[]): CatalogSummary {
     types += 1;
     if ((it.active_now ?? 0) > 0) rented += 1;
     if ((it.qty_repair ?? 0) > 0) repair += 1;
-    // 소모품은 '대여' 대상이 아니다 — 대여 가능 종류에서 뺀다
-    if (it.kind !== "consumable" && availableQty(it) > 0) available += 1;
+    // 소모품도 대여 대상이다 — 종류 판정 없이 가용 수량으로 센다
+    if (availableQty(it) > 0) available += 1;
   }
   return { types, available, rented, repair };
 }

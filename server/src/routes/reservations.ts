@@ -135,8 +135,6 @@ reservationsRoute.post("/", async (c) => {
   }
 
   // 에러 처리
-  if (result.error === "consumable")
-    return c.json({ error: "consumable" }, 409);
   if (result.error === "item_not_active")
     return c.json({ error: "item_not_active" }, 409);
   if (result.error === "too_many")

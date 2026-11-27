@@ -575,7 +575,7 @@ test("가드 INSERT: 수리중(qty_repair) 수량은 빌려줄 재고가 아니�
   );
 });
 
-test("가드 INSERT: 폐기 물품은 item_not_active, 수리 소진 물품은 수량 부족으로 거절된다", async () => {
+test("가드 INSERT: 폐기 물품은 item_not_active, 수리 소진 물품은 수량 부족으로 거절되고 소모품은 대여된다", async () => {
   const db = freshDb();
   const retired = addItem(db, { lifecycle: "retired" });
   // '수리중'은 이제 생애주기가 아니라 수량 축이다 — 보유 전부가 수리중이면 빌려줄 수량이 0
@@ -596,9 +596,7 @@ test("가드 INSERT: 폐기 물품은 item_not_active, 수리 소진 물품은 �
   );
   expect(
     await createReservation(sql, { itemId: consumable, memberId, memo: null, qty: 1 }),
-  ).toEqual(
-    { error: "consumable" },
-  );
+  ).toMatchObject({ ok: true });
 });
 
 test("가드 INSERT: 없는 물품은 not_found", async () => {
@@ -1284,14 +1282,14 @@ test("listItems: state 탭은 행만 거르고 summary·total 은 모집단을 �
   const rented = addItem(db, { total_qty: 2 });
   const repaired = addItem(db, { total_qty: 1, qty_repair: 1 });
   addItem(db, { lifecycle: "retired", total_qty: 5 }); // 요약에서 제외
-  const consumable = addItem(db, { kind: "consumable", total_qty: 5 }); // 대여 가능 종류에서 제외
+  const consumable = addItem(db, { kind: "consumable", total_qty: 5 }); // 소모품도 대여 가능 종류에 포함
   db.prepare(
     "INSERT INTO reservations (item_id, member_id, qty, status) VALUES (?1, ?2, 1, 'rented')",
   ).run(rented, addMember(db, "user"));
 
-  // 요약은 모두 종류 수 — 전체 4(폐기 제외) · 대여 가능 2 · 대여 중 1 · 수리 중 1
+  // 요약은 모두 종류 수 — 전체 4(폐기 제외) · 대여 가능 3 · 대여 중 1 · 수리 중 1
   const all = await listItems(sql, { limit: 10, offset: 0, includeRetired: true });
-  expect(all.summary).toEqual({ types: 4, available: 2, rented: 1, repair: 1 });
+  expect(all.summary).toEqual({ types: 4, available: 3, rented: 1, repair: 1 });
   expect(all.total).toEqual(5); // retired 포함 행 수
 
   const rentedTab = await listItems(sql, {
@@ -1308,11 +1306,12 @@ test("listItems: state 탭은 행만 거르고 summary·total 은 모집단을 �
     offset: 0,
     state: "available",
   });
-  expect(availableTab.items.map((i) => i.id).sort()).toEqual([free, rented].sort());
-  expect(availableTab.matched).toEqual(2);
-  // repaired 는 수리 수량이 전부, consumable 은 대여 대상이 아니다
+  expect(availableTab.items.map((i) => i.id).sort()).toEqual(
+    [free, rented, consumable].sort(),
+  );
+  expect(availableTab.matched).toEqual(3);
+  // repaired 는 수리 수량이 전부라 대여할 수 없다
   expect(availableTab.items.some((i) => i.id === repaired)).toBe(false);
-  expect(availableTab.items.some((i) => i.id === consumable)).toBe(false);
 });
 
 // ===== 문의 =====

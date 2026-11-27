@@ -394,7 +394,7 @@ export default function AdminReservations() {
           ? "재고가 없어 승인할 수 없습니다. 반납 후 다시 시도해 주세요."
           : code === "due_date_required"
             ? "반납 예정일을 선택해 주세요."
-            : code === "item_not_active" || code === "consumable"
+            : code === "item_not_active"
               ? "지금은 대여할 수 없는 물품입니다."
               : code === "bad_status"
                 ? "이미 처리된 신청입니다. 목록을 새로고침해 주세요."

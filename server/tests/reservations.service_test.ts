@@ -20,7 +20,6 @@ import { stubSql } from "./_stub.ts";
 const RENTAL_ITEM: ReserveItem = {
   id: 1,
   lifecycle: "active",
-  kind: "rental",
   total_qty: 2,
   qty_repair: 0,
   rented_qty: 0,
@@ -220,16 +219,11 @@ test("validateReservation: rented/pending은 신규 배정에서 빼고 reserved
   });
 });
 
-test("validateReservation: 비활성 물품·소모품을 거른다", () => {
+test("validateReservation: 비활성 물품을 거른다", () => {
   expect(
     validateReservation({ ...RENTAL_ITEM, lifecycle: "retired" }, { qty: 1 }),
   ).toEqual(
     { error: "item_not_active" },
-  );
-  expect(
-    validateReservation({ ...RENTAL_ITEM, kind: "consumable" }, { qty: 1 }),
-  ).toEqual(
-    { error: "consumable" },
   );
 });
 

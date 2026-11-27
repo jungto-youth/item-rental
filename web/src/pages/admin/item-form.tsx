@@ -347,7 +347,7 @@ export default function AdminItemForm(props: { params: Record<string, string> })
       setError("보유 수량을 1 이상 입력해 주세요.");
       return;
     }
-    if (form().kind === "rental" && form().qty_repair > form().total_qty) {
+    if (form().qty_repair > form().total_qty) {
       setError("수리 중 수량은 보유 수량을 넘을 수 없습니다.");
       return;
     }
@@ -610,22 +610,18 @@ export default function AdminItemForm(props: { params: Record<string, string> })
                 value={String(form().total_qty)}
                 onInput={(value) => setField("total_qty", Number(value))}
               />
-              <Show when={form().kind === "rental"}>
-                <Input
-                  label="수리 중 수량"
-                  type="number"
-                  inputmode="numeric"
-                  min="0"
-                  value={String(form().qty_repair)}
-                  onInput={(value) => setField("qty_repair", Number(value))}
-                />
-              </Show>
+              <Input
+                label="수리 중 수량"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                value={String(form().qty_repair)}
+                onInput={(value) => setField("qty_repair", Number(value))}
+              />
             </div>
-            <Show when={form().kind === "rental"}>
-              <p class="m-0 text-fine text-ink-2">
-                수리 중 수량은 대여 불가 수량입니다 (보유 수량을 넘을 수 없습니다)
-              </p>
-            </Show>
+            <p class="m-0 text-fine text-ink-2">
+              수리 중 수량은 대여 불가 수량입니다 (보유 수량을 넘을 수 없습니다)
+            </p>
             <p class="m-0 text-fine text-ink-2">
               보유 수량을 바꾸면 저장 시 반영됩니다. 대여 중·수리 중 수량보다
               적게 줄일 수 없습니다.

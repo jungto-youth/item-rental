@@ -33,7 +33,6 @@ function parseReturnPhotos(value: unknown): ReservationPhoto[] {
 export type ReserveItem = {
   id: number;
   lifecycle: string;
-  kind: string;
   total_qty: number;
   qty_repair: number;
   rented_qty: number;
@@ -63,7 +62,6 @@ type ReservationResult =
   | { ok: true; group_id: string; segments: ReservationSegment[] }
   | { error: "not_found" }
   | { error: "item_not_active" }
-  | { error: "consumable" }
   | { error: "too_many"; rentable: number }
   | { error: "queue_full"; max_request: number; rentable: number }
   | { error: "no_availability" };
@@ -74,7 +72,7 @@ async function getItemForReservation(
   itemId: number,
 ): Promise<ReserveItem | null> {
   const [row] = (await db.query(
-    `SELECT items.id, items.lifecycle, items.kind, items.total_qty, items.qty_repair,
+    `SELECT items.id, items.lifecycle, items.total_qty, items.qty_repair,
             (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
               WHERE r.item_id = items.id AND r.status = 'rented') AS rented_qty,
             (SELECT COALESCE(SUM(r.qty), 0) FROM reservations r
@@ -94,13 +92,10 @@ export function validateReservation(
 ):
   | { ok: true }
   | { error: "item_not_active" }
-  | { error: "consumable" }
   | { error: "too_many"; rentable: number }
   | { error: "queue_full"; max_request: number; rentable: number } {
   // 폐기(lifecycle='retired')면 대여 불가. '수리중'은 아래 수량(rentable)에서 걸러진다
   if (item.lifecycle !== "active") return { error: "item_not_active" };
-  // 소모품은 대여 대상이 아니다 ()
-  if (item.kind === "consumable") return { error: "consumable" };
   const rentable = item.total_qty - item.qty_repair;
   if (params.qty > rentable) return { error: "too_many", rentable };
 
@@ -152,7 +147,6 @@ export async function createReservation(
                 (SELECT COALESCE(SUM(qty), 0) FROM reservations
                   WHERE item_id = ?1 AND status = 'reserved') AS reserved,
                 (SELECT lifecycle FROM items WHERE id = ?1) AS lifecycle,
-                (SELECT kind FROM items WHERE id = ?1) AS kind,
                 (SELECT name FROM items WHERE id = ?1) AS item_name,
                 (SELECT l.name FROM locations l
                    JOIN items i ON i.location_id = l.id WHERE i.id = ?1) AS item_location,
@@ -164,7 +158,6 @@ export async function createReservation(
                 MAX(0, r - reserved) AS queue_cap
            FROM p
           WHERE lifecycle = 'active'
-            AND kind <> 'consumable'
             AND req <= r
             AND req <= MAX(0, r - rented - pending - reserved)
                      + MAX(0, r - reserved)
@@ -509,9 +502,9 @@ export async function listReservations(
             -- 승인 가능 여부(파생). pending 은 이미 점유된 몫이라 상태만 보면 된다.
             -- reserved 는 승인 시점에 새로 점유하므로 현재 점유 합계를 다시 센다.
             (r.status = 'pending'
-             AND items.lifecycle = 'active' AND items.kind <> 'consumable') AS approvable_pending,
+             AND items.lifecycle = 'active') AS approvable_pending,
             (r.status = 'reserved'
-             AND items.lifecycle = 'active' AND items.kind <> 'consumable'
+             AND items.lifecycle = 'active'
              AND r.qty + COALESCE(stock.rented_qty, 0) + COALESCE(stock.pending_qty, 0)
                  <= items.total_qty - items.qty_repair) AS approvable_reserved,
             (SELECT json_group_array(json_object(
@@ -564,7 +557,6 @@ export type ApprovalResult =
         | "not_found"
         | "bad_status"
         | "item_not_active"
-        | "consumable"
         | "due_date_required"
         | "no_availability";
     };
@@ -613,7 +605,7 @@ export async function approveReservation(
       WHERE id = ?1 AND status IN ('pending', 'reserved')
         AND EXISTS (SELECT 1 FROM items
                      WHERE items.id = reservations.item_id
-                       AND lifecycle = 'active' AND kind <> 'consumable')
+                       AND lifecycle = 'active')
         AND (
           (status = 'pending'
            AND qty + COALESCE((SELECT SUM(r.qty) FROM reservations r
@@ -645,12 +637,11 @@ export async function approveReservation(
   }
 
   const [item] = (await db.query(
-    `SELECT lifecycle, kind FROM items WHERE id = ?1`,
+    `SELECT lifecycle FROM items WHERE id = ?1`,
     [cur.item_id],
-  )) as { lifecycle: string; kind: string }[];
+  )) as { lifecycle: string }[];
   if (!item) return { error: "not_found" };
   if (item.lifecycle !== "active") return { error: "item_not_active" };
-  if (item.kind === "consumable") return { error: "consumable" };
   return { error: "no_availability" };
 }
 

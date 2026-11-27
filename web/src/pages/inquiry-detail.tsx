@@ -148,7 +148,7 @@ export default function InquiryDetail(props: { params: Record<string, string> })
                         </p>
                       </article>
 
-                      <section class="mt-2 rounded-card border border-line bg-surface p-6 max-sm:p-4">
+                      <section class="mt-6 rounded-card border border-line bg-surface p-6 max-sm:p-4">
                         <h2 class="m-0 text-body font-semibold text-ink-1">답변</h2>
                         <Show
                           when={it().status === "answered" && it().answer}
@@ -159,7 +159,7 @@ export default function InquiryDetail(props: { params: Record<string, string> })
                             </p>
                           }
                         >
-                          <p class="mt-4 m-0 whitespace-pre-wrap text-body leading-normal text-ink-1 [overflow-wrap:anywhere]">
+                          <p class="mt-6 m-0 whitespace-pre-wrap text-body leading-normal text-ink-1 [overflow-wrap:anywhere]">
                             {it().answer}
                           </p>
                           <p class="mt-4 m-0 text-fine text-ink-2">

@@ -82,12 +82,11 @@ export function ItemExplorer(props: {
     if (props.tab === "reserved") {
       return (
         item.lifecycle === "active" &&
-        item.kind !== "consumable" &&
         availableQty(item) === 0 &&
         queueCapacity(item) > 0
       );
     }
-    return item.kind !== "consumable" && availableQty(item) > 0;
+    return item.lifecycle === "active" && availableQty(item) > 0;
   };
 
   // 관리자도 목록에서는 공개 상세로 들어간다 — 수정은 상세의 '수정' 버튼이 맡는다.

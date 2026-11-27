@@ -101,24 +101,21 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
     const it = item();
     if (!it) return [];
     const pairs: [string, string][] = [];
-    if (it.kind === "consumable") {
-      pairs.push(["보유 수량", `${it.total_qty}개`]);
-      pairs.push(["구분", "소모품"]);
-    } else {
-      pairs.push(["대여 가능", `${availableNow()}개`]);
-      if (availableNow() === 0) {
-        const queue = queueCapacity(it);
-        if (queue > 0) pairs.push(["예약 가능", `${queue}개`]);
-      }
-      if ((it.pending_qty ?? 0) > 0) {
-        pairs.push(["승인 대기", `${it.pending_qty}개`]);
-      }
-      if ((it.reserved_qty ?? 0) > 0) {
-        pairs.push(["예약 대기", `${it.reserved_qty}개`]);
-      }
-      pairs.push(["전체 보유", `${it.total_qty}개`]);
-      if ((it.qty_repair ?? 0) > 0) pairs.push(["수리 중", `${it.qty_repair}개`]);
+    // kind 는 표시용 분류다 — 소모품도 대여 대상이므로 수량·가용성은 같게 보여 준다.
+    if (it.kind === "consumable") pairs.push(["구분", "소모품"]);
+    pairs.push(["대여 가능", `${availableNow()}개`]);
+    if (availableNow() === 0) {
+      const queue = queueCapacity(it);
+      if (queue > 0) pairs.push(["예약 가능", `${queue}개`]);
     }
+    if ((it.pending_qty ?? 0) > 0) {
+      pairs.push(["승인 대기", `${it.pending_qty}개`]);
+    }
+    if ((it.reserved_qty ?? 0) > 0) {
+      pairs.push(["예약 대기", `${it.reserved_qty}개`]);
+    }
+    pairs.push(["전체 보유", `${it.total_qty}개`]);
+    if ((it.qty_repair ?? 0) > 0) pairs.push(["수리 중", `${it.qty_repair}개`]);
     if (it.location) pairs.push(["보관 위치", it.location]);
     return pairs;
   };
@@ -249,7 +246,7 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
                   /></div>
                   <RentalSteps class="mt-4" />
                   <Show when={it().lifecycle === "active"}>
-                    <div class="mt-2 flex justify-end">
+                    <div class="mt-4 flex justify-end">
                       <Button
                         variant="secondary"
                         onClick={() => navigate(`/inquiries/new?item=${it().id}`)}

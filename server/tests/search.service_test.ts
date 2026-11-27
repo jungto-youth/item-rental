@@ -45,7 +45,8 @@ const cases: Array<[Partial<ListItemRow>, ListItemWithBadge["availability_badge"
   [{ rentable_qty: 0 }, "repair"],
   // 폐기는 수량과 무관하게 retired — 관리자 목록에서만 내려온다
   [{ lifecycle: "retired" }, "retired"],
-  [{ kind: "consumable" }, null],
+  // 소모품도 대여 대상이다 — kind 는 표시용 분류일 뿐 배지를 가르지 않는다
+  [{ kind: "consumable" }, "available"],
 ];
 
 for (const [overrides, expected] of cases) {

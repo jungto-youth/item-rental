@@ -269,8 +269,9 @@ export async function updateItem(
     }
   }
 
-  // 폐기·소모품 전환은 대기·대여 건이 없을 때만. 남아 있으면 승인할 수 없는 예약이 생긴다.
-  const closesItem = fields.lifecycle === "retired" || fields.kind === "consumable";
+  // 폐기 전환은 대기·대여 건이 없을 때만. 남아 있으면 승인할 수 없는 예약이 생긴다.
+  // 소모품(kind)은 대여 대상이므로 여기서 막지 않는다.
+  const closesItem = fields.lifecycle === "retired";
   if (closesItem) {
     const [open] = (await db.query(
       `SELECT COALESCE(SUM(qty), 0) AS open_qty FROM reservations

@@ -24,7 +24,8 @@ export type AvailabilityBadge =
   | "repair"
   | "retired";
 
-// 대여품/소모품  — 소모품은 재고가 줄기만 하고 대여 기간 개념이 없다
+// 대여품/소모품 — 표시용 분류. 소모품도 대여할 수 있고, 대여 가능 여부는
+// 생애주기와 수량(재고·수리·대여 중)으로만 결정된다.
 export type ItemKind = "rental" | "consumable";
 
 // 카테고리 — 관리자가 물품 등록·수정 중에 만들고 고치는 가벼운 분류

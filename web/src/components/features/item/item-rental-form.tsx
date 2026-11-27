@@ -182,192 +182,176 @@ export function ItemRentalForm(props: {
           </div>
         }
       >
-        <Show when={props.item.kind !== "consumable"}>
+        <Show
+          when={props.userReady}
+          fallback={<Notice>사용자 확인 중…</Notice>}
+        >
           <Show
-            when={props.userReady}
-            fallback={<Notice>사용자 확인 중…</Notice>}
+            when={props.user}
+            fallback={
+              <Notice
+                action={
+                  <Button variant="secondary" onClick={() => navigate("/login")}>
+                    로그인
+                  </Button>
+                }
+              >
+                대여하려면 로그인이 필요합니다.
+              </Notice>
+            }
           >
             <Show
-              when={props.user}
+              when={props.item.lifecycle === "active"}
               fallback={
-                <Notice
-                  action={
-                    <Button variant="secondary" onClick={() => navigate("/login")}>
-                      로그인
-                    </Button>
-                  }
-                >
-                  대여하려면 로그인이 필요합니다.
-                </Notice>
+                <Notice tone="danger">더 이상 대여하지 않는 물품입니다.</Notice>
               }
             >
               <Show
-                when={props.item.lifecycle === "active"}
+                when={maxRequest() > 0}
                 fallback={
-                  <Notice tone="danger">더 이상 대여하지 않는 물품입니다.</Notice>
+                  <Notice tone="danger">
+                    지금은 대여도 예약도 마감되었습니다 — 반납 후 다시 확인해 주세요.
+                  </Notice>
                 }
               >
-                <Show
-                  when={maxRequest() > 0}
-                  fallback={
-                    <Notice tone="danger">
-                      지금은 대여도 예약도 마감되었습니다 — 반납 후 다시 확인해 주세요.
-                    </Notice>
-                  }
+                <form
+                  class="box-border flex flex-col rounded-card border border-line bg-surface p-6 max-sm:p-4"
+                  onSubmit={handleSubmit}
                 >
-                  <form
-                    class="box-border flex flex-col rounded-card border border-line bg-surface p-6 max-sm:p-4"
-                    onSubmit={handleSubmit}
-                  >
-                    <h3 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">
-                      {availableNow() > 0 ? "대여 신청" : "예약 신청"}
-                    </h3>
+                  <h3 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">
+                    {availableNow() > 0 ? "대여 신청" : "예약 신청"}
+                  </h3>
 
-                    <Show when={availableNow() === 0}>
-                      <p class="mt-2 text-fine leading-normal text-ink-2">
-                        지금은 대여 가능한 재고가 없어 예약으로 접수됩니다.
-                        관리자가 반납 순서대로 승인합니다.
-                      </p>
-                    </Show>
+                  <Show when={availableNow() === 0}>
+                    <p class="mt-2 text-fine leading-normal text-ink-2">
+                      지금은 대여 가능한 재고가 없어 예약으로 접수됩니다.
+                      관리자가 반납 순서대로 승인합니다.
+                    </p>
+                  </Show>
 
-                    <div class="mt-6 flex items-center justify-between gap-4">
-                      <span class="text-fine font-medium text-ink-2">
-                        신청 수량
-                      </span>
-                      <Show
-                        when={maxRequest() > 1}
-                        fallback={
-                          <span class="inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-body font-semibold text-ink-1">
-                            1개
-                          </span>
-                        }
-                      >
-                        <div class="inline-flex h-10 items-center overflow-hidden rounded-card border border-line bg-surface">
-                          <button
-                            type="button"
-                            class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-20 text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
-                            onClick={() => setQty((value) => Math.max(1, value - 1))}
-                            disabled={qty() <= 1}
-                            aria-label="수량 감소"
-                          >
-                            −
-                          </button>
-                          <input
-                            class="h-10 w-12 border-x border-line bg-transparent text-center text-body font-semibold text-ink-1 focus:border-primary focus:outline-none"
-                            type="number"
-                            inputmode="numeric"
-                            min="1"
-                            max={maxRequest()}
-                            value={qty()}
-                            onInput={(event) => {
-                              const value = parseInt(event.currentTarget.value, 10);
-                              if (Number.isFinite(value)) setQty(value);
-                            }}
-                            onBlur={handleQtyBlur}
-                            aria-label="신청 수량 직접 입력"
-                          />
-                          <button
-                            type="button"
-                            class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-20 text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
-                            onClick={() =>
-                              setQty((value) => Math.min(maxRequest(), value + 1))
-                            }
-                            disabled={qty() >= maxRequest()}
-                            aria-label="수량 증가"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </Show>
-                    </div>
-
-                    <div class="mt-4 grid gap-1 rounded-card bg-surface-muted px-4 py-3 text-fine leading-normal text-ink-2">
-                      <span>
-                        지금 대여 신청{" "}
-                        <b class="font-semibold text-ink-1">{nowQty()}개</b>
-                      </span>
-                      <Show when={waitQty() > 0}>
-                        <span>
-                          반납 대기 예약{" "}
-                          <b class="font-semibold text-ink-1">{waitQty()}개</b>
+                  <div class="mt-6 flex items-center justify-between gap-4">
+                    <span class="text-fine font-medium text-ink-2">
+                      신청 수량
+                    </span>
+                    <Show
+                      when={maxRequest() > 1}
+                      fallback={
+                        <span class="inline-flex h-10 items-center rounded-card border border-line bg-surface px-4 text-body font-semibold text-ink-1">
+                          1개
                         </span>
-                      </Show>
-                    </div>
-
-                    <Show when={needsDueDate()}>
-                      <Input
-                        class="mt-4"
-                        label="반납 예정일 *"
-                        type="date"
-                        min={minDueDateKst()}
-                        max={maxDueDateKst()}
-                        value={dueDate()}
-                        onInput={setDueDate}
-                        required
-                      />
-                      <p class="mt-2 text-fine leading-normal text-ink-2">
-                        내일부터 30일 이내로 선택해 주세요.
-                      </p>
+                      }
+                    >
+                      <div class="inline-flex h-10 items-center overflow-hidden rounded-card border border-line bg-surface">
+                        <button
+                          type="button"
+                          class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-20 text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
+                          onClick={() => setQty((value) => Math.max(1, value - 1))}
+                          disabled={qty() <= 1}
+                          aria-label="수량 감소"
+                        >
+                          −
+                        </button>
+                        <input
+                          class="h-10 w-12 border-x border-line bg-transparent text-center text-body font-semibold text-ink-1 focus:border-primary focus:outline-none"
+                          type="number"
+                          inputmode="numeric"
+                          min="1"
+                          max={maxRequest()}
+                          value={qty()}
+                          onInput={(event) => {
+                            const value = parseInt(event.currentTarget.value, 10);
+                            if (Number.isFinite(value)) setQty(value);
+                          }}
+                          onBlur={handleQtyBlur}
+                          aria-label="신청 수량 직접 입력"
+                        />
+                        <button
+                          type="button"
+                          class="flex size-10 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-20 text-ink-2 enabled:hover:text-ink-1 disabled:cursor-not-allowed disabled:opacity-40"
+                          onClick={() =>
+                            setQty((value) => Math.min(maxRequest(), value + 1))
+                          }
+                          disabled={qty() >= maxRequest()}
+                          aria-label="수량 증가"
+                        >
+                          +
+                        </button>
+                      </div>
                     </Show>
+                  </div>
+
+                  <div class="mt-4 grid gap-1 rounded-card bg-surface-muted px-4 py-3 text-fine leading-normal text-ink-2">
+                    <span>
+                      지금 대여 신청{" "}
+                      <b class="font-semibold text-ink-1">{nowQty()}개</b>
+                    </span>
                     <Show when={waitQty() > 0}>
-                      <p class="mt-2 text-fine leading-normal text-ink-2">
-                        예약분의 반납 예정일은 관리자가 승인할 때 정합니다.
-                      </p>
+                      <span>
+                        반납 대기 예약{" "}
+                        <b class="font-semibold text-ink-1">{waitQty()}개</b>
+                      </span>
                     </Show>
+                  </div>
 
+                  <Show when={needsDueDate()}>
                     <Input
                       class="mt-4"
-                      label="메모 *"
-                      placeholder="용도, 수령처 등"
-                      value={memo()}
-                      onInput={setMemo}
+                      label="반납 예정일 *"
+                      type="date"
+                      min={minDueDateKst()}
+                      max={maxDueDateKst()}
+                      value={dueDate()}
+                      onInput={setDueDate}
                       required
                     />
-
-                    <Show when={message()}>
-                      <p
-                        class="mt-2 text-fine leading-normal text-danger"
-                        aria-live="polite"
-                      >
-                        {message()}
-                      </p>
-                    </Show>
-
-                    <Button
-                      class="mt-6 w-full"
-                      variant="primary"
-                      type="submit"
-                      loading={saving()}
-                    >
-                      {nowQty() > 0 && waitQty() > 0
-                        ? "대여 신청 + 예약"
-                        : waitQty() > 0
-                          ? "예약하기"
-                          : "대여하기"}
-                    </Button>
                     <p class="mt-2 text-fine leading-normal text-ink-2">
-                      {waitQty() > 0
-                        ? "예약분은 반납 순서대로 승인됩니다. 반납 예정일은 승인할 때 정해집니다."
-                        : "신청 후 관리자가 승인하면 대여가 시작됩니다."}
+                      내일부터 30일 이내로 선택해 주세요.
                     </p>
-                  </form>
-                </Show>
+                  </Show>
+                  <Show when={waitQty() > 0}>
+                    <p class="mt-2 text-fine leading-normal text-ink-2">
+                      예약분의 반납 예정일은 관리자가 승인할 때 정합니다.
+                    </p>
+                  </Show>
+
+                  <Input
+                    class="mt-4"
+                    label="메모 *"
+                    placeholder="용도, 수령처 등"
+                    value={memo()}
+                    onInput={setMemo}
+                    required
+                  />
+
+                  <Show when={message()}>
+                    <p
+                      class="mt-2 text-fine leading-normal text-danger"
+                      aria-live="polite"
+                    >
+                      {message()}
+                    </p>
+                  </Show>
+
+                  <Button
+                    class="mt-6 w-full"
+                    variant="primary"
+                    type="submit"
+                    loading={saving()}
+                  >
+                    {nowQty() > 0 && waitQty() > 0
+                      ? "대여 신청 + 예약"
+                      : waitQty() > 0
+                        ? "예약하기"
+                        : "대여하기"}
+                  </Button>
+                  <p class="mt-2 text-fine leading-normal text-ink-2">
+                    {waitQty() > 0
+                      ? "예약분은 반납 순서대로 승인됩니다. 반납 예정일은 승인할 때 정해집니다."
+                      : "신청 후 관리자가 승인하면 대여가 시작됩니다."}
+                  </p>
+                </form>
               </Show>
             </Show>
-          </Show>
-          <Show when={props.item.kind === "consumable"}>
-            <Notice
-              action={
-                <a
-                  class="text-fine font-semibold text-primary-strong no-underline hover:text-primary"
-                  href={`/inquiries/new?item=${props.item.id}`}
-                >
-                  문의하기
-                </a>
-              }
-            >
-              소모품입니다 — 별도 대여 신청 없이 관리자에게 문의해 주세요.
-            </Notice>
           </Show>
         </Show>
       </Show>

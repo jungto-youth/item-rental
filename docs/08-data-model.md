@@ -20,7 +20,8 @@ D1 테이블은 `migrations-d1/`이 정의한다. 주요 축은 다음과 같다
 - 물품 상태 배지는 `available` · `reserved` · `unavailable` · `rented` · `repair` · `retired`
   다. `retired`는 관리자 목록에서만 보인다. `reserved`는 "예약 신청 가능", `unavailable`은
   "신청 마감"이다.
-- 소모품(`consumable`)은 재고가 줄기만 하고 대여 기간 개념이 없다.
+- 소모품(`consumable`)은 표시용 분류다. 대여 가능 여부는 생애주기와 수량으로만 정해지므로
+  소모품도 대여·예약할 수 있다.
 
 ## 대여 상태와 재고
 

@@ -74,21 +74,20 @@ function categoryWhere(category: string | null | undefined): string {
 }
 
 // 대여 가능 조건 — shared/stock 의 availableQty(newCap) 와 같은 규칙.
-// 소모품은 대여 대상이 아니므로 항상 "가능". 폐기(lifecycle)와 수리 소진·재고 0은 제외.
+// 소모품도 대여 대상이다 — kind 로 거르지 않는다. 폐기(lifecycle)와 수리 소진·재고 0은 제외.
 // newCap = R - rented - pending - reserved 이므로 세 상태의 합과 비교한다.
-const AVAILABLE_SQL = `(items.kind = 'consumable'
-   OR (items.lifecycle = 'active'
-       AND (items.total_qty - items.qty_repair) > (SELECT COALESCE(SUM(r.qty), 0)
-             FROM reservations r
-             WHERE r.item_id = items.id
-               AND r.status IN ('rented', 'pending', 'reserved'))))`;
+const AVAILABLE_SQL = `(items.lifecycle = 'active'
+   AND (items.total_qty - items.qty_repair) > (SELECT COALESCE(SUM(r.qty), 0)
+         FROM reservations r
+         WHERE r.item_id = items.id
+           AND r.status IN ('rented', 'pending', 'reserved')))`;
 
 // 대여 중 — 지금 점유가 있는 물품 (상태 탭 '대여 중')
 const RENTED_SQL = `EXISTS (SELECT 1 FROM reservations r
    WHERE r.item_id = items.id AND r.status = 'rented')`;
 
-// 예약 가능 — 지금은 0이지만 대기열 자리가 남은 대여품 (newCap = 0, queueCap > 0)
-const RESERVED_SQL = `(items.lifecycle = 'active' AND items.kind = 'rental'
+// 예약 가능 — 지금은 0이지만 대기열 자리가 남은 물품 (newCap = 0, queueCap > 0)
+const RESERVED_SQL = `(items.lifecycle = 'active'
    AND (items.total_qty - items.qty_repair) <= (SELECT COALESCE(SUM(r.qty), 0)
          FROM reservations r
          WHERE r.item_id = items.id AND r.status IN ('rented', 'pending', 'reserved'))
@@ -96,8 +95,8 @@ const RESERVED_SQL = `(items.lifecycle = 'active' AND items.kind = 'rental'
          FROM reservations r
          WHERE r.item_id = items.id AND r.status = 'reserved'))`;
 
-// 대여 가능 종류 — 소모품은 '대여' 대상이 아니다 (요약 숫자와 같은 규칙)
-const RENTAL_AVAILABLE_SQL = `(items.kind = 'rental' AND ${AVAILABLE_SQL})`;
+// 대여 가능 종류 — 대여 가능 조건과 같다 (요약 숫자와 같은 규칙)
+const RENTAL_AVAILABLE_SQL = AVAILABLE_SQL;
 
 // 수리 중 — 수리 수량이 있는 물품 (상태 탭 '수리 중')
 const REPAIR_SQL = `items.qty_repair > 0`;
@@ -197,7 +196,7 @@ export async function listItems(
               COALESCE(SUM(CASE WHEN items.lifecycle <> 'retired' AND COALESCE(r.rented, 0) > 0 THEN 1 ELSE 0 END), 0) AS rented,
               COALESCE(SUM(CASE WHEN items.lifecycle <> 'retired' AND items.qty_repair > 0 THEN 1 ELSE 0 END), 0) AS repair,
               COALESCE(SUM(CASE
-                WHEN items.lifecycle <> 'retired' AND items.kind = 'rental'
+                WHEN items.lifecycle <> 'retired'
                  AND items.total_qty - items.qty_repair - COALESCE(r.held, 0) > 0 THEN 1
                 ELSE 0
               END), 0) AS available
