@@ -51,7 +51,6 @@ export function RentalPeriodPicker(props: {
         onChange={(value) => props.onChange(addDaysIso(today, Number(value)))}
       />
       <Input
-        class="mt-1"
         label="반납 예정일 *"
         type="date"
         min={minDueDateKst()}

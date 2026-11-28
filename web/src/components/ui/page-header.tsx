@@ -7,7 +7,7 @@ export function PageHeader(props: {
   action?: JSX.Element;
 }) {
   return (
-    <div class="mb-8 block">
+    <div class="mb-6 block">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="min-w-0">
           <h1 class="m-0 text-page-title font-bold tracking-tight text-ink-1">
@@ -20,7 +20,7 @@ export function PageHeader(props: {
           </Show>
         </div>
         <Show when={props.action}>
-          <div class="flex shrink-0 flex-wrap items-center gap-2 max-sm:w-full max-sm:justify-end">
+          <div class="flex shrink-0 flex-wrap items-center gap-2 max-sm:w-full max-sm:[&>*]:min-w-0 max-sm:[&>*]:flex-1">
             {props.action}
           </div>
         </Show>

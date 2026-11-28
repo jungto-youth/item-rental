@@ -120,7 +120,10 @@ export default function MyPage() {
                 <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
                   <div class="min-w-0">
                     <section>
-                      <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">계정 정보</h2>
+                      {/* 수정 중에는 폼 카드가 같은 제목을 이미 갖는다 — 바깥 h2는 보기 모드에만 둔다. */}
+                      <Show when={!editing()}>
+                        <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">계정 정보</h2>
+                      </Show>
 
                       <Show
                         when={editing()}
@@ -170,7 +173,7 @@ export default function MyPage() {
                         }
                       >
                         <ProfileForm
-                          class="mt-6"
+                          class="mt-0"
                           title="계정 정보 수정"
                           hint="이메일은 변경할 수 없습니다."
                           avatar

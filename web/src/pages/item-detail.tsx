@@ -249,6 +249,7 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
                     <div class="mt-4 flex justify-end">
                       <Button
                         variant="secondary"
+                        class="max-sm:w-full"
                         onClick={() => navigate(`/inquiries/new?item=${it().id}`)}
                       >
                         이 물품 문의하기
@@ -259,6 +260,7 @@ export default function ItemDetail(props: { params: Record<string, string> }) {
               </div>
 
               <Show when={related().length > 0}>
+                {/* 구분선으로 나누는 별도 묶음 — 선 위아래 32px (docs/10 문서 리듬). */}
                 <section class="mt-8 border-t border-line pt-8">
                   <div class="flex items-end justify-between gap-4">
                     <div>

@@ -33,7 +33,7 @@ export default function SignupProfile() {
   return (
     <div class="box-border flex min-h-dvh items-center justify-center px-4 py-8">
       <Show when={ready()}>
-        <div class="w-full max-w-[340px]">
+        <div class="w-full max-w-onboarding">
           <div class="text-center">
             <h1 class="m-0 text-page-title font-bold tracking-tight text-ink-1">
               {hasName() ? "연락처와 소속을 등록해 주세요" : "반가워요"}

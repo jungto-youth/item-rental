@@ -96,7 +96,7 @@ export default function Login() {
   return (
     <div class="page-login block">
       <div class="box-border flex min-h-dvh flex-col items-center justify-center p-4">
-        <div class="flex w-full max-w-[340px] flex-col items-center text-center">
+        <div class="flex w-full max-w-onboarding flex-col items-center text-center">
           <div class="flex flex-col items-center">
             <BrandLogo size="lg" />
             <h1 class="mt-2 text-page-title font-bold tracking-tight text-ink-1">{APP_NAME}</h1>

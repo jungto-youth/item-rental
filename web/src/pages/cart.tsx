@@ -478,7 +478,7 @@ export default function Cart() {
                                   >
                                     {item().name}
                                   </a>
-                                  <p class="mt-1 text-fine leading-normal text-ink-2">
+                                  <p class="mt-2 text-fine leading-normal text-ink-2">
                                     {item().location || "위치 미지정"}
                                   </p>
                                 </>
@@ -486,7 +486,7 @@ export default function Cart() {
                             </Show>
 
                             <Show when={view().active}>
-                              <p class="mt-1 text-fine leading-normal text-ink-2 tabular-nums">
+                              <p class="mt-2 text-fine leading-normal text-ink-2 tabular-nums">
                                 <Show when={view().now > 0}>
                                   지금 대여{" "}
                                   <b class="font-semibold text-ink-1">
@@ -506,7 +506,7 @@ export default function Cart() {
                             </Show>
 
                             <Show when={!view().active}>
-                              <p class="mt-1 text-fine leading-normal text-danger">
+                              <p class="mt-2 text-fine leading-normal text-danger">
                                 지금은 신청할 수 없습니다 — 빼거나 나중에 다시
                                 담아 주세요.
                               </p>
@@ -514,7 +514,7 @@ export default function Cart() {
 
                             <Show when={errors().get(line.itemId)}>
                               <p
-                                class="mt-1 text-fine leading-normal text-danger"
+                                class="mt-2 text-fine leading-normal text-danger"
                                 role="status"
                               >
                                 {errors().get(line.itemId)}

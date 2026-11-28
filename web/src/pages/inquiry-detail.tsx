@@ -149,7 +149,7 @@ export default function InquiryDetail(props: { params: Record<string, string> })
                       </article>
 
                       <section class="mt-6 rounded-card border border-line bg-surface p-6 max-sm:p-4">
-                        <h2 class="m-0 text-body font-semibold text-ink-1">답변</h2>
+                        <h2 class="m-0 text-heading leading-normal font-semibold tracking-tight text-ink-1">답변</h2>
                         <Show
                           when={it().status === "answered" && it().answer}
                           fallback={

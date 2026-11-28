@@ -76,9 +76,7 @@
   --shadow-modal: var(--shadow-modal);
 
   --container-layout: var(--layout-max);
-  --container-form: var(--layout-form);
   --container-onboarding: var(--layout-onboarding);
-  --container-doc: var(--layout-doc);
 }
 
 @layer base {

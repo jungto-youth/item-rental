@@ -171,7 +171,7 @@ export function ItemCard(props: {
             }
           >
             <CheckIcon class="size-3" />
-            담김 {inCartQty()}
+            담김
           </Show>
         </button>
       </Show>

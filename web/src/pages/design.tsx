@@ -210,9 +210,7 @@ const RADII = [
 
 const LAYOUTS = [
   { token: "layout-max", value: "1280px", use: "헤더·본문·푸터 공통" },
-  { token: "layout-form", value: "720px", use: "폼·계정 카드" },
-  { token: "layout-onboarding", value: "400px", use: "로그인·프로필 등록" },
-  { token: "layout-doc", value: "1280px", use: "정책·디자인 문서 셸" },
+  { token: "layout-onboarding", value: "340px", use: "로그인·프로필 등록" },
 ];
 
 const BREAKPOINTS = [

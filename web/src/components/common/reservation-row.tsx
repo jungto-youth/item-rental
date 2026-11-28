@@ -49,7 +49,7 @@ export function ReservationRow(props: Props) {
           </Show>
         </div>
         <Show when={props.children}>
-          <div class="mt-2 grid gap-1 text-fine text-ink-2 [overflow-wrap:anywhere] [&>*]:m-0">
+          <div class="mt-2 grid gap-2 text-fine text-ink-2 [overflow-wrap:anywhere] [&>*]:m-0">
             {props.children}
           </div>
         </Show>
@@ -78,7 +78,7 @@ export function ReservationListSkeleton(props: { label?: string; rows?: number }
                   class="ml-auto h-9 w-14 shrink-0 rounded-card"
                 />
               </div>
-              <div class="mt-2 grid gap-1">
+              <div class="mt-2 grid gap-2">
                 <Skeleton class="h-3.5 w-3/5 rounded" />
                 <Skeleton class="h-3.5 w-2/5 rounded" />
               </div>
